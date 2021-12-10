@@ -32,7 +32,7 @@ import org.osgi.service.component.annotations.Component;
 public class ClusteringServiceFactory implements ServiceFactory<ClusteringService> {
 
   @Override
-  public ClusteringService create(final ServiceCreationConfiguration<ClusteringService> configuration) {
+  public ClusteringService create(final ServiceCreationConfiguration<ClusteringService, ?> configuration) {
     return new DefaultClusteringService((ClusteringServiceConfiguration) configuration);
   }
 

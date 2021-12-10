@@ -50,7 +50,7 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
   }
 
   @Override
-  public SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?>... serviceConfigs) {
+  public SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?, ?>... serviceConfigs) {
     boolean isByteSized = resourceUnit instanceof MemoryUnit;
     if(!isByteSized) {
       return new NoopSizeOfEngine(); // Noop Size of Engine

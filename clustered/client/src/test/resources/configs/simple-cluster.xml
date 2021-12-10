@@ -23,7 +23,7 @@
     <tc:cluster>
       <tc:connection url="terracotta://example.com:9540/cachemanager"/>
       <tc:read-timeout unit="seconds">5</tc:read-timeout>
-      <tc:server-side-config auto-create="true">
+      <tc:server-side-config client-mode="auto-create">
         <tc:shared-pool name="shared-pool" from="primary-server-resource" unit="MB">8</tc:shared-pool>
       </tc:server-side-config>
     </tc:cluster>

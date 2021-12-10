@@ -432,18 +432,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   }
 
   void closeInternal() {
-    closeInternal(false);
-  }
-
-  private void closeInternal(boolean destroy) {
     if (hypotheticallyClosed.compareAndSet(false, true)) {
-      if (destroy) {
-        try {
-          clear(false);
-        } catch (Throwable t) {
-          throw cacheResources.closeResourcesAfter(new CacheException(t));
-        }
-      }
       cacheResources.closeResources();
     }
   }
@@ -453,10 +442,6 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       close();
     }
     return hypotheticallyClosed.get();
-  }
-
-  void destroy() {
-    closeInternal(true);
   }
 
   @Override

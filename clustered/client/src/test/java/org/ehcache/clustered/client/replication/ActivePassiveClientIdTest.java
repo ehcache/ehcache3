@@ -101,7 +101,7 @@ public class ActivePassiveClientIdTest {
 
     ClusteringServiceConfiguration configuration =
       ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-        .autoCreate()
+        .autoCreate(c -> c)
         .build();
 
     service = new ClusteringServiceFactory().create(configuration);

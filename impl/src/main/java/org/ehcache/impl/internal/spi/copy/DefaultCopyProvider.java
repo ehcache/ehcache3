@@ -46,12 +46,12 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Default
 
 
   @Override
-  public <T> Copier<T> createKeyCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs) {
+  public <T> Copier<T> createKeyCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?, ?>... configs) {
     return createCopier(Type.KEY, clazz, serializer, configs);
   }
 
   @Override
-  public <T> Copier<T> createValueCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs) {
+  public <T> Copier<T> createValueCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?, ?>... configs) {
     return createCopier(Type.VALUE, clazz, serializer, configs);
   }
 
@@ -63,7 +63,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Default
   }
 
   private <T> Copier<T> createCopier(Type type, Class<T> clazz,
-                                     Serializer<T> serializer, ServiceConfiguration<?>... configs) {
+                                     Serializer<T> serializer, ServiceConfiguration<?, ?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
     final DefaultCopierConfiguration<?> preConfigured = preconfigured.get(clazz);
@@ -98,7 +98,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Default
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> DefaultCopierConfiguration<T> find(Type type, ServiceConfiguration<?>... serviceConfigurations) {
+  private static <T> DefaultCopierConfiguration<T> find(Type type, ServiceConfiguration<?, ?>... serviceConfigurations) {
     DefaultCopierConfiguration<T> result = null;
 
     @SuppressWarnings("rawtypes")

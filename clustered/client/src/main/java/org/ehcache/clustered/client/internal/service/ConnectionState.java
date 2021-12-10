@@ -17,12 +17,14 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.ConnectionSource;
+import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -42,8 +44,11 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Objects.requireNonNull;
 
 class ConnectionState {
 
@@ -51,6 +56,7 @@ class ConnectionState {
 
   private static final String CONNECTION_PREFIX = "Ehcache:";
 
+  private volatile Executor asyncWorker;
   private volatile Connection clusterConnection = null;
   private volatile ClusterTierManagerClientEntityFactory entityFactory = null;
   private volatile ClusterTierManagerClientEntity entity = null;
@@ -97,16 +103,12 @@ class ConnectionState {
     ClusterTierClientEntity storeClientEntity;
     while (true) {
       try {
-        if (isReconnect) {
-          storeClientEntity = entityFactory.getClusterTierClientEntity(entityIdentifier, cacheId);
-        } else {
-          storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
-                  clientStoreConfiguration, serviceConfiguration.isAutoCreate());
-        }
+        storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
+                clientStoreConfiguration, serviceConfiguration.getClientMode(), isReconnect);
         clusterTierEntities.put(cacheId, storeClientEntity);
         break;
       } catch (EntityNotFoundException e) {
-        throw new CachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
+        throw new PerpetualCachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
         handleConnectionClosedException();
@@ -120,7 +122,8 @@ class ConnectionState {
     clusterTierEntities.remove(cacheId);
   }
 
-  public void initClusterConnection() {
+  public void initClusterConnection(Executor asyncWorker) {
+    this.asyncWorker = requireNonNull(asyncWorker);
     try {
       connect();
     } catch (ConnectionException ex) {
@@ -133,6 +136,9 @@ class ConnectionState {
     while (true) {
       try {
         connect();
+        if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
+          autoCreateEntity();
+        }
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
       } catch (ConnectionException e) {
@@ -143,7 +149,7 @@ class ConnectionState {
 
   private void connect() throws ConnectionException {
     clusterConnection = connectionSource.connect(connectionProperties);
-    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, timeouts);
+    entityFactory = new ClusterTierManagerClientEntityFactory(clusterConnection, asyncWorker, timeouts);
   }
 
   public void closeConnection() {
@@ -195,10 +201,17 @@ class ConnectionState {
 
   public void initializeState() {
     try {
-      if (serviceConfiguration.isAutoCreate()) {
-        autoCreateEntity();
-      } else {
-        retrieveEntity();
+      switch (serviceConfiguration.getClientMode()) {
+        case CONNECT:
+        case EXPECTING:
+          retrieveEntity();
+          break;
+        case AUTO_CREATE:
+        case AUTO_CREATE_ON_RECONNECT:
+          autoCreateEntity();
+          break;
+        default:
+          throw new AssertionError(serviceConfiguration.getClientMode());
       }
     } catch (RuntimeException e) {
       entityFactory = null;

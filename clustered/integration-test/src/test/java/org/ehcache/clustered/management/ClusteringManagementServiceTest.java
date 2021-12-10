@@ -31,6 +31,7 @@ import org.terracotta.management.model.cluster.ServerEntityIdentifier;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
@@ -133,15 +136,20 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
   public void test_A_topology() throws Exception {
-    Cluster cluster = nmsService.readTopology();
+    Cluster cluster = CLUSTER.getNmsService().readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());
     //System.out.println(json);
   }
 
   @Test
   public void test_A_client_tags_exposed() throws Exception {
-    String[] tags = readTopology().getClient(ehcacheClientIdentifier).get().getTags().toArray(new String[0]);
-    assertThat(tags).containsOnly("server-node-1", "webapp-1");
+    assertThatEventually(() -> {
+      try {
+        return readTopology().getClient(ehcacheClientIdentifier).get().getTags().toArray(new String[0]);
+      } catch (Exception e) {
+        throw new AssertionError(e);
+      }
+    }, arrayContainingInAnyOrder("server-node-1", "webapp-1")).within(Duration.ofSeconds(5));
   }
 
   @Test
@@ -262,16 +270,18 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // tms entity
 
-    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(tmsServerEntityIdentifier)).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
-    assertThat(managerCapabilities.length).isEqualTo(3);
+    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(CLUSTER.getTmsServerEntityIdentifier())).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+    assertThat(managerCapabilities.length).isEqualTo(5);
 
-    assertThat(managerCapabilities[0].getName()).isEqualTo("OffHeapResourceSettings");
-    assertThat(managerCapabilities[1].getName()).isEqualTo("OffHeapResourceStatistics");
-    assertThat(managerCapabilities[2].getName()).isEqualTo("StatisticCollectorCapability");
+    assertThat(managerCapabilities[0].getName()).isEqualTo("DataRootSettings");
+    assertThat(managerCapabilities[1].getName()).isEqualTo("DataRootStatistics");
+    assertThat(managerCapabilities[2].getName()).isEqualTo("OffHeapResourceSettings");
+    assertThat(managerCapabilities[3].getName()).isEqualTo("OffHeapResourceStatistics");
+    assertThat(managerCapabilities[4].getName()).isEqualTo("StatisticCollectorCapability");
 
-    assertThat(managerCapabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
+    assertThat(managerCapabilities[2].getDescriptors()).hasSize(3); // time + 2 resources
 
-    assertThat(managerCapabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
+    assertThat(managerCapabilities[3].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
   }
 
   @Test

@@ -32,7 +32,7 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.builders.PooledExecutionServiceConfigurationBuilder;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
@@ -98,7 +98,7 @@ public class ThreadPools {
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
                 .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero")))
-                .add(WriteBehindConfigurationBuilder
+                .withService(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                     .queueSize(3)
                     .concurrencyLevel(1)))
@@ -106,7 +106,7 @@ public class ThreadPools {
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
                 .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero")))
-                .add(WriteBehindConfigurationBuilder
+                .withService(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                     .useThreadPool("cache2Pool") // <3>
                     .queueSize(3)
@@ -135,12 +135,12 @@ public class ThreadPools {
         .withCache("cache1",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-                .add(CacheEventListenerConfigurationBuilder
+                .withService(CacheEventListenerConfigurationBuilder
                     .newEventListenerConfiguration(new ListenerObject(), EventType.CREATED, EventType.UPDATED)))
         .withCache("cache2",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-                .add(CacheEventListenerConfigurationBuilder
+                .withService(CacheEventListenerConfigurationBuilder
                     .newEventListenerConfiguration(new ListenerObject(), EventType.CREATED, EventType.UPDATED))
                 .withEventListenersThreadPool("cache2Pool")) // <3>
         .build(true);

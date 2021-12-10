@@ -22,7 +22,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link org.ehcache.core.spi.store.Store off heap disk store}.
  */
-public class OffHeapDiskStoreProviderConfiguration implements ServiceCreationConfiguration<OffHeapDiskStore.Provider> {
+public class OffHeapDiskStoreProviderConfiguration implements ServiceCreationConfiguration<OffHeapDiskStore.Provider, String> {
 
   private final String threadPoolAlias;
 
@@ -54,5 +54,15 @@ public class OffHeapDiskStoreProviderConfiguration implements ServiceCreationCon
   @Override
   public Class<OffHeapDiskStore.Provider> getServiceType() {
     return OffHeapDiskStore.Provider.class;
+  }
+
+  @Override
+  public String derive() {
+    return getThreadPoolAlias();
+  }
+
+  @Override
+  public OffHeapDiskStoreProviderConfiguration build(String alias) {
+    return new OffHeapDiskStoreProviderConfiguration(alias);
   }
 }

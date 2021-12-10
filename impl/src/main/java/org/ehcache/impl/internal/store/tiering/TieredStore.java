@@ -21,6 +21,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -30,7 +31,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -79,8 +79,6 @@ public class TieredStore<K, V> implements Store<K, V> {
       }
     });
 
-    StatisticsManager.associate(cachingTier).withParent(this);
-    StatisticsManager.associate(authoritativeTier).withParent(this);
   }
 
   @Override
@@ -113,6 +111,15 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
+  public ValueHolder<V> getAndPut(K key, V value) throws StoreAccessException {
+    try {
+      return authoritativeTier.getAndPut(key, value);
+    } finally {
+      cachingTier().invalidate(key);
+    }
+  }
+
+  @Override
   public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     try {
       return authoritativeTier.putIfAbsent(key, value, put);
@@ -125,6 +132,15 @@ public class TieredStore<K, V> implements Store<K, V> {
   public boolean remove(K key) throws StoreAccessException {
     try {
       return authoritativeTier.remove(key);
+    } finally {
+      cachingTier().invalidate(key);
+    }
+  }
+
+  @Override
+  public ValueHolder<V> getAndRemove(K key) throws StoreAccessException {
+    try {
+      return authoritativeTier.getAndRemove(key);
     } finally {
       cachingTier().invalidate(key);
     }
@@ -376,14 +392,14 @@ public class TieredStore<K, V> implements Store<K, V> {
     throw new RuntimeException("Unexpected checked exception wrapped in StoreAccessException", cause);
   }
 
-  @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class})
+  @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class, StatisticsService.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       if (resourceTypes.size() == 1) {
         return 0;
       }
@@ -426,8 +442,8 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      final List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<>(Arrays.asList(serviceConfigs));
+    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+      final List<ServiceConfiguration<?, ?>> enhancedServiceConfigs = new ArrayList<>(Arrays.asList(serviceConfigs));
 
       final ResourcePools resourcePools = storeConfig.getResourcePools();
       if (rank(resourcePools.getResourceTypeSet(), enhancedServiceConfigs) == 0) {
@@ -443,17 +459,19 @@ public class TieredStore<K, V> implements Store<K, V> {
 
       CachingTier.Provider cachingTierProvider = getCachingTierProvider(cachingResources, enhancedServiceConfigs);
 
-      final ServiceConfiguration<?>[] configurations =
-          enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[enhancedServiceConfigs.size()]);
+      final ServiceConfiguration<?, ?>[] configurations =
+          enhancedServiceConfigs.toArray(new ServiceConfiguration<?, ?>[enhancedServiceConfigs.size()]);
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, configurations);
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, configurations);
 
       TieredStore<K, V> store = new TieredStore<>(cachingTier, authoritativeTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(cachingTier, store);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(authoritativeTier, store);
       registerStore(store, cachingTierProvider, authoritativeTierProvider);
       return store;
     }
 
-    private CachingTier.Provider getCachingTierProvider(Set<ResourceType<?>> cachingResources, List<ServiceConfiguration<?>> enhancedServiceConfigs) {
+    private CachingTier.Provider getCachingTierProvider(Set<ResourceType<?>> cachingResources, List<ServiceConfiguration<?, ?>> enhancedServiceConfigs) {
       CachingTier.Provider cachingTierProvider = null;
       Collection<CachingTier.Provider> cachingTierProviders = serviceProvider.getServicesOfType(CachingTier.Provider.class);
       for (CachingTier.Provider provider : cachingTierProviders) {
@@ -468,7 +486,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       return cachingTierProvider;
     }
 
-    AuthoritativeTier.Provider getAuthoritativeTierProvider(ResourceType<?> authorityResource, List<ServiceConfiguration<?>> enhancedServiceConfigs) {
+    AuthoritativeTier.Provider getAuthoritativeTierProvider(ResourceType<?> authorityResource, List<ServiceConfiguration<?, ?>> enhancedServiceConfigs) {
       AuthoritativeTier.Provider authoritativeTierProvider = null;
       Collection<AuthoritativeTier.Provider> authorityProviders = serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class);
       int highestRank = 0;

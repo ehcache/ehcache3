@@ -23,8 +23,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * {@link ServiceConfiguration} for the default {@link SerializationProvider}.
+ * <p>
+ * This class overrides the default {@link ServiceConfiguration#compatibleWith(ServiceConfiguration)} implementation
+ * to allow for independent configuration of the key and value serializers.
  */
-public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguration<Serializer<T>> implements ServiceConfiguration<SerializationProvider> {
+public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguration<Serializer<T>> implements ServiceConfiguration<SerializationProvider, Void> {
 
   private final Type type;
 
@@ -65,6 +68,15 @@ public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguratio
    */
   public Type getType() {
     return type;
+  }
+
+  @Override
+  public boolean compatibleWith(ServiceConfiguration<?, ?> other) {
+    if (other instanceof DefaultSerializerConfiguration<?>) {
+      return !getType().equals(((DefaultSerializerConfiguration) other).getType());
+    } else {
+      return ServiceConfiguration.super.compatibleWith(other);
+    }
   }
 
   /**

@@ -26,7 +26,6 @@ import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
@@ -34,6 +33,7 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerMethod;
 import org.osgi.framework.wiring.BundleWiring;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
@@ -45,7 +45,6 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
 import java.io.File;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -61,6 +60,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.startServer;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.hamcrest.core.Is.is;
@@ -81,12 +81,16 @@ public class ClusteredOsgiTest {
       gradleBundle("org.ehcache.modules:api"),
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"),
+      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
       gradleBundle("org.ehcache:clustered-dist"),
+
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
 
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("ClusteredOsgiTest", "individualModules")
     );
@@ -95,7 +99,7 @@ public class ClusteredOsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
       gradleBundle("org.ehcache:clustered-dist"),
 
       baseConfiguration("ClusteredOsgiTest", "uberJar")
@@ -125,7 +129,7 @@ public class ClusteredOsgiTest {
 
     public static void testProgrammaticClusteredCache(OsgiTestUtils.Cluster cluster) throws Throwable {
       try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
-        .with(cluster(cluster.getConnectionUri()).autoCreate())
+        .with(cluster(cluster.getConnectionUri()).autoCreate(c -> c))
         .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
           newResourcePoolsBuilder().with(clusteredDedicated("main", 2, MemoryUnit.MB))))
         .build(true)) {

@@ -57,7 +57,7 @@ public class ClassInstanceProviderTest {
     ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
 
     classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<>(TestService.class, "test string"));
-    TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?>) null);
+    TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?, ?>) null);
 
     assertThat(obj.theString, equalTo("test string"));
   }
@@ -170,7 +170,7 @@ public class ClassInstanceProviderTest {
 
   }
 
-  public static class TestCloaseableServiceConfig extends ClassInstanceConfiguration<TestCloseableService> implements ServiceConfiguration<TestCloseableService> {
+  public static class TestCloaseableServiceConfig extends ClassInstanceConfiguration<TestCloseableService> implements ServiceConfiguration<TestCloseableService, Void> {
 
     public TestCloaseableServiceConfig() {
       super(TestCloseableService.class);
@@ -206,7 +206,7 @@ public class ClassInstanceProviderTest {
     }
   }
 
-  public static class TestServiceConfiguration extends ClassInstanceConfiguration<TestService> implements ServiceConfiguration<TestService> {
+  public static class TestServiceConfiguration extends ClassInstanceConfiguration<TestService> implements ServiceConfiguration<TestService, Void> {
     public TestServiceConfiguration() {
       super(TestService.class);
     }
@@ -221,7 +221,7 @@ public class ClassInstanceProviderTest {
     }
   }
 
-  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<String, ClassInstanceConfiguration<TestService>> implements ServiceConfiguration<TestService> {
+  public static class TestServiceProviderConfiguration extends ClassInstanceProviderConfiguration<String, ClassInstanceConfiguration<TestService>> implements ServiceConfiguration<TestService, Void> {
     @Override
     public Class<TestService> getServiceType() {
       return TestService.class;

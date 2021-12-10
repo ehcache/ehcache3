@@ -39,7 +39,7 @@ import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
@@ -122,7 +122,7 @@ public class GettingStarted {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, ResourcePoolsBuilder.heap(10))
-                .add(cacheEventListenerConfiguration) // <3>
+                .withService(cacheEventListenerConfiguration) // <3>
         ).build(true);
 
     final Cache<String, String> cache = manager.getCache("foo", String.class, String.class);
@@ -160,7 +160,7 @@ public class GettingStarted {
     Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<>(singletonMap(41L, "zero"))) // <1>
-            .add(WriteBehindConfigurationBuilder // <2>
+            .withService(WriteBehindConfigurationBuilder // <2>
                 .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)// <3>
                 .queueSize(3)// <4>
                 .concurrencyLevel(1) // <5>

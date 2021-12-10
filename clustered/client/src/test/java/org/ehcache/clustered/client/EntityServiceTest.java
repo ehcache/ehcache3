@@ -20,7 +20,6 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
-import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.config.units.MemoryUnit;
@@ -59,41 +58,40 @@ public class EntityServiceTest {
     UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
-  @Test
+  @Test @SuppressWarnings("try")
   public void test() throws Exception {
     ClusteredManagementService clusteredManagementService = new ClusteredManagementService();
 
-    CacheManager cacheManager = newCacheManagerBuilder()
+    try (CacheManager cacheManager = newCacheManagerBuilder()
         .using(clusteredManagementService)
-        .with(cluster(CLUSTER_URI).autoCreate())
-        .build(true);
+        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+        .build(true)) {
 
-    assertThat(clusteredManagementService.clientEntityFactory, is(notNullValue()));
+      assertThat(clusteredManagementService.clientEntityFactory, is(notNullValue()));
 
-    clusteredManagementService.clientEntityFactory.create();
-
-    try {
       clusteredManagementService.clientEntityFactory.create();
-      fail();
-    } catch (Exception e) {
-      assertThat(e, instanceOf(EntityAlreadyExistsException.class));
-    }
 
-    VoltronReadWriteLockClient entity = clusteredManagementService.clientEntityFactory.retrieve();
-    assertThat(entity, is(notNullValue()));
+      try {
+        clusteredManagementService.clientEntityFactory.create();
+        fail();
+      } catch (Exception e) {
+        assertThat(e, instanceOf(EntityAlreadyExistsException.class));
+      }
 
-    try {
+      VoltronReadWriteLockClient entity = clusteredManagementService.clientEntityFactory.retrieve();
+      assertThat(entity, is(notNullValue()));
+
+      try {
+        clusteredManagementService.clientEntityFactory.destroy();
+        fail();
+      } catch (Exception e) {
+        assertThat(e, instanceOf(EntityBusyException.class));
+      }
+
+      entity.close();
+
       clusteredManagementService.clientEntityFactory.destroy();
-      fail();
-    } catch (Exception e) {
-      assertThat(e, instanceOf(EntityBusyException.class));
     }
-
-    entity.close();
-
-    clusteredManagementService.clientEntityFactory.destroy();
-
-    cacheManager.close();
   }
 
   @ServiceDependencies(EntityService.class)

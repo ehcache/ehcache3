@@ -18,11 +18,9 @@ package org.ehcache.core;
 import static org.mockito.Mockito.mock;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.util.TestCacheConfig;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.slf4j.LoggerFactory;
 
@@ -34,8 +32,7 @@ public class EhcacheTest extends CacheTest {
 
   @Override
   protected InternalCache<Object, Object> getCache(Store<Object, Object> store) {
-    final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<>(Object.class, Object.class, null,
-      null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    final CacheConfiguration<Object, Object> config = new TestCacheConfig<>(Object.class, Object.class);
     @SuppressWarnings("unchecked")
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     @SuppressWarnings("unchecked")

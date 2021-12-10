@@ -45,8 +45,10 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.EVENTUAL, false);
 
     final List<Long> store1EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
     final List<Long> store2AppendInvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
+    final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new ServerCallback() {
       @Override
@@ -61,7 +63,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store1InvalidatedAll.set(true);
       }
 
       @Override
@@ -87,7 +89,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        fail("should not be called");
+        store2InvalidatedAll.set(true);
       }
 
       @Override
@@ -124,6 +126,9 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     assertThat(store2AppendInvalidatedHashes.size(), is(ITERATIONS));
 
     assertThatClientsWaitingForInvalidationIsEmpty("testServerSideEvictionFiresInvalidations");
+
+    assertThat(store1InvalidatedAll.get(), is(false));
+    assertThat(store2InvalidatedAll.get(), is(false));
   }
 
   @Test
@@ -133,6 +138,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, new ServerCallback() {
@@ -149,7 +155,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        throw new AssertionError("Should not be called");
+        invalidatedAll.set(true);
       }
 
       @Override
@@ -169,6 +175,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedHash.get(), is(1L));
     assertThatClientsWaitingForInvalidationIsEmpty("testHashInvalidationListenerWithAppend");
+    assertThat(invalidatedAll.get(), is(false));
   }
 
   @Test
@@ -178,6 +185,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, new ServerCallback() {
@@ -194,7 +202,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        throw new AssertionError("Should not be called");
+        invalidatedAll.set(true);
       }
 
       @Override
@@ -214,6 +222,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedHash.get(), is(1L));
     assertThatClientsWaitingForInvalidationIsEmpty("testHashInvalidationListenerWithGetAndAppend");
+    assertThat(invalidatedAll.get(), is(false));
   }
 
   @Test

@@ -40,7 +40,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -59,13 +58,6 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @RunWith(Parameterized.class)
 public class ClusteredLoaderWriterTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-            + "<ohr:offheap-resources>"
-            + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-            + "</ohr:offheap-resources>" +
-            "</config>\n";
-
   @Parameterized.Parameters(name = "consistency={0}")
   public static Consistency[] data() {
     return Consistency.values();
@@ -81,12 +73,11 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
   private ConcurrentMap<Long, String> sor;
 
   @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+  public static void initCacheManager() throws Exception {
     cacheManager = newCacheManager();
   }
 
@@ -98,7 +89,7 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
                     .timeouts(TimeoutsBuilder.timeouts()
                                              .read(Duration.ofSeconds(30))
                                              .write(Duration.ofSeconds(30)))
-                    .autoCreate()
+                    .autoCreate(c -> c)
                     .build())
             .using(managementRegistry)
             .build(true);
@@ -118,7 +109,7 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
                             .heap(20)
                             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .withLoaderWriter(new TestCacheLoaderWriter(sor))
-            .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+            .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
             .withResilienceStrategy(new ThrowingResilienceStrategy<>())
             .build();
   }

@@ -28,7 +28,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
-class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfiguration<?>> implements CoreServiceConfigurationParser {
+class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfiguration<?, ?>> implements CoreServiceConfigurationParser {
 
   private final Function<CacheTemplate, IN> extractor;
   private final Parser<IN, U> parser;
@@ -77,7 +77,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
     if (config != null) {
       U configuration = parser.parse(config, cacheClassLoader);
       if (configuration != null) {
-        return cacheBuilder.add(configuration);
+        return cacheBuilder.withService(configuration);
       }
     }
     return cacheBuilder;

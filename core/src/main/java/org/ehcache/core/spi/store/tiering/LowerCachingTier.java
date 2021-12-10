@@ -124,7 +124,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new lower caching tier
      */
-    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link LowerCachingTier}.

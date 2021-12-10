@@ -23,7 +23,7 @@ import org.osgi.service.component.annotations.Component;
 public class ClusteredLoaderWriterStoreProviderFactory implements ServiceFactory<ClusteredLoaderWriterStore.Provider> {
 
   @Override
-  public ClusteredLoaderWriterStore.Provider create(ServiceCreationConfiguration<ClusteredLoaderWriterStore.Provider> configuration) {
+  public ClusteredLoaderWriterStore.Provider create(ServiceCreationConfiguration<ClusteredLoaderWriterStore.Provider, ?> configuration) {
     return new ClusteredLoaderWriterStore.Provider();
   }
 

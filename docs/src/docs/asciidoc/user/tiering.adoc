@@ -1,12 +1,13 @@
 ---
 ---
 = Ehcache Tiering Options
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
+>>>>>>> Upgrade to Asciidoctor Gradle Plugin 2.0.0
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 
 == Introduction
 
@@ -48,7 +49,7 @@ For this, simply define the single resource in the cache configuration:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheapOnly]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheapOnly]
 ----
 
 <1> Start with defining the key and value type in the configuration builder.
@@ -65,7 +66,7 @@ A heap tier can be sized by entries or by size.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=heap]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=heap]
 ----
 
 <1> Only 10 entries allowed on heap. Eviction will occur when full.
@@ -83,7 +84,7 @@ NOTE: Byte sizing has a runtime performance impact that depends on the size and 
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=byteSizedTieredCache]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=byteSizedTieredCache]
 ----
 
 <1> This will limit the amount of memory used by the heap tier for storing key-value pairs.
@@ -103,7 +104,7 @@ If you wish to use off-heap, you'll have to define a resource pool, giving the m
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheap]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=offheap]
 ----
 
 <1> Only 10 MB allowed off-heap.
@@ -126,7 +127,7 @@ The faster and more dedicated the disk is, the faster accessing the data will be
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=persistentCacheManager]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=persistentCacheManager]
 ----
 
 <1> To obtain a `PersistentCacheManager` which is a normal `CacheManager` but with the ability to
@@ -166,7 +167,7 @@ In some cases, you might want to reduce the concurrency and save resources by re
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskSegments]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=diskSegments]
 ----
 
 <1> Define an `OffHeapDiskStoreConfiguration` instance specifying the required number of segments.
@@ -234,7 +235,7 @@ Here is an example using heap, offheap and clustered.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Tiering.java[tag=threeTiersCacheManager]
+include::{sourcedir38}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Tiering.java[tag=threeTiersCacheManager]
 ----
 
 <1> Clustered specific information telling how to connect to the Terracotta cluster
@@ -253,7 +254,7 @@ Let's revisit an example used earlier:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=threeTiersCacheManager]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=threeTiersCacheManager]
 ----
 
 This is a cache using 3 tiers (heap, offheap, disk).
@@ -267,7 +268,7 @@ Consider for instance this code:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=notShared]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=notShared]
 ----
 
 You will end up with two caches that can contain 10 entries each.
@@ -284,7 +285,7 @@ Thus you can't change the sizing of off-heap or disk tiers.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=updateResourcesAtRuntime]
+include::{sourcedir38}/impl/src/test/java/org/ehcache/docs/Tiering.java[tag=updateResourcesAtRuntime]
 ----
 
 <1> You will need to create a new `ResourcePools` object with resources of the required size, using `ResourcePoolsBuilder`.
@@ -316,12 +317,12 @@ This method destroys a given cache. The cache shouldn't be in use by another cac
 .Multiple tiers using Put
 [plantuml]
 ....
-include::{sourcedir37}/docs/src/docs/uml/put.puml[]
+include::{sourcedir38}/docs/src/docs/uml/put.puml[]
 ....
 .Multiple tiers using Get
 [plantuml]
 ....
-include::{sourcedir37}/docs/src/docs/uml/get.puml[]
+include::{sourcedir38}/docs/src/docs/uml/get.puml[]
 ....
 --
 In order to understand what happens for different cache operations when using multiple tiers, here are examples of _Put_ and _Get_ operations.
@@ -335,5 +336,5 @@ You should then notice the following:
 * A full cache miss (the value isn't on any tier) will always go all the way down to the authoritative tier.
 
 NOTE: The slower your authoritative tier, the slower your `put` operations will be.
-For a normal cache usage, it usually doesn't matter since`get` operations are much more frequent than`put` opreations.
+For a normal cache usage, it usually doesn't matter since`get` operations are much more frequent than`put` operations.
 The opposite would mean you probably shouldn't be using a cache in the first place.

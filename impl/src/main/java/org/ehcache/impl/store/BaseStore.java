@@ -18,22 +18,21 @@ package org.ehcache.impl.store;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.impl.internal.statistics.StatsUtils;
-import org.terracotta.statistics.MappedOperationStatistic;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticType;
-import org.terracotta.statistics.StatisticsManager;
-import org.terracotta.statistics.ZeroOperationStatistic;
-import org.terracotta.statistics.observer.OperationObserver;
+import org.ehcache.core.statistics.OperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
+import org.ehcache.core.statistics.ZeroOperationStatistic;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
+import org.terracotta.management.model.stats.StatisticType;
 
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Base class to most stores. It provides functionality common to stores in general. A given store implementation is not required to extend
@@ -47,15 +46,17 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
   protected final Class<V> valueType;
   /** Tells if this store is by itself or in a tiered setup */
   protected final boolean operationStatisticsEnabled;
+  protected final StatisticsService statisticsService;
 
-  public BaseStore(Configuration<K, V> config) {
-    this(config.getKeyType(), config.getValueType(), config.isOperationStatisticsEnabled());
+  public BaseStore(Configuration<K, V> config, StatisticsService statisticsService) {
+    this(config.getKeyType(), config.getValueType(), config.isOperationStatisticsEnabled(), statisticsService);
   }
 
-  public BaseStore(Class<K> keyType, Class<V> valueType, boolean operationStatisticsEnabled) {
+  public BaseStore(Class<K> keyType, Class<V> valueType, boolean operationStatisticsEnabled, StatisticsService statisticsService) {
     this.keyType = keyType;
     this.valueType = valueType;
     this.operationStatisticsEnabled = operationStatisticsEnabled;
+    this.statisticsService = statisticsService;
   }
 
   protected void checkKey(K keyObject) {
@@ -83,44 +84,38 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
     if(!operationStatisticsEnabled && canBeDisabled) {
       return ZeroOperationStatistic.get();
     }
-    return operation(outcome).named(name).of(this).tag(getStatisticsTag()).build();
+    return statisticsService.createOperationStatistics(name, outcome, getStatisticsTag(), this);
   }
 
   protected <T extends Serializable> void registerStatistic(String name, StatisticType type, Set<String> tags, Supplier<T> valueSupplier) {
-    StatisticsManager.createPassThroughStatistic(this, name, tags, type, valueSupplier);
+    statisticsService.registerStatistic(this, name, type, tags, valueSupplier);
   }
 
   protected abstract String getStatisticsTag();
 
 
+  @ServiceDependencies({StatisticsService.class})
   protected static abstract class BaseStoreProvider implements Store.Provider {
 
-    protected  <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> createTranslatedStatistic(BaseStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
-      Class<S> outcomeType = getOutcomeType(translation);
+    private volatile ServiceProvider<Service> serviceProvider;
 
-      // If the original stat doesn't exist, we do not need to translate it
-      if (StatsUtils.hasOperationStat(store, outcomeType, targetName)) {
-        int tierHeight = getResourceType().getTierHeight();
-        OperationStatistic<T> stat = new MappedOperationStatistic<>(store, translation, statisticName, tierHeight, targetName, store
-          .getStatisticsTag());
-        StatisticsManager.associate(stat).withParent(store);
-        return stat;
-      }
-      return ZeroOperationStatistic.get();
+    protected  <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> createTranslatedStatistic(BaseStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
+      StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
+      return statisticsService.registerStoreStatistics(store, targetName, getResourceType().getTierHeight(), store.getStatisticsTag(), translation, statisticName);
     }
 
-    /**
-     * From the Map of translation, we extract one of the items to get the declaring class of the enum.
-     *
-     * @param translation translation map
-     * @param <S> type of the outcome
-     * @param <T> type of the possible translations
-     * @return the outcome type
-     */
-    private static <S extends Enum<S>, T extends Enum<T>> Class<S> getOutcomeType(Map<T, Set<S>> translation) {
-      Map.Entry<T, Set<S>> first = translation.entrySet().iterator().next();
-      Class<S> outcomeType = first.getValue().iterator().next().getDeclaringClass();
-      return outcomeType;
+    @Override
+    public void start(ServiceProvider<Service> serviceProvider) {
+      this.serviceProvider = serviceProvider;
+    }
+
+    @Override
+    public void stop() {
+      this.serviceProvider = null;
+    }
+
+    protected ServiceProvider<Service> getServiceProvider() {
+      return this.serviceProvider;
     }
 
     protected abstract ResourceType<?> getResourceType();

@@ -136,6 +136,11 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
       }
 
       @Override
+      public void setSynchronous(boolean synchronous) throws IllegalArgumentException {
+
+      }
+
+      @Override
       public boolean isEventOrdering() {
         return false;
       }

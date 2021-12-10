@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered;
 
-import java.io.File;
 import java.net.URI;
 
 import org.ehcache.Cache;
@@ -29,7 +28,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.management.cluster.DefaultClusteringManagementService;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
@@ -55,21 +54,10 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class BasicEntityInteractionTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">4</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 4)).build();
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
 
   @Rule
   public TestName testName= new TestName();
@@ -85,8 +73,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
         .heap(100, ENTRIES)
         .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
-        .autoCreate()
-        .defaultServerResource(offheap)
+        .autoCreate(server -> server.defaultServerResource(offheap))
       ).build(true)) {
       Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
       cache.put(1L, "one");
@@ -98,9 +85,6 @@ public class BasicEntityInteractionTest extends ClusteredTests {
           .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
         )
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
-        // these two shouldn't be needed as the clustered cache entity has already been created
-//              .autoCreate()
-//              .defaultServerResource(offheap)
       ).using(new DefaultStatisticsService()
       ).using(new DefaultClusteringManagementService()
       ).build(true)) {
@@ -121,8 +105,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
         .heap(100, ENTRIES)
         .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
-        .autoCreate()
-        .defaultServerResource(offheap)
+        .autoCreate(server -> server.defaultServerResource(offheap))
         // manually adding the following two services should work
       ).using(new DefaultStatisticsService()
       ).using(new DefaultClusteringManagementService()

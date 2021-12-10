@@ -47,6 +47,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.osgi.EhcacheActivator.OSGI_LOADING;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertEquals;
@@ -65,11 +66,15 @@ public class SimpleOsgiTest {
       gradleBundle("org.ehcache.modules:api"),
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"),
+      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
+
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
 
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("SimpleOsgiTest", "individualModules")
     );
@@ -78,7 +83,7 @@ public class SimpleOsgiTest {
   @Configuration
   public Option[] uberJarWithOsgiServiceLoading() {
     return options(
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
 
       baseConfiguration("SimpleOsgiTest", "uberJarWithOsgiServiceLoading")
     );
@@ -89,7 +94,7 @@ public class SimpleOsgiTest {
     return options(
       frameworkProperty(OSGI_LOADING).value("false"),
 
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
 
       baseConfiguration("SimpleOsgiTest", "uberJarWithJdkServiceLoading")
     );
@@ -137,7 +142,7 @@ public class SimpleOsgiTest {
     public static void testEhcache3WithSerializationAndClientClass() {
       CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10))
-          .add(new DefaultCopierConfiguration<>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
+          .withService(new DefaultCopierConfiguration<>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
           .withClassLoader(TestMethods.class.getClassLoader())
           .build())
         .build(true);
@@ -151,7 +156,7 @@ public class SimpleOsgiTest {
     public static void testCustomCopier() {
       CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-          .add(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+          .withService(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
           .withClassLoader(TestMethods.class.getClassLoader())
           .build())
         .build(true);

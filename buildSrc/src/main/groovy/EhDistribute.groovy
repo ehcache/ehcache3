@@ -1,7 +1,6 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
-import org.gradle.api.plugins.osgi.OsgiPluginConvention
 import scripts.Utils
 
 /*
@@ -51,6 +50,10 @@ class EhDistribute implements Plugin<Project> {
       dependencies {
         exclude({ rdep -> !['org.ehcache', 'org.terracotta'].any({ prefix -> rdep.moduleGroup.startsWith(prefix) })})
       }
+      relocate ('org.terracotta.statistics.', 'org.ehcache.shadow.org.terracotta.statistics.')
+      relocate ('org.terracotta.offheapstore.', 'org.ehcache.shadow.org.terracotta.offheapstore.')
+      relocate ('org.terracotta.context.', 'org.ehcache.shadow.org.terracotta.context.')
+
       mergeServiceFiles()
     }
 

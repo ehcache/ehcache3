@@ -23,7 +23,7 @@ import org.osgi.service.component.annotations.Component;
 public class DelegatingLoaderWriterStoreProviderFactory implements ServiceFactory<DelegatingLoaderWriterStoreProvider> {
 
   @Override
-  public DelegatingLoaderWriterStoreProvider create(ServiceCreationConfiguration<DelegatingLoaderWriterStoreProvider> configuration) {
+  public DelegatingLoaderWriterStoreProvider create(ServiceCreationConfiguration<DelegatingLoaderWriterStoreProvider, ?> configuration) {
     return new DelegatingLoaderWriterStoreProvider();
   }
 

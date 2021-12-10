@@ -17,9 +17,9 @@ package org.ehcache.clustered;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.config.builders.ServerSideConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.service.EntityBusyException;
@@ -31,10 +31,13 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.testing.TestRetryer;
+import org.ehcache.testing.TestRetryer.OutputIs;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
@@ -44,18 +47,23 @@ import org.terracotta.testing.rules.Cluster;
 
 import com.tc.net.proxy.TCPProxy;
 
-import java.io.File;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Stream;
 
+import static java.time.Duration.ofSeconds;
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.util.EnumSet.of;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
-import static org.ehcache.clustered.reconnect.BasicCacheReconnectTest.RESOURCE_CONFIG;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
+import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 /**
  * ReconnectDuringDestroyTest
@@ -66,27 +74,27 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
   private static List<TCPProxy> proxies;
   PersistentCacheManager cacheManager;
 
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(
+    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(3)),
+    leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build(),
+    of(OutputIs.CLASS_RULE));
 
   @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+  public static void initializeProxy() throws Exception {
     proxies = new ArrayList<>();
-    connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+    connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.get().getConnectionURI(), proxies);
   }
 
   @Before
   public void initializeCacheManager() {
-    ServerSideConfigurationBuilder serverSideConfigurationBuilder =
+    ClusteringServiceConfiguration clusteringConfiguration =
       ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource");
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")).build();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
-      = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(serverSideConfigurationBuilder);
+      = CacheManagerBuilder.newCacheManagerBuilder().with(clusteringConfiguration);
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }
@@ -118,9 +126,13 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
         }
       }
       // For reconnection.
-      setDelay(6000, proxies); // Connection Lease time is 5 seconds so delaying for more than 5 seconds.
-      Thread.sleep(6000);
-      setDelay(0L, proxies);
+      long delay = CLUSTER.input().plusSeconds(1).toMillis();
+      setDelay(delay, proxies);
+      try {
+        Thread.sleep(delay);
+      } finally {
+        setDelay(0L, proxies);
+      }
       client = LeasedConnectionFactory.connect(connectionURI, new Properties());
 
       // For mimicking the cacheManager.destroy() in the reconnect path.
@@ -164,29 +176,19 @@ public class ReconnectDuringDestroyTest extends ClusteredTests {
       cacheManager.destroyCache("clustered-cache-1");
 
       // For reconnection.
-      setDelay(6000, proxies); // Connection Lease time is 5 seconds so delaying for more than 5 seconds.
-      Thread.sleep(6000);
-      setDelay(0L, proxies);
+      long delay = CLUSTER.input().plusSeconds(1L).toMillis();
+      setDelay(delay, proxies);
+      try {
+        Thread.sleep(delay);
+      } finally {
+        setDelay(0L, proxies);
+      }
 
-      cache2 = cacheManager.getCache("clustered-cache-2", Long.class, String.class);
-      int count = 0;
-      while (count < 5) {
-        Thread.sleep(2000);
-        count++;
-        try {
-          cache2.get(1L);
-          break;
-        } catch (Exception e) {
-          // Can happen during reconnect
-        }
-      }
-      if (count == 5) {
-        Assert.fail("Unexpected reconnection exception");
-      }
-      assertThat(cache2.get(1L), equalTo("The one"));
-      assertThat(cache2.get(2L), equalTo("The two"));
-      cache2.put(3L, "The three");
-      assertThat(cache2.get(3L), equalTo("The three"));
+      Cache<Long, String> cache2Again = cacheManager.getCache("clustered-cache-2", Long.class, String.class);
+      assertThatEventually(() -> cache2Again.get(1L), equalTo("The one")).within(ofSeconds(10));
+      assertThat(cache2Again.get(2L), equalTo("The two"));
+      cache2Again.put(3L, "The three");
+      assertThat(cache2Again.get(3L), equalTo("The three"));
     } finally {
       cacheManager.close();
     }

@@ -20,6 +20,7 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
@@ -46,9 +47,13 @@ public class ByteSizedOnHeapOsgiTest {
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:api"),
 
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
+
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("ByteSizedOnHeapOsgiTest", "individualModules")
     );
@@ -57,7 +62,7 @@ public class ByteSizedOnHeapOsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
 
       baseConfiguration("ByteSizedOnHeapOsgiTest", "uberJar")
     );

@@ -25,9 +25,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,10 +53,10 @@ public class ClusteredResourcePoolUpdationTest {
         .build());
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate()
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate(server -> server
         .defaultServerResource("primary-server-resource")
         .resourcePool("resource-pool-a", 2, MemoryUnit.MB, "secondary-server-resource")
-        .resourcePool("resource-pool-b", 4, MemoryUnit.MB))
+        .resourcePool("resource-pool-b", 4, MemoryUnit.MB)))
       .withCache("dedicated-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB))))
@@ -74,8 +72,14 @@ public class ClusteredResourcePoolUpdationTest {
 
   @AfterClass
   public static void tearDown() throws Exception {
-    cacheManager.close();
-    UnitTestConnectionService.remove(CLUSTER_URI);
+    try {
+      cacheManager.close();
+      UnitTestConnectionService.remove(CLUSTER_URI);
+    } finally {
+      cacheManager = null;
+      dedicatedCache = null;
+      sharedCache = null;
+    }
   }
 
   @Test

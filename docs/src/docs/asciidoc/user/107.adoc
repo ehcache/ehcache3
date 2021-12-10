@@ -1,12 +1,12 @@
 ---
 ---
 = The Ehcache 3.x JSR-107 Provider
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 [[overview]]
@@ -59,7 +59,7 @@ Here is a code sample that demonstrates the usage of the basic JCache configurat
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=basicConfigurationExample]
+include::{sourcedir38}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=basicConfigurationExample]
 ----
 
 <1> Retrieves the default CachingProvider implementation from the application's classpath.
@@ -91,7 +91,7 @@ you can still get to the underlying Ehcache `CacheRuntimeConfiguration`:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=mutableConfigurationExample]
+include::{sourcedir38}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=mutableConfigurationExample]
 ----
 
 <1> Create a JCache cache using the `MutableConfiguration` interface from the JCache specification.
@@ -109,7 +109,7 @@ The way you do this is as follows:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheCacheManagerConfigurationExample]
+include::{sourcedir38}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheCacheManagerConfigurationExample]
 ----
 <1> Cast the `CachingProvider` into the Ehcache specific implementation `org.ehcache.jsr107.EhcacheCachingProvider`,
 <2> Create a configuration using the specific Ehcache `DefaultConfiguration` and pass it some `CacheManager` level configurations,
@@ -122,7 +122,7 @@ When using this mechanism, no JCache `CompleteConfiguration` is used and so you 
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheBasedConfigurationExample]
+include::{sourcedir38}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheBasedConfigurationExample]
 ----
 
 <1> Create an Ehcache `CacheConfiguration`.
@@ -142,14 +142,14 @@ The following is an example of an XML configuration:
 
 [source%nowrap,xml,indent=0]
 ----
-include::{sourcedir37}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-config.xml[]
+include::{sourcedir38}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-config.xml[]
 ----
 
 Here is an example of how to access the XML configuration using JCache:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107UsingXMLConfigExample]
+include::{sourcedir38}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107UsingXMLConfigExample]
 ----
 
 <1> Invoke `javax.cache.spi.CachingProvider.getCacheManager(java.net.URI, java.lang.ClassLoader)`
@@ -179,7 +179,7 @@ You can do this at two different levels:
 
 [source%nowrap,xml,indent=0]
 ----
-include::{sourcedir37}/107/src/test/resources/org/ehcache/docs/ehcache-107-mbeans-cache-manager-config.xml[lines=17..-1]
+include::{sourcedir38}/107/src/test/resources/org/ehcache/docs/ehcache-107-mbeans-cache-manager-config.xml[lines=17..-1]
 ----
 
 <1> Using the JCache service extension, you can enable MBeans by default.
@@ -201,7 +201,7 @@ To do this, add a `jsr107` service in your XML configuration file:
 
 [source%nowrap,xml,indent=0]
 ----
-include::{sourcedir37}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-template-override.xml[]
+include::{sourcedir38}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-template-override.xml[]
 ----
 
 <1> First, declare a namespace for the JCache extension, e.g. `jsr107`.
@@ -218,7 +218,7 @@ Using the above configuration, you can not only supplement but also override the
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir37}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
+include::{sourcedir38}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
 ----
 
 <1> Assume existing JCache configuration code, which is store-by-value by default
@@ -283,5 +283,5 @@ If you need _Ehcache through JCache_ behaviour, the following shows the relevant
 
 [source%nowrap,xml,indent=0]
 ----
-include::{sourcedir37}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-cache-through.xml[tag=cacheThroughCAS]
+include::{sourcedir38}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-cache-through.xml[tag=cacheThroughCAS]
 ----

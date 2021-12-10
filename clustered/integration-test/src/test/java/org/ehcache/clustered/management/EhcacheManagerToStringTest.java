@@ -56,7 +56,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
           .offheap(1, MemoryUnit.MB)
           .disk(2, MemoryUnit.MB, true))
         .withLoaderWriter(new SampleLoaderWriter<>())
-        .add(WriteBehindConfigurationBuilder
+        .withService(WriteBehindConfigurationBuilder
           .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
           .queueSize(3)
           .concurrencyLevel(1)
@@ -82,14 +82,13 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
 
   @Test
   public void clusteredToString() throws Exception {
-    URI uri = CLUSTER.getConnectionURI().resolve("/my-server-entity-2");
+    URI uri = CLUSTER.getCluster().getConnectionURI().resolve("/my-server-entity-2");
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       // cluster config
       .with(ClusteringServiceConfigurationBuilder.cluster(uri)
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")
-        .resourcePool("resource-pool-a", 10, MemoryUnit.MB))
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")
+        .resourcePool("resource-pool-a", 10, MemoryUnit.MB)))
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")

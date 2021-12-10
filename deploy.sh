@@ -208,7 +208,7 @@ if [ $is_major ]; then
   echo "      layout: \"docs35_page\"" >> _config.yml
   echo "      ehc_version: \"${major_version}\"" >> _config.yml
   echo "      ehc_javadoc_version: \"${version}\"" >> _config.yml
-  echo "      ehc_checkout_dir_var: \"sourcedir37\"" >> _config.yml
+  echo "      ehc_checkout_dir_var: \"sourcedir38\"" >> _config.yml
 
   sed -i '' "s/#needle\_for\_sourcedir/    - sourcedir${short_major_version}=\/_eh${short_major_version}\\
 #needle_for_sourcedir/" _config.yml

@@ -61,8 +61,11 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
         if (stat.getContext().contains("cacheName") && stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
 
           // please leave it there - it's really useful to see what's coming
-          /*System.out.println("stats:");
-          for (Map.ChainEntry<String, Statistic<?, ?>> entry : stat.getStatistics().entrySet()) {
+          /*
+          System.out.println("stats:");
+
+          Set<Map.Entry<String, Statistic<?>>> entries = stat.getStatistics().entrySet();
+          for (Map.Entry<String, Statistic<?>> entry : entries) {
             System.out.println(" - " + entry.getKey() + " : " + entry.getValue());
           }*/
 
@@ -73,8 +76,9 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
         }
       }
     } while(!Thread.currentThread().isInterrupted() &&
-            (cacheHitCount != CACHE_HIT_COUNT) && (clusteredHitCount != CLUSTERED_HIT_COUNT) &&
-            (cacheMissCount != CACHE_MISS_COUNT) && (clusteredMissCount != CLUSTERED_MISS_COUNT));
+            ((cacheHitCount != CACHE_HIT_COUNT) || (clusteredHitCount != CLUSTERED_HIT_COUNT) ||
+            (cacheMissCount != CACHE_MISS_COUNT) || (clusteredMissCount != CLUSTERED_MISS_COUNT)));
+
 
     Assert.assertThat(cacheHitCount,is(CACHE_HIT_COUNT));
     Assert.assertThat(clusteredHitCount,is(CLUSTERED_HIT_COUNT));

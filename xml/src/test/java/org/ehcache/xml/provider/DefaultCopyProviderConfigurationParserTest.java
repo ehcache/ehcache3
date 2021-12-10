@@ -49,7 +49,7 @@ public class DefaultCopyProviderConfigurationParserTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration).isExactlyInstanceOf(DefaultCopyProviderConfiguration.class);
 
@@ -66,7 +66,7 @@ public class DefaultCopyProviderConfigurationParserTest {
     providerConfig.addCopierFor(Description.class, DescriptionCopier.class);
     providerConfig.addCopierFor(Person.class, PersonCopier.class);
 
-    Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder().withService(providerConfig).build();
     ConfigType configType = new DefaultCopyProviderConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     List<CopierType.Copier> copiers = configType.getDefaultCopiers().getCopier();

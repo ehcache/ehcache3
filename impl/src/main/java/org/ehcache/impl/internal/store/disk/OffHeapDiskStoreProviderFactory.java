@@ -28,7 +28,7 @@ import org.osgi.service.component.annotations.Component;
 public class OffHeapDiskStoreProviderFactory implements ServiceFactory<OffHeapDiskStore.Provider> {
 
   @Override
-  public OffHeapDiskStore.Provider create(ServiceCreationConfiguration<OffHeapDiskStore.Provider> configuration) {
+  public OffHeapDiskStore.Provider create(ServiceCreationConfiguration<OffHeapDiskStore.Provider, ?> configuration) {
     if (configuration == null) {
       return new OffHeapDiskStore.Provider();
     } else if (configuration instanceof OffHeapDiskStoreProviderConfiguration) {

@@ -31,7 +31,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -80,8 +80,8 @@ public class SerializerCountingTest {
   public void testOnHeapPutGet() {
 
     Cache<Long, String> cache = cacheManager.createCache("onHeap", newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-                .add(new DefaultCopierConfiguration<>(SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY))
-                .add(new DefaultCopierConfiguration<>(SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
+                .withService(new DefaultCopierConfiguration<>(SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY))
+                .withService(new DefaultCopierConfiguration<>(SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
                 .build());
 
     cache.put(42L, "TheAnswer!");
@@ -122,8 +122,8 @@ public class SerializerCountingTest {
   public void testOffHeapOnHeapCopyPutGet() {
     Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class,
                                           newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-            .add(new DefaultCopierConfiguration<>(SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<>(SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
+            .withService(new DefaultCopierConfiguration<>(SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY))
+            .withService(new DefaultCopierConfiguration<>(SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
             .build()
     );
 
@@ -146,8 +146,8 @@ public class SerializerCountingTest {
   public void testDiskOffHeapOnHeapCopyPutGet() {
     Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class,
                   newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).disk(100, MemoryUnit.MB))
-            .add(new DefaultCopierConfiguration<>(SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<>(SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
+            .withService(new DefaultCopierConfiguration<>(SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY))
+            .withService(new DefaultCopierConfiguration<>(SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
             .build()
     );
 

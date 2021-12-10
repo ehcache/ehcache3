@@ -18,21 +18,24 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.util.runners.Parallel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
-
-import java.io.File;
+import org.junit.runner.RunWith;
 
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@RunWith(Parallel.class)
 public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBase {
 
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(
+      newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build()
+  );
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cache;
@@ -42,18 +45,15 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     cacheManager = createCacheManager(CLUSTER.getConnectionURI());
-    cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
+    cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
   }
 
   @After
   public void tearDown() throws Exception {
     if (cacheManager != null) {
       cacheManager.close();
-      cacheManager.destroy();
     }
   }
 
@@ -65,8 +65,8 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
 
     assertValue(cache, "9");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(cache, "9");
     checkValueFromLoaderWriter(cache, String.valueOf(9));
@@ -93,8 +93,8 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     cache.put(KEY, "new value");
     assertValue(cache, "new value");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(cache, "new value");
     checkValueFromLoaderWriter(cache,"new value");

@@ -56,7 +56,7 @@ public class Resilience {
             .read(Duration.ofSeconds(10)) // <2>
             .write(Timeouts.DEFAULT_OPERATION_TIMEOUT) // <3>
             .connection(Timeouts.INFINITE_TIMEOUT)) // <4>
-          .autoCreate());
+          .autoCreate(c -> c));
     // end::timeoutsExample[]
   }
 }

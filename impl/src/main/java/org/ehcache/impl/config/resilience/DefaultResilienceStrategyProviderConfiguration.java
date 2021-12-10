@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link ResilienceStrategyProvider}.
  */
-public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanceProviderConfiguration<String, DefaultResilienceStrategyConfiguration> implements ServiceCreationConfiguration<ResilienceStrategyProvider> {
+public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanceProviderConfiguration<String, DefaultResilienceStrategyConfiguration> implements ServiceCreationConfiguration<ResilienceStrategyProvider, DefaultResilienceStrategyProviderConfiguration> {
 
   @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_RESILIENCE = RobustResilienceStrategy.class;
@@ -34,6 +34,12 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
 
   private DefaultResilienceStrategyConfiguration defaultRegularConfiguration;
   private DefaultResilienceStrategyConfiguration defaultLoaderWriterConfiguration;
+
+  private DefaultResilienceStrategyProviderConfiguration(DefaultResilienceStrategyProviderConfiguration config) {
+    super(config);
+    this.defaultRegularConfiguration = config.defaultRegularConfiguration;
+    this.defaultLoaderWriterConfiguration = config.defaultLoaderWriterConfiguration;
+  }
 
   public DefaultResilienceStrategyProviderConfiguration() {
     this.defaultRegularConfiguration = new DefaultResilienceStrategyConfiguration(DEFAULT_RESILIENCE);
@@ -153,5 +159,15 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
   public DefaultResilienceStrategyProviderConfiguration addResilienceStrategyFor(String alias, ResilienceStrategy<?, ?> resilienceStrategy) {
     getDefaults().put(alias, new DefaultResilienceStrategyConfiguration(resilienceStrategy));
     return this;
+  }
+
+  @Override
+  public DefaultResilienceStrategyProviderConfiguration derive() {
+    return new DefaultResilienceStrategyProviderConfiguration(this);
+  }
+
+  @Override
+  public DefaultResilienceStrategyProviderConfiguration build(DefaultResilienceStrategyProviderConfiguration configuration) {
+    return configuration;
   }
 }

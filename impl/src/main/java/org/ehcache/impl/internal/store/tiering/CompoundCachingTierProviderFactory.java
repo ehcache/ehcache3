@@ -25,7 +25,7 @@ import org.osgi.service.component.annotations.Component;
 @Component
 public class CompoundCachingTierProviderFactory implements ServiceFactory<CompoundCachingTier.Provider> {
   @Override
-  public CompoundCachingTier.Provider create(ServiceCreationConfiguration<CompoundCachingTier.Provider> serviceConfiguration) {
+  public CompoundCachingTier.Provider create(ServiceCreationConfiguration<CompoundCachingTier.Provider, ?> serviceConfiguration) {
     return new CompoundCachingTier.Provider();
   }
 

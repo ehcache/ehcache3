@@ -23,7 +23,6 @@ import org.ehcache.StateTransitionException;
 import org.ehcache.Status;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
@@ -47,7 +46,7 @@ public class CacheManagerDestroyTest {
 
   private static final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-          .with(cluster(CLUSTER_URI).autoCreate());
+          .with(cluster(CLUSTER_URI).autoCreate(c -> c));
 
   @Before
   public void definePassthroughServer() throws Exception {
@@ -75,8 +74,8 @@ public class CacheManagerDestroyTest {
 
   @Test
   public void testCreateDestroyCreate() throws Exception {
-    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate()
-      .defaultServerResource("primary-server-resource"))
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI)
+      .autoCreate(c -> c.defaultServerResource("primary-server-resource")))
       .withCache("my-cache", newCacheConfigurationBuilder(Long.class, String.class, heap(10).with(ClusteredResourcePoolBuilder
         .clusteredDedicated(2, MemoryUnit.MB))))
       .build(true);
@@ -85,35 +84,36 @@ public class CacheManagerDestroyTest {
     cacheManager.destroy();
 
     cacheManager.init();
+
+    cacheManager.close();
   }
 
   @Test
   public void testDestroyCacheManagerWithMultipleClients() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
-    PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
+    try (PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true)) {
 
-    persistentCacheManager1.close();
+      persistentCacheManager1.close();
 
-    try {
-      persistentCacheManager1.destroy();
-      fail("StateTransitionException expected");
-    } catch (StateTransitionException e) {
-      assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
-    }
+      try {
+        persistentCacheManager1.destroy();
+        fail("StateTransitionException expected");
+      } catch (StateTransitionException e) {
+        assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
+      }
 
-    assertThat(persistentCacheManager1.getStatus(), is(Status.UNINITIALIZED));
+      assertThat(persistentCacheManager1.getStatus(), is(Status.UNINITIALIZED));
 
-    assertThat(persistentCacheManager2.getStatus(), is(Status.AVAILABLE));
+      assertThat(persistentCacheManager2.getStatus(), is(Status.AVAILABLE));
 
-    Cache<Long, String> cache = persistentCacheManager2.createCache("test", newCacheConfigurationBuilder(Long.class, String.class,
+      Cache<Long, String> cache = persistentCacheManager2.createCache("test", newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
 
-    cache.put(1L, "One");
+      cache.put(1L, "One");
 
-    assertThat(cache.get(1L), is("One"));
-
-    persistentCacheManager2.close();
+      assertThat(cache.get(1L), is("One"));
+    }
   }
 
   @Test
@@ -125,23 +125,22 @@ public class CacheManagerDestroyTest {
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
-    PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true);
+    try (PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true)) {
 
-    persistentCacheManager1.close();
-    try {
-      persistentCacheManager1.destroy();
-      fail("StateTransitionException expected");
-    } catch (StateTransitionException e) {
-      assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
+      persistentCacheManager1.close();
+      try {
+        persistentCacheManager1.destroy();
+        fail("StateTransitionException expected");
+      } catch (StateTransitionException e) {
+        assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
+      }
+
+      Cache<Long, String> cache = persistentCacheManager2.getCache("test", Long.class, String.class);
+
+      cache.put(1L, "One");
+
+      assertThat(cache.get(1L), is("One"));
     }
-
-    Cache<Long, String> cache = persistentCacheManager2.getCache("test", Long.class, String.class);
-
-    cache.put(1L, "One");
-
-    assertThat(cache.get(1L), is("One"));
-
-    persistentCacheManager2.close();
   }
 
   @Test
@@ -173,21 +172,20 @@ public class CacheManagerDestroyTest {
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
-    PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true);
+    try (PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true)) {
 
-    Cache<Long, String> cache = persistentCacheManager1.getCache("test", Long.class, String.class);
-    cache.put(1L, "One");
+      Cache<Long, String> cache = persistentCacheManager1.getCache("test", Long.class, String.class);
+      cache.put(1L, "One");
 
-    assertThat(cache.get(1L), is("One"));
+      assertThat(cache.get(1L), is("One"));
 
-    persistentCacheManager1.close();
-    assertThat(persistentCacheManager1.getStatus(), is(Status.UNINITIALIZED));
+      persistentCacheManager1.close();
+      assertThat(persistentCacheManager1.getStatus(), is(Status.UNINITIALIZED));
 
-    Cache<Long, String> cache2 = persistentCacheManager2.getCache("test", Long.class, String.class);
+      Cache<Long, String> cache2 = persistentCacheManager2.getCache("test", Long.class, String.class);
 
-    assertThat(cache2.get(1L), is("One"));
-
-    persistentCacheManager2.close();
+      assertThat(cache2.get(1L), is("One"));
+    }
   }
 
 }

@@ -1,12 +1,12 @@
 ---
 ---
 = Terms Related to Caching
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Basic Terms
@@ -18,7 +18,8 @@ computation. Data that is already in the cache can be repeatedly accessed with m
 resources.
 
 === Cache Entry
-A cache entry consists of a key and its mapped data value within the cache.
+A cache entry consists of a key and its mapped data value within the cache. This is also sometimes referred to as a
+_cache mapping_.
 
 === Cache Hit
 When a data entry is requested from cache and the entry exists for the given key, it is referred to as a cache hit
@@ -27,6 +28,18 @@ When a data entry is requested from cache and the entry exists for the given key
 === Cache Miss
 When a data entry is requested from cache and the entry does not exist for the given key, it is referred to as a cache
 miss (or simply, a _miss_).
+
+=== Cache Access
+Any time a data entry is requested from cache, the cache is _accessed_ no matter if the outcome was a _hit_ or a _miss_.
+
+=== Hit Ratio
+It is the ratio of cache hits over cache accesses, or _hits_ / _accesses_. For instance, a cache accessed 100 times
+that hit 90 times has a hit ratio of: _90_ / _100_ or _0.9_ or _90%_.
+
+=== Miss Ratio
+It is the ratio of cache misses over cache accesses, or _misses_ / _accesses_. For instance, a cache accessed 100 times
+that missed 30 times has a miss ratio of: _30_ / _100_ or _0.3_ or _30%_. It is the corollary of _hit ratio_ as
+_hit ratio_ + _miss ratio_ is always _1.0_ or _100%_.
 
 === System-of-Record (SoR)
 The authoritative source of truth for the data. The cache acts as a local copy of data retrieved from or stored to the
@@ -41,7 +54,22 @@ data storage capacity).
 The removal of entries from the cache after some amount of time has passed, typically as a strategy to avoid stale
 data in the cache.
 
+=== Off-Heap
+When large caches put too much pressure on the GC, a common resort is to store the caches' contents _off-heap_, i.e:
+still in the memory of the JVM process but out of reach of the garbage collector. The off-heap implementation Ehcache
+uses is https://github.com/Terracotta-OSS/offheap-store/[Terracotta's port] of
+http://gee.cs.oswego.edu/dl/html/malloc.html[dlmalloc] to Java backed by NIO direct ``ByteBuffer``s.
+
 === Hot Data
 Data that has recently been used by an application is very likely to be accessed again soon.  Such data is considered
-_hot_.  A cache may attempt to keep the _hottest_ data most quickly available, while attemping to choose the
-_least hot_ data for eviction.
+_hot_.  A cache may attempt to keep the _hottest_ data most quickly available, while attempting to choose the
+_least hot_ data for eviction. Following the Pareto Distribution, you ideally want all your hot data to fit into your
+caches.
+
+=== Pareto Distribution
+According to https://www.statisticshowto.datasciencecentral.com/pareto-distribution/[Data Science Central], _the Pareto
+distribution is a skewed distribution with heavy, or “slowly decaying” tails (i.e. much of the data is in the tails)_.
+This is more commonly known as the 80% / 20% rule.
+The entire concept of caching is based on the Pareto Distribution, as caches are only effective when their hit ratio
+reaches a certain level, i.e.: as a general rule of thumb 80% of your transactions should be served with cached data and
+the remaining 20% by data coming from other, more expensive means.

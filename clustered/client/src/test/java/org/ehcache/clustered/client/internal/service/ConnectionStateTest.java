@@ -48,7 +48,7 @@ public class ConnectionStateTest {
 
   private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
           .cluster(CLUSTER_URI)
-          .autoCreate()
+          .autoCreate(c -> c)
           .build();
 
   @Rule
@@ -73,7 +73,7 @@ public class ConnectionStateTest {
   public void testInitializeStateAfterConnectionCloses() throws Exception {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
 
     closeConnection();
 
@@ -93,7 +93,7 @@ public class ConnectionStateTest {
   public void testCreateClusterTierEntityAfterConnectionCloses() throws Exception {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
     connectionState.initializeState();
 
     closeConnection();
@@ -114,9 +114,7 @@ public class ConnectionStateTest {
 
     assertThat(connections.size(), is(1));
 
-    Connection connection = connections.iterator().next();
-
-    connection.close();
+    connections.iterator().next().close();
   }
 
 }

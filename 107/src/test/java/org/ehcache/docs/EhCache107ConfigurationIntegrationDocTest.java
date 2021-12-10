@@ -29,12 +29,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.pany.domain.Client;
 import com.pany.domain.Product;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.util.Random;

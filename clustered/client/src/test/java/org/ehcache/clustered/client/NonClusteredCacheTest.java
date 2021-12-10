@@ -61,11 +61,9 @@ public class NonClusteredCacheTest {
         .build();
 
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
-
-    cacheManager.createCache("cache-1", cacheConfiguration);
-    cacheManager.createCache("cache-2", cacheConfiguration);
-
-    cacheManager.close();
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true)) {
+      cacheManager.createCache("cache-1", cacheConfiguration);
+      cacheManager.createCache("cache-2", cacheConfiguration);
+    }
   }
 }

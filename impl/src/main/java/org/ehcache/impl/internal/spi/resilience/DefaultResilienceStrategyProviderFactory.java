@@ -24,7 +24,7 @@ import org.osgi.service.component.annotations.Component;
 @Component
 public class DefaultResilienceStrategyProviderFactory implements ServiceFactory<ResilienceStrategyProvider> {
   @Override
-  public ResilienceStrategyProvider create(ServiceCreationConfiguration<ResilienceStrategyProvider> configuration) {
+  public ResilienceStrategyProvider create(ServiceCreationConfiguration<ResilienceStrategyProvider, ?> configuration) {
     if (configuration == null) {
       return new DefaultResilienceStrategyProvider();
     } else if (configuration instanceof DefaultResilienceStrategyProviderConfiguration) {

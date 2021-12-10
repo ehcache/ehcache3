@@ -22,6 +22,8 @@ import org.ehcache.Status;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -58,8 +60,6 @@ import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -68,7 +68,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -114,8 +113,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
                           ExecutionService executionService, String threadPoolAlias, int writerConcurrency, int diskSegments,
-                          final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(config, timeSource, eventDispatcher);
+                          final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes, StatisticsService statisticsService) {
+    super(config, timeSource, eventDispatcher, statisticsService);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
@@ -298,7 +297,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     private final Map<OffHeapDiskStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
     private final Map<Store<?, ?>, PersistenceSpaceIdentifier<?>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final String defaultThreadPool;
-    private volatile ServiceProvider<Service> serviceProvider;
     private volatile DiskResourceService diskPersistenceService;
 
     public Provider() {
@@ -315,17 +313,17 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return resourceTypes.equals(Collections.singleton(getResourceType())) ? 1 : 0;
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return authorityResource.equals(getResourceType()) ? 1 : 0;
     }
 
     @Override
-    public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapDiskStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
@@ -336,12 +334,12 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       return store;
     }
 
-    private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
-      if (serviceProvider == null) {
+    private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?, ?>... serviceConfigs) {
+      if (getServiceProvider() == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapDiskStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-      ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
+      TimeSource timeSource = getServiceProvider().getService(TimeSourceService.class).getTimeSource();
+      ExecutionService executionService = getServiceProvider().getService(ExecutionService.class);
 
       SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
       if (!(diskPool.getUnit() instanceof MemoryUnit)) {
@@ -371,7 +369,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<>(persistenceContext,
           executionService, threadPoolAlias, writerConcurrency, diskSegments,
-          storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
+          storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()), getServiceProvider().getService(StatisticsService.class));
         createdStores.put(offHeapStore, space);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {
@@ -387,7 +385,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       try {
         OffHeapDiskStore<?, ?> offHeapDiskStore = (OffHeapDiskStore<?, ?>)resource;
         close(offHeapDiskStore);
-        StatisticsManager.nodeFor(offHeapDiskStore).clean();
+        getServiceProvider().getService(StatisticsService.class).cleanForNode(offHeapDiskStore);
         tierOperationStatistics.remove(offHeapDiskStore);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -445,7 +443,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
-      this.serviceProvider = serviceProvider;
+      super.start(serviceProvider);
       diskPersistenceService = serviceProvider.getService(DiskResourceService.class);
       if (diskPersistenceService == null) {
         throw new IllegalStateException("Unable to find file based persistence service");
@@ -454,13 +452,16 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void stop() {
-      this.serviceProvider = null;
-      createdStores.clear();
-      diskPersistenceService = null;
+      try {
+        createdStores.clear();
+        diskPersistenceService = null;
+      } finally {
+        super.stop();
+      }
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 

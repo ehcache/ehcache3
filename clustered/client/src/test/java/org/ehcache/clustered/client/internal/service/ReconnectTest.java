@@ -37,7 +37,7 @@ public class ReconnectTest {
 
   private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
           .cluster(CLUSTER_URI)
-          .autoCreate()
+          .autoCreate(c -> c)
           .build();
 
   @Test(expected = RuntimeException.class)
@@ -45,7 +45,7 @@ public class ReconnectTest {
     MockConnectionService.mockConnection = null;
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
   }
 
   @Test
@@ -59,7 +59,7 @@ public class ReconnectTest {
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    connectionState.initClusterConnection(Runnable::run);
 
     CompletableFuture<Void> future = CompletableFuture.runAsync(() -> connectionState.initializeState());
 

@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+plugins {
+  id 'org.ehcache.build.distribute'
+}
+
 group = 'org.ehcache'
 archivesBaseName = 'ehcache'
 
@@ -24,8 +28,6 @@ dependencies {
   compileOnly project(':107')
   compileOnly project(':xml')
 }
-
-apply plugin: EhDistribute
 
 dependencies {
   shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"

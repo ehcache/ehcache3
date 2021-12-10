@@ -42,6 +42,7 @@ import static java.util.stream.Stream.of;
 import static java.util.stream.StreamSupport.stream;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertEquals;
@@ -59,15 +60,19 @@ public class Jsr107OsgiTest {
   public Option[] individualModules() {
     return options(
       gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"),
+      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
       gradleBundle("org.ehcache.modules:107"),
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:api"),
       gradleBundle("javax.cache:cache-api"),
 
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
+
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("Jsr107OsgiTest", "individualModules")
     );
@@ -76,7 +81,7 @@ public class Jsr107OsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
       gradleBundle("javax.cache:cache-api"),
 
       baseConfiguration("Jsr107OsgiTest", "uberJar")

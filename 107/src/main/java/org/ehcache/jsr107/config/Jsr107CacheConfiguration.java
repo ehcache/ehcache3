@@ -22,7 +22,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * Jsr107CacheConfiguration
  */
-public class Jsr107CacheConfiguration implements ServiceConfiguration<Jsr107Service> {
+public class Jsr107CacheConfiguration implements ServiceConfiguration<Jsr107Service, Void> {
 
   private final ConfigurationElementState statisticsEnabled;
   private final ConfigurationElementState managementEnabled;

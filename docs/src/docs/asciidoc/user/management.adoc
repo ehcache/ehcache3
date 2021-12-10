@@ -1,12 +1,12 @@
 ---
 ---
 = Management and Monitoring
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Intro
@@ -30,7 +30,7 @@ cache manager builder as a service:
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=usingManagementRegistry]
+include::{sourcedir38}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=usingManagementRegistry]
 ----
 <1> Optional: give a name to your cache manager by using a custom configuration
 <2> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistryService`. This is only required because the service is used below.
@@ -50,7 +50,7 @@ and a cache name to uniquely identify the cache on which you want to query stats
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=capabilitiesAndContexts]
+include::{sourcedir38}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=capabilitiesAndContexts]
 ----
 <1> Query the `ManagementRegistry` for the registered managed objects' capabilities.
 <2> Each capability has a unique name you will need to refer to it.
@@ -74,7 +74,7 @@ a managed object. Examples of actions could be: clear caches, get their configur
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=actionCall]
+include::{sourcedir38}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=actionCall]
 ----
 <1> Put something in a cache.
 <2> Call the 'clear' action on the managed cache. Refer to the descriptors of the provider to get the exact list of
@@ -92,7 +92,7 @@ manager by default, but sometimes you may want one `ManagementRegistry` to manag
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=managingMultipleCacheManagers]
+include::{sourcedir38}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=managingMultipleCacheManagers]
 ----
 <1> Create an instance of `org.ehcache.management.SharedManagementService`
 <2> Pass it as a service to the first cache manager

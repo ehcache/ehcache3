@@ -32,7 +32,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,23 +46,12 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class DestroyLoopTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   private static final String CACHE_MANAGER_NAME = "/destroy-cm";
   private static final String CACHE_NAME = "clustered-cache";
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
 
   @Test
   public void testDestroyLoop() throws Exception {
@@ -81,18 +69,18 @@ public class DestroyLoopTest extends ClusteredTests {
   private void destroyCacheManager() throws CachePersistenceException {
     PersistentCacheManager cacheManager = newCacheManagerBuilder().with(
       ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve(CACHE_MANAGER_NAME))
-        .expecting()).build(false);
+        .expecting(c -> c)).build(false);
     cacheManager.destroy();
   }
 
   private PersistentCacheManager createCacheManager() {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-        .with(cluster(CLUSTER.getConnectionURI().resolve(CACHE_MANAGER_NAME)).autoCreate())
+        .with(cluster(CLUSTER.getConnectionURI().resolve(CACHE_MANAGER_NAME)).autoCreate(c -> c))
         .withCache(CACHE_NAME, newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-          .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+          .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
     return clusteredCacheManagerBuilder.build(true);
   }
 

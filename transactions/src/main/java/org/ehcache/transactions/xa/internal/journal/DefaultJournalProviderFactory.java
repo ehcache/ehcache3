@@ -27,7 +27,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultJournalProviderFactory implements ServiceFactory<JournalProvider> {
 
   @Override
-  public JournalProvider create(ServiceCreationConfiguration<JournalProvider> configuration) {
+  public JournalProvider create(ServiceCreationConfiguration<JournalProvider, ?> configuration) {
     return new DefaultJournalProvider();
   }
 

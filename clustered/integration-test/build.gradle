@@ -19,35 +19,32 @@ configurations {
 }
 
 dependencies {
-  // not required by gradle but required by the IDE because 'dist' does not have any transitive dependencies
-  testCompileOnly project(':clustered:client')
-  testCompileOnly project(':clustered:common')
-  testCompileOnly project(':impl')
-  testCompileOnly project(':xml')
-  testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
-  testCompileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testImplementation project(':clustered:client')
+  testImplementation project(':clustered:common')
+  testImplementation project(':impl')
+  testImplementation project(':xml')
+  testImplementation project(':107')
+  testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion") {
+    exclude group:'junit', module:'junit'
+  }
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion:tests") {
+    exclude group:'junit', module:'junit'
+  }
 
   testImplementation project(':management')
-  testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
-  testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
-  testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
-  testImplementation "org.awaitility:awaitility:3.1.6"
-  testRuntimeOnly project(':clustered:clustered-dist')
-  testRuntimeOnly project(':dist')
+  testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
 
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
+  testRuntimeOnly project(':clustered:clustered-dist')
 
-  testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
-  testImplementation (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
-    exclude group:'junit', module:'junit'
-    exclude group:'org.hamcrest', module:'hamcrest-core'
-  }
+  testImplementation (group:'org.terracotta', name:'galvan-platform-support', version: terracottaPlatformVersion)
   testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
-
-  serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {
-    exclude group:'org.terracotta.management.dist', module:'mnm-common'
-  }
+  testImplementation project(':test-utilities')
 }
 
 task unzipKit(type: Copy) {
@@ -65,14 +62,9 @@ task copyServerLibs(type: Copy) {
 test {
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
-  if (testJava.javaVersion.isJava9Compatible()) {
-    environment 'JAVA_OPTS', '--add-modules java.xml.bind'
-  }
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
-}.doFirst {
-  if (testJava.javaVersion.isJava11Compatible()) throw new StopExecutionException("Clustered Tests Not Working in Java 11")
 }
 

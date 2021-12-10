@@ -16,17 +16,18 @@
 package org.ehcache.core.spi.store;
 
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Arrays;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
-import static java.util.Collections.synchronizedMap;
 import static org.ehcache.core.store.StoreSupport.selectStoreProvider;
 
+@ServiceDependencies({StatisticsService.class})
 public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provider {
 
   private volatile ServiceProvider<Service> serviceProvider;
@@ -35,18 +36,19 @@ public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provi
 
 
   @Override
-  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
 
     Store.Provider underlyingStoreProvider = selectStoreProvider(serviceProvider, storeConfig.getResourcePools().getResourceTypeSet(),
         Arrays.asList(serviceConfigs));
     Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 
     Store<K, V> wrappedStore = wrap(store, storeConfig, serviceConfigs);
+    serviceProvider.getService(StatisticsService.class).registerWithParent(store, wrappedStore);
     createdStores.put(wrappedStore, new StoreReference<>(store, underlyingStoreProvider));
     return wrappedStore;
   }
 
-  protected abstract <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+  protected abstract <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
   @Override
   public void releaseStore(Store<?, ?> resource) {

@@ -41,6 +41,8 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
+import static org.ehcache.osgi.OsgiTestUtils.jtaConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
@@ -54,16 +56,16 @@ public class TransactionalOsgiTest {
       gradleBundle("org.ehcache.modules:api"),
       gradleBundle("org.ehcache.modules:core"),
       gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"),
-      gradleBundle("org.ehcache:transactions"),
+      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:transactions"), jtaConfiguration(),
+
+      gradleBundle("org.terracotta.management:management-model"),
+      gradleBundle("org.terracotta.management:sequence-generator"),
 
       wrappedGradleBundle("org.terracotta:statistics"),
       wrappedGradleBundle("org.ehcache:sizeof"),
       wrappedGradleBundle("org.terracotta:offheap-store"),
-
-      wrappedGradleBundle("javax.transaction:jta")
-        .instructions("Fragment-Host=org.apache.felix.framework"),
-      wrappedGradleBundle("org.codehaus.btm:btm"),
+      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("TransactionalOsgiTest", "individualModules")
     );
@@ -72,12 +74,8 @@ public class TransactionalOsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"),
-      gradleBundle("org.ehcache:transactions"),
-
-      wrappedGradleBundle("javax.transaction:jta")
-        .instructions("Fragment-Host=org.apache.felix.framework"),
-      wrappedGradleBundle("org.codehaus.btm:btm"),
+      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:transactions"), jtaConfiguration(),
 
       baseConfiguration("TransactionalOsgiTest", "uberJar")
     );
@@ -114,7 +112,7 @@ public class TransactionalOsgiTest {
         .withClassLoader(TestMethods.class.getClassLoader())
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-          .add(new XAStoreConfiguration("xaCache")).build()).build(true)) {
+          .withService(new XAStoreConfiguration("xaCache")).build()).build(true)) {
 
         Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
 

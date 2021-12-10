@@ -1,12 +1,12 @@
 ---
 ---
 = Performance Tuning
-ifndef::sourcedir37[]
-include::common.adoc[]
-endif::sourcedir37[]
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Introduction
@@ -30,7 +30,7 @@ However, always do your own benchmark.
 
 == Stores
 
-We probably know that the faster store is on-heap.
+We probably know that the fastest store is on-heap.
 Until you overwhelm the garbage collector.
 
 Your next best bet is off-heap.
@@ -44,11 +44,12 @@ The next question would be: "Should I use a single tier?" Is using a single-tier
 The answer depends on what you do with it.
 Having two tiers is a bit slower on writing.
 It is also a bit slower on reading when the data is not found in the caching tier (on-heap).
-However, it will be faster for an entry that is indeed found there.
+However, it will be faster for an entry that is indeed found in a higher tier.
 
 So again, it depends.
 The more you follow the caching hypothesis that the same data is always reused (and so in the caching
-tier), the more interesting having two tiers will be.
+tier), the more interesting having two or more tiers will be. As a general rule of thumb, a tier that has a
+hit ratio of 50% or less is going to slow down the cache. Either enlarge such tier or completely get rid of it.
 
 == Byte Sizing
 
@@ -63,15 +64,19 @@ Make sure of what is used to confirm you can't use a faster way on your platform
 == Serialization
 
 Off-heap, disk and clustering need to serialize keys and values before storing them.
-By default, the Java serialization is used.
+By default, custom super-fast serializers are used for `Long`, `Integer`, `Character`, `Double`, `Float`, `byte[]` and
+`String` objects.
+A slightly faster, customized Java serialization is used for other object types.
 It is well-known for not being the fastest thing around.
 Ehcache uses it because it is supported out of the box.
-However, you can increase performances by provoding your own serializers.
+However, you can increase performance by providing your own serializers.
 
 == Copier
 
 By default, on-heap storage stores the entries by reference.
 You might want to use a copier to store entries by value for whatever reason.
+Out of the box, Ehcache bundles a copier that makes use of its serialization mechanism:
+`org.ehcache.impl.copy.SerializingCopier`.
 This can be much slower so watch out.
 
 == Loader-Writer
@@ -93,7 +98,7 @@ If you need to set an expiration time, TTL will be the faster one.
 This is because the expiration time of an entry is calculated and updated ony when the entry is inserted or updated in the cache.
 But it still requires an expiration check at access time.
 
-So you can expect a 2% drop in performance when using TTL. Not bad.
+So you can expect a 2% drop in performance when using TTL.
 
 === Time to Idle
 
@@ -108,14 +113,14 @@ When using a custom policy, you are on your own.
 
 == Allocation rate
 
-Ehcache won't allocate any object during a simple `get()`.
+Ehcache won't allocate any object during a simple on-heap `get()`.
 However, keep in mind that your configuration might do so.
 
 For instance, let's say you define an expiry policy like this.
 
 [source,java,indent=0]
 ----
-include::{sourcedir37}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
+include::{sourcedir38}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
 ----
 
 <1> Will instantiate a `Duration` every time an entry is accessed

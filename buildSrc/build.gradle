@@ -14,11 +14,36 @@
  * limitations under the License.
  */
 
-apply plugin: 'groovy'
+plugins {
+  id 'groovy'
+  id 'java-gradle-plugin'
+}
 
 repositories { jcenter() }
+
+gradlePlugin {
+  plugins {
+    ehDeploy {
+      id = 'org.ehcache.build.deploy'
+      implementationClass = 'EhDeploy'
+    }
+    ehDistribute {
+      id = 'org.ehcache.build.distribute'
+      implementationClass = 'EhDistribute'
+    }
+    ehPomMangle {
+      id = 'org.ehcache.build.pom-mangle'
+      implementationClass = 'EhPomMangle'
+    }
+    ehVoltron {
+      id = 'org.ehcache.build.voltron'
+      implementationClass = 'EhVoltron'
+    }
+  }
+}
+
 dependencies {
-  compile gradleApi()
-  compile localGroovy()
-  compile 'com.github.jengelman.gradle.plugins:shadow:4.0.3'
+  api gradleApi()
+  implementation localGroovy()
+  api 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
 }

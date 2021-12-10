@@ -60,20 +60,13 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
   private static Connection ASSERTION_CONNECTION;
 
   @BeforeClass
   public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
     ASSERTION_CONNECTION = CLUSTER.newConnection();
   }
 
@@ -81,7 +74,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
   public void testAutoCreatedCacheManager() throws Exception {
     assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate().build())
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate(c -> c).build())
             .build();
     assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     manager.init();
@@ -112,7 +105,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
     assertEntityNotExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate().build());
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate(c -> c).build());
 
     Callable<PersistentCacheManager> task = () -> {
       PersistentCacheManager manager = managerBuilder.build();

@@ -18,9 +18,9 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.BaseCacheType;
@@ -50,7 +50,10 @@ import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -82,13 +85,16 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.lang.String.format;
 import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Spliterators.spliterator;
 import static java.util.function.Function.identity;
+import static java.util.regex.Pattern.quote;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.of;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -292,12 +298,12 @@ public class ConfigurationParser {
     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
     ConfigType jaxbModel = unmarshaller.unmarshal(document, configTypeClass).getValue();
 
-    ConfigurationBuilder managerBuilder = newConfigurationBuilder().withClassLoader(classLoader);
+    FluentConfigurationBuilder<?> managerBuilder = newConfigurationBuilder().withClassLoader(classLoader);
     managerBuilder = serviceCreationConfigurationParser.parseServiceCreationConfiguration(jaxbModel, classLoader, managerBuilder);
 
     for (CacheDefinition cacheDefinition : getCacheElements(jaxbModel)) {
       String alias = cacheDefinition.id();
-      if(managerBuilder.containsCache(alias)) {
+      if(managerBuilder.getCache(alias) != null) {
         throw new XmlConfigurationException("Two caches defined with the same alias: " + alias);
       }
 
@@ -323,7 +329,7 @@ public class ConfigurationParser {
       }
 
       cacheBuilder = parseServiceConfigurations(cacheBuilder, cacheClassLoader, cacheDefinition);
-      managerBuilder = managerBuilder.addCache(alias, cacheBuilder.build());
+      managerBuilder = managerBuilder.withCache(alias, cacheBuilder.build());
     }
 
     Map<String, XmlConfiguration.Template> templates = getTemplates(jaxbModel);
@@ -363,19 +369,28 @@ public class ConfigurationParser {
 
   public static class FatalErrorHandler implements ErrorHandler {
 
+    private static final Pattern ABSTRACT_TYPE_FAILURES = of("service-creation-configuration", "service-configuration", "resource")
+      .map(element -> quote(format("\"http://www.ehcache.org/v3\":%s", element)))
+      .collect(collectingAndThen(joining("|", "^\\Qcvc-complex-type.2.4.a\\E.*'\\{.*(?:", ").*\\}'.*$"), Pattern::compile));
+
     @Override
     public void warning(SAXParseException exception) throws SAXException {
-      throw exception;
+      fatalError(exception);
     }
 
     @Override
     public void error(SAXParseException exception) throws SAXException {
-      throw exception;
+      fatalError(exception);
     }
 
     @Override
     public void fatalError(SAXParseException exception) throws SAXException {
-      throw exception;
+      if (ABSTRACT_TYPE_FAILURES.matcher(exception.getMessage()).matches()) {
+        throw new XmlConfigurationException(
+          "Cannot confirm XML sub-type correctness. You might be missing client side libraries.", exception);
+      } else {
+        throw exception;
+      }
     }
   }
 
@@ -399,9 +414,18 @@ public class ConfigurationParser {
 
   public static String documentToText(Document xml) throws IOException, TransformerException {
     try (StringWriter writer = new StringWriter()) {
-      TRANSFORMER_FACTORY.newTransformer().transform(new DOMSource(xml), new StreamResult(writer));
+      transformer().transform(new DOMSource(xml), new StreamResult(writer));
       return writer.toString();
     }
+  }
+
+  private static Transformer transformer() throws TransformerConfigurationException {
+    Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
+    transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+    transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+    return transformer;
   }
 
   public static String urlToText(URL url, String encoding) throws IOException {

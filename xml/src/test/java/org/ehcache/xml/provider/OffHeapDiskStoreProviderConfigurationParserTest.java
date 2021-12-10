@@ -41,7 +41,7 @@ public class OffHeapDiskStoreProviderConfigurationParserTest {
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration).isExactlyInstanceOf(OffHeapDiskStoreProviderConfiguration.class);
 
@@ -53,7 +53,7 @@ public class OffHeapDiskStoreProviderConfigurationParserTest {
   public void unparseServiceCreationConfiguration() {
     ConfigType configType = new ConfigType();
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new OffHeapDiskStoreProviderConfiguration("foo")).build();
+      .withService(new OffHeapDiskStoreProviderConfiguration("foo")).build();
     configType = new OffHeapDiskStoreProviderConfigurationParser().unparseServiceCreationConfiguration(config, configType);
 
     assertThat(configType.getDiskStore().getThreadPool()).isEqualTo("foo");

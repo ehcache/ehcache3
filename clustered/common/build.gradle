@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+plugins {
+  id 'org.ehcache.build.deploy'
+}
 
 dependencies {
+  api project(':clustered:common-api')
+
   providedImplementation project(':api')
   providedImplementation "org.terracotta:entity-common-api:$terracottaApisVersion"
   providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"

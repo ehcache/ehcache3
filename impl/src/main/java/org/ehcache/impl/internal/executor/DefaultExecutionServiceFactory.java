@@ -29,7 +29,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultExecutionServiceFactory implements ServiceFactory<ExecutionService> {
 
   @Override
-  public ExecutionService create(ServiceCreationConfiguration<ExecutionService> configuration) {
+  public ExecutionService create(ServiceCreationConfiguration<ExecutionService, ?> configuration) {
     if (configuration == null) {
       return new OnDemandExecutionService();
     } else if (configuration instanceof PooledExecutionServiceConfiguration) {

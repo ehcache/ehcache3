@@ -21,10 +21,13 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -36,6 +39,7 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -603,6 +607,7 @@ public class TieredStoreTest {
     when(serviceProvider.getService(OffHeapStore.Provider.class)).thenReturn(offHeapStoreProvider);
     when(serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class)).thenReturn(authorities);
     when(serviceProvider.getServicesOfType(CachingTier.Provider.class)).thenReturn(cachingTiers);
+    when(serviceProvider.getService(StatisticsService.class)).thenReturn(new DefaultStatisticsService());
     tieredStoreProvider.start(serviceProvider);
 
     final Store<String, String> tieredStore = tieredStoreProvider.createStore(configuration);
@@ -614,7 +619,8 @@ public class TieredStoreTest {
   @Test
   public void testRank() throws Exception {
     TieredStore.Provider provider = new TieredStore.Provider();
-    ServiceLocator serviceLocator = dependencySet().with(provider).with(mock(DiskResourceService.class)).build();
+    ServiceLocator serviceLocator = dependencySet().with(provider).with(mock(DiskResourceService.class))
+      .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
     assertRank(provider, 0, ResourceType.Core.DISK);

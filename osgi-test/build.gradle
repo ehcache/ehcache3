@@ -37,9 +37,10 @@ dependencies {
   osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
 
+  osgiModule 'com.sun.activation:javax.activation:1.2.0'
+  osgiModule 'org.glassfish.hk2:osgi-resource-locator:1.0.2'
 
-
-  testImplementation 'org.apache.felix:org.apache.felix.framework:6.0.1'
+  testImplementation 'org.apache.felix:org.apache.felix.framework:6.0.3'
   testImplementation ('org.ops4j.pax.exam:pax-exam-junit4:4.12.0') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
@@ -50,7 +51,7 @@ dependencies {
   testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.4.5") {
+  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.1") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 }
@@ -60,7 +61,24 @@ configurations.all {
      force 'org.ops4j.base:ops4j-base-lang:1.5.0'
      force 'org.ops4j.base:ops4j-base-net:1.5.0'
      force 'org.ops4j.base:ops4j-base-util-property:1.5.0'
+     force 'org.ops4j.pax.url:pax-url-commons:2.6.1'
    }
+}
+
+configurations.all {
+  resolutionStrategy {
+    dependencySubstitution {
+      substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-link:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
+    }
+  }
 }
 
 sourceSets {
@@ -76,14 +94,10 @@ configurations.osgiModule.dependencies.withType(ProjectDependency).forEach {
 
 test {
   if (testJava.javaVersion.isJava9Compatible()) {
-    //Deploying the jaxb-runtime as an OSGi module is currently impossible - don't ask... sigh.
-    jvmArgs += ['--add-modules', 'java.xml.bind']
     //https://issues.apache.org/jira/browse/FELIX-5727 - framework extensions in Java 9 are ugly
     jvmArgs += ['--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED']
   }
 }.doFirst {
-  if (testJava.javaVersion.isJava11Compatible()) throw new StopExecutionException("OSGi Tests Not Working in Java 11")
-
   configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
     systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
   })

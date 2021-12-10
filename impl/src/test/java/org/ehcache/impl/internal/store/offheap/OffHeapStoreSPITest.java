@@ -22,6 +22,7 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -37,6 +38,7 @@ import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Arrays;
 
@@ -85,7 +87,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
         OffHeapStore<String, String> store = new OffHeapStore<>(config, timeSource, new TestStoreEventDispatcher<>(), unit
-          .toBytes(offheapPool.getSize()));
+          .toBytes(offheapPool.getSize()), new DefaultStatisticsService());
         OffHeapStore.Provider.init(store);
         return store;
       }
@@ -113,8 +115,8 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       }
 
       @Override
-      public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration<?>[0];
+      public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
+        return new ServiceConfiguration<?, ?>[0];
       }
 
       @Override
@@ -143,6 +145,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       @Override
       public void close(final Store<String, String> store) {
         OffHeapStore.Provider.close((OffHeapStore)store);
+        StatisticsManager.nodeFor(store).clean();
       }
     };
   }
@@ -163,6 +166,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
   public static void closeStore(OffHeapStore<?, ?> offHeapStore) {
     OffHeapStore.Provider.close(offHeapStore);
+    StatisticsManager.nodeFor(offHeapStore).clean();
   }
 
 }

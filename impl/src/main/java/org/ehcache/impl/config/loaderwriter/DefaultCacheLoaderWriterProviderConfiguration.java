@@ -24,7 +24,15 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link CacheLoaderWriterProvider}.
  */
-public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<String, DefaultCacheLoaderWriterConfiguration> implements ServiceCreationConfiguration<CacheLoaderWriterProvider> {
+public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<String, DefaultCacheLoaderWriterConfiguration> implements ServiceCreationConfiguration<CacheLoaderWriterProvider, DefaultCacheLoaderWriterProviderConfiguration> {
+
+  public DefaultCacheLoaderWriterProviderConfiguration() {
+    super();
+  }
+
+  public DefaultCacheLoaderWriterProviderConfiguration(DefaultCacheLoaderWriterProviderConfiguration config) {
+    super(config);
+  }
 
   /**
    * {@inheritDoc}
@@ -47,5 +55,15 @@ public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstance
   public DefaultCacheLoaderWriterProviderConfiguration addLoaderFor(String alias, Class<? extends CacheLoaderWriter<?, ?>> clazz, Object... arguments) {
     getDefaults().put(alias, new DefaultCacheLoaderWriterConfiguration(clazz, arguments));
     return this;
+  }
+
+  @Override
+  public DefaultCacheLoaderWriterProviderConfiguration derive() {
+    return new DefaultCacheLoaderWriterProviderConfiguration(this);
+  }
+
+  @Override
+  public DefaultCacheLoaderWriterProviderConfiguration build(DefaultCacheLoaderWriterProviderConfiguration configuration) {
+    return configuration;
   }
 }

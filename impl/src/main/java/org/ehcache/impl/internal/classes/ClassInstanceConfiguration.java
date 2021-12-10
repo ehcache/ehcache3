@@ -43,6 +43,16 @@ public class ClassInstanceConfiguration<T> {
     this.arguments = null;
   }
 
+  protected ClassInstanceConfiguration(ClassInstanceConfiguration<T> configuration) {
+    this.instance = configuration.getInstance();
+    this.clazz = configuration.getClazz();
+    if (instance == null) {
+      this.arguments = asList(configuration.getArguments());
+    } else {
+      this.arguments = null;
+    }
+  }
+
   public Class<? extends T> getClazz() {
     return clazz;
   }

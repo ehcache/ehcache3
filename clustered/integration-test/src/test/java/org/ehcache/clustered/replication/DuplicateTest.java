@@ -35,7 +35,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Arrays;
@@ -51,24 +50,15 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 
 public class DuplicateTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">512</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
-
   private PersistentCacheManager cacheManager;
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster(2).in(clusterPath()).withServiceFragment(offheapResource("primary-server-resource", 512)).build();
 
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
   }
 
   @After
@@ -84,13 +74,12 @@ public class DuplicateTest extends ClusteredTests {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
         .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"))
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)))
         .withResilienceStrategy(failingResilienceStrategy())
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
     cacheManager =  builder.build(true);
 
@@ -115,6 +104,7 @@ public class DuplicateTest extends ClusteredTests {
       while (currentEntry.get() < 100); // wait to make sure some entries are added before shutdown
 
       // Failover to mirror when put & replication are in progress
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
 
       puts.get(30, TimeUnit.SECONDS);

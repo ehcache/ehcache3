@@ -27,7 +27,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  * Enables configuring {@link Class} - {@link Copier} pairs that will be selected unless cache level configurations
  * are provided.
  */
-public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, DefaultCopierConfiguration<?>> implements ServiceCreationConfiguration<CopyProvider> {
+public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, DefaultCopierConfiguration<?>> implements ServiceCreationConfiguration<CopyProvider, DefaultCopyProviderConfiguration> {
 
   /**
    * Default constructor.
@@ -94,5 +94,15 @@ public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfi
     }
     getDefaults().put(clazz, new DefaultCopierConfiguration<>(copierClass));
     return this;
+  }
+
+  @Override
+  public DefaultCopyProviderConfiguration derive() {
+    return new DefaultCopyProviderConfiguration(this);
+  }
+
+  @Override
+  public DefaultCopyProviderConfiguration build(DefaultCopyProviderConfiguration configuration) {
+    return configuration;
   }
 }

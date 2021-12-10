@@ -28,7 +28,7 @@ import org.osgi.service.component.annotations.Component;
 public class DefaultCacheEventListenerProviderFactory implements ServiceFactory<CacheEventListenerProvider> {
 
   @Override
-  public DefaultCacheEventListenerProvider create(ServiceCreationConfiguration<CacheEventListenerProvider> configuration) {
+  public DefaultCacheEventListenerProvider create(ServiceCreationConfiguration<CacheEventListenerProvider, ?> configuration) {
     return new DefaultCacheEventListenerProvider();
   }
 

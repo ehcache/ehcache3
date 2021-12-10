@@ -59,6 +59,7 @@ public class LockRetentionDuringFailoverTest {
 
   private CountDownLatch latch;
   private LatchedLoaderWriter loaderWriter;
+  private CacheManager cacheManager;
   private Cache<Long, String> cache;
 
   @Before
@@ -90,7 +91,7 @@ public class LockRetentionDuringFailoverTest {
             .withLoaderWriter(loaderWriter)
             .build();
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().with(cluster(URI.create(STRIPE_URI)).autoCreate())
+    cacheManager = CacheManagerBuilder.newCacheManagerBuilder().with(cluster(URI.create(STRIPE_URI)).autoCreate(c -> c))
             .withCache("cache-1", config)
             .build(true);
 
@@ -100,8 +101,12 @@ public class LockRetentionDuringFailoverTest {
 
   @After
   public void tearDown() throws Exception {
-    UnitTestConnectionService.removeStripe(STRIPENAME);
-    clusterControl.tearDown();
+    try {
+      cacheManager.close();
+    } finally {
+      UnitTestConnectionService.removeStripe(STRIPENAME);
+      clusterControl.tearDown();
+    }
   }
 
   @Test

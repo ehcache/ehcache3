@@ -26,7 +26,6 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -46,7 +45,7 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
 
   @ClassRule
   public static Cluster CLUSTER =
-      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cache;
@@ -56,10 +55,9 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
 
     cacheManager = createCacheManager(CLUSTER.getConnectionURI());
-    cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
+    cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
   }
 
   @After

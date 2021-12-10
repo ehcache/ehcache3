@@ -35,7 +35,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -60,7 +60,7 @@ public class ExpiryEventsTest {
           .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1)));
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
-      byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<>(
+      byRefCacheConfigBuilder.withService(new DefaultCopierConfiguration<>(
         SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();

@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -29,7 +30,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -68,8 +68,6 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       }
     });
 
-    StatisticsManager.associate(higher).withParent(this);
-    StatisticsManager.associate(lower).withParent(this);
   }
 
   private void notifyInvalidation(K key, Store.ValueHolder<V> p) {
@@ -210,13 +208,13 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
 
-  @ServiceDependencies({HigherCachingTier.Provider.class, LowerCachingTier.Provider.class})
+  @ServiceDependencies({HigherCachingTier.Provider.class, LowerCachingTier.Provider.class, StatisticsService.class})
   public static class Provider implements CachingTier.Provider {
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new RuntimeException("ServiceProvider is null.");
       }
@@ -236,6 +234,8 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<>(higherCachingTier, lowerCachingTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(higherCachingTier, compoundCachingTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(lowerCachingTier, compoundCachingTier);
       providersMap.put(compoundCachingTier, new AbstractMap.SimpleEntry<>(higherProvider, lowerProvider));
       return compoundCachingTier;
     }
@@ -265,7 +265,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     }
 
     @Override
-    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return resourceTypes.equals(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP))) ? 2 : 0;
 
     }

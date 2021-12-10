@@ -22,6 +22,8 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
@@ -51,8 +53,6 @@ import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
 import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -75,8 +75,8 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
   private volatile EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
-  public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(config, timeSource, eventDispatcher);
+  public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes, StatisticsService statisticsService) {
+    super(config, timeSource, eventDispatcher, statisticsService);
     EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
@@ -131,7 +131,6 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
-    private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<>());
     private final Map<OffHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
 
@@ -141,17 +140,17 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return resourceTypes.equals(Collections.singleton(ResourceType.Core.OFFHEAP)) ? 1 : 0;
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return authorityResource.equals(ResourceType.Core.OFFHEAP) ? 1 : 0;
     }
 
     @Override
-    public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
       tierOperationStatistics.put(store, new OperationStatistic<?>[] {
@@ -162,11 +161,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       return store;
     }
 
-    private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
-      if (serviceProvider == null) {
+    private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?, ?>... serviceConfigs) {
+      if (getServiceProvider() == null) {
         throw new NullPointerException("ServiceProvider is null in OffHeapStore.Provider.");
       }
-      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+      TimeSource timeSource = getServiceProvider().getService(TimeSourceService.class).getTimeSource();
 
       SizedResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
@@ -176,7 +175,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
 
       OffHeapStore<K, V> offHeapStore = new OffHeapStore<>(storeConfig, timeSource, eventDispatcher, unit.toBytes(offHeapPool
-        .getSize()));
+        .getSize()), getServiceProvider().getService(StatisticsService.class));
       createdStores.add(offHeapStore);
       return offHeapStore;
     }
@@ -188,7 +187,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
       close(offHeapStore);
-      StatisticsManager.nodeFor(offHeapStore).clean();
+      getServiceProvider().getService(StatisticsService.class).cleanForNode(offHeapStore);
       tierOperationStatistics.remove(offHeapStore);
     }
 
@@ -224,18 +223,16 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
-      this.serviceProvider = serviceProvider;
-    }
-
-    @Override
     public void stop() {
-      this.serviceProvider = null;
-      createdStores.clear();
+      try {
+        createdStores.clear();
+      } finally {
+        super.stop();
+      }
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
@@ -258,7 +255,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
       tierOperationStatistics.put(lowerCachingTier, new OperationStatistic<?>[] {

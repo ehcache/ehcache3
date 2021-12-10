@@ -27,7 +27,7 @@ import org.osgi.service.component.annotations.Component;
 @Component
 public class TimeSourceServiceFactory implements ServiceFactory<TimeSourceService> {
   @Override
-  public TimeSourceService create(ServiceCreationConfiguration<TimeSourceService> configuration) {
+  public TimeSourceService create(ServiceCreationConfiguration<TimeSourceService, ?> configuration) {
     return new DefaultTimeSourceService((TimeSourceConfiguration) configuration);
   }
 

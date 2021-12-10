@@ -24,15 +24,13 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
-
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBehindTestBase {
 
   @ClassRule
   public static Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;
@@ -45,14 +43,12 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     cacheManager1 = createCacheManager(CLUSTER.getConnectionURI());
     cacheManager2 = createCacheManager(CLUSTER.getConnectionURI());
 
-    client1 = cacheManager1.getCache(CACHE_NAME, Long.class, String.class);
-    client2 = cacheManager2.getCache(CACHE_NAME, Long.class, String.class);
+    client1 = cacheManager1.getCache(testName.getMethodName(), Long.class, String.class);
+    client2 = cacheManager2.getCache(testName.getMethodName(), Long.class, String.class);
   }
 
   @After
@@ -87,8 +83,8 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
     client2.put(KEY, "The one one from client2");
     assertValue(client1, "The one one from client2");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(client1, "The one one from client2");
     assertValue(client2, "The one one from client2");

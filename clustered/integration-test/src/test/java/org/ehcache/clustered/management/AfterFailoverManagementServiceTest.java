@@ -26,15 +26,8 @@ public class AfterFailoverManagementServiceTest extends ClusteringManagementServ
   @Override
   public void beforeAllTests() throws Exception {
     super.beforeAllTests();
-
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
-
-    createNmsService();
-
-    initIdentifiers();
-
-    sendManagementCallOnEntityToCollectStats();
+    CLUSTER.getCluster().getClusterControl().terminateActive();
+    CLUSTER.getCluster().getClusterControl().waitForActive();
+    CLUSTER.startCollectingServerEntityStats();
   }
-
 }

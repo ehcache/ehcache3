@@ -39,14 +39,16 @@ public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
   private volatile WriteBehindProvider writeBehindProvider;
 
   @Override
-  protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-    WriteBehindConfiguration writeBehindConfiguration = findSingletonAmongst(WriteBehindConfiguration.class, (Object[]) serviceConfigs);
+  protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    WriteBehindConfiguration<?> writeBehindConfiguration = findSingletonAmongst(WriteBehindConfiguration.class, (Object[]) serviceConfigs);
+    LocalLoaderWriterStore<K, V> loaderWriterStore;
     if(writeBehindConfiguration == null) {
-      return new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
+      loaderWriterStore = new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     } else {
       CacheLoaderWriter<? super K, V> writeBehindLoaderWriter = writeBehindProvider.createWriteBehindLoaderWriter(storeConfig.getCacheLoaderWriter(), writeBehindConfiguration);
-      return new LocalWriteBehindLoaderWriterStore<>(store, writeBehindLoaderWriter, storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
+      loaderWriterStore = new LocalWriteBehindLoaderWriterStore<>(store, writeBehindLoaderWriter, storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     }
+    return loaderWriterStore;
   }
 
   @Override
@@ -73,13 +75,13 @@ public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
   }
 
   @Override
-  public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+  public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
     throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
   }
 
   @Override
-  public int wrapperStoreRank(Collection<ServiceConfiguration<?>> serviceConfigs) {
-    CacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
+  public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+    CacheLoaderWriterConfiguration<?> loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
     if (loaderWriterConfiguration == null) {
       return 0;
     }

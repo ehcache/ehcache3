@@ -40,7 +40,7 @@ public class WriteBehindProviderConfigurationParserTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration).isExactlyInstanceOf(WriteBehindProviderConfiguration.class);
 
@@ -52,7 +52,7 @@ public class WriteBehindProviderConfigurationParserTest {
   public void unparseServiceCreationConfiguration() {
     ConfigType configType = new ConfigType();
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new WriteBehindProviderConfiguration("foo")).build();
+      .withService(new WriteBehindProviderConfiguration("foo")).build();
     configType = new WriteBehindProviderConfigurationParser().unparseServiceCreationConfiguration(config, configType);
 
     assertThat(configType.getWriteBehind().getThreadPool()).isEqualTo("foo");

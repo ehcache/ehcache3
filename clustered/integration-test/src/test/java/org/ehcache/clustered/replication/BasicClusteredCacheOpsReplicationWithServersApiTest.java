@@ -34,7 +34,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -46,25 +45,18 @@ import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class BasicClusteredCacheOpsReplicationWithServersApiTest extends ClusteredTests {
-  private static final String CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
 
   private static PersistentCacheManager CACHE_MANAGER;
   private static Cache<Long, String> CACHE1;
   private static Cache<Long, String> CACHE2;
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster(2).in(new File("build/cluster")).withServiceFragment(CONFIG).build();
+  public static Cluster CLUSTER = newCluster(2).in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 16)).build();
 
   @Before
   public void setUp() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
@@ -72,8 +64,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
         .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
           .read(Duration.ofMinutes(1))
           .write(Duration.ofMinutes(1)))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     CACHE_MANAGER = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
       ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
@@ -117,6 +108,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
       x.remove(4L);
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(x -> {

@@ -61,33 +61,33 @@ public class BasicClusteredLoaderWriterTest {
     UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
-  @Test
+  @Test @SuppressWarnings("try")
   public void testAllClientsNeedToHaveLoaderWriterConfigured() {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
-    CacheManager cacheManager = CacheManagerBuilder
+    try (CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
-            .build(true);
+            .build(true)) {
 
-    CacheConfiguration<Long, String> withoutLoaderWriter = newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder
-                    .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-            .withResilienceStrategy(new ThrowingResilienceStrategy<>())
-            .build();
+      CacheConfiguration<Long, String> withoutLoaderWriter = newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder
+          .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
+        .withResilienceStrategy(new ThrowingResilienceStrategy<>())
+        .build();
 
-    try {
-      CacheManager anotherManager = CacheManagerBuilder
-              .newCacheManagerBuilder()
-              .with(cluster(CLUSTER_URI).autoCreate())
-              .withCache("cache-1", withoutLoaderWriter)
-              .build(true);
-    } catch (RuntimeException e) {
-      assertThat(e.getCause().getCause().getCause().getCause(), instanceOf(CachePersistenceException.class));
-      assertThat(e.getCause().getCause().getCause().getCause().getCause(), instanceOf(ClusterTierValidationException.class));
+      try (CacheManager anotherManager = CacheManagerBuilder
+          .newCacheManagerBuilder()
+          .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+          .withCache("cache-1", withoutLoaderWriter)
+          .build(true)) {
+      } catch (RuntimeException e) {
+        assertThat(e.getCause().getCause().getCause().getCause(), instanceOf(CachePersistenceException.class));
+        assertThat(e.getCause().getCause().getCause().getCause().getCause(), instanceOf(ClusterTierValidationException.class));
+      }
     }
   }
 
@@ -97,20 +97,20 @@ public class BasicClusteredLoaderWriterTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
-    CacheManager cacheManager = CacheManagerBuilder
+    try (CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
-            .build(true);
+            .build(true)) {
 
-    Cache<Long, String> cache = cacheManager.getCache("cache-1", Long.class, String.class);
+      Cache<Long, String> cache = cacheManager.getCache("cache-1", Long.class, String.class);
 
-    cache.put(1L, "1");
+      cache.put(1L, "1");
 
-    assertThat(cache.get(1L), is("1"));
+      assertThat(cache.get(1L), is("1"));
 
-    assertThat(loaderWriter.storeMap.get(1L), is("1"));
-
+      assertThat(loaderWriter.storeMap.get(1L), is("1"));
+    }
   }
 
   @Test
@@ -120,32 +120,33 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
-    CacheManager cacheManager1 = CacheManagerBuilder
+    try (CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
-            .build(true);
+            .build(true)) {
 
-    CacheManager cacheManager2 = CacheManagerBuilder
-            .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
-            .withCache("cache-1", cacheConfiguration)
-            .build(true);
+      try (CacheManager cacheManager2 = CacheManagerBuilder
+        .newCacheManagerBuilder()
+        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+        .withCache("cache-1", cacheConfiguration)
+        .build(true)) {
 
-    Cache<Long, String> client1 = cacheManager1.getCache("cache-1", Long.class, String.class);
-    Cache<Long, String> client2 = cacheManager2.getCache("cache-1", Long.class, String.class);
+        Cache<Long, String> client1 = cacheManager1.getCache("cache-1", Long.class, String.class);
+        Cache<Long, String> client2 = cacheManager2.getCache("cache-1", Long.class, String.class);
 
-    client1.put(1L, "1");
-    client2.put(1L, "2");
+        client1.put(1L, "1");
+        client2.put(1L, "2");
 
-    assertThat(client1.get(1L), is("2"));
-    assertThat(loaderWriter.storeMap.get(1L), is("2"));
+        assertThat(client1.get(1L), is("2"));
+        assertThat(loaderWriter.storeMap.get(1L), is("2"));
 
-    client1.remove(1L);
+        client1.remove(1L);
 
-    assertThat(client2.get(1L), nullValue());
-    assertThat(loaderWriter.storeMap.get(1L), nullValue());
-
+        assertThat(client2.get(1L), nullValue());
+        assertThat(loaderWriter.storeMap.get(1L), nullValue());
+      }
+    }
   }
 
   @Test
@@ -154,42 +155,43 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
-    CacheManager cacheManager1 = CacheManagerBuilder
+    try (CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
-            .build(true);
+            .build(true)) {
 
-    CacheManager cacheManager2 = CacheManagerBuilder
-            .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
-            .withCache("cache-1", cacheConfiguration)
-            .build(true);
+      try (CacheManager cacheManager2 = CacheManagerBuilder
+        .newCacheManagerBuilder()
+        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+        .withCache("cache-1", cacheConfiguration)
+        .build(true)) {
 
-    Cache<Long, String> client1 = cacheManager1.getCache("cache-1", Long.class, String.class);
-    Cache<Long, String> client2 = cacheManager2.getCache("cache-1", Long.class, String.class);
+        Cache<Long, String> client1 = cacheManager1.getCache("cache-1", Long.class, String.class);
+        Cache<Long, String> client2 = cacheManager2.getCache("cache-1", Long.class, String.class);
 
-    assertThat(client1.putIfAbsent(1L, "1"), nullValue());
-    assertThat(client2.putIfAbsent(1L, "2"), is("1"));
+        assertThat(client1.putIfAbsent(1L, "1"), nullValue());
+        assertThat(client2.putIfAbsent(1L, "2"), is("1"));
 
-    assertThat(client1.get(1L), is("1"));
-    assertThat(loaderWriter.storeMap.get(1L), is("1"));
+        assertThat(client1.get(1L), is("1"));
+        assertThat(loaderWriter.storeMap.get(1L), is("1"));
 
-    assertThat(client1.replace(1L, "2"), is("1"));
-    assertThat(client2.replace(1L, "3"), is("2"));
+        assertThat(client1.replace(1L, "2"), is("1"));
+        assertThat(client2.replace(1L, "3"), is("2"));
 
-    assertThat(client1.get(1L), is("3"));
-    assertThat(loaderWriter.storeMap.get(1L), is("3"));
+        assertThat(client1.get(1L), is("3"));
+        assertThat(loaderWriter.storeMap.get(1L), is("3"));
 
-    assertThat(client1.replace(1L, "2", "4"), is(false));
-    assertThat(client2.replace(1L, "3", "4"), is(true));
+        assertThat(client1.replace(1L, "2", "4"), is(false));
+        assertThat(client2.replace(1L, "3", "4"), is(true));
 
-    assertThat(client1.get(1L), is("4"));
-    assertThat(loaderWriter.storeMap.get(1L), is("4"));
+        assertThat(client1.get(1L), is("4"));
+        assertThat(loaderWriter.storeMap.get(1L), is("4"));
 
-    assertThat(client1.remove(1L, "5"), is(false));
-    assertThat(client2.remove(1L, "4"), is(true));
-
+        assertThat(client1.remove(1L, "5"), is(false));
+        assertThat(client2.remove(1L, "4"), is(true));
+      }
+    }
   }
 
   @Test
@@ -197,33 +199,34 @@ public class BasicClusteredLoaderWriterTest {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
-    CacheManager cacheManager = CacheManagerBuilder
+    try (CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
-            .build(true);
+            .build(true)) {
 
-    Cache<Long, String> cache = cacheManager.getCache("cache-1", Long.class, String.class);
+      Cache<Long, String> cache = cacheManager.getCache("cache-1", Long.class, String.class);
 
-    Map<Long, String> mappings = new HashMap<>();
+      Map<Long, String> mappings = new HashMap<>();
 
-    for (int i = 1; i <= 5; i++) {
-      mappings.put((long) i, "" + i);
+      for (int i = 1; i <= 5; i++) {
+        mappings.put((long) i, "" + i);
+      }
+
+      cache.putAll(mappings);
+
+      assertThat(loaderWriter.storeMap.keySet(), containsInAnyOrder(mappings.keySet().toArray()));
+
+      cache.clear();
+
+      Map<Long, String> loadedData = cache.getAll(mappings.keySet());
+
+      assertThat(mappings.keySet(), containsInAnyOrder(loadedData.keySet().toArray()));
+
+      cache.removeAll(mappings.keySet());
+
+      assertThat(loaderWriter.storeMap.isEmpty(), is(true));
     }
-
-    cache.putAll(mappings);
-
-    assertThat(loaderWriter.storeMap.keySet(), containsInAnyOrder(mappings.keySet().toArray()));
-
-    cache.clear();
-
-    Map<Long, String> loadedData = cache.getAll(mappings.keySet());
-
-    assertThat(mappings.keySet(), containsInAnyOrder(loadedData.keySet().toArray()));
-
-    cache.removeAll(mappings.keySet());
-
-    assertThat(loaderWriter.storeMap.isEmpty(), is(true));
   }
 
   @Test
@@ -232,40 +235,41 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
-    CacheManager cacheManager1 = CacheManagerBuilder
+    try (CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
-            .build(true);
+            .build(true)) {
 
-    CacheManager cacheManager2 = CacheManagerBuilder
-            .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
-            .withCache("cache-1", cacheConfiguration)
-            .build(true);
+      try (CacheManager cacheManager2 = CacheManagerBuilder
+        .newCacheManagerBuilder()
+        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+        .withCache("cache-1", cacheConfiguration)
+        .build(true)) {
 
-    Cache<Long, String> client1 = cacheManager1.getCache("cache-1", Long.class, String.class);
-    Cache<Long, String> client2 = cacheManager2.getCache("cache-1", Long.class, String.class);
+        Cache<Long, String> client1 = cacheManager1.getCache("cache-1", Long.class, String.class);
+        Cache<Long, String> client2 = cacheManager2.getCache("cache-1", Long.class, String.class);
 
-    assertThat(loaderWriter.storeMap.isEmpty(), is(true));
+        assertThat(loaderWriter.storeMap.isEmpty(), is(true));
 
-    Set<Long> keys = new HashSet<>();
-    ThreadLocalRandom.current().longs(10).forEach(x -> {
-      keys.add(x);
-      client1.put(x, Long.toString(x));
-    });
-    assertThat(loaderWriter.storeMap.size(), is(10));
+        Set<Long> keys = new HashSet<>();
+        ThreadLocalRandom.current().longs(10).forEach(x -> {
+          keys.add(x);
+          client1.put(x, Long.toString(x));
+        });
+        assertThat(loaderWriter.storeMap.size(), is(10));
 
 
-    keys.forEach(x -> assertThat(client2.putIfAbsent(x, "Again" + x), is(Long.toString(x))));
+        keys.forEach(x -> assertThat(client2.putIfAbsent(x, "Again" + x), is(Long.toString(x))));
 
-    keys.stream().limit(5).forEach(x ->
-            assertThat(client2.replace(x , "Replaced" + x), is(Long.toString(x))));
+        keys.stream().limit(5).forEach(x ->
+          assertThat(client2.replace(x, "Replaced" + x), is(Long.toString(x))));
 
-    keys.forEach(x -> client1.remove(x, Long.toString(x)));
+        keys.forEach(x -> client1.remove(x, Long.toString(x)));
 
-    assertThat(loaderWriter.storeMap.size(), is(5));
-
+        assertThat(loaderWriter.storeMap.size(), is(5));
+      }
+    }
   }
 
   private CacheConfiguration<Long, String> getCacheConfiguration(TestCacheLoaderWriter loaderWriter) {
