@@ -96,6 +96,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -164,7 +165,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final String managerIdentifier;
   private final Object inflightInvalidationsMutex = new Object();
   private volatile List<InvalidationTuple> inflightInvalidations;
-  private final Set<ClientDescriptor> eventListeners = new HashSet<>(); // accesses are synchronized on eventListeners itself
+  private final Set<ClientDescriptor> eventListeners = new CopyOnWriteArraySet<>(); // mutations are synchronized on eventListeners itself
   private final Map<ClientDescriptor, Boolean> connectedClients = new ConcurrentHashMap<>();
   private final Map<ClientDescriptor, Map<UUID, Iterator<Chain>>> liveIterators = new ConcurrentHashMap<>();
   private final int chainCompactionLimit;
@@ -266,12 +267,18 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     public void onEviction(long key, InternalChain evictedChain) {
       Set<ClientDescriptor> clientsToInvalidate = new HashSet<>(getValidatedClients());
       if (!clientsToInvalidate.isEmpty()) {
-        Chain detachedChain = evictedChain.detach();
+        Chain detachedChain = null;
         for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
           LOGGER.debug("SERVER: eviction happened; asking client {} to invalidate hash {} from cache {}", clientDescriptorThatHasToInvalidate, key, storeIdentifier);
           try {
-            boolean eventsEnabledForClient = isEventsEnabledFor(clientDescriptorThatHasToInvalidate);
-            clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, serverInvalidateHash(key, eventsEnabledForClient ? detachedChain : null));
+            if (isEventsEnabledFor(clientDescriptorThatHasToInvalidate)) {
+              if (detachedChain == null) {
+                detachedChain = evictedChain.detach();
+              }
+              clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, serverInvalidateHash(key, detachedChain));
+            } else {
+              clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, serverInvalidateHash(key));
+            }
           } catch (MessageCodecException mce) {
             throw new AssertionError("Codec error", mce);
           }
@@ -598,16 +605,12 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   }
 
   private boolean isEventsEnabledFor(ClientDescriptor clientDescriptor) {
-    synchronized (eventListeners) {
-      return eventListeners.contains(clientDescriptor);
-    }
+    return eventListeners.contains(clientDescriptor);
   }
 
   // for testing
   Set<ClientDescriptor> getEventListeners() {
-    synchronized (eventListeners) {
-      return new HashSet<>(eventListeners);
-    }
+    return new HashSet<>(eventListeners);
   }
 
   private List<Chain> iteratorBatch(Iterator<Chain> iterator, int batchSize) {
