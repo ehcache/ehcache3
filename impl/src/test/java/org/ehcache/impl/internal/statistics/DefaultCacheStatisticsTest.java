@@ -16,11 +16,18 @@
 
 package org.ehcache.impl.internal.statistics;
 
+import java.util.concurrent.TimeUnit;
+
+import org.assertj.core.api.AbstractObjectAssert;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.core.InternalCache;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.impl.internal.TimeSourceConfiguration;
+import org.ehcache.internal.TestTimeSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,18 +37,24 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 
 public class DefaultCacheStatisticsTest {
 
-  DefaultCacheStatistics cacheStatistics;
-  CacheManager cacheManager;
-  InternalCache<Long, String> cache;
+  private static final int TIME_TO_EXPIRATION = 100;
+
+  private DefaultCacheStatistics cacheStatistics;
+  private CacheManager cacheManager;
+  private InternalCache<Long, String> cache;
+  private TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
 
   @Before
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        newResourcePoolsBuilder().heap(10)).build();
+        newResourcePoolsBuilder().heap(10))
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(TIME_TO_EXPIRATION, TimeUnit.MILLISECONDS)))
+        .build();
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("aCache", cacheConfiguration)
+      .using(new TimeSourceConfiguration(timeSource))
       .build(true);
 
     cache = (InternalCache<Long, String>) cacheManager.getCache("aCache", Long.class, String.class);
@@ -70,6 +83,7 @@ public class DefaultCacheStatisticsTest {
     cache.put(1L, "a");
     cache.get(1L);
     assertThat(cacheStatistics.getCacheHits()).isEqualTo(1L);
+    assertStat("Cache:HitCount").isEqualTo(1L);
   }
 
   @Test
@@ -83,6 +97,7 @@ public class DefaultCacheStatisticsTest {
   public void getCacheMisses() throws Exception {
     cache.get(1L);
     assertThat(cacheStatistics.getCacheMisses()).isEqualTo(1L);
+    assertStat("Cache:MissCount").isEqualTo(1L);
   }
 
   @Test
@@ -101,6 +116,7 @@ public class DefaultCacheStatisticsTest {
   public void getCachePuts() throws Exception {
     cache.put(1L, "a");
     assertThat(cacheStatistics.getCachePuts()).isEqualTo(1);
+    assertStat("Cache:PutCount").isEqualTo(1L);
   }
 
   @Test
@@ -108,6 +124,7 @@ public class DefaultCacheStatisticsTest {
     cache.put(1L, "a");
     cache.remove(1L);
     assertThat(cacheStatistics.getCacheRemovals()).isEqualTo(1);
+    assertStat("Cache:RemovalCount").isEqualTo(1L);
   }
 
   @Test
@@ -116,6 +133,16 @@ public class DefaultCacheStatisticsTest {
       cache.put(i, "a");
     }
     assertThat(cacheStatistics.getCacheEvictions()).isEqualTo(1);
+    assertStat("Cache:EvictionCount").isEqualTo(1L);
+  }
+
+  @Test
+  public void getExpirations() throws Exception {
+    cache.put(1L, "a");
+    timeSource.advanceTime(TIME_TO_EXPIRATION);
+    assertThat(cache.get(1L)).isNull();
+    assertThat(cacheStatistics.getCacheExpirations()).isEqualTo(1L);
+    assertStat("Cache:ExpirationCount").isEqualTo(1L);
   }
 
   @Test
@@ -136,4 +163,7 @@ public class DefaultCacheStatisticsTest {
     assertThat(cacheStatistics.getCacheAverageRemoveTime()).isGreaterThan(0);
   }
 
+  private AbstractObjectAssert<?, Number> assertStat(String key) {
+    return assertThat(cacheStatistics.getKnownStatistics().get(key).value());
+  }
 }

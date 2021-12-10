@@ -40,6 +40,7 @@ import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.event.CacheEventListener;
@@ -185,6 +186,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if(cacheHolder != null) {
       final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
       if (ehcache != null) {
+        if (removeFromConfig) {
+          configuration.removeCacheConfiguration(alias);
+        }
+
         if (!statusTransitioner.isTransitioning()) {
           for (CacheManagerListener listener : listeners) {
             listener.cacheRemoved(alias, ehcache);
@@ -193,9 +198,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
         ehcache.close();
         closeEhcache(alias, ehcache);
-        if (removeFromConfig) {
-          configuration.removeCacheConfiguration(alias);
-        }
       }
       LOGGER.info("Cache '{}' removed from {}.", alias, simpleName);
     }
@@ -314,7 +316,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       final CacheLoaderWriter<? super K, V> loaderWriter;
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration =
-          ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
+          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
       if(writeBehindConfiguration == null) {
         decorator = loaderWriter;
       } else {
@@ -364,7 +366,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
-          ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
+          ServiceUtils.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
         final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
         if (lsnr != null) {
@@ -479,7 +481,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     int dispatcherConcurrency;
-    StoreEventSourceConfiguration eventSourceConfiguration = ServiceLocator.findSingletonAmongst(StoreEventSourceConfiguration.class, config
+    StoreEventSourceConfiguration eventSourceConfiguration = ServiceUtils.findSingletonAmongst(StoreEventSourceConfiguration.class, config
         .getServiceConfigurations()
         .toArray());
     if (eventSourceConfiguration != null) {
@@ -633,23 +635,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return configuration;
   }
 
-  /**
-   * Removes and closes a cache without performing {@link CacheManagerListener#cacheRemoved(String, Cache)}
-   * notifications.
-   *
-   * @param alias the alias of the cache to remove
-   */
-  protected void removeAndCloseWithoutNotice(final String alias) {
-    final CacheHolder cacheHolder = caches.remove(alias);
-    if(cacheHolder != null) {
-      final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
-      if(ehcache.getStatus() == Status.AVAILABLE) {
-        ehcache.close();
-      }
-    }
-    configuration.removeCacheConfiguration(alias);
-  }
-
   @Override
   public void destroyCache(final String alias) throws CachePersistenceException {
     if (alias == null) {
@@ -678,7 +663,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     try {
-      removeAndCloseWithoutNotice(alias);
+      removeCache(alias, true);
       destroyPersistenceSpace(alias);
     } finally {
       // if it was started, stop it

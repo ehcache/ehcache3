@@ -50,7 +50,6 @@ public enum EhcacheMessageType {
 
   // Passive replication messages
   CHAIN_REPLICATION_OP,
-  CLIENT_ID_TRACK_OP,
   CLEAR_INVALIDATION_COMPLETE,
   INVALIDATION_COMPLETE;
 
@@ -74,7 +73,6 @@ public enum EhcacheMessageType {
     .mapping(ENTRY_SET, 43)
 
     .mapping(CHAIN_REPLICATION_OP, 61)
-    .mapping(CLIENT_ID_TRACK_OP, 62)
     .mapping(CLEAR_INVALIDATION_COMPLETE, 63)
     .mapping(INVALIDATION_COMPLETE, 64)
     .build();
@@ -94,7 +92,23 @@ public enum EhcacheMessageType {
     return STATE_REPO_OPERATION_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE);
+  /**
+   * All not idempotent messages are tracked. One exception is {@link #CLEAR}. It is idempotent but also a pretty costly operation so we prefer to avoid
+   * to do it twice. The same list if used for passive and active. However, of course, according to the {@code EhcacheExecutionStrategy}, the following will happen
+   * <ul>
+   *   <li>{@link #CHAIN_REPLICATION_OP}: Received by the passive. This message will be transformed to look like the original GET_AND_APPEND and its response</li>
+   *   <li>{@link #PUT_IF_ABSENT}: Received by both</li>
+   *   <li>{@link #GET_AND_APPEND}: Received by the active (which will then send a passive replication message to the passive)</li>
+   *   <li>{@link #APPEND}: Received by the active (which will then send a passive replication message to the passive)</li>
+   *   <li>{@link #CLEAR}: Received by both</li>
+   * </ul>
+   */
+  public static final EnumSet<EhcacheMessageType> TRACKED_OPERATION_MESSAGES = of(CHAIN_REPLICATION_OP, PUT_IF_ABSENT, GET_AND_APPEND, APPEND, CLEAR);
+  public static boolean isTrackedOperationMessage(EhcacheMessageType value) {
+    return TRACKED_OPERATION_MESSAGES.contains(value);
+  }
+
+  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE);
   public static boolean isPassiveReplicationMessage(EhcacheMessageType value) {
     return PASSIVE_REPLICATION_MESSAGES.contains(value);
   }

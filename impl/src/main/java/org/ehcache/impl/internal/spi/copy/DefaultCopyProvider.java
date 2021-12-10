@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.spi.copy;
 
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration.Type;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
@@ -23,7 +24,6 @@ import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -103,7 +103,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     DefaultCopierConfiguration<T> result = null;
 
     Collection<DefaultCopierConfiguration> copierConfigurations =
-        ServiceLocator.findAmongst(DefaultCopierConfiguration.class, (Object[])serviceConfigurations);
+        ServiceUtils.findAmongst(DefaultCopierConfiguration.class, (Object[])serviceConfigurations);
     for (DefaultCopierConfiguration copierConfiguration : copierConfigurations) {
       if (copierConfiguration.getType() == type) {
         if (result != null) {

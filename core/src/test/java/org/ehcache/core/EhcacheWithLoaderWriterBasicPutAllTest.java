@@ -26,14 +26,12 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -60,9 +58,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -72,6 +69,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyEntryIterable;
 import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyEntryIterableFunction;
 import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyStringSet;
@@ -101,7 +99,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link Store#bulkCompute(Set, Function, NullaryFunction)
+   * {@link Store#bulkCompute(Set, java.util.function.Function, java.util.function.Supplier)
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor

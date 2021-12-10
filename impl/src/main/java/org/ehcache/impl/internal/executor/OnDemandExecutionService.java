@@ -36,24 +36,20 @@ import org.ehcache.spi.service.Service;
  */
 public class OnDemandExecutionService implements ExecutionService {
 
-  private static final RejectedExecutionHandler WAIT_FOR_SPACE = new RejectedExecutionHandler() {
-
-    @Override
-    public void rejectedExecution(Runnable r, ThreadPoolExecutor tpe) {
-      boolean interrupted = false;
-      try {
-        while (true) {
-          try {
-            tpe.getQueue().put(r);
-            return;
-          } catch (InterruptedException ex) {
-            interrupted = true;
-          }
+  private static final RejectedExecutionHandler WAIT_FOR_SPACE = (r, tpe) -> {
+    boolean interrupted = false;
+    try {
+      while (true) {
+        try {
+          tpe.getQueue().put(r);
+          return;
+        } catch (InterruptedException ex) {
+          interrupted = true;
         }
-      } finally {
-        if (interrupted) {
-          Thread.currentThread().interrupt();
-        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
       }
     }
   };

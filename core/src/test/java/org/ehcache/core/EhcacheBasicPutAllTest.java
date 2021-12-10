@@ -18,10 +18,8 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -30,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.invocation.InvocationOnMock;
@@ -51,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_A;
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_B;
@@ -65,9 +65,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anySet;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -89,7 +88,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link Store#bulkCompute(Set, Function, NullaryFunction)
+   * {@link Store#bulkCompute(Set, Function, java.util.function.Supplier)
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor
@@ -289,37 +288,31 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.store = mock(Store.class);
     CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     final List<Map.Entry> written = new ArrayList<Map.Entry>();
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<Map.Entry<?, ?>> i = (Iterable<Map.Entry<?, ?>>) invocation.getArguments()[0];
-        for (Map.Entry<?, ?> entry : i) {
-          if (entry.getKey() == null) fail("null key is forbidden in CacheLoaderWriter.writeAll()");
-          if (entry.getValue() == null) fail("null value is forbidden in CacheLoaderWriter.writeAll()");
-          written.add(entry);
-        }
-        return null;
+    doAnswer(invocation -> {
+      Iterable<Map.Entry<?, ?>> i = (Iterable<Map.Entry<?, ?>>) invocation.getArguments()[0];
+      for (Map.Entry<?, ?> entry : i) {
+        if (entry.getKey() == null) fail("null key is forbidden in CacheLoaderWriter.writeAll()");
+        if (entry.getValue() == null) fail("null value is forbidden in CacheLoaderWriter.writeAll()");
+        written.add(entry);
       }
+      return null;
     }).when(cacheLoaderWriter).writeAll(any(Iterable.class));
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
 
     final ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
 
-    when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function<Iterable, Object> function = functionArgumentCaptor.getValue();
-        Iterable arg = new HashMap((Map) function.getClass().getDeclaredField("val$entriesToRemap").get(function)).entrySet();
-        function.apply(arg);
-        function.apply(arg);
-        return null;
-      }
-    });
-
     Map<String, String> map = new HashMap<String, String>() {{
       put("1", "one");
       put("2", "two");
     }};
+
+    when(store.bulkCompute(ArgumentMatchers.<String>anySet(), functionArgumentCaptor.capture())).then(invocation -> {
+      Function<Iterable, Object> function = functionArgumentCaptor.getValue();
+      Iterable arg = map.entrySet();
+      function.apply(arg);
+      function.apply(arg);
+      return null;
+    });
 
     ehcache.putAll(map);
 

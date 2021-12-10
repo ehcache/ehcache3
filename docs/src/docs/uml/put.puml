@@ -1,0 +1,13 @@
+@startuml
+
+title Put
+hide footbox
+
+participant Cache
+participant "Caching Tier" as C
+participant "Authoritative tier" as A
+
+-> Cache: put
+Cache -> A: put
+Cache -> C: invalidate
+@enduml

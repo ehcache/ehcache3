@@ -37,12 +37,7 @@ final class ExceptionCodec {
     //no instances please
   }
 
-  public static final StructEncoderFunction<ClusterException> EXCEPTION_ENCODER_FUNCTION = new StructEncoderFunction<ClusterException>() {
-    @Override
-    public void encode(StructEncoder<?> encoder, ClusterException exception) {
-      ExceptionCodec.encode(encoder, exception);
-    }
-  };
+  public static final StructEncoderFunction<ClusterException> EXCEPTION_ENCODER_FUNCTION = (encoder, exception) -> encode(encoder, exception);
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionCodec.class);
 

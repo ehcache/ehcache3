@@ -17,7 +17,6 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -29,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -77,16 +77,13 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      Map<K, Store.ValueHolder<V>> mapFromRemappingFunction = kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-            @Override
-            public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-              Map<K, V> update = new HashMap<K, V>();
-              for (Map.Entry<? extends K, ? extends V> entry : entries) {
-                update.put(entry.getKey(), entry.getValue());
-              }
-              return update.entrySet();
-            }
-          }
+      Map<K, Store.ValueHolder<V>> mapFromRemappingFunction = kvStore.bulkCompute(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<K, V>();
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          update.put(entry.getKey(), entry.getValue());
+        }
+        return update.entrySet();
+      }
       );
       assertThat(mapFromRemappingFunction.keySet(), containsInAnyOrder((K[])inputKeys.toArray()));
     } catch (StoreAccessException e) {
@@ -109,11 +106,8 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
-        }
+      kvStore.bulkCompute(inputKeys, entries -> {
+        throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
       });
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -136,15 +130,12 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (Map.Entry<? extends K, ? extends V> entry : entries) {
-            update.put(entry.getKey(), null);
-          }
-          return update.entrySet();
+      kvStore.bulkCompute(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<K, V>();
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          update.put(entry.getKey(), null);
         }
+        return update.entrySet();
       });
       for (K key : inputKeys) {
         assertThat(kvStore.get(key), is(nullValue()));
@@ -172,21 +163,18 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-            @Override
-            public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-              Map<K, V> update = new HashMap<K, V>();
-              for (Map.Entry<? extends K, ? extends V> entry : entries) {
-                if (mappedEntries.containsKey(entry.getKey())) {
-                  assertThat(entry.getValue(), is(mappedEntries.get(entry.getKey())));
-                } else {
-                  assertThat(entry.getValue(), is(nullValue()));
-                }
-                update.put(entry.getKey(), entry.getValue());
-              }
-              return update.entrySet();
-            }
+      kvStore.bulkCompute(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<K, V>();
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          if (mappedEntries.containsKey(entry.getKey())) {
+            assertThat(entry.getValue(), is(mappedEntries.get(entry.getKey())));
+          } else {
+            assertThat(entry.getValue(), is(nullValue()));
           }
+          update.put(entry.getKey(), entry.getValue());
+        }
+        return update.entrySet();
+      }
       );
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -207,15 +195,12 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (Map.Entry<? extends K, ? extends V> entry : entries) {
-            update.put(entry.getKey(), computedEntries.get(entry.getKey()));
-          }
-          return update.entrySet();
+      kvStore.bulkCompute(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<K, V>();
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          update.put(entry.getKey(), computedEntries.get(entry.getKey()));
         }
+        return update.entrySet();
       });
 
       for (K inputKey : inputKeys) {
@@ -241,19 +226,16 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (Map.Entry<? extends K, ? extends V> entry : entries) {
-            if (factory.getKeyType() == String.class) {
-              update.put((K)new StringBuffer(entry.getKey().toString()), computedEntries.get(entry.getKey()));
-            } else {
-              update.put((K)entry.getKey().toString(), computedEntries.get(entry.getKey()));
-            }
+      kvStore.bulkCompute(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<K, V>();
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          if (factory.getKeyType() == String.class) {
+            update.put((K)new StringBuffer(entry.getKey().toString()), computedEntries.get(entry.getKey()));
+          } else {
+            update.put((K)entry.getKey().toString(), computedEntries.get(entry.getKey()));
           }
-          return update.entrySet();
         }
+        return update.entrySet();
       });
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException cce) {
@@ -278,19 +260,16 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.bulkCompute(inputKeys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-        @Override
-        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          Map<K, V> update = new HashMap<K, V>();
-          for (Map.Entry<? extends K, ? extends V> entry : entries) {
-            if (factory.getKeyType() == String.class) {
-              update.put(entry.getKey(), (V)new StringBuffer(computedEntries.get(entry.getKey()).toString()));
-            } else {
-              update.put(entry.getKey(), (V)computedEntries.get(entry.getKey()).toString());
-            }
+      kvStore.bulkCompute(inputKeys, entries -> {
+        Map<K, V> update = new HashMap<K, V>();
+        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          if (factory.getKeyType() == String.class) {
+            update.put(entry.getKey(), (V)new StringBuffer(computedEntries.get(entry.getKey()).toString()));
+          } else {
+            update.put(entry.getKey(), (V)computedEntries.get(entry.getKey()).toString());
           }
-          return update.entrySet();
         }
+        return update.entrySet();
       });
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException cce) {

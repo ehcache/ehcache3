@@ -127,12 +127,7 @@ class ThreadLocalRandom extends Random {
 
     private static long initialSeed() {
         String pp = java.security.AccessController.doPrivileged(
-                new PrivilegedAction<String>() {
-          @Override
-          public String run() {
-            return System.getProperty("java.util.secureRandomSeed");
-          }
-        });
+          (PrivilegedAction<String>) () -> System.getProperty("java.util.secureRandomSeed"));
         if (pp != null && pp.equalsIgnoreCase("true")) {
             byte[] seedBytes = java.security.SecureRandom.getSeed(8);
             long s = (long)(seedBytes[0]) & 0xffL;

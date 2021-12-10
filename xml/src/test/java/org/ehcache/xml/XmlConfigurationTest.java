@@ -50,6 +50,7 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
+import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -78,15 +79,21 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import static java.util.Collections.nCopies;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -113,7 +120,7 @@ import static org.mockito.Mockito.mock;
 public class XmlConfigurationTest {
 
   @Rule
-  public ExpectedException thrown= ExpectedException.none();
+  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
@@ -242,10 +249,21 @@ public class XmlConfigurationTest {
   public void testInvalidServiceConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(6));
       assertThat(e.getColumnNumber(), is(15));
+    }
+  }
+
+  @Test
+  public void testTwoCachesWithSameAlias() {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-two-caches.xml"));
+      fail("Two caches with the same alias should not be allowed");
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Two caches defined with the same alias: foo"));
     }
   }
 
@@ -380,12 +398,7 @@ public class XmlConfigurationTest {
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
     // order services by class name so the test can rely on some sort of ordering
-    Collections.sort(orderedServiceConfigurations, new Comparator<ServiceConfiguration<?>>() {
-      @Override
-      public int compare(ServiceConfiguration<?> o1, ServiceConfiguration<?> o2) {
-        return o1.getClass().getName().compareTo(o2.getClass().getName());
-      }
-    });
+    Collections.sort(orderedServiceConfigurations, (o1, o2) -> o1.getClass().getName().compareTo(o2.getClass().getName()));
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration keySerializationProviderConfiguration = (DefaultSerializerConfiguration) it.next();
@@ -586,6 +599,7 @@ public class XmlConfigurationTest {
 
     assertThat(diskConfig.getThreadPoolAlias(), is("some-pool"));
     assertThat(diskConfig.getWriterConcurrency(), is(2));
+    assertThat(diskConfig.getDiskSegments(), is(4));
   }
 
   @Test
@@ -672,6 +686,7 @@ public class XmlConfigurationTest {
   public void testCustomResource() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }
@@ -699,6 +714,20 @@ public class XmlConfigurationTest {
       assertThat(e.getMessage().contains("${bar}"), is(true));
     }
     assertThat(ConfigurationParser.replaceProperties("foo", System.getProperties()), nullValue());
+  }
+
+  @Test
+  public void testMultithreadedXmlParsing() throws InterruptedException, ExecutionException {
+    Callable<Configuration> parserTask = () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+
+    ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    try {
+      for (Future<Configuration> c : service.invokeAll(nCopies(10, parserTask))) {
+        assertThat(c.get(), IsNull.notNullValue());
+      }
+    } finally {
+      service.shutdown();
+    }
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

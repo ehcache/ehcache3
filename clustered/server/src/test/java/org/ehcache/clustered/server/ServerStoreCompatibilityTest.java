@@ -25,6 +25,7 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfig
 import org.ehcache.clustered.common.PoolAllocation.Unknown;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -41,8 +42,6 @@ public class ServerStoreCompatibilityTest {
   private static final PoolAllocation UNKNOWN_POOL_ALLOCATION = new Unknown();
   private static final String STORED_KEY_TYPE = Long.class.getName();
   private static final String STORED_VALUE_TYPE = String.class.getName();
-  private static final String ACTUAL_KEY_TYPE = Long.class .getName();
-  private static final String ACTUAL_VALUE_TYPE = String.class.getName();
   private static final String KEY_SERIALIZER_TYPE = Long.class.getName();
   private static final String VALUE_SERIALIZER_TYPE = String.class.getName();
 
@@ -198,7 +197,7 @@ public class ServerStoreCompatibilityTest {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
       fail("Expected InvalidServerStoreConfigurationException");
     } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolDedicatedSize existing: " + ((Dedicated)serverConfiguration.getPoolAllocation()).getSize() + ", desired: " + ((Dedicated)clientConfiguration.getPoolAllocation()).getSize()),is(true));
+      assertThat(e.getMessage(), containsString("resourcePoolType"));
     }
   }
 
@@ -224,7 +223,7 @@ public class ServerStoreCompatibilityTest {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
       fail("Expected InvalidServerStoreConfigurationException");
     } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolDedicatedSize existing: " + ((Dedicated)serverConfiguration.getPoolAllocation()).getSize() + ", desired: " + ((Dedicated)clientConfiguration.getPoolAllocation()).getSize()),is(true));
+      assertThat(e.getMessage(), containsString("resourcePoolType"));
     }
   }
 
@@ -250,7 +249,7 @@ public class ServerStoreCompatibilityTest {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
       fail("Expected InvalidServerStoreConfigurationException");
     } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolDedicatedResourceName existing: " + ((Dedicated)serverConfiguration.getPoolAllocation()).getResourceName() + ", desired: " + ((Dedicated)clientConfiguration.getPoolAllocation()).getResourceName()),is(true));
+      assertThat(e.getMessage(), containsString("resourcePoolType"));
     }
   }
 
@@ -276,7 +275,7 @@ public class ServerStoreCompatibilityTest {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
       fail("Expected InvalidServerStoreConfigurationException");
     } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolSharedPoolName existing: " + ((Shared)serverConfiguration.getPoolAllocation()).getResourcePoolName() + ", desired: " + ((Shared)clientConfiguration.getPoolAllocation()).getResourcePoolName()),is(true));
+      assertThat(e.getMessage(), containsString("resourcePoolType"));
     }
   }
 
@@ -324,7 +323,7 @@ public class ServerStoreCompatibilityTest {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
       fail("Expected InvalidServerStoreConfigurationException");
     } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolType existing: " + serverConfiguration.getPoolAllocation().getClass().getName() + ", desired: " + clientConfiguration.getPoolAllocation().getClass().getName()),is(true));
+      assertThat(e.getMessage(), containsString("resourcePoolType"));
     }
   }
 
@@ -370,9 +369,53 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
+      fail("Expected InvalidServerStoreConfigurationException");
     } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedKeyType existing: " + serverConfiguration.getStoredKeyType() + ", desired: " + clientConfiguration.getStoredKeyType()),is(true));
     }
 
+  }
+
+  @Test
+  public void testServerStoreConfigurationExtendedPoolAllocationType() {
+    ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG);
+
+    PoolAllocation extendedPoolAllocation = new PoolAllocation.DedicatedPoolAllocation() {
+      @Override
+      public long getSize() {
+        return 4;
+      }
+
+      @Override
+      public String getResourceName() {
+        return "primary";
+      }
+
+      @Override
+      public boolean isCompatible(final PoolAllocation other) {
+        return true;
+      }
+    };
+
+    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(extendedPoolAllocation,
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG);
+
+    ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
+
+    try {
+      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
+      assertThat(e.getMessage(), containsString("resourcePoolType"));
+    }
   }
 }

@@ -25,6 +25,9 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   private final K key;
   private final LazyValueHolder<V> valueHolder;
+
+  //-ve values are expiry times
+  //+ve values are operation timestamps
   private final long timeStamp;
 
   BaseKeyValueOperation(K key, V value, long timeStamp) {

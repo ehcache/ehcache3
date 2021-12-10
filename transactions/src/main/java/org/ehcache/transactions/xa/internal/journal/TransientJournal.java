@@ -16,7 +16,6 @@
 
 package org.ehcache.transactions.xa.internal.journal;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.transactions.xa.internal.TransactionId;
 
 import java.io.IOException;
@@ -25,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * An in-memory only  {@link Journal} implementation.

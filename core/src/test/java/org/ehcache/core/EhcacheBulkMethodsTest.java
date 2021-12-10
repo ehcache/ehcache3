@@ -19,11 +19,9 @@ package org.ehcache.core;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
@@ -34,15 +32,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * @author Ludovic Orban
@@ -63,20 +62,17 @@ public class EhcacheBulkMethodsTest {
       put(3, "three");
     }});
 
-    verify(store).bulkCompute((Set<? extends Number>) Matchers.argThat(hasItems((Number)1, 2, 3)), any(Function.class));
+    verify(store).bulkCompute((Set<? extends Number>) argThat(hasItems((Number)1, 2, 3)), any(Function.class));
   }
 
   @Test
   public void testGetAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
-    when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function function = (Function)invocation.getArguments()[1];
-        function.apply(invocation.getArguments()[0]);
+    when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
+      Function function = (Function)invocation.getArguments()[1];
+      function.apply(invocation.getArguments()[0]);
 
-        return new HashMap(){{put(1, null); put(2, null); put(3, valueHolder("three")); }};
-      }
+      return new HashMap(){{put(1, null); put(2, null); put(3, valueHolder("three")); }};
     });
 
     InternalCache<Number, CharSequence> ehcache = getCache(store);

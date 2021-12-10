@@ -18,9 +18,8 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -33,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
@@ -78,25 +78,22 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     store.put(2, 3);
     store.put(3, 4);
 
-    Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends Number>>, Iterable<? extends Map.Entry<? extends Number, ? extends Number>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends Number>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends Number>> entries) {
-        Map<Number, Number> newValues = new HashMap<Number, Number>();
-        for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
-          final Number currentValue = entry.getValue();
-          if(currentValue == null) {
-            if(entry.getKey().equals(4)) {
-              newValues.put(entry.getKey(), null);
-            } else {
-              newValues.put(entry.getKey(), 0);
-            }
+    Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), entries -> {
+      Map<Number, Number> newValues = new HashMap<Number, Number>();
+      for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
+        final Number currentValue = entry.getValue();
+        if(currentValue == null) {
+          if(entry.getKey().equals(4)) {
+            newValues.put(entry.getKey(), null);
           } else {
-            newValues.put(entry.getKey(), currentValue.intValue() * 2);
+            newValues.put(entry.getKey(), 0);
           }
-
+        } else {
+          newValues.put(entry.getKey(), currentValue.intValue() * 2);
         }
-        return newValues.entrySet();
+
       }
+      return newValues.entrySet();
     });
 
     ConcurrentMap<Number, Number> check = new ConcurrentHashMap<Number, Number>();

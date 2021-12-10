@@ -24,7 +24,7 @@ import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.Named;
-import org.terracotta.management.registry.action.ExposedObject;
+import org.terracotta.management.registry.ExposedObject;
 import org.terracotta.management.registry.collect.StatisticProvider;
 
 import java.util.ArrayList;
@@ -40,12 +40,7 @@ import java.util.TreeMap;
 @StatisticProvider
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = new Comparator<StatisticDescriptor>() {
-    @Override
-    public int compare(StatisticDescriptor o1, StatisticDescriptor o2) {
-      return o1.getName().compareTo(o2.getName());
-    }
-  };
+  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = (o1, o2) -> o1.getName().compareTo(o2.getName());
 
   private final StatisticsService statisticsService;
 

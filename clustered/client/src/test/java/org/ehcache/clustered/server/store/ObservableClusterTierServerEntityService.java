@@ -18,10 +18,11 @@ package org.ehcache.clustered.server.store;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.server.EhcacheActiveEntity;
-import org.ehcache.clustered.server.EhcacheStateServiceImpl;
+import org.ehcache.clustered.server.ClusterTierManagerActiveEntity;
+import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
@@ -34,19 +35,19 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 public class ObservableClusterTierServerEntityService
     implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
-  private final ClusteredTierServerEntityService delegate = new ClusteredTierServerEntityService();
+  private final ClusterTierServerEntityService delegate = new ClusterTierServerEntityService();
 
-  private final List<ClusteredTierActiveEntity> servedActiveEntities = new ArrayList<>();
-  private final List<ClusteredTierPassiveEntity> servedPassiveEntities = new ArrayList<>();
+  private final List<ClusterTierActiveEntity> servedActiveEntities = new ArrayList<>();
+  private final List<ClusterTierPassiveEntity> servedPassiveEntities = new ArrayList<>();
 
   public List<ObservableClusterTierActiveEntity> getServedActiveEntities() throws NoSuchFieldException, IllegalAccessException {
     List<ObservableClusterTierActiveEntity> observables = new ArrayList<ObservableClusterTierActiveEntity>(servedActiveEntities.size());
-    for (ClusteredTierActiveEntity servedActiveEntity : servedActiveEntities) {
+    for (ClusterTierActiveEntity servedActiveEntity : servedActiveEntities) {
       observables.add(new ObservableClusterTierActiveEntity(servedActiveEntity));
     }
     return Collections.unmodifiableList(observables);
@@ -54,7 +55,7 @@ public class ObservableClusterTierServerEntityService
 
   public List<ObservableClusterTierPassiveEntity> getServedPassiveEntities() throws Exception {
     List<ObservableClusterTierPassiveEntity> observables = new ArrayList<>(servedPassiveEntities.size());
-    for (ClusteredTierPassiveEntity servedPassiveEntity : servedPassiveEntities) {
+    for (ClusterTierPassiveEntity servedPassiveEntity : servedPassiveEntities) {
       observables.add(new ObservableClusterTierPassiveEntity(servedPassiveEntity));
     }
     return Collections.unmodifiableList(observables);
@@ -71,15 +72,15 @@ public class ObservableClusterTierServerEntityService
   }
 
   @Override
-  public ClusteredTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierActiveEntity activeEntity = delegate.createActiveEntity(registry, configuration);
+  public ClusterTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierActiveEntity activeEntity = delegate.createActiveEntity(registry, configuration);
     servedActiveEntities.add(activeEntity);
     return activeEntity;
   }
 
   @Override
-  public ClusteredTierPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierPassiveEntity passiveEntity = delegate.createPassiveEntity(registry, configuration);
+  public ClusterTierPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusterTierPassiveEntity passiveEntity = delegate.createPassiveEntity(registry, configuration);
     servedPassiveEntities.add(passiveEntity);
     return passiveEntity;
   }
@@ -105,12 +106,12 @@ public class ObservableClusterTierServerEntityService
   }
 
   /**
-   * Provides access to unit test state methods in an {@link EhcacheActiveEntity} instance.
+   * Provides access to unit test state methods in an {@link ClusterTierManagerActiveEntity} instance.
    */
   public static final class ObservableClusterTierActiveEntity {
-    private final ClusteredTierActiveEntity activeEntity;
+    private final ClusterTierActiveEntity activeEntity;
 
-    private ObservableClusterTierActiveEntity(ClusteredTierActiveEntity activeEntity) throws NoSuchFieldException, IllegalAccessException {
+    private ObservableClusterTierActiveEntity(ClusterTierActiveEntity activeEntity) throws NoSuchFieldException, IllegalAccessException {
       this.activeEntity = activeEntity;
     }
 
@@ -118,36 +119,48 @@ public class ObservableClusterTierServerEntityService
       return this.activeEntity;
     }
 
+    public void notifyDestroyed(ClientSourceId sourceId) {
+      activeEntity.notifyDestroyed(sourceId);
+    }
+
     public Set<ClientDescriptor> getConnectedClients() {
       return activeEntity.getConnectedClients();
     }
 
-    public Set<ClientDescriptor> getAttachedClients() {
-      return activeEntity.getAttachedClients();
-    }
-
-    public Map getClientsWaitingForInvalidation() throws Exception {
+    @SuppressWarnings("unchecked")
+    public ConcurrentMap<Integer, ClusterTierActiveEntity.InvalidationHolder> getClientsWaitingForInvalidation() throws Exception {
       Field field = activeEntity.getClass().getDeclaredField("clientsWaitingForInvalidation");
       field.setAccessible(true);
-      return (Map)field.get(activeEntity);
+      return (ConcurrentMap<Integer, ClusterTierActiveEntity.InvalidationHolder>) field.get(activeEntity);
     }
+
+    @SuppressWarnings("unchecked")
+    public OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> getMessageHandler() throws Exception {
+      Field field = activeEntity.getClass().getDeclaredField("messageHandler");
+      field.setAccessible(true);
+      return (OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse>) field.get(activeEntity);
+    }
+
   }
 
   public static final class ObservableClusterTierPassiveEntity {
-    private final ClusteredTierPassiveEntity passiveEntity;
-    private final EhcacheStateServiceImpl ehcacheStateService;
+    private final ClusterTierPassiveEntity passiveEntity;
 
-    private ObservableClusterTierPassiveEntity(ClusteredTierPassiveEntity passiveEntity) throws Exception {
+    private ObservableClusterTierPassiveEntity(ClusterTierPassiveEntity passiveEntity) throws Exception {
       this.passiveEntity = passiveEntity;
       Field field = passiveEntity.getClass().getDeclaredField("stateService");
       field.setAccessible(true);
-      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(passiveEntity);
     }
 
-    public Map getMessageTrackerMap() throws Exception {
-      Field field = this.ehcacheStateService.getClientMessageTracker().getClass().getDeclaredField("messageTrackers");
+    public void notifyDestroyed(ClientSourceId sourceId) {
+      passiveEntity.notifyDestroyed(sourceId);
+    }
+
+    @SuppressWarnings("unchecked")
+    public OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> getMessageHandler() throws Exception {
+      Field field = passiveEntity.getClass().getDeclaredField("messageHandler");
       field.setAccessible(true);
-      return (Map)field.get(this.ehcacheStateService.getClientMessageTracker());
+      return (OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse>) field.get(passiveEntity);
     }
 
   }

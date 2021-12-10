@@ -76,12 +76,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     statisticCollector = new DefaultStatisticCollector(
       managementRegistry,
       scheduledExecutorService,
-      new StatisticCollector.Collector() {
-        @Override
-        public void onStatistics(Collection<ContextualStatistics> statistics) {
-          collector.onStatistics(statistics);
-        }
-      });
+      statistics -> collector.onStatistics(statistics));
 
     cacheManager.registerListener(this);
   }

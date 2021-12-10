@@ -87,12 +87,7 @@ public class SerializedOnHeapValueHolderTest {
     final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<String>("test it!", System
         .currentTimeMillis(), false, serializer);
 
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        valueHolder.value();
-      }
-    }).start();
+    new Thread(() -> valueHolder.value()).start();
 
     valueHolder.value();
   }

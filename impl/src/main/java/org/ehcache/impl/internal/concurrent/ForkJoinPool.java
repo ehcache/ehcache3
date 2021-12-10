@@ -23,6 +23,7 @@
 package org.ehcache.impl.internal.concurrent;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -3425,8 +3426,7 @@ class ForkJoinPool extends AbstractExecutorService {
         modifyThreadPermission = new RuntimePermission("modifyThread");
 
         common = java.security.AccessController.doPrivileged
-            (new java.security.PrivilegedAction<ForkJoinPool>() {
-                public ForkJoinPool run() { return makeCommonPool(); }});
+            ((PrivilegedAction<ForkJoinPool>) () -> makeCommonPool());
         int par = common.config & SMASK; // report 1 even if threads disabled
         commonParallelism = par > 0 ? par : 1;
     }
@@ -3501,11 +3501,8 @@ class ForkJoinPool extends AbstractExecutorService {
         public final ForkJoinWorkerThread newThread(final ForkJoinPool pool) {
             return (ForkJoinWorkerThread.InnocuousForkJoinWorkerThread)
                 java.security.AccessController.doPrivileged(
-                    new java.security.PrivilegedAction<ForkJoinWorkerThread>() {
-                    public ForkJoinWorkerThread run() {
-                        return new ForkJoinWorkerThread.
-                            InnocuousForkJoinWorkerThread(pool);
-                    }}, innocuousAcc);
+                  (PrivilegedAction<ForkJoinWorkerThread>) () -> new ForkJoinWorkerThread.
+                      InnocuousForkJoinWorkerThread(pool), innocuousAcc);
         }
     }
 

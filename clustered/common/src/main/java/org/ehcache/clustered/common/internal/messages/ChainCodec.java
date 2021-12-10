@@ -38,12 +38,7 @@ public final class ChainCodec {
     //no implementations please
   }
 
-  public static final StructEncoderFunction<Chain> CHAIN_ENCODER_FUNCTION = new StructEncoderFunction<Chain>() {
-    @Override
-    public void encode(StructEncoder<?> encoder, Chain chain) {
-      ChainCodec.encode(encoder, chain);
-    }
-  };
+  public static final StructEncoderFunction<Chain> CHAIN_ENCODER_FUNCTION = (encoder, chain) -> encode(encoder, chain);
 
   private static final Struct ELEMENT_STRUCT = StructBuilder.newStructBuilder()
     .int64("sequence", 10)

@@ -19,7 +19,7 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.RequiredContext;
-import org.terracotta.management.registry.action.ExposedObject;
+import org.terracotta.management.registry.ExposedObject;
 import org.terracotta.management.registry.collect.StatisticProvider;
 import org.terracotta.management.registry.collect.StatisticRegistry;
 import org.terracotta.management.service.monitoring.registry.provider.AbstractExposedStatistics;

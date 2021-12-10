@@ -34,10 +34,19 @@ public interface Operation<K, V> {
 
   ByteBuffer encode(Serializer<K> keySerializer, Serializer<V> valueSerializer);
 
+  /**
+   * Time when the operation occurred
+   */
   long timeStamp();
 
+  /**
+   * Does the value installed by this operation have a specific expiry time
+   */
   boolean isExpiryAvailable();
 
+  /**
+   * Time when the operations installed value expires
+   */
   long expirationTime();
 
 }

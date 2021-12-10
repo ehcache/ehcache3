@@ -16,36 +16,17 @@
 
 package org.ehcache.clustered.replication;
 
-import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
-import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
-import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
-import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.spi.service.MaintainableService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
-import java.lang.reflect.Field;
-import java.util.Collections;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -53,14 +34,12 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicLifeCyclePassiveReplicationTest {
+public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -71,7 +50,7 @@ public class BasicLifeCyclePassiveReplicationTest {
 
   @ClassRule
   public static Cluster CLUSTER =
-      new BasicExternalCluster(new File("build/cluster"), 2, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
 
   @Before
   public void startServers() throws Exception {
@@ -83,33 +62,6 @@ public class BasicLifeCyclePassiveReplicationTest {
   @After
   public void tearDown() throws Exception {
     CLUSTER.getClusterControl().terminateActive();
-  }
-
-  @Test
-  public void testValidateReplication() throws Exception {
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-            .autoCreate()
-            .build();
-
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    EhcacheClientEntity clientEntity = getEntity(service);
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    try {
-      clientEntity.validate(configuration.getServerConfiguration());
-      fail("LifecycleException Expected.");
-    } catch (ClusteredTierManagerValidationException e) {
-      assertThat(e.getCause(), instanceOf(LifecycleException.class));
-      assertThat(e.getCause().getMessage(), containsString("is already being tracked with Client Id"));
-    }
-
-    service.stop();
-    cleanUpCluster(service);
   }
 
   @Test
@@ -146,18 +98,6 @@ public class BasicLifeCyclePassiveReplicationTest {
     CLUSTER.getClusterControl().waitForActive();
 
     hold1.unlock();
-  }
-
-  private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
-    Field entity = clusteringService.getClass().getDeclaredField("entity");
-    entity.setAccessible(true);
-    return (EhcacheClientEntity)entity.get(clusteringService);
-  }
-
-  private void cleanUpCluster(ClusteringService service) throws CachePersistenceException {
-    service.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
-    service.destroyAll();
-    service.stop();
   }
 
 }

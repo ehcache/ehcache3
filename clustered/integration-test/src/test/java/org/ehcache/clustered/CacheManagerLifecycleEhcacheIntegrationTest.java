@@ -33,8 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.InternalEhcacheClientEntity;
-import org.ehcache.clustered.client.internal.SimpleEhcacheClientEntity;
+import org.ehcache.clustered.client.internal.InternalClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
@@ -50,7 +49,6 @@ import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
@@ -58,8 +56,9 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class CacheManagerLifecycleEhcacheIntegrationTest {
+public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -69,7 +68,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection ASSERTION_CONNECTION;
 
   @BeforeClass
@@ -80,14 +79,14 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   @Test
   public void testAutoCreatedCacheManager() throws Exception {
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate().build())
             .build();
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     manager.init();
     try {
-      assertEntityExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManager");
+      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     } finally {
       manager.close();
     }
@@ -99,10 +98,10 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
     PersistentCacheManager manager = (PersistentCacheManager) newCacheManager(new XmlConfiguration(substitutedXml));
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     manager.init();
     try {
-      assertEntityExists(InternalEhcacheClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     } finally {
       manager.close();
     }
@@ -110,21 +109,18 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   @Test
   public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate().build());
 
-    Callable<PersistentCacheManager> task = new Callable<PersistentCacheManager>() {
-      @Override
-      public PersistentCacheManager call() throws Exception {
-        PersistentCacheManager manager = managerBuilder.build();
-        manager.init();
-        return manager;
-      }
+    Callable<PersistentCacheManager> task = () -> {
+      PersistentCacheManager manager = managerBuilder.build();
+      manager.init();
+      return manager;
     };
 
-    assertEntityNotExists(InternalEhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
@@ -135,7 +131,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
       for (Future<PersistentCacheManager> result : results) {
         result.get().close();
       }
-      assertEntityExists(InternalEhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
     } finally {
       executor.shutdown();
     }
@@ -179,7 +175,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   private static <T extends Entity> void fetchEntity(Connection connection, Class<T> aClass, String myCacheManager) throws EntityNotFoundException, ConnectionException {
     try {
-      connection.getEntityRef(aClass, EhcacheEntityVersion.ENTITY_VERSION, myCacheManager).fetchEntity().close();
+      connection.getEntityRef(aClass, EhcacheEntityVersion.ENTITY_VERSION, myCacheManager).fetchEntity(null).close();
     } catch (EntityNotProvidedException e) {
       throw new AssertionError(e);
     } catch (EntityVersionMismatchException e) {
@@ -190,7 +186,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
   private synchronized static Connection getAssertionConnection() throws ConnectionException {
     return new Connection() {
       @Override
-      public <T extends Entity, C> EntityRef<T, C> getEntityRef(Class<T> cls, long version, String name) throws EntityNotProvidedException {
+      public<T extends Entity, C, U> EntityRef<T, C, U>  getEntityRef(Class<T> cls, long version, String name) throws EntityNotProvidedException {
         return ASSERTION_CONNECTION.getEntityRef(cls, version, name);
       }
 

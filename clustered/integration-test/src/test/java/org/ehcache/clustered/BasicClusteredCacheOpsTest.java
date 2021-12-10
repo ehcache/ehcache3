@@ -31,12 +31,10 @@ import org.ehcache.config.units.MemoryUnit;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -49,8 +47,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicClusteredCacheOpsTest {
+public class BasicClusteredCacheOpsTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -61,7 +60,7 @@ public class BasicClusteredCacheOpsTest {
 
   @ClassRule
   public static Cluster CLUSTER =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {

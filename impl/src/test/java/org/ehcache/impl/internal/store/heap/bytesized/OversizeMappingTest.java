@@ -22,8 +22,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -33,6 +31,9 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
+
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -154,33 +155,15 @@ public class OversizeMappingTest {
   public void testCompute() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return VALUE;
-      }
-    });
+    store.compute(KEY, (a, b) -> VALUE);
 
     assertNotNullMapping(store);
 
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.compute(KEY, (a, b) -> OVER_SIZED_VALUE);
 
     assertNullMapping(store);
   }
@@ -189,23 +172,11 @@ public class OversizeMappingTest {
   public void testComputeIfAbsent() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-
-      @Override
-      public String apply(String a) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.computeIfAbsent(KEY, a -> OVER_SIZED_VALUE);
     assertNullMapping(store);
 
     store.put(KEY, VALUE);
-    store.computeIfAbsent(KEY, new Function<String, String>() {
-
-      @Override
-      public String apply(String a) {
-        return OVER_SIZED_VALUE;
-      }
-    });
+    store.computeIfAbsent(KEY, a -> OVER_SIZED_VALUE);
 
     assertNotNullMapping(store);
   }

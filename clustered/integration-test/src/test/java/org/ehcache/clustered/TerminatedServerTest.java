@@ -47,7 +47,6 @@ import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.model.Statement;
 import org.terracotta.connection.ConnectionException;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import com.tc.net.protocol.transport.ClientMessageTransport;
@@ -57,7 +56,6 @@ import com.tc.properties.TCPropertiesImpl;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -77,6 +75,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNoException;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
@@ -162,7 +161,7 @@ public class TerminatedServerTest {
 
   private static Cluster createCluster() {
     try {
-      return new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
+      return newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
     } catch (IllegalArgumentException e) {
       assumeNoException(e);
       return null;
@@ -772,39 +771,36 @@ public class TerminatedServerTest {
      */
     private Future<Void> interruptAfter(final long interval, final TimeUnit unit) {
       final Thread targetThread = Thread.currentThread();
-      FutureTask<Void> killer = new FutureTask<Void>(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            unit.sleep(interval);
-            if (!isDone && targetThread.isAlive()) {
-              synchronized (lock) {
-                if (isDone) {
-                  return;       // Let test win completion race
-                }
-                isExpired = true;
-                System.out.format("%n%n%s test is stalled; taking a thread dump and terminating the test%n%n",
-                    testName.getMethodName());
-                Diagnostics.threadDump(System.out);
-                targetThread.interrupt();
+      FutureTask<Void> killer = new FutureTask<Void>(() -> {
+        try {
+          unit.sleep(interval);
+          if (!isDone && targetThread.isAlive()) {
+            synchronized (lock) {
+              if (isDone) {
+                return;       // Let test win completion race
               }
-
-            /*                NEVER DO THIS AT HOME!
-             * This code block uses a BAD, BAD, BAD, BAD deprecated method to ensure the target thread
-             * is terminated.  This is done to prevent a test stall from methods using a "non-interruptible"
-             * looping wait where the interrupt status is recorded but ignored until the awaited event
-             * occurs.
-             */
-              unit.timedJoin(targetThread, interval);
-              if (!isDone && targetThread.isAlive()) {
-                System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
-                    testName.getMethodName(), targetThread);
-                targetThread.stop();   // Deprecated - BAD CODE!
-              }
+              isExpired = true;
+              System.out.format("%n%n%s test is stalled; taking a thread dump and terminating the test%n%n",
+                  testName.getMethodName());
+              Diagnostics.threadDump(System.out);
+              targetThread.interrupt();
             }
-          } catch (InterruptedException e) {
-            // Interrupted when canceled; simple exit
+
+          /*                NEVER DO THIS AT HOME!
+           * This code block uses a BAD, BAD, BAD, BAD deprecated method to ensure the target thread
+           * is terminated.  This is done to prevent a test stall from methods using a "non-interruptible"
+           * looping wait where the interrupt status is recorded but ignored until the awaited event
+           * occurs.
+           */
+            unit.timedJoin(targetThread, interval);
+            if (!isDone && targetThread.isAlive()) {
+              System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
+                  testName.getMethodName(), targetThread);
+              targetThread.stop();   // Deprecated - BAD CODE!
+            }
           }
+        } catch (InterruptedException e) {
+          // Interrupted when canceled; simple exit
         }
       }, null);
       Thread killerThread = new Thread(killer, "Timeout Task - " + testName.getMethodName());

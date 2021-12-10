@@ -18,8 +18,8 @@ package org.ehcache.clustered.client.replication;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
@@ -36,16 +36,16 @@ public class ReplicationUtil {
 
   }
 
-  public static ClusteredTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
+  public static ClusterTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
-    return (ClusteredTierClientEntity)entity.get(clusteringService);
+    return (ClusterTierClientEntity)entity.get(clusteringService);
   }
 
-  public static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
+  public static ClusterTierManagerClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
-    return (EhcacheClientEntity)entity.get(clusteringService);
+    return (ClusterTierManagerClientEntity)entity.get(clusteringService);
   }
 
   public static ServerStoreConfiguration getServerStoreConfiguration(String resourceName) {

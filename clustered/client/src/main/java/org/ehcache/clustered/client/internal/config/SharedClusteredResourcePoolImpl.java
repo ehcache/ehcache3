@@ -70,6 +70,6 @@ public class SharedClusteredResourcePoolImpl
   public String toString() {
     return "Pool {"
         + "sharedResourcePool='" + sharedResourcePool + '\''
-        + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
+        + " " + getType() + "}";
   }
 }

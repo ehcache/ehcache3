@@ -202,15 +202,12 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   @SuppressWarnings("unchecked")
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<CacheConfigurationChangeListener>();
-    configurationChangeListenerList.add(new CacheConfigurationChangeListener() {
-      @Override
-      public void cacheConfigurationChange(final CacheConfigurationChangeEvent event) {
-        if (event.getProperty().equals(CacheConfigurationProperty.ADD_LISTENER)) {
-          registerCacheEventListener((EventListenerWrapper<K, V>)event.getNewValue());
-        } else if (event.getProperty().equals(CacheConfigurationProperty.REMOVE_LISTENER)) {
-          CacheEventListener<? super K, ? super V> oldListener = (CacheEventListener<? super K, ? super V>)event.getOldValue();
-          deregisterCacheEventListener(oldListener);
-        }
+    configurationChangeListenerList.add(event -> {
+      if (event.getProperty().equals(CacheConfigurationProperty.ADD_LISTENER)) {
+        registerCacheEventListener((EventListenerWrapper<K, V>)event.getNewValue());
+      } else if (event.getProperty().equals(CacheConfigurationProperty.REMOVE_LISTENER)) {
+        CacheEventListener<? super K, ? super V> oldListener = (CacheEventListener<? super K, ? super V>)event.getOldValue();
+        deregisterCacheEventListener(oldListener);
       }
     });
     return configurationChangeListenerList;

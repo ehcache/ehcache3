@@ -108,12 +108,7 @@ public class Eh107XmlIntegrationTest {
 
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
     configuration.setTypes(String.class, String.class);
-    MutableCacheEntryListenerConfiguration<String, String> listenerConfiguration = new MutableCacheEntryListenerConfiguration<String, String>(new Factory<CacheEntryListener<? super String, ? super String>>() {
-      @Override
-      public CacheEntryListener<? super String, ? super String> create() {
-        return new Test107CacheEntryListener();
-      }
-    }, null, false, true);
+    MutableCacheEntryListenerConfiguration<String, String> listenerConfiguration = new MutableCacheEntryListenerConfiguration<String, String>(Test107CacheEntryListener::new, null, false, true);
     configuration.addCacheEntryListenerConfiguration(listenerConfiguration);
 
     Cache<String, String> cache = cacheManager.createCache("foos", configuration);
@@ -130,12 +125,9 @@ public class Eh107XmlIntegrationTest {
 
     MutableConfiguration<Long, Product> product2Configuration = new MutableConfiguration<Long, Product>();
     product2Configuration.setTypes(Long.class, Product.class).setReadThrough(true);
-    product2Configuration.setCacheLoaderFactory(new Factory<CacheLoader<Long, Product>>() {
-      @Override
-      public CacheLoader<Long, Product> create() {
-        loaderFactoryInvoked.set(true);
-        return product2CacheLoader;
-      }
+    product2Configuration.setCacheLoaderFactory(() -> {
+      loaderFactoryInvoked.set(true);
+      return product2CacheLoader;
     });
 
     Cache<Long, Product> productCache2 = cacheManager.createCache("productCache2", product2Configuration);
@@ -159,12 +151,9 @@ public class Eh107XmlIntegrationTest {
     final AtomicBoolean expiryFactoryInvoked = new AtomicBoolean(false);
     MutableConfiguration<Long, Product> configuration = new MutableConfiguration<Long, Product>();
     configuration.setTypes(Long.class, Product.class);
-    configuration.setExpiryPolicyFactory(new Factory<ExpiryPolicy>() {
-      @Override
-      public ExpiryPolicy create() {
-        expiryFactoryInvoked.set(true);
-        return new CreatedExpiryPolicy(Duration.FIVE_MINUTES);
-      }
+    configuration.setExpiryPolicyFactory(() -> {
+      expiryFactoryInvoked.set(true);
+      return new CreatedExpiryPolicy(Duration.FIVE_MINUTES);
     });
 
     cacheManager.createCache("productCache3", configuration);

@@ -31,7 +31,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.net.URI;
+import java.util.Random;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -201,6 +203,26 @@ public class BasicClusteredCacheTest {
     cache = cacheManager.getCache("clustered-cache", Long.class, Person.class);
 
     assertThat(cache.get(38L).name, is("Clustered Joe"));
+  }
+
+  @Test
+  public void testLargeValues() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+            newCacheManagerBuilder()
+                    .with(cluster(CLUSTER_URI).autoCreate())
+                    .withCache("small-cache", newCacheConfigurationBuilder(Long.class, String.class,
+                            ResourcePoolsBuilder.newResourcePoolsBuilder()
+                                    .with(clusteredDedicated("secondary-server-resource", 4, MemoryUnit.MB))));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+
+    final Cache<Long, String> cache = cacheManager.getCache("small-cache", Long.class, String.class);
+
+    Random random = new Random();
+    for (int i = 0 ; i < 100; i++) {
+      cache.put((long) i, new BigInteger(10 * 1024 * 128 * (1 + random.nextInt(10)), random).toString(16));
+    }
+
+    cacheManager.close();
   }
 
   public static class Person implements Serializable {

@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.lock.server;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -28,6 +29,7 @@ import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.StateDumpCollector;
 
 /**
  *
@@ -40,7 +42,7 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
   private final Set<ClientDescriptor> releaseListeners = new CopyOnWriteArraySet<ClientDescriptor>();
   private final Set<ClientDescriptor> sharedHolders = new CopyOnWriteArraySet<ClientDescriptor>();
 
-  private ClientDescriptor exclusiveHolder;
+  private volatile ClientDescriptor exclusiveHolder;
 
   public VoltronReadWriteLockActiveEntity(ClientCommunicator communicator) {
     this.communicator = communicator;
@@ -53,6 +55,30 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
       case ACQUIRE: return acquire(client, message.getHoldType());
       case RELEASE: return release(client, message.getHoldType());
       default: throw new AssertionError();
+    }
+  }
+
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    ClientDescriptor exclusiveHolder = this.exclusiveHolder;
+    Set<ClientDescriptor> sharedHolders = new HashSet<>(this.sharedHolders);
+    Set<ClientDescriptor> releaseListeners = new HashSet<>(this.releaseListeners);
+    {
+      // Dump lock holders. we dump both exclusive and shared to leave the interpretation of
+      // the potential concurrency reading errors up to the person reading the state dump
+      // In a normal case, there will be either exclusive OR shared holders.
+      StateDumpCollector holdersDump = dump.subStateDumpCollector("holders");
+      // dump the exclusive holder
+      if (exclusiveHolder != null) {
+        holdersDump.addState("exclusive", String.valueOf(exclusiveHolder));
+      }
+      // dump the shared holders.
+      if(!sharedHolders.isEmpty()) {
+        holdersDump.addState("shared", sharedHolders);
+      }
+    }
+    {
+      dump.addState("releaseListeners", releaseListeners);
     }
   }
 

@@ -18,32 +18,33 @@ package org.ehcache.impl.internal.events;
 
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.hamcrest.Matcher;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.BiFunction;
 
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * ScopedStoreEventDispatcherTest
@@ -98,12 +99,12 @@ public class ScopedStoreEventDispatcherTest {
   public void testEventFiltering() {
     ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
     @SuppressWarnings("unchecked")
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
+    StoreEventListener<String, String> listener = mock(StoreEventListener.class, withSettings().verboseLogging());
     dispatcher.addEventListener(listener);
 
     @SuppressWarnings("unchecked")
     StoreEventFilter<String, String> filter = mock(StoreEventFilter.class);
-    when(filter.acceptEvent(eq(EventType.CREATED), anyString(), anyString(), anyString())).thenReturn(true);
+    when(filter.acceptEvent(eq(EventType.CREATED), anyString(), ArgumentMatchers.<String>isNull(), anyString())).thenReturn(true);
     when(filter.acceptEvent(eq(EventType.REMOVED), anyString(), anyString(), anyString())).thenReturn(false);
     dispatcher.addEventFilter(filter);
 
@@ -128,24 +129,11 @@ public class ScopedStoreEventDispatcherTest {
     map.put(keys[2], 256 * 125L);
 
     final ConcurrentHashMap<Long, Long> resultMap = new ConcurrentHashMap<Long, Long>(map);
-    dispatcher.addEventListener(new StoreEventListener<Long, Boolean>() {
-      @Override
-      public void onEvent(StoreEvent<Long, Boolean> event) {
-        if (event.getNewValue()) {
-          resultMap.compute(event.getKey(), new BiFunction<Long, Long, Long>() {
-            @Override
-            public Long apply(Long key, Long value) {
-              return value + 10L;
-            }
-          });
-        } else {
-          resultMap.compute(event.getKey(), new BiFunction<Long, Long, Long>() {
-            @Override
-            public Long apply(Long key, Long value) {
-              return 7L - value;
-            }
-          });
-        }
+    dispatcher.addEventListener(event -> {
+      if (event.getNewValue()) {
+        resultMap.compute(event.getKey(), (key, value) -> value + 10L);
+      } else {
+        resultMap.compute(event.getKey(), (key, value) -> 7L - value);
       }
     });
 
@@ -156,36 +144,27 @@ public class ScopedStoreEventDispatcherTest {
     final CountDownLatch latch = new CountDownLatch(workers);
     for (int i = 0; i < workers; i++) {
       final int index =i;
-      new Thread(new Runnable() {
-        @Override
-        public void run() {
-          Random random = new Random(seed * index);
-          for (int j = 0; j < 10000; j++) {
-            int keyIndex = random.nextInt(3);
-            final StoreEventSink<Long, Boolean> sink = dispatcher.eventSink();
-            if (random.nextBoolean()) {
-              map.compute(keys[keyIndex], new BiFunction<Long, Long, Long>() {
-                @Override
-                public Long apply(Long key, Long value) {
-                  long newValue = value + 10L;
-                  sink.created(key, true);
-                  return newValue;
-                }
-              });
-            } else {
-              map.compute(keys[keyIndex], new BiFunction<Long, Long, Long>() {
-                @Override
-                public Long apply(Long key, Long value) {
-                  long newValue = 7L - value;
-                  sink.created(key, false);
-                  return newValue;
-                }
-              });
-            }
-            dispatcher.releaseEventSink(sink);
+      new Thread(() -> {
+        Random random = new Random(seed * index);
+        for (int j = 0; j < 10000; j++) {
+          int keyIndex = random.nextInt(3);
+          final StoreEventSink<Long, Boolean> sink = dispatcher.eventSink();
+          if (random.nextBoolean()) {
+            map.compute(keys[keyIndex], (key, value) -> {
+              long newValue = value + 10L;
+              sink.created(key, true);
+              return newValue;
+            });
+          } else {
+            map.compute(keys[keyIndex], (key, value) -> {
+              long newValue = 7L - value;
+              sink.created(key, false);
+              return newValue;
+            });
           }
-          latch.countDown();
+          dispatcher.releaseEventSink(sink);
         }
+        latch.countDown();
       }).start();
     }
 

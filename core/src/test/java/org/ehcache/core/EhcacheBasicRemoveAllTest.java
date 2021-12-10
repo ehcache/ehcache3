@@ -20,12 +20,9 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +46,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_A;
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_B;
@@ -56,17 +54,14 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_C;
 import static org.ehcache.core.EhcacheBasicBulkUtil.copyWithout;
 import static org.ehcache.core.EhcacheBasicBulkUtil.fanIn;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getEntryMap;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anySet;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -88,7 +83,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link Store#bulkCompute(Set, Function, NullaryFunction)
+   * {@link Store#bulkCompute(Set, Function, java.util.function.Supplier)
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor
@@ -263,36 +258,34 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   public void removeAllStoreCallsMethodTwice() throws Exception {
     CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     final List<String> removed = new ArrayList<String>();
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        @SuppressWarnings("unchecked")
-        Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
-        for (String key : i) {
-          removed.add(key);
-        }
-        return null;
+    doAnswer(invocation -> {
+      @SuppressWarnings("unchecked")
+      Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
+      for (String key : i) {
+        removed.add(key);
       }
+      return null;
     }).when(cacheLoaderWriter).deleteAll(any(Iterable.class));
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
 
     final ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>> functionArgumentCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
 
-    when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
-        Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = new HashMap<String, String>((Map) function.getClass().getDeclaredField("val$entriesToRemove").get(function)).entrySet();
-        function.apply(arg);
-        function.apply(arg);
-        return null;
-      }
-    });
-
     Set<String> keys = new HashSet<String>() {{
       add("1");
       add("2");
     }};
+
+    HashMap<String, String> entriesMap = new HashMap<>();
+    entriesMap.put("1", "one");
+    entriesMap.put("2", "two");
+
+    when(store.bulkCompute(any(Set.class), functionArgumentCaptor.capture())).then(invocation -> {
+      Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
+      Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = entriesMap.entrySet();
+      function.apply(arg);
+      function.apply(arg);
+      return null;
+    });
 
     ehcache.removeAll(keys);
 

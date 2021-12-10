@@ -90,7 +90,6 @@ public class ChainResolverTest {
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
 
-    Chain compactedChain = resolvedChain.getCompactedChain();
     assertThat(resolvedChain.isCompacted(), is(false));
   }
 
@@ -138,6 +137,7 @@ public class ChainResolverTest {
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
     assertThat(resolvedChain.isCompacted(), is(true));
+    assertThat(resolvedChain.getCompactionCount(), is(3));
   }
 
   @Test
@@ -151,6 +151,7 @@ public class ChainResolverTest {
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
     assertThat(resolvedChain.isCompacted(), is(true));
+    assertThat(resolvedChain.getCompactionCount(), is(1));
   }
 
   @Test
@@ -165,6 +166,7 @@ public class ChainResolverTest {
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
     assertThat(resolvedChain.isCompacted(), is(true));
+    assertThat(resolvedChain.getCompactionCount(), is(2));
   }
 
   @Test
@@ -236,6 +238,30 @@ public class ChainResolverTest {
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     assertThat(resolvedChain.isCompacted(), is(false));
+    assertThat(resolvedChain.getCompactionCount(), is(0));
+  }
+
+  @Test
+  public void testResolveForMultiplesOperationsAlwaysCompact() {
+    //create a random mix of operations
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutIfAbsentOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(2L, "Melbin", timeSource.getTimeMillis()));
+    list.add(new ReplaceOperation<Long, String>(1L, "Joseph", timeSource.getTimeMillis()));
+    list.add(new RemoveOperation<Long, String>(2L, timeSource.getTimeMillis()));
+    list.add(new ConditionalRemoveOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Gregory", timeSource.getTimeMillis()));
+    list.add(new ConditionalReplaceOperation<Long, String>(1L, "Albin", "Abraham", timeSource.getTimeMillis()));
+    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()));
+    list.add(new PutIfAbsentOperation<Long, String>(2L, "Albin", timeSource.getTimeMillis()));
+    Chain chain = getChainFromOperations(list);
+
+    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    assertThat(resolvedChain.isCompacted(), is(true));
+    assertThat(resolvedChain.getCompactionCount(), is(8));
   }
 
   @Test
@@ -258,7 +284,7 @@ public class ChainResolverTest {
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
     assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(Long.MIN_VALUE));
+    assertThat(operation.expirationTime(), is(Long.MAX_VALUE));
     try {
       operation.timeStamp();
       fail();

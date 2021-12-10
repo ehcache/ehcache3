@@ -17,9 +17,9 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.StructDecoder;
@@ -56,7 +56,7 @@ public class EntityConfigurationCodec {
       .build();
   }
 
-  public byte[] encode(ClusteredTierEntityConfiguration configuration) {
+  public byte[] encode(ClusterTierEntityConfiguration configuration) {
     StructEncoder encoder = clusteredStoreConfigurationStruct.encoder();
     encoder.string(IDENTIFIER, configuration.getManagerIdentifier())
       .string(SERVER_STORE_NAME_FIELD, configuration.getStoreIdentifier());
@@ -64,7 +64,7 @@ public class EntityConfigurationCodec {
     return encoder.encode().array();
   }
 
-  public ClusteredTierEntityConfiguration decodeClusteredStoreConfiguration(byte[] configuration) {
+  public ClusterTierEntityConfiguration decodeClusteredStoreConfiguration(byte[] configuration) {
     StructDecoder decoder = clusteredStoreConfigurationStruct.decoder(wrap(configuration));
     String managerIdentifier = decoder.string(IDENTIFIER);
     if (managerIdentifier == null) {
@@ -72,16 +72,16 @@ public class EntityConfigurationCodec {
     }
     String storeIdentifier = decoder.string(SERVER_STORE_NAME_FIELD);
     ServerStoreConfiguration serverStoreConfiguration = configCodec.decodeServerStoreConfiguration(decoder);
-    return new ClusteredTierEntityConfiguration(managerIdentifier, storeIdentifier, serverStoreConfiguration);
+    return new ClusterTierEntityConfiguration(managerIdentifier, storeIdentifier, serverStoreConfiguration);
   }
-  public byte[] encode(ClusteredTierManagerConfiguration configuration) {
+  public byte[] encode(ClusterTierManagerConfiguration configuration) {
     StructEncoder encoder = tierManagerConfigurationStruct.encoder();
     encoder.string(IDENTIFIER, configuration.getIdentifier());
     configCodec.encodeServerSideConfiguration(encoder, configuration.getConfiguration());
     return encoder.encode().array();
   }
 
-  public ClusteredTierManagerConfiguration decodeClusteredTierManagerConfiguration(byte[] payload) {
+  public ClusterTierManagerConfiguration decodeClusterTierManagerConfiguration(byte[] payload) {
     StructDecoder decoder = tierManagerConfigurationStruct.decoder(wrap(payload));
     String identifier = decoder.string(IDENTIFIER);
     if (identifier == null) {
@@ -91,6 +91,6 @@ public class EntityConfigurationCodec {
     if (configuration == null) {
       throw new AssertionError("Creation configuration cannot be null");
     }
-    return new ClusteredTierManagerConfiguration(identifier, configuration);
+    return new ClusterTierManagerConfiguration(identifier, configuration);
   }
 }

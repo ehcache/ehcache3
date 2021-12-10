@@ -376,14 +376,29 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * Convenience method to get a {@link CacheManagerConfiguration} for a {@link PersistentCacheManager} stored on disk. The actual
    * level of persistence is configured on the disk resource pool per cache.
    *
-   * @param location the file location for persistent data
+   * @param rootDirectory the root directory to use for disk storage
    * @return a {@code CacheManagerConfiguration}
    *
    * @see ResourcePoolsBuilder#disk(long, MemoryUnit, boolean)
    * @see #with(CacheManagerConfiguration)
    * @see PersistentCacheManager
    */
-  public static CacheManagerConfiguration<PersistentCacheManager> persistence(String location) {
-    return new CacheManagerPersistenceConfiguration(new File(location));
+  public static CacheManagerConfiguration<PersistentCacheManager> persistence(String rootDirectory) {
+    return persistence(new File(rootDirectory));
+  }
+
+  /**
+   * Convenience method to get a {@link CacheManagerConfiguration} for a {@link PersistentCacheManager} stored on disk. The actual
+   * level of persistence is configured on the disk resource pool per cache.
+   *
+   * @param rootDirectory the root directory to use for disk storage
+   * @return a {@code CacheManagerConfiguration}
+   *
+   * @see ResourcePoolsBuilder#disk(long, MemoryUnit, boolean)
+   * @see #with(CacheManagerConfiguration)
+   * @see PersistentCacheManager
+   */
+  public static CacheManagerConfiguration<PersistentCacheManager> persistence(File rootDirectory) {
+    return new CacheManagerPersistenceConfiguration(rootDirectory);
   }
 }

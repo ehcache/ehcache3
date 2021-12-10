@@ -25,23 +25,25 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class VoltronReadWriteLockIntegrationTest {
+public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1);
+  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {
@@ -68,12 +70,9 @@ public class VoltronReadWriteLockIntegrationTest {
 
       Hold hold = lock.writeLock();
 
-      Future<Void> waiter = async(new Callable<Void>() {
-        @Override
-        public Void call() throws Exception {
-          lock.writeLock().unlock();
-          return null;
-        }
+      Future<Void> waiter = async(() -> {
+        lock.writeLock().unlock();
+        return null;
       });
 
       try {
@@ -100,12 +99,9 @@ public class VoltronReadWriteLockIntegrationTest {
 
       final Connection clientB = CLUSTER.newConnection();
       try {
-        Future<Void> waiter = async(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
-            return null;
-          }
+        Future<Void> waiter = async(() -> {
+          new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
+          return null;
         });
 
         try {
@@ -128,23 +124,20 @@ public class VoltronReadWriteLockIntegrationTest {
   @Test
   public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
     final AtomicBoolean condition = new AtomicBoolean(true);
-    Callable<Void> task = new Callable<Void>() {
-      @Override
-      public Void call() throws Exception {
-        Connection client = CLUSTER.newConnection();
-        VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "testMultipleClientsAutoCreatingCacheManager");
+    Callable<Void> task = () -> {
+      Connection client = CLUSTER.newConnection();
+      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "testMultipleClientsAutoCreatingCacheManager");
 
-        while (condition.get()) {
-          Hold hold = lock.tryWriteLock();
-          if (hold == null) {
-            lock.readLock().unlock();
-          } else {
-            condition.set(false);
-            hold.unlock();
-          }
+      while (condition.get()) {
+        Hold hold = lock.tryWriteLock();
+        if (hold == null) {
+          lock.readLock().unlock();
+        } else {
+          condition.set(false);
+          hold.unlock();
         }
-        return null;
       }
+      return null;
     };
 
     ExecutorService executor = Executors.newCachedThreadPool();

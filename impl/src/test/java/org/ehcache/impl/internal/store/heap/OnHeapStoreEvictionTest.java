@@ -15,7 +15,6 @@
  */
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
@@ -26,10 +25,8 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
@@ -48,6 +45,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
@@ -68,12 +67,7 @@ public class OnHeapStoreEvictionTest {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put("key", "value");
-    store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        return "value2";
-      }
-    });
+    store.compute("key", (mappedKey, mappedValue) -> "value2");
 
     assertThat(store.enforceCapacityWasCalled(), is(true));
   }
@@ -82,12 +76,7 @@ public class OnHeapStoreEvictionTest {
   public void testComputeIfAbsentCalledEnforceCapacity() throws Exception {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.computeIfAbsent("key", new Function<String, String>() {
-      @Override
-      public String apply(String mappedKey) {
-        return "value2";
-      }
-    });
+    store.computeIfAbsent("key", mappedKey -> "value2");
 
     assertThat(store.enforceCapacityWasCalled(), is(true));
   }
@@ -100,23 +89,15 @@ public class OnHeapStoreEvictionTest {
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
-      executor.submit(new Callable<Store.ValueHolder<String>>() {
-        @Override
-        public Store.ValueHolder<String> call() throws Exception {
-          return store.getOrComputeIfAbsent("prime", new Function<String, ValueHolder<String>>() {
-            @Override
-            public ValueHolder<String> apply(final String key) {
-              semaphore.acquireUninterruptibly();
-              return new OnHeapValueHolder<String>(0, 0, false) {
-                @Override
-                public String value() {
-                  return key;
-                }
-              };
-            }
-          });
-        }
-      });
+      executor.submit(() -> store.getOrComputeIfAbsent("prime", key -> {
+        semaphore.acquireUninterruptibly();
+        return new OnHeapValueHolder<String>(0, 0, false) {
+          @Override
+          public String value() {
+            return key;
+          }
+        };
+      }));
 
       while (!semaphore.hasQueuedThreads());
       store.put("boom", "boom");
@@ -134,12 +115,9 @@ public class OnHeapStoreEvictionTest {
         getClass().getClassLoader(), Expirations.noExpiration(), heap(1).build(), 1, null, null);
     TestStoreEventDispatcher<String, String> eventDispatcher = new TestStoreEventDispatcher<String, String>();
     final String firstKey = "daFirst";
-    eventDispatcher.addEventListener(new StoreEventListener<String, String>() {
-      @Override
-      public void onEvent(StoreEvent<String, String> event) {
-        if (event.getType().equals(EventType.EVICTED)) {
-          assertThat(event.getKey(), is(firstKey));
-        }
+    eventDispatcher.addEventListener(event -> {
+      if (event.getType().equals(EventType.EVICTED)) {
+        assertThat(event.getKey(), is(firstKey));
       }
     });
     OnHeapStore<String, String> store = new OnHeapStore<String, String>(configuration, timeSource,

@@ -17,7 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.transactions.xa.internal.commands.StoreEvictCommand;
@@ -50,11 +50,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isA;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -239,20 +239,17 @@ public class XATransactionContextTest {
     final AtomicReference<Collection<Long>> savedInDoubt = new AtomicReference<Collection<Long>>();
     // doAnswer is required to make a copy of the keys collection because xaTransactionContext.prepare() clears it before the verify(journal, times(1)).saveInDoubt(...) assertion can be made.
     // See: http://stackoverflow.com/questions/17027368/mockito-what-if-argument-passed-to-mock-is-modified
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Collection<Long> o = (Collection<Long>) invocation.getArguments()[1];
-        savedInDoubt.set(new HashSet<Long>(o));
-        return null;
-      }
-    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    doAnswer(invocation -> {
+      Collection<Long> o = (Collection<Long>) invocation.getArguments()[1];
+      savedInDoubt.set(new HashSet<Long>(o));
+      return null;
+    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     assertThat(xaTransactionContext.prepare(), is(3));
 
     Assert.assertThat(savedInDoubt.get(), containsInAnyOrder(1L, 2L, 3L));
 
-    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
     verify(journal, times(0)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
 
@@ -316,7 +313,7 @@ public class XATransactionContextTest {
     xaTransactionContext.commit(false);
     verify(journal, times(1)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), eq(false));
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
-    verify(journal, times(0)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    verify(journal, times(0)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     verify(underlyingStore, times(1)).get(1L);
     verify(underlyingStore, times(1)).replace(eq(1L), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<String>("un", timeSource.getTimeMillis()))), eq(new SoftLock<String>(null, "un", null)));
@@ -358,79 +355,47 @@ public class XATransactionContextTest {
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
 
     final AtomicReference<Collection<Long>> savedInDoubtCollectionRef = new AtomicReference<Collection<Long>>();
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        savedInDoubtCollectionRef.set(new HashSet<Long>((Collection<Long>) invocation.getArguments()[1]));
-        return null;
-      }
-    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
-    when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return savedInDoubtCollectionRef.get() != null;
-      }
-    });
-    when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return savedInDoubtCollectionRef.get();
-      }
-    });
+    doAnswer(invocation -> {
+      savedInDoubtCollectionRef.set(new HashSet<Long>((Collection<Long>) invocation.getArguments()[1]));
+      return null;
+    }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
+    when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).then(invocation -> savedInDoubtCollectionRef.get() != null);
+    when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).then(invocation -> savedInDoubtCollectionRef.get());
     final AtomicReference<SoftLock> softLock1Ref = new AtomicReference<SoftLock>();
-    when(underlyingStore.get(eq(1L))).then(new Answer<Object>() {
+    when(underlyingStore.get(eq(1L))).then(invocation -> softLock1Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
       @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return softLock1Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
-          @Override
-          public Object value() {
-            return softLock1Ref.get();
-          }
-          @Override
-          protected TimeUnit nativeTimeUnit() {
-            return TimeUnit.MILLISECONDS;
-          }
-        };
+      public Object value() {
+        return softLock1Ref.get();
+      }
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
       }
     });
-    when(underlyingStore.putIfAbsent(eq(1L), isA(SoftLock.class))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        softLock1Ref.set((SoftLock) invocation.getArguments()[1]);
-        return null;
-      }
+    when(underlyingStore.putIfAbsent(eq(1L), isA(SoftLock.class))).then(invocation -> {
+      softLock1Ref.set((SoftLock) invocation.getArguments()[1]);
+      return null;
     });
-    when(underlyingStore.replace(eq(1L), isA(SoftLock.class), isA(SoftLock.class))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        if (softLock1Ref.get() != null) {
-          return ReplaceStatus.HIT;
-        }
-        return ReplaceStatus.MISS_PRESENT;
-      }
-    });
-    final AtomicReference<SoftLock> softLock2Ref = new AtomicReference<SoftLock>(new SoftLock(null, "two", null));
-    when(underlyingStore.get(eq(2L))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        return softLock2Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
-          @Override
-          public Object value() {
-            return softLock2Ref.get();
-          }
-          @Override
-          protected TimeUnit nativeTimeUnit() {
-            return TimeUnit.MILLISECONDS;
-          }
-        };
-      }
-    });
-    when(underlyingStore.replace(eq(2L), isA(SoftLock.class), isA(SoftLock.class))).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        softLock2Ref.set((SoftLock) invocation.getArguments()[2]);
+    when(underlyingStore.replace(eq(1L), isA(SoftLock.class), isA(SoftLock.class))).then(invocation -> {
+      if (softLock1Ref.get() != null) {
         return ReplaceStatus.HIT;
       }
+      return ReplaceStatus.MISS_PRESENT;
+    });
+    final AtomicReference<SoftLock> softLock2Ref = new AtomicReference<SoftLock>(new SoftLock(null, "two", null));
+    when(underlyingStore.get(eq(2L))).then(invocation -> softLock2Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
+      @Override
+      public Object value() {
+        return softLock2Ref.get();
+      }
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
+      }
+    });
+    when(underlyingStore.replace(eq(2L), isA(SoftLock.class), isA(SoftLock.class))).then(invocation -> {
+      softLock2Ref.set((SoftLock) invocation.getArguments()[2]);
+      return ReplaceStatus.HIT;
     });
 
     when(underlyingStore.remove(any(Long.class), any(SoftLock.class))).thenReturn(RemoveStatus.REMOVED);
@@ -441,7 +406,7 @@ public class XATransactionContextTest {
 
     verify(journal, times(1)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), eq(false));
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
-    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), anyCollection());
+    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     verify(underlyingStore, times(1)).putIfAbsent(eq(1L), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), null, new XAValueHolder<String>("un", timeSource.getTimeMillis()))));
     verify(underlyingStore, times(1)).replace(eq(2L), eq(new SoftLock<String>(null, "two", null)), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "two", null)));

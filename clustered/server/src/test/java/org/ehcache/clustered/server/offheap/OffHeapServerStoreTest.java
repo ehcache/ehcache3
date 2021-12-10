@@ -26,7 +26,7 @@ import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
@@ -39,12 +39,14 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 import org.junit.Assert;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
+import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
@@ -63,31 +65,31 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
   @Override
   public ChainBuilder newChainBuilder() {
-    return new ChainBuilder() {
-      @Override
-      public Chain build(Element... elements) {
-        ByteBuffer[] buffers = new ByteBuffer[elements.length];
-        for (int i = 0; i < buffers.length; i++) {
-          buffers[i] = elements[i].getPayload();
-        }
-        return OffHeapChainMap.chain(buffers);
+    return elements -> {
+      ByteBuffer[] buffers = new ByteBuffer[elements.length];
+      for (int i = 0; i < buffers.length; i++) {
+        buffers[i] = elements[i].getPayload();
       }
+      return OffHeapChainMap.chain(buffers);
     };
   }
 
   @Override
   public ElementBuilder newElementBuilder() {
-    return new ElementBuilder() {
-      @Override
-      public Element build(final ByteBuffer payLoad) {
-        return new Element() {
-          @Override
-          public ByteBuffer getPayload() {
-            return payLoad;
-          }
-        };
-      }
-    };
+    return payLoad -> () -> payLoad;
+  }
+
+  @Test
+  public void testGetMaxSize() {
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(2)), is(64L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(4)), is(128L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(16)), is(512L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(64)), is(2048L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(128)), is(4096L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(256)), is(8192L));
+    assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(512)), is(8192L));
+
+    assertThat(OffHeapServerStore.getMaxSize(GIGABYTES.toBytes(2)), is(8192L));
   }
 
   @Test

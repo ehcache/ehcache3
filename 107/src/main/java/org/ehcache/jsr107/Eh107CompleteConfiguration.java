@@ -212,11 +212,8 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
   }
 
   private <T> Factory<T> createThrowingFactory() {
-    return new Factory<T>() {
-      @Override
-      public T create() {
-        throw new UnsupportedOperationException("Cannot convert from Ehcache type to JSR-107 factory");
-      }
+    return (Factory<T>) () -> {
+      throw new UnsupportedOperationException("Cannot convert from Ehcache type to JSR-107 factory");
     };
   }
 }

@@ -21,8 +21,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.ResourcePools;
-import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -35,32 +33,23 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.serialization.JavaSerializer;
-import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
-import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.junit.Test;
-import org.terracotta.context.ContextElement;
-import org.terracotta.context.TreeNode;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -76,8 +65,7 @@ public class GettingStarted {
   @Test
   public void cachemanagerExample() {
     // tag::cachemanagerExample[]
-    CacheManager cacheManager
-        = CacheManagerBuilder.newCacheManagerBuilder() // <1>
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder() // <1>
         .withCache("preConfigured",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))) // <2>
         .build(); // <3>
@@ -87,7 +75,7 @@ public class GettingStarted {
         cacheManager.getCache("preConfigured", Long.class, String.class); // <5>
 
     Cache<Long, String> myCache = cacheManager.createCache("myCache", // <6>
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10)).build());
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10)));
 
     myCache.put(1L, "da one!"); // <7>
     String value = myCache.get(1L); // <8>
@@ -99,139 +87,24 @@ public class GettingStarted {
   }
 
   @Test
-  public void persistentCacheManager() throws Exception {
-    // tag::persistentCacheManager[]
-    PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData")) // <1>
-        .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, EntryUnit.ENTRIES)
-                .disk(10, MemoryUnit.MB, true)) // <2>
-            )
-        .build(true);
-
-    persistentCacheManager.close();
-    // end::persistentCacheManager[]
-  }
-
-  @Test
-  public void offheapCacheManager() {
-    // tag::offheapCacheManager[]
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)) // <1>
-            )
-        .build(true);
-
-    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
-
-    cacheManager.close();
-    // end::offheapCacheManager[]
-  }
-
-  @Test
   public void threeTiersCacheManager() throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData")) // <1>
+        .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <1>
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES) // <2>
                     .offheap(1, MemoryUnit.MB) // <3>
-                    .disk(20, MemoryUnit.MB) // <4>
+                    .disk(20, MemoryUnit.MB, true) // <4>
                 )
         ).build(true);
 
     Cache<Long, String> threeTieredCache = persistentCacheManager.getCache("threeTieredCache", Long.class, String.class);
-
+    threeTieredCache.put(1L, "stillAvailableAfterRestart"); // <5>
 
     persistentCacheManager.close();
     // end::threeTiersCacheManager[]
-  }
-
-  @Test
-  public void defaultSerializers() throws Exception {
-    // tag::defaultSerializers[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
-              .offheap(1, MemoryUnit.MB))
-        .build();
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cache", cacheConfiguration)
-        .withSerializer(String.class, StringSerializer.class) // <1>
-        .build(true);
-
-    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
-
-    cache.put(1L, "one");
-    assertThat(cache.get(1L), equalTo("one"));
-
-    cacheManager.close();
-    // end::defaultSerializers[]
-  }
-
-  @Test
-  public void byteSizedTieredCache() {
-    // tag::byteSizedTieredCache[]
-    CacheConfiguration<Long, String> usesConfiguredInCacheConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, MemoryUnit.KB) // <1>
-                .offheap(10, MemoryUnit.MB))
-        .withSizeOfMaxObjectGraph(1000)
-        .withSizeOfMaxObjectSize(1000, MemoryUnit.B) // <2>
-        .build();
-
-    CacheConfiguration<Long, String> usesDefaultSizeOfEngineConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, MemoryUnit.KB)
-                .offheap(10, MemoryUnit.MB))
-        .build();
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withDefaultSizeOfMaxObjectSize(500, MemoryUnit.B)
-        .withDefaultSizeOfMaxObjectGraph(2000) // <3>
-        .withCache("usesConfiguredInCache", usesConfiguredInCacheConfig)
-        .withCache("usesDefaultSizeOfEngine", usesDefaultSizeOfEngineConfig)
-        .build(true);
-
-    Cache<Long, String> usesConfiguredInCache = cacheManager.getCache("usesConfiguredInCache", Long.class, String.class);
-
-    usesConfiguredInCache.put(1L, "one");
-    assertThat(usesConfiguredInCache.get(1L), equalTo("one"));
-
-    Cache<Long, String> usesDefaultSizeOfEngine = cacheManager.getCache("usesDefaultSizeOfEngine", Long.class, String.class);
-
-    usesDefaultSizeOfEngine.put(1L, "one");
-    assertThat(usesDefaultSizeOfEngine.get(1L), equalTo("one"));
-
-    cacheManager.close();
-    // end::byteSizedTieredCache[]
-  }
-
-  @Test
-  public void cacheSerializers() throws Exception {
-    // tag::cacheSerializers[]
-    CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-        .withKeySerializer(new LongSerializer()) // <1>
-        .withValueSerializer(new PersonSerializer()) // <2>
-        .build();
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cache", cacheConfiguration)
-        .build(true);
-
-    Cache<Long, Person> cache = cacheManager.getCache("cache", Long.class, Person.class);
-
-    cache.put(1L, new Person("person one", 32));
-    assertThat(cache.get(1L), equalTo(new Person("person one", 32)));
-
-    cacheManager.close();
-    // end::cacheSerializers[]
   }
 
   @Test
@@ -300,44 +173,6 @@ public class GettingStarted {
   }
 
   @Test
-  public void updateResourcesAtRuntime() throws InterruptedException {
-    ListenerObject listener = new ListenerObject();
-    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
-        .newEventListenerConfiguration(listener, EventType.EVICTED).unordered().synchronous();
-
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-                                                                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES))
-        .add(cacheEventListenerConfiguration)
-        .build();
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
-        .build(true);
-
-    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
-    for(long i = 0; i < 20; i++ ){
-      cache.put(i, "Hello World");
-    }
-    assertThat(listener.evicted(), is(10));
-
-    cache.clear();
-    listener.resetEvictionCount();
-
-    // tag::updateResourcesAtRuntime[]
-    ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build(); // <1>
-    cache.getRuntimeConfiguration().updateResourcePools(pools); // <2>
-    assertThat(cache.getRuntimeConfiguration().getResourcePools()
-        .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
-    // end::updateResourcesAtRuntime[]
-
-    for(long i = 0; i < 20; i++ ){
-      cache.put(i, "Hello World");
-    }
-    assertThat(listener.evicted(), is(0));
-
-    cacheManager.close();
-  }
-
-  @Test
   public void registerListenerAtRuntime() throws InterruptedException {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -378,110 +213,6 @@ public class GettingStarted {
     // end::configuringEventProcessingQueues[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);
-    cacheManager.close();
-  }
-
-  @Test
-  public void cacheCopiers() throws Exception {
-    // tag::cacheCopiers[]
-    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class,
-                                                                                          ResourcePoolsBuilder.heap(10))
-        .withKeyCopier(new DescriptionCopier()) // <1>
-        .withValueCopier(new PersonCopier()) // <2>
-        .build();
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cache", cacheConfiguration)
-        .build(true);
-
-    Cache<Description, Person> cache = cacheManager.getCache("cache", Description.class, Person.class);
-
-    Description desc = new Description(1234, "foo");
-    Person person = new Person("Bar", 24);
-    cache.put(desc, person);
-    assertThat(cache.get(desc), equalTo(person));
-
-    cacheManager.close();
-    // end::cacheCopiers[]
-  }
-
-  @Test
-  public void cacheSerializingCopiers() throws Exception {
-    // tag::cacheSerializingCopiers[]
-    CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class,
-                                                                                          ResourcePoolsBuilder.heap(10))
-        .withValueSerializingCopier() // <1>
-        .build();
-    // end::cacheSerializingCopiers[]
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cache", cacheConfiguration)
-        .build(true);
-
-    Cache<Long, Person> cache = cacheManager.getCache("cache", Long.class, Person.class);
-
-    Description desc = new Description(1234, "foo");
-    Person person = new Person("Bar", 24);
-    cache.put(1L, person);
-    assertThat(cache.get(1L), equalTo(person));
-    assertThat(cache.get(1L), not(sameInstance(person)));
-
-    cacheManager.close();
-  }
-
-  @Test
-  public void defaultCopiers() throws Exception {
-    // tag::defaultCopiers[]
-    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class,
-        ResourcePoolsBuilder.heap(10)).build();
-
-    CacheConfiguration<Long, Person> anotherCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class,
-        ResourcePoolsBuilder.heap(10)).build();
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCopier(Description.class, DescriptionCopier.class) // <1>
-        .withCopier(Person.class, PersonCopier.class)
-        .withCache("cache", cacheConfiguration)  // <2>
-        .withCache("anotherCache", anotherCacheConfiguration)  // <3>
-        .build(true);
-
-    Cache<Description, Person> cache = cacheManager.getCache("cache", Description.class, Person.class);
-    Cache<Long, Person> anotherCache = cacheManager.getCache("anotherCache", Long.class, Person.class);
-
-    Description desc = new Description(1234, "foo");
-    Person person = new Person("Bar", 24);
-    cache.put(desc, person);
-    assertThat(cache.get(desc), equalTo(person));
-    assertThat(cache.get(desc), is(not(sameInstance(person))));
-
-    anotherCache.put(1L, person);
-    assertThat(anotherCache.get(1L), equalTo(person));
-
-    cacheManager.close();
-    // end::defaultCopiers[]
-  }
-
-  @Test
-  public void cacheServiceConfiguration() throws Exception {
-    // tag::cacheServiceConfigurations[]
-    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class,
-                                                                                              ResourcePoolsBuilder.heap(10))
-        .withKeyCopier(DescriptionCopier.class) // <1>
-        .withValueCopier(new PersonCopier()) // <2>
-        .build();
-    // end::cacheServiceConfigurations[]
-
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cache", cacheConfiguration)
-        .build(true);
-
-    Cache<Description, Person> cache = cacheManager.getCache("cache", Description.class, Person.class);
-
-    Description desc = new Description(1234, "foo");
-    Person person = new Person("Bar", 24);
-    cache.put(desc, person);
-    assertThat(cache.get(desc), equalTo(person));
-
     cacheManager.close();
   }
 
@@ -527,7 +258,6 @@ public class GettingStarted {
         .build();
     // end::customExpiry[]
   }
-
 
   private static class Description {
     int id;

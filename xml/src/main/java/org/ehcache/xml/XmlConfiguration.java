@@ -236,6 +236,9 @@ public class XmlConfiguration implements Configuration {
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
       String alias = cacheDefinition.id();
+      if(cacheConfigurations.containsKey(alias)) {
+        throw new XmlConfigurationException("Two caches defined with the same alias: " + alias);
+      }
 
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
       boolean classLoaderConfigured = false;
@@ -290,7 +293,7 @@ public class XmlConfiguration implements Configuration {
       }
       final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
       if (parsedDiskStoreSettings != null) {
-        builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency()));
+        builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency(), parsedDiskStoreSettings.diskSegments()));
       }
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.add(serviceConfig);

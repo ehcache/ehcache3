@@ -16,84 +16,80 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
+import org.terracotta.runnel.Struct;
+import org.terracotta.runnel.decoding.ArrayDecoder;
+import org.terracotta.runnel.decoding.StructDecoder;
+import org.terracotta.runnel.encoding.ArrayEncoder;
+import org.terracotta.runnel.encoding.StructEncoder;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.nio.ByteBuffer.wrap;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
+import static org.terracotta.runnel.StructBuilder.newStructBuilder;
+
 public class ReconnectMessageCodec {
 
-  private static final byte CLIENT_ID_SIZE = 16;
-  private static final byte ENTRY_SIZE = 4;
-  private static final byte HASH_SIZE = 8;
-  private static final byte CLEAR_IN_PROGRESS_STATUS_SIZE = 1;
+  private static final String HASH_INVALIDATION_IN_PROGRESS_FIELD = "hashInvalidationInProgress";
+  private static final String CLEAR_IN_PROGRESS_FIELD = "clearInProgress";
 
-  public byte[] encode(ReconnectMessage reconnectMessage) {
-    int totalLength = 0;
-    Set<String> caches = reconnectMessage.getAllCaches();
-    List<ByteBuffer> byteBuffers = new ArrayList<ByteBuffer>();
-    for (String cache : caches) {
-      Set<Long> hashToInvalidate = reconnectMessage.getInvalidationsInProgress(cache);
-      int sizeOfBuffer = 2 * cache.length() + CLEAR_IN_PROGRESS_STATUS_SIZE + hashToInvalidate.size() * HASH_SIZE + 2 * ENTRY_SIZE;
-      ByteBuffer encodedCache = ByteBuffer.allocate(sizeOfBuffer);
-      encodedCache.putInt(cache.length());
-      CodecUtil.putStringAsCharArray(encodedCache, cache);
-      if (reconnectMessage.isClearInProgress(cache)) {
-        encodedCache.put((byte)1);
-      } else {
-        encodedCache.put((byte)0);
-      }
-      encodedCache.putInt(hashToInvalidate.size());
-      for (long hash : hashToInvalidate) {
-        encodedCache.putLong(hash);
-      }
-      encodedCache.flip();
-      byteBuffers.add(encodedCache);
-      totalLength += sizeOfBuffer;
+  private static final Struct CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT = newStructBuilder()
+    .int64(MSB_UUID_FIELD, 10)
+    .int64(LSB_UUID_FIELD, 11)
+    .int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD, 20)
+    .bool(CLEAR_IN_PROGRESS_FIELD, 30)
+    .build();
+
+  private static final Struct RECONNECT_MESSAGE_STRUCT = newStructBuilder()
+    .int64(MSB_UUID_FIELD, 10)
+    .int64(LSB_UUID_FIELD, 11)
+    .build();
+
+  private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
+
+  public byte[] encode(ClusterTierReconnectMessage reconnectMessage) {
+    StructEncoder<Void> encoder = CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.encoder()
+      .int64(MSB_UUID_FIELD, reconnectMessage.getClientId().getMostSignificantBits())
+      .int64(LSB_UUID_FIELD, reconnectMessage.getClientId().getLeastSignificantBits());
+    ArrayEncoder<Long, StructEncoder<Void>> arrayEncoder = encoder.int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD);
+    for (Long hash : reconnectMessage.getInvalidationsInProgress()) {
+      arrayEncoder.value(hash);
     }
-    ByteBuffer encodedMsg = ByteBuffer.allocate(totalLength + CLIENT_ID_SIZE);
-    encodedMsg.put(ClusteredEhcacheIdentity.serialize(reconnectMessage.getClientId()));
-    for (ByteBuffer byteBuffer : byteBuffers) {
-      encodedMsg.put(byteBuffer);
-    }
-    return encodedMsg.array();
+    encoder.bool(CLEAR_IN_PROGRESS_FIELD, reconnectMessage.isClearInProgress());
+    return encoder.encode().array();
   }
 
-  public ReconnectMessage decode(byte[] payload) {
-    ByteBuffer byteBuffer = ByteBuffer.wrap(payload);
-    long msb = byteBuffer.getLong();
-    long lsb = byteBuffer.getLong();
+  public byte[] encode(ClusterTierManagerReconnectMessage reconnectMessage) {
+    return CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.encoder()
+      .int64(MSB_UUID_FIELD, reconnectMessage.getClientId().getMostSignificantBits())
+      .int64(LSB_UUID_FIELD, reconnectMessage.getClientId().getLeastSignificantBits())
+      .encode().array();
+  }
 
-    Map<String, Set<Long>> caches = new HashMap<String, Set<Long>>();
-    Set<String> clearInProgressCache = new HashSet<String>();
+  public ClusterTierManagerReconnectMessage decodeReconnectMessage(byte[] payload) {
+    return new ClusterTierManagerReconnectMessage(messageCodecUtils.decodeUUID(RECONNECT_MESSAGE_STRUCT.decoder(wrap(payload))));
+  }
 
-    while (byteBuffer.hasRemaining()) {
-      int cacheIdSize = byteBuffer.getInt();
-      String cacheId = CodecUtil.getStringFromBuffer(byteBuffer, cacheIdSize);
-      byte clearInProgress = byteBuffer.get();
-      if (clearInProgress == 1) {
-        clearInProgressCache.add(cacheId);
+  public ClusterTierReconnectMessage decode(byte[] payload) {
+    StructDecoder<Void> decoder = CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.decoder(wrap(payload));
+    UUID clientId = messageCodecUtils.decodeUUID(decoder);
+    ArrayDecoder<Long, StructDecoder<Void>> arrayDecoder = decoder.int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD);
+    Set<Long> hashes = new HashSet<Long>();
+    if (arrayDecoder != null) {
+      for (int i = 0; i < arrayDecoder.length(); i++) {
+        hashes.add(arrayDecoder.value());
       }
-      Set<Long> hashToInvalidate = new HashSet<Long>();
-      int numOfHash = byteBuffer.getInt();
-      for (int i = 0; i < numOfHash; i++) {
-        hashToInvalidate.add(byteBuffer.getLong());
-      }
-      caches.put(cacheId, hashToInvalidate);
     }
-    ReconnectMessage reconnectMessage = new ReconnectMessage(new UUID(msb, lsb), caches.keySet());
-    for (Map.Entry<String, Set<Long>> cacheEntry : caches.entrySet()) {
-      if (clearInProgressCache.contains(cacheEntry.getKey())) {
-        reconnectMessage.addClearInProgress(cacheEntry.getKey());
-      }
-      reconnectMessage.addInvalidationsInProgress(cacheEntry.getKey(), cacheEntry.getValue());
+    Boolean clearInProgress = decoder.bool(CLEAR_IN_PROGRESS_FIELD);
+
+    ClusterTierReconnectMessage message = new ClusterTierReconnectMessage(clientId);
+    message.addInvalidationsInProgress(hashes);
+    if (clearInProgress != null && clearInProgress) {
+      message.clearInProgress();
     }
-    return reconnectMessage;
+    return message;
   }
 }

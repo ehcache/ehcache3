@@ -94,11 +94,8 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testPutAdvisedAgainstEvictionComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment((key, value) -> {
+      return "please-do-not-evict-me".equals(key);
     });
     try {
       segment.put("please-do-not-evict-me", "value");
@@ -110,11 +107,8 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testPutPinnedAdvisedAgainstComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return "please-do-not-evict-me".equals(key);
-      }
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment((key, value) -> {
+      return "please-do-not-evict-me".equals(key);
     });
     try {
       segment.putPinned("please-do-not-evict-me", "value");

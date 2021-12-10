@@ -42,4 +42,8 @@ public class TestTimeSource implements TimeSource {
   public void setTimeMillis(long time) {
     this.time = time;
   }
+
+  public void advanceTime(long delta) {
+    this.time += delta;
+  }
 }

@@ -32,8 +32,6 @@ import java.util.Set;
 @CommonComponent
 public interface EhcacheStateService {
 
-  String getClusteredTierManagerIdentifier();
-
   String getDefaultServerResource();
 
   Map<String, ServerSideConfiguration.Pool> getSharedResourcePools();
@@ -46,7 +44,11 @@ public interface EhcacheStateService {
 
   ServerSideServerStore getStore(String name);
 
+  ServerSideServerStore loadStore(String name, ServerStoreConfiguration serverStoreConfiguration);
+
   Set<String> getStores();
+
+  void prepareForDestroy();
 
   void destroy();
 
@@ -54,21 +56,15 @@ public interface EhcacheStateService {
 
   void configure() throws ConfigurationException;
 
-  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws InvalidStoreException, ConfigurationException;
+  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration, boolean forActive) throws ConfigurationException;
 
   void destroyServerStore(String name) throws ClusterException;
 
   boolean isConfigured();
 
-  StateRepositoryManager getStateRepositoryManager() throws ClusterException;
+  StateRepositoryManager getStateRepositoryManager();
 
-  ClientMessageTracker getClientMessageTracker();
-
-  InvalidationTracker getInvalidationTracker(String cacheId);
-
-  void addInvalidationtracker(String cacheId);
-
-  InvalidationTracker removeInvalidationtracker(String cacheId);
+  InvalidationTracker getInvalidationTracker(String name);
 
   void loadExisting(ServerSideConfiguration configuration);
 

@@ -68,12 +68,9 @@ public class SimpleEh107ConfigTest {
 
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
     configuration.setTypes(String.class, String.class);
-    configuration.setExpiryPolicyFactory(new Factory<ExpiryPolicy>() {
-      @Override
-      public ExpiryPolicy create() {
-        expiryCreated.set(true);
-        return new CreatedExpiryPolicy(Duration.FIVE_MINUTES);
-      }
+    configuration.setExpiryPolicyFactory(() -> {
+      expiryCreated.set(true);
+      return new CreatedExpiryPolicy(Duration.FIVE_MINUTES);
     });
 
     Cache<String, String> cache = cacheManager.createCache("cache", configuration);
@@ -90,12 +87,9 @@ public class SimpleEh107ConfigTest {
 
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
     configuration.setTypes(String.class, String.class).setReadThrough(true);
-    configuration.setCacheLoaderFactory(new Factory<CacheLoader<String, String>>() {
-      @Override
-      public CacheLoader<String, String> create() {
-        loaderCreated.set(true);
-        return new TestCacheLoader();
-      }
+    configuration.setCacheLoaderFactory(() -> {
+      loaderCreated.set(true);
+      return new TestCacheLoader();
     });
 
     CachingProvider provider = Caching.getCachingProvider();

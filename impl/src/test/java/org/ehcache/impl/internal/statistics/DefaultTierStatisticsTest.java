@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.statistics;
 
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.AbstractObjectAssert;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
@@ -25,6 +26,8 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.impl.internal.TimeSourceConfiguration;
+import org.ehcache.internal.TestTimeSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,20 +37,24 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 
 public class DefaultTierStatisticsTest {
 
-  DefaultTierStatistics onHeap;
-  CacheManager cacheManager;
-  Cache<Long, String> cache;
+  private static final int TIME_TO_EXPIRATION = 100;
+
+  private DefaultTierStatistics onHeap;
+  private CacheManager cacheManager;
+  private Cache<Long, String> cache;
+  private TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
 
   @Before
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder().heap(10))
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(200, TimeUnit.MILLISECONDS)))
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(TIME_TO_EXPIRATION, TimeUnit.MILLISECONDS)))
         .build();
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("aCache", cacheConfiguration)
+      .using(new TimeSourceConfiguration(timeSource))
       .build(true);
 
     cache = cacheManager.getCache("aCache", Long.class, String.class);
@@ -74,12 +81,37 @@ public class DefaultTierStatisticsTest {
     cache.put(1L, "a");
     cache.get(1L);
     assertThat(onHeap.getHits()).isEqualTo(1L);
+    assertStat("OnHeap:HitCount").isEqualTo(1L);
   }
 
   @Test
   public void getMisses() throws Exception {
     cache.get(1L);
     assertThat(onHeap.getMisses()).isEqualTo(1L);
+    assertStat("OnHeap:MissCount").isEqualTo(1L);
+  }
+
+  @Test
+  public void getPuts() throws Exception {
+    cache.put(1L, "a");
+    assertThat(onHeap.getPuts()).isEqualTo(1L);
+    assertStat("OnHeap:PutCount").isEqualTo(1L);
+  }
+
+  @Test
+  public void getUpdates() throws Exception {
+    cache.put(1L, "a");
+    cache.put(1L, "b");
+    assertThat(onHeap.getUpdates()).isEqualTo(1L);
+    assertStat("OnHeap:UpdateCount").isEqualTo(1L);
+  }
+
+  @Test
+  public void getRemovals() throws Exception {
+    cache.put(1L, "a");
+    cache.remove(1L);
+    assertThat(onHeap.getRemovals()).isEqualTo(1L);
+    assertStat("OnHeap:RemovalCount").isEqualTo(1L);
   }
 
   @Test
@@ -88,20 +120,23 @@ public class DefaultTierStatisticsTest {
       cache.put(i, "a");
     }
     assertThat(onHeap.getEvictions()).isEqualTo(1L);
+    assertStat("OnHeap:EvictionCount").isEqualTo(1L);
   }
 
   @Test
   public void getExpirations() throws Exception {
     cache.put(1L, "a");
-    Thread.sleep(200);
+    timeSource.advanceTime(TIME_TO_EXPIRATION);
     cache.get(1L);
     assertThat(onHeap.getExpirations()).isEqualTo(1L);
+    assertStat("OnHeap:ExpirationCount").isEqualTo(1L);
   }
 
   @Test
   public void getMappings() throws Exception {
     cache.put(1L, "a");
     assertThat(onHeap.getMappings()).isEqualTo(1L);
+    assertStat("OnHeap:MappingCount").isEqualTo(1L);
   }
 
   @Test
@@ -122,4 +157,7 @@ public class DefaultTierStatisticsTest {
     assertThat(onHeap.getOccupiedByteSize()).isEqualTo(-1L);
   }
 
+  private AbstractObjectAssert<?, Number> assertStat(String key) {
+    return assertThat(onHeap.getKnownStatistics().get(key).value());
+  }
 }

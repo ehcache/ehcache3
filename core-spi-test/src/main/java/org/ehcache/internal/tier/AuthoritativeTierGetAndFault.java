@@ -50,15 +50,10 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
     super(factory);
   }
 
-  @Before
-  public void setUp() {
-  }
-
   @After
   public void tearDown() {
     if (tier != null) {
-//      tier.close();
-      tier = null;
+      factory.close(tier);
     }
   }
 

@@ -37,12 +37,7 @@ import java.util.Map;
 
 class ExposedCacheSettings extends ExposedCacheBinding {
 
-  private static final Comparator<ResourceType<?>> RESOURCE_TYPE_COMPARATOR = new Comparator<ResourceType<?>>() {
-    @Override
-    public int compare(ResourceType<?> o1, ResourceType<?> o2) {
-      return o2.getTierHeight() - o1.getTierHeight();
-    }
-  };
+  private static final Comparator<ResourceType<?>> RESOURCE_TYPE_COMPARATOR = (o1, o2) -> o2.getTierHeight() - o1.getTierHeight();
 
   ExposedCacheSettings(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding) {
     super(registryConfiguration, cacheBinding);
@@ -61,27 +56,31 @@ class ExposedCacheSettings extends ExposedCacheBinding {
         .set("cacheName", cacheBinding.getAlias())
         .set("keyType", cacheConfig.getKeyType())
         .set("valueType", cacheConfig.getValueType())
-        .withEach("resourcePools", map, new Settings.Builder<ResourceType<?>>() {
-          public void build(Settings settings, final ResourceType<?> type) {
-            ResourcePool pool = cacheConfig.getResourcePools().getPoolForResource(type);
+        .withEach("resourcePools", map, (settings, type) -> {
+          ResourcePool pool = cacheConfig.getResourcePools().getPoolForResource(type);
+          settings
+              .set("level", type.getTierHeight())
+              .set("persistent", pool.isPersistent());
+          if (pool instanceof SizedResourcePool) {
+            ResourceUnit unit = ((SizedResourcePool) pool).getUnit();
             settings
-                .set("level", type.getTierHeight())
-                .set("persistent", pool.isPersistent());
-            if (pool instanceof SizedResourcePool) {
-              ResourceUnit unit = ((SizedResourcePool) pool).getUnit();
-              settings
-                  .set("type", unit instanceof MemoryUnit ? "MEMORY" : unit instanceof EntryUnit ? "ENTRY" : unit.getClass().getSimpleName().toUpperCase())
-                  .set("size", ((SizedResourcePool) pool).getSize())
-                  .set("unit", unit.toString());
-              //TODO: we need to have a better way to get the cluster "link"
-              if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.DedicatedClusteredResourcePool")) {
-                settings.set("serverResource", Reflect.invoke(pool, "getFromResource", String.class));
-              }
-            } else if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.SharedClusteredResourcePool")) {
-              settings.set("serverResource", Reflect.invoke(pool, "getSharedResourcePool", String.class));
+                .set("type", unit instanceof MemoryUnit ? "MEMORY" : unit instanceof EntryUnit ? "ENTRY" : unit.getClass().getSimpleName().toUpperCase())
+                .set("size", ((SizedResourcePool) pool).getSize())
+                .set("unit", unit.toString());
+            if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.DedicatedClusteredResourcePool")) {
+              settings.set("serverResource", Reflect.invoke(pool, "getFromResource", String.class));
+              settings.set("clusterTier", getClusterTierExposedAlias(cacheBinding.getAlias(), pool));
             }
+          } else if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.SharedClusteredResourcePool")) {
+            settings.set("serverResource", Reflect.invoke(pool, "getSharedResourcePool", String.class));
+            settings.set("clusterTier", getClusterTierExposedAlias(cacheBinding.getAlias(), pool));
           }
         }));
   }
 
+
+  // TODO https://github.com/ehcache/ehcache3/issues/1983 -> retrieve cluster tier alias from resourcePool
+  public String getClusterTierExposedAlias(String alias, ResourcePool resourcePool) {
+    return alias;
+  }
 }

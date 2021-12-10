@@ -1,27 +1,28 @@
 ---
 ---
 = Class loading
-ifndef::sourcedir32[]
+ifndef::sourcedir34[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir34[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-== Introduction
+[[about]]
+== About class loading
 
 Since Ehcache is a library and supports user types both in configuration and in mapping keys or values,
 it must offer flexibility around class loading.
 
 [[cl-default]]
-== Default `ClassLoader` in Ehcache
+=== Default classLoader in Ehcache
 
 The default `ClassLoader` from Ehcache will first try to use the thread context class loader, through `Thread.currentThread().getContextClassLoader()`.
 In case this fails to load the requested resource, it will then use the `ClassLoader` that loaded the Ehcache internal classes.
 
 [[cl-user-types]]
-== Handling User types
+== Handling user types
 
 The way to configure a `ClassLoader` and the scope of its use differ between Java and XML based configurations.
 However, regardless of the configuration method, each `CacheManager` and `Cache` is always linked individually to a specific `ClassLoader` instance.
@@ -41,7 +42,7 @@ These will be used <<cl-runtime,at runtime>>.
 If no class loader is specified, the <<cl-default,default class loader>> from Ehcache will be used.
 
 [[cl-cfg-xml]]
-=== Xml configuration
+=== XML configuration
 
 When using XML to configure Ehcache, references to custom types are given through a fully qualified class name.
 This means that transforming these `String` names into the proper class representation may require a specific `ClassLoader`.
@@ -49,15 +50,16 @@ This means that transforming these `String` names into the proper class represen
 In order to support this, the `XmlConfiguration` constructors can take `ClassLoader` parameters:
 
 `public XmlConfiguration(URL url)`::
-  to use only default `ClassLoader`
+to use only default ClassLoader
+
 `public XmlConfiguration(URL url, final ClassLoader classLoader)`::
-  to use a specific `ClassLoader` at the `CacheManager` level
+to use a specific ClassLoader at the CacheManager level
+
 `public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)`::
-  to use a specific `ClassLoader` at the `CacheManager` level
-  and a map of `<String, ClassLoader>` which will be used to link a specific `ClassLoader` to a `Cache` by its alias
+to use a specific `ClassLoader` at the `CacheManager` level and a map of `<String, ClassLoader>` which will be used to link a specific `ClassLoader` to a `Cache` by its alias
 
 In the same way as for the Java configuration, the `Cache` level configuration takes precedence over the `CacheManager` level one.
-If no class loaders are specified, the <<cl-default,default class loader>> from Ehcache will be used.
+If no class loaders are specified, the default class loader from Ehcache will be used.
 
 [[cl-runtime]]
 === At runtime
@@ -65,6 +67,3 @@ If no class loaders are specified, the <<cl-default,default class loader>> from 
 As soon as serialization is involved with `Cache` keys or values, the class loader plays a role at runtime.
 The specific `ClassLoader` per `Cache` will be used by the serialization sub-system.
 It will allow deserialization to types that may not be visible by the Ehcache `ClassLoader`.
-
-
-

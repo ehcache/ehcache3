@@ -26,11 +26,10 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
@@ -41,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -74,20 +74,15 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(),
         keyCopier, new SerializingCopier<Long>(new JavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100);
 
-    ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, new Function<Long, ValueHolder<Long>>() {
+    ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, key -> new AbstractValueHolder<Long>(-1, -1) {
       @Override
-      public ValueHolder<Long> apply(final Long key) {
-        return new AbstractValueHolder<Long>(-1, -1) {
-          @Override
-          public Long value() {
-            return key * 1000L;
-          }
+      public Long value() {
+        return key * 1000L;
+      }
 
-          @Override
-          protected TimeUnit nativeTimeUnit() {
-            return TimeUnit.MILLISECONDS;
-          }
-        };
+      @Override
+      protected TimeUnit nativeTimeUnit() {
+        return TimeUnit.MILLISECONDS;
       }
     });
     assertThat(computed.value(), is(1000L));

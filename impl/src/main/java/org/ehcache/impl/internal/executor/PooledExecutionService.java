@@ -60,53 +60,36 @@ public class PooledExecutionService implements ExecutionService {
 
   @Override
   public ScheduledExecutorService getScheduledExecutor(String poolAlias) {
-    if (running) {
-      if (poolAlias == null && defaultPoolAlias == null) {
-        throw new IllegalArgumentException("No default pool configured");
-      }
-      ThreadPoolExecutor executor = pools.get(poolAlias == null ? defaultPoolAlias : poolAlias);
-      if (executor == null) {
-        throw new IllegalArgumentException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
-      } else {
-        return new PartitionedScheduledExecutor(scheduledExecutor, getUnorderedExecutor(poolAlias, new LinkedBlockingQueue<Runnable>()));
-      }
-    } else {
-      throw new IllegalStateException("Service cannot be used, it isn't running");
-    }
+    return new PartitionedScheduledExecutor(scheduledExecutor, getUnorderedExecutor(poolAlias, new LinkedBlockingQueue<Runnable>()));
   }
 
   @Override
   public ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
-    if (running) {
-      if (poolAlias == null && defaultPoolAlias == null) {
-        throw new IllegalArgumentException("No default pool configured");
-      }
-      ThreadPoolExecutor executor = pools.get(poolAlias == null ? defaultPoolAlias : poolAlias);
-      if (executor == null) {
-        throw new IllegalArgumentException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
-      } else {
-        return new PartitionedOrderedExecutor(queue, executor);
-      }
-    } else {
-      throw new IllegalStateException("Service cannot be used, it isn't running");
-    }
+    ThreadPoolExecutor executor = getThreadPoolExecutor(poolAlias);
+    return new PartitionedOrderedExecutor(queue, executor);
   }
 
   @Override
   public ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) {
-    if (running) {
-      if (poolAlias == null && defaultPoolAlias == null) {
-        throw new IllegalArgumentException("No default pool configured");
-      }
-      ThreadPoolExecutor executor = pools.get(poolAlias == null ? defaultPoolAlias : poolAlias);
-      if (executor == null) {
-        throw new IllegalArgumentException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
-      } else {
-        return new PartitionedUnorderedExecutor(queue, executor, executor.getMaximumPoolSize());
-      }
-    } else {
+    ThreadPoolExecutor executor = getThreadPoolExecutor(poolAlias);
+    return new PartitionedUnorderedExecutor(queue, executor, executor.getMaximumPoolSize());
+  }
+
+  private ThreadPoolExecutor getThreadPoolExecutor(String poolAlias) {
+    if (!running) {
       throw new IllegalStateException("Service cannot be used, it isn't running");
     }
+
+    poolAlias = poolAlias == null ? defaultPoolAlias : poolAlias;
+    if (poolAlias == null) {
+      throw new IllegalArgumentException("Null pool alias provided and no default pool configured");
+    }
+
+    ThreadPoolExecutor executor = pools.get(poolAlias);
+    if (executor == null) {
+      throw new IllegalArgumentException("Pool '" + poolAlias + "' is not in the set of available pools " + pools.keySet());
+    }
+    return executor;
   }
 
   @Override
@@ -129,21 +112,48 @@ public class PooledExecutionService implements ExecutionService {
     running = true;
   }
 
+  /**
+   * Stop the service. Underlying executors will be stopped calling {@code shutdownNow}. Pending tasks are discarded. Running tasks are
+   * awaited for termination indefinitely. A warning is emitted every 30 seconds if some tasks are still running.
+   */
   @Override
   public void stop() {
     LOGGER.debug("Shutting down PooledExecutionService");
     running = false;
-    //scheduledExecutor.shutdown();
+    scheduledExecutor.shutdownNow();
     for (Iterator<Entry<String, ThreadPoolExecutor>> it = pools.entrySet().iterator(); it.hasNext(); ) {
       Entry<String, ThreadPoolExecutor> e = it.next();
       try {
-        if (e.getKey() != null) {
-          destroyPool(e.getKey(), e.getValue());
-        }
+        destroyPool(e.getKey(), e.getValue());
       } finally {
         it.remove();
       }
     }
+    try {
+      while(!scheduledExecutor.awaitTermination(30, SECONDS)) {
+        LOGGER.warn("Timeout while waiting on scheduler to finish, keep waiting");
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  /**
+   * Tells that {@link #stop()} has been called but hasn't finished processing running tasks yet.
+   *
+   * @return if a stop is currently going on
+   */
+  public boolean isStopping() {
+    return scheduledExecutor.isTerminating();
+  }
+
+  /**
+   * {@link #stop} has been called and has managed to finish processing all tasks.
+   *
+   * @return
+   */
+  public boolean isStopped() {
+    return scheduledExecutor.isTerminated();
   }
 
   private static ThreadPoolExecutor createPool(String alias, PoolConfiguration config) {

@@ -71,18 +71,15 @@ public class HeapChainImpl implements Chain {
 
     if (elements != null && elements.length != 0) {
       List<Element> reordered = Arrays.asList(elements);
-      Collections.sort(reordered, new Comparator<Element>() {
-        @Override
-        public int compare(Element o1, Element o2) {
-          HeapElementImpl oh1 = (HeapElementImpl)o1;
-          HeapElementImpl oh2 = (HeapElementImpl)o2;
-          if (oh1.getSequenceNumber() > oh2.getSequenceNumber()) {
-            return 1;
-          } else if (oh1.getSequenceNumber() < oh2.getSequenceNumber()) {
-            return -1;
-          } else {
-            return 0;
-          }
+      Collections.sort(reordered, (o1, o2) -> {
+        HeapElementImpl oh1 = (HeapElementImpl)o1;
+        HeapElementImpl oh2 = (HeapElementImpl)o2;
+        if (oh1.getSequenceNumber() > oh2.getSequenceNumber()) {
+          return 1;
+        } else if (oh1.getSequenceNumber() < oh2.getSequenceNumber()) {
+          return -1;
+        } else {
+          return 0;
         }
       });
       List<Element> sortedList = new ArrayList<Element>(reordered);

@@ -18,10 +18,9 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
@@ -35,6 +34,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
@@ -86,25 +86,22 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, 3);
     store.put(3, 4);
 
-    Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends Number>>, Iterable<? extends Map.Entry<? extends Number, ? extends Number>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends Number>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends Number>> entries) {
-        Map<Number, Number> newValues = new HashMap<Number, Number>();
-        for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
-          final Number currentValue = entry.getValue();
-          if(currentValue == null) {
-            if(entry.getKey().equals(4)) {
-              newValues.put(entry.getKey(), null);
-            } else {
-              newValues.put(entry.getKey(), 0);
-            }
+    Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), entries -> {
+      Map<Number, Number> newValues = new HashMap<Number, Number>();
+      for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
+        final Number currentValue = entry.getValue();
+        if(currentValue == null) {
+          if(entry.getKey().equals(4)) {
+            newValues.put(entry.getKey(), null);
           } else {
-            newValues.put(entry.getKey(), currentValue.intValue() * 2);
+            newValues.put(entry.getKey(), 0);
           }
-
+        } else {
+          newValues.put(entry.getKey(), currentValue.intValue() * 2);
         }
-        return newValues.entrySet();
+
       }
+      return newValues.entrySet();
     });
 
     ConcurrentMap<Number, Number> check = new ConcurrentHashMap<Number, Number>();
@@ -138,19 +135,16 @@ public class OnHeapStoreBulkMethodsTest {
     OnHeapStore<Number, CharSequence> store = newStore();
     store.put(1, "one");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
-        Map<Number, CharSequence> newValues = new HashMap<Number, CharSequence>();
-        for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
-          if(entry.getKey().intValue() == 1) {
-            newValues.put(entry.getKey(), "un");
-          } else if (entry.getKey().intValue() == 2)  {
-            newValues.put(entry.getKey(), "deux");
-          }
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2)), entries -> {
+      Map<Number, CharSequence> newValues = new HashMap<Number, CharSequence>();
+      for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
+        if(entry.getKey().intValue() == 1) {
+          newValues.put(entry.getKey(), "un");
+        } else if (entry.getKey().intValue() == 2)  {
+          newValues.put(entry.getKey(), "deux");
         }
-        return newValues.entrySet();
       }
+      return newValues.entrySet();
     });
 
     assertThat(result.size(), is(2));
@@ -171,15 +165,12 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(2, 1, 5)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
-        Map<Number, CharSequence> newValues = new HashMap<Number, CharSequence>();
-        for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
-          newValues.put(entry.getKey(), null);
-        }
-        return newValues.entrySet();
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(2, 1, 5)), entries -> {
+      Map<Number, CharSequence> newValues = new HashMap<Number, CharSequence>();
+      for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
+        newValues.put(entry.getKey(), null);
       }
+      return newValues.entrySet();
     });
 
     assertThat(result.size(), is(3));
@@ -198,21 +189,18 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> entries) {
-        Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
-        for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
-          if (entry.getKey().equals(1)) {
-            result.put(entry.getKey(), null);
-          } else if (entry.getKey().equals(3)) {
-            result.put(entry.getKey(), null);
-          } else {
-            result.put(entry.getKey(), entry.getValue());
-          }
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), entries -> {
+      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
+      for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
+        if (entry.getKey().equals(1)) {
+          result1.put(entry.getKey(), null);
+        } else if (entry.getKey().equals(3)) {
+          result1.put(entry.getKey(), null);
+        } else {
+          result1.put(entry.getKey(), entry.getValue());
         }
-        return result.entrySet();
       }
+      return result1.entrySet();
     });
 
     assertThat(result.size(), is(3));
@@ -234,24 +222,21 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> keys) {
-        Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), keys -> {
+      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
 
-        for (Number key : keys) {
-          if (key.equals(1)) {
-            fail();
-          } else if (key.equals(2)) {
-            fail();
-          } else if (key.equals(3)) {
-            fail();
-          } else {
-            result.put(key, null);
-          }
+      for (Number key : keys) {
+        if (key.equals(1)) {
+          fail();
+        } else if (key.equals(2)) {
+          fail();
+        } else if (key.equals(3)) {
+          fail();
+        } else {
+          result1.put(key, null);
         }
-        return result.entrySet();
       }
+      return result1.entrySet();
     });
 
     assertThat(result.size(), is(6));
@@ -280,21 +265,18 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
-        Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
-        for (Number key : numbers) {
-          if(key.equals(4)) {
-            result.put(key, "quatre");
-          } else if(key.equals(5)) {
-            result.put(key, "cinq");
-          } else if(key.equals(6)) {
-            result.put(key, "six");
-          }
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), numbers -> {
+      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
+      for (Number key : numbers) {
+        if(key.equals(4)) {
+          result1.put(key, "quatre");
+        } else if(key.equals(5)) {
+          result1.put(key, "cinq");
+        } else if(key.equals(6)) {
+          result1.put(key, "six");
         }
-        return result.entrySet();
       }
+      return result1.entrySet();
     });
 
     assertThat(result.size(), is(6));
@@ -321,25 +303,22 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(2, "two");
     store.put(3, "three");
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(2, 1, 5)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> apply(Iterable<? extends Number> numbers) {
-        Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
-        for (Number key : numbers) {
-          // 5 is a missing key, so it's the only key that is going passed to the function
-          if(key.equals(5)) {
-            result.put(key, null);
-          }
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(2, 1, 5)), numbers -> {
+      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
+      for (Number key : numbers) {
+        // 5 is a missing key, so it's the only key that is going passed to the function
+        if(key.equals(5)) {
+          result1.put(key, null);
         }
-        Set<Number> numbersSet =  new HashSet<Number>();
-        for (Number number : numbers) {
-          numbersSet.add(number);
-        }
-        assertThat(numbersSet.size(), is(1));
-        assertThat(numbersSet.iterator().next(), Matchers.<Number>equalTo(5));
-
-        return result.entrySet();
       }
+      Set<Number> numbersSet =  new HashSet<Number>();
+      for (Number number : numbers) {
+        numbersSet.add(number);
+      }
+      assertThat(numbersSet.size(), is(1));
+      assertThat(numbersSet.iterator().next(), Matchers.<Number>equalTo(5));
+
+      return result1.entrySet();
     });
 
     assertThat(result.size(), is(3));

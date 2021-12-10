@@ -139,7 +139,7 @@ public class DefaultLocalPersistenceServiceTest {
 
     // We should not be able to lock the same directory twice
     // And we should receive a meaningful exception about it
-    expectedException.expectMessage("Couldn't lock rootDir: " + testFolder.getAbsolutePath());
+    expectedException.expectMessage("Persistence directory already locked by this process: " + testFolder.getAbsolutePath());
     service2.start(null);
   }
 }

@@ -14,21 +14,25 @@
  * limitations under the License.
  */
 
-import org.gradle.internal.jvm.Jvm
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
 configurations {
   serverLibs
 }
 
 dependencies {
-  testCompile project(':dist')
-  testCompile project(':clustered:clustered-dist')
+  // not required by gradle but required by the IDE because 'dist' do not has any transitive dependencies
+  testCompileOnly project(':clustered:client')
+  testCompileOnly project(':clustered:common')
+  testCompileOnly project(':impl')
+  testCompileOnly project(':xml')
+  testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
+
   testCompile project(':management')
-  testCompile "org.terracotta.management.dist:management-client:$parent.managementVersion"
+  testCompile "org.terracotta.management.dist:mnm-nms:$parent.managementVersion"
+  testCompile "org.terracotta.management.dist:mnm-nms-agent:$parent.managementVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
+  testRuntime project(':clustered:clustered-dist')
+  testRuntime project(':dist')
 
   testCompile (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion) {
     // galvan-support depends on junit 4.11 and version enforcement plugin won't allow that
@@ -40,8 +44,8 @@ dependencies {
   }
   testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
-  serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
-    exclude group:'org.terracotta.management.dist', module:'management-common'
+  serverLibs ("org.terracotta.management.dist:mnm-server:$parent.managementVersion") {
+    exclude group:'org.terracotta.management.dist', module:'mnm-common'
   }
 }
 
@@ -57,15 +61,14 @@ task copyServerLibs(type: Copy) {
   into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
 }
 
-compileTestJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
-}
-
 test {
   dependsOn copyServerLibs
-  executable = Jvm.current().javaExecutable
+  environment 'JAVA_HOME', testJava.javaHome
   // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output

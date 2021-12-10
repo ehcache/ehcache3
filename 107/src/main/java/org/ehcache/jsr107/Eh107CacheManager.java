@@ -174,6 +174,16 @@ class Eh107CacheManager implements CacheManager {
         assert safeCacheRetrieval(cacheName) == null;
         caches.put(cacheName, cache);
 
+        @SuppressWarnings("unchecked")
+        Eh107Configuration<?, ?> configuration = cache.getConfiguration(Eh107Configuration.class);
+        if (configuration.isManagementEnabled()) {
+          enableManagement(cacheName, true);
+        }
+
+        if (configuration.isStatisticsEnabled()) {
+          enableStatistics(cacheName, true);
+        }
+
         return cache;
       }
 

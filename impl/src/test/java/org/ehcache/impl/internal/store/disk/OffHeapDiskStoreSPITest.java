@@ -56,6 +56,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -117,7 +119,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
               evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
           OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
                   diskResourceService.createPersistenceContextWithin(space, "store"),
-                  new OnDemandExecutionService(), null, 1,
+                  new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
                   config, timeSource,
                   new TestStoreEventDispatcher<String, String>(),
                   unit.toBytes(diskPool.getSize()));

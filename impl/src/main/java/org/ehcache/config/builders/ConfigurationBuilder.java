@@ -78,7 +78,9 @@ class ConfigurationBuilder implements Builder<Configuration> {
 
   ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
     Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
-    newCaches.put(alias, config);
+    if(newCaches.put(alias, config) != null) {
+      throw new IllegalArgumentException("Cache alias '" + alias + "' already exists");
+    }
     return new ConfigurationBuilder(this, newCaches);
   }
 

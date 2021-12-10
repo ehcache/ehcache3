@@ -24,7 +24,7 @@ import java.util.Collection;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
 
-import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 
 /**
  * Abstract {@link Configuration} implementation that enables building a JSR-107 compatible configuration from

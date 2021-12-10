@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server.state;
 
+import com.tc.classloader.BuiltinService;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
@@ -26,14 +27,15 @@ import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderCleanupException;
 import org.terracotta.entity.ServiceProviderConfiguration;
+import org.terracotta.entity.StateDumpCollector;
 import org.terracotta.offheapresource.OffHeapResources;
-
-import com.tc.classloader.BuiltinService;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -47,6 +49,15 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
 
   private ConcurrentMap<String, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
   private OffHeapResources offHeapResourcesProvider;
+
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    for (Map.Entry<String, EhcacheStateService> entry : new HashMap<>(serviceMap).entrySet()) {
+      StateDumpCollector clusterTierManagerStateDump = dump.subStateDumpCollector(entry.getKey());
+      EhcacheStateService clusterTierManagerState = entry.getValue();
+      EhcacheStateServiceDump.dump(clusterTierManagerState, clusterTierManagerStateDump);
+    }
+  }
 
   @Override
   public boolean initialize(ServiceProviderConfiguration configuration, PlatformConfiguration platformConfiguration) {
@@ -74,7 +85,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
       EhcacheStateService result;
       if (configuration instanceof EhcacheStateServiceConfig) {
         EhcacheStateServiceConfig stateServiceConfig = (EhcacheStateServiceConfig) configuration;
-        EhcacheStateServiceImpl storeManagerService = new EhcacheStateServiceImpl(stateServiceConfig.getConfig().getIdentifier(),
+        EhcacheStateServiceImpl storeManagerService = new EhcacheStateServiceImpl(
           offHeapResourcesProvider, stateServiceConfig.getConfig().getConfiguration(), stateServiceConfig.getMapper(),
           service -> serviceMap.remove(stateServiceConfig.getConfig().getIdentifier(), service));
         result = serviceMap.putIfAbsent(stateServiceConfig.getConfig().getIdentifier(), storeManagerService);

@@ -21,7 +21,6 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheManagerConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.core.HumanReadable;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 
 import java.io.File;
 
@@ -34,7 +33,7 @@ public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConf
   /**
    * Creates a new configuration object with the provided parameters.
    *
-   * @param rootDirectory the root directory to use for local persistence
+   * @param rootDirectory the root directory to use for disk storage
    */
   public CacheManagerPersistenceConfiguration(final File rootDirectory) {
     super(rootDirectory);

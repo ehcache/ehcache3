@@ -18,7 +18,6 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.LookupOnlyOnHeapKey;
@@ -33,6 +32,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
 
 /**
  * Backend dealing with a key copier and storing keys as {@code OnHeapKey<K>}
@@ -104,25 +104,20 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   @Override
   public Iterable<K> keySet() {
     final Iterator<OnHeapKey<K>> iter = keyCopyMap.keySet().iterator();
-    return new Iterable<K>() {
+    return () -> new Iterator<K>() {
       @Override
-      public Iterator<K> iterator() {
-        return new Iterator<K>() {
-          @Override
-          public boolean hasNext() {
-            return iter.hasNext();
-          }
+      public boolean hasNext() {
+        return iter.hasNext();
+      }
 
-          @Override
-          public K next() {
-            return iter.next().getActualKeyObject();
-          }
+      @Override
+      public K next() {
+        return iter.next().getActualKeyObject();
+      }
 
-          @Override
-          public void remove() {
-            iter.remove();
-          }
-        };
+      @Override
+      public void remove() {
+        iter.remove();
       }
     };
   }
@@ -153,12 +148,7 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   @Override
   public OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
 
-    return keyCopyMap.compute(makeKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-      @Override
-      public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
-        return computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue);
-      }
-    });
+    return keyCopyMap.compute(makeKey(key), (mappedKey, mappedValue) -> computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue));
   }
 
   @Override
@@ -187,12 +177,7 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   @Override
   public OnHeapValueHolder<V> computeIfPresent(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
 
-    return keyCopyMap.computeIfPresent(makeKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-      @Override
-      public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
-        return computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue);
-      }
-    });
+    return keyCopyMap.computeIfPresent(makeKey(key), (mappedKey, mappedValue) -> computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue));
   }
 
   private OnHeapKey<K> makeKey(K key) {

@@ -177,12 +177,7 @@ public class ExpiryEventsTest {
 
     final List<Long> expiredKeys = new CopyOnWriteArrayList<Long>();
 
-    testCache.getRuntimeConfiguration().registerCacheEventListener(new CacheEventListener<Long, String>() {
-      @Override
-      public void onEvent(CacheEvent<? extends Long, ? extends String> event) {
-        expiredKeys.add(event.getKey());
-      }
-    }, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
+    testCache.getRuntimeConfiguration().registerCacheEventListener(event -> expiredKeys.add(event.getKey()), EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
 
     testCache.put(1L, "one");
     testCache.put(2L, "two");

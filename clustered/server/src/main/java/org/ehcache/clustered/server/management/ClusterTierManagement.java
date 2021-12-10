@@ -21,57 +21,39 @@ import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.entity.BasicServiceConfiguration;
-import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
-import org.terracotta.management.service.monitoring.EntityMonitoringService;
-import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
-import org.terracotta.monitoring.IMonitoringProducer;
+import org.terracotta.management.service.monitoring.EntityManagementRegistry;
+import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
 
+import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
 
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_ATTACHED;
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_CLIENT_RECONNECTED;
 import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_CREATED;
-import static org.ehcache.clustered.server.management.Notification.EHCACHE_SERVER_STORE_RELEASED;
 
-public class ClusterTierManagement {
+public class ClusterTierManagement implements Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierManagement.class);
 
-  private final ConsumerManagementRegistry managementRegistry;
+  private final EntityManagementRegistry managementRegistry;
   private final EhcacheStateService ehcacheStateService;
   private final String storeIdentifier;
 
-  public ClusterTierManagement(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active, String storeIdentifier) {
+  public ClusterTierManagement(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active, String storeIdentifier, String clusterTierManagerIdentifier) throws ConfigurationException {
     this.ehcacheStateService = ehcacheStateService;
     this.storeIdentifier = storeIdentifier;
 
     // create an entity monitoring service that allows this entity to push some management information into voltron monitoring service
-    EntityMonitoringService entityMonitoringService;
-    if (active) {
-      entityMonitoringService = services.getService(new ActiveEntityMonitoringServiceConfiguration());
-    } else {
-      IMonitoringProducer monitoringProducer = services.getService(new BasicServiceConfiguration<>(IMonitoringProducer.class));
-      entityMonitoringService = monitoringProducer == null ? null : services.getService(new PassiveEntityMonitoringServiceConfiguration(monitoringProducer));
+    try {
+      managementRegistry = services.getService(new ManagementRegistryConfiguration(services, active));
+    } catch (ServiceException e) {
+      throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
 
-    // create a management registry for this entity to handle exposed objects and stats
-    // if management-server distribution is on the classpath
-    managementRegistry = entityMonitoringService == null ? null : services.getService(new ConsumerManagementRegistryConfiguration(entityMonitoringService));
-
     if (managementRegistry != null) {
-
-      if (active) {
-        // expose settings about attached stores
-        managementRegistry.addManagementProvider(new ClusteredTierStateSettingsManagementProvider());
-      }
-
       // expose settings about server stores
-      managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider());
+      managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider(clusterTierManagerIdentifier));
       // expose settings about pools
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider());
 
@@ -79,6 +61,13 @@ public class ClusterTierManagement {
       managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider());
       // expose stats about pools
       managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService));
+    }
+  }
+
+  @Override
+  public void close() {
+    if (managementRegistry != null) {
+      managementRegistry.close();
     }
   }
 
@@ -103,37 +92,4 @@ public class ClusterTierManagement {
     }
   }
 
-  public void clientConnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientConnected({})", clientDescriptor);
-      managementRegistry.registerAndRefresh(new ClusterTierClientStateBinding(clientDescriptor, new ClusterTierClientState(storeIdentifier, false)));
-    }
-  }
-
-
-  public void clientDisconnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientDisconnected({})", clientDescriptor);
-      ClusterTierClientState clientState = new ClusterTierClientState(storeIdentifier, false);
-      managementRegistry.pushServerEntityNotification(new ClusterTierClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_RELEASED.name());
-      managementRegistry.unregisterAndRefresh(new ClusterTierClientStateBinding(clientDescriptor, clientState));
-    }
-  }
-
-  public void clientReconnected(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientReconnected({})", clientDescriptor);
-      managementRegistry.pushServerEntityNotification(new ClusterTierClientStateBinding(clientDescriptor, new ClusterTierClientState(storeIdentifier, true)), EHCACHE_SERVER_STORE_CLIENT_RECONNECTED.name());
-    }
-  }
-
-  public void clientValidated(ClientDescriptor clientDescriptor) {
-    if (managementRegistry != null) {
-      LOGGER.trace("clientValidated({})", clientDescriptor);
-      ClusterTierClientStateBinding clientStateBinding = new ClusterTierClientStateBinding(clientDescriptor, new ClusterTierClientState(storeIdentifier, true));
-      managementRegistry.unregister(clientStateBinding);
-      managementRegistry.registerAndRefresh(clientStateBinding).thenRun(() ->
-        managementRegistry.pushServerEntityNotification(clientStateBinding, EHCACHE_SERVER_STORE_ATTACHED.name()));
-    }
-  }
 }

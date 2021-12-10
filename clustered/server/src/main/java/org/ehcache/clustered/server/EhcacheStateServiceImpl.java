@@ -16,18 +16,20 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
-import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
 import org.ehcache.clustered.server.state.InvalidationTracker;
+import org.ehcache.clustered.server.state.InvalidationTrackerImpl;
 import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +86,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private final OffHeapResources offHeapResources;
   private volatile boolean configured = false;
+  private volatile boolean destroyInProgress = false;
 
   /**
    * The name of the resource to use for dedicated resource pools not identifying a resource from which
@@ -92,14 +95,14 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private volatile String defaultServerResource;
 
   /**
-   * The clustered shared resource pools specified by the CacheManager creating this {@code EhcacheActiveEntity}.
+   * The clustered shared resource pools specified by the CacheManager creating this {@code ClusterTierManagerActiveEntity}.
    * The index is the name assigned to the shared resource pool in the cache manager configuration.
    */
   private final Map<String, ResourcePageSource> sharedResourcePools = new ConcurrentHashMap<>();
 
   /**
    * The clustered dedicated resource pools specified by caches defined in CacheManagers using this
-   * {@code EhcacheActiveEntity}.  The index is the cache identifier (alias).
+   * {@code ClusterTierManagerActiveEntity}.  The index is the cache identifier (alias).
    */
   private final Map<String, ResourcePageSource> dedicatedResourcePools = new ConcurrentHashMap<>();
 
@@ -109,18 +112,14 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    */
   private final Map<String, ServerStoreImpl> stores = new ConcurrentHashMap<>();
 
-  private final ClientMessageTracker messageTracker = new ClientMessageTracker();
-  private final ConcurrentMap<String, InvalidationTracker> invalidationMap = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, InvalidationTracker> invalidationTrackers = new ConcurrentHashMap<>();
   private final StateRepositoryManager stateRepositoryManager;
   private final ServerSideConfiguration configuration;
   private final KeySegmentMapper mapper;
   private final EhcacheStateServiceProvider.DestroyCallback destroyCallback;
-  private final String identifier;
 
-
-  public EhcacheStateServiceImpl(String identifier, OffHeapResources offHeapResources, ServerSideConfiguration configuration,
+  public EhcacheStateServiceImpl(OffHeapResources offHeapResources, ServerSideConfiguration configuration,
                                  final KeySegmentMapper mapper, EhcacheStateServiceProvider.DestroyCallback destroyCallback) {
-    this.identifier = identifier;
     this.offHeapResources = offHeapResources;
     this.configuration = configuration;
     this.mapper = mapper;
@@ -128,13 +127,18 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     this.stateRepositoryManager = new StateRepositoryManager();
   }
 
-  @Override
-  public String getClusteredTierManagerIdentifier() {
-    return this.identifier;
-  }
-
   public ServerStoreImpl getStore(String name) {
     return stores.get(name);
+  }
+
+  @Override
+  public ServerSideServerStore loadStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    ServerStoreImpl store = getStore(name);
+    if (store == null) {
+      LOGGER.warn("Cluster tier {} not properly recovered on fail over.", name);
+    }
+    invalidationTrackers.remove(name);
+    return store;
   }
 
   public Set<String> getStores() {
@@ -175,8 +179,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   public void validate(ServerSideConfiguration configuration) throws ClusterException {
+    if (destroyInProgress) {
+      throw new DestroyInProgressException("Cluster Tier Manager marked in progress for destroy - clean up by destroying or re-creating");
+    }
     if (!isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
+      throw new LifecycleException("Cluster tier manager is not configured");
     }
 
     if (configuration != null) {
@@ -239,9 +246,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       return;
     }
     if (offHeapResources == null || offHeapResources.getAllIdentifiers().isEmpty()) {
-      throw new ConfigurationException("No offheap-resources defined - Unable to work with clustered tiers");
+      throw new ConfigurationException("No offheap-resources defined - Unable to work with cluster tiers");
     }
-    LOGGER.info("Configuring server-side clustered tier manager");
+    LOGGER.info("Configuring server-side cluster tier manager");
 
     this.defaultServerResource = configuration.getDefaultServerResource();
     if (this.defaultServerResource != null) {
@@ -295,7 +302,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return pageSource;
   }
 
-  private void registerStoreStatistics(ServerStoreImpl store, String storeName) throws InvalidStoreException {
+  private void registerStoreStatistics(ServerStoreImpl store, String storeName) {
     STAT_STORE_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
       registerStatistic(store, storeName, entry.getKey(), STATISTICS_STORE_TAG, PROPERTY_STORE_KEY, () -> entry.getValue().apply(store) ));
   }
@@ -342,9 +349,14 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
         dedicatedResourcePools.remove(name);
         releasePool("dedicated", name, expectedPageSource);
       } else {
-        LOGGER.error("Client {} attempting to destroy clustered tier '{}' with unmatched page source", name);
+        LOGGER.error("Client {} attempting to destroy cluster tier '{}' with unmatched page source", name);
       }
     }
+  }
+
+  @Override
+  public void prepareForDestroy() {
+    destroyInProgress = true;
   }
 
   public void destroy() {
@@ -361,7 +373,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     releasePools("dedicated", this.dedicatedResourcePools);
 
     this.sharedResourcePools.clear();
-    invalidationMap.clear();
     this.configured = false;
     destroyCallback.destroy(this);
   }
@@ -388,13 +399,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
   }
 
-  public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws InvalidStoreException, ConfigurationException {
+  public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration, boolean forActive) throws ConfigurationException {
     if (this.stores.containsKey(name)) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
+      throw new ConfigurationException("cluster tier '" + name + "' already exists");
     }
 
     ServerStoreImpl serverStore;
-    PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
+    ResourcePageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     try {
       serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
     } catch (RuntimeException rte) {
@@ -403,6 +414,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     stores.put(name, serverStore);
+    if (!forActive) {
+      if (serverStoreConfiguration.getConsistency() == Consistency.EVENTUAL) {
+        this.invalidationTrackers.put(name, new InvalidationTrackerImpl());
+      }
+    }
 
     registerStoreStatistics(serverStore, name);
 
@@ -413,15 +429,16 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     final ServerStoreImpl store = stores.remove(name);
     unRegisterStoreStatistics(store);
     if (store == null) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
+      throw new InvalidStoreException("cluster tier '" + name + "' does not exist");
     } else {
       releaseDedicatedPool(name, store.getPageSource());
       store.close();
     }
     stateRepositoryManager.destroyStateRepository(name);
+    this.invalidationTrackers.remove(name);
   }
 
-  private PageSource getPageSource(String name, PoolAllocation allocation) throws ConfigurationException {
+  private ResourcePageSource getPageSource(String name, PoolAllocation allocation) throws ConfigurationException {
 
     ResourcePageSource resourcePageSource;
     if (allocation instanceof PoolAllocation.Dedicated) {
@@ -430,13 +447,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
        * identified by the cache identifier/name.
        */
       if (dedicatedResourcePools.containsKey(name)) {
-        throw new ConfigurationException("Fixed resource pool for clustered tier '" + name + "' already exists");
+        throw new ConfigurationException("Fixed resource pool for cluster tier '" + name + "' already exists");
       } else {
         PoolAllocation.Dedicated dedicatedAllocation = (PoolAllocation.Dedicated)allocation;
         String resourceName = dedicatedAllocation.getResourceName();
         if (resourceName == null) {
           if (defaultServerResource == null) {
-            throw new ConfigurationException("Fixed pool for clustered tier '" + name + "' not defined; default server resource not configured");
+            throw new ConfigurationException("Fixed pool for cluster tier '" + name + "' not defined; default server resource not configured");
           } else {
             resourceName = defaultServerResource;
           }
@@ -446,7 +463,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       }
     } else if (allocation instanceof PoolAllocation.Shared) {
       /*
-       * Shared allocation pools are created during EhcacheActiveEntity configuration.
+       * Shared allocation pools are created during ClusterTierManagerActiveEntity configuration.
        */
       PoolAllocation.Shared sharedAllocation = (PoolAllocation.Shared)allocation;
       resourcePageSource = sharedResourcePools.get(sharedAllocation.getResourcePoolName());
@@ -459,21 +476,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
     return resourcePageSource;
 
-  }
-
-  @Override
-  public InvalidationTracker getInvalidationTracker(String cacheId) {
-    return this.invalidationMap.get(cacheId);
-  }
-
-  @Override
-  public void addInvalidationtracker(String cacheId) {
-    this.invalidationMap.put(cacheId, new InvalidationTracker());
-  }
-
-  @Override
-  public InvalidationTracker removeInvalidationtracker(String cacheId) {
-    return this.invalidationMap.remove(cacheId);
   }
 
   @Override
@@ -493,17 +495,16 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public StateRepositoryManager getStateRepositoryManager() throws ClusterException {
+  public StateRepositoryManager getStateRepositoryManager() {
     return this.stateRepositoryManager;
-  }
-
-  @Override
-  public ClientMessageTracker getClientMessageTracker() {
-    return this.messageTracker;
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {
     return (s1 == null ? s2 == null : s1.equals(s2));
   }
 
+  @Override
+  public InvalidationTracker getInvalidationTracker(String name) {
+    return invalidationTrackers.get(name);
+  }
 }

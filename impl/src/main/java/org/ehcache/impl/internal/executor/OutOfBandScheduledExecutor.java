@@ -20,13 +20,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RunnableScheduledFuture;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.ehcache.impl.internal.util.ThreadFactoryUtil;
 
 /**
  *
@@ -34,7 +38,7 @@ import java.util.concurrent.TimeoutException;
  */
 class OutOfBandScheduledExecutor {
 
-  private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1) {
+  private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1, ThreadFactoryUtil.threadFactory("scheduled")) {
 
     @Override
     protected <V> RunnableScheduledFuture<V> decorateTask(Callable<V> clbl, RunnableScheduledFuture<V> rsf) {
@@ -75,8 +79,28 @@ class OutOfBandScheduledExecutor {
     return scheduler.scheduleWithFixedDelay(new ExecutorCarryingRunnable(using, command), initialDelay, delay, unit);
   }
 
-  static interface ExecutorCarrier {
+  public void shutdownNow() {
+    scheduler.shutdownNow();
+  }
 
+  public boolean awaitTermination(long timeout, TimeUnit unit)
+    throws InterruptedException {
+    return scheduler.awaitTermination(timeout, unit);
+  }
+
+  public boolean isShutdown() {
+    return scheduler.isShutdown();
+  }
+
+  public boolean isTerminating() {
+    return scheduler.isTerminating();
+  }
+
+  public boolean isTerminated() {
+    return scheduler.isTerminated();
+  }
+
+  interface ExecutorCarrier {
     ExecutorService executor();
   }
 

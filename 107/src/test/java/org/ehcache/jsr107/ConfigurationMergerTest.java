@@ -17,7 +17,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -34,7 +34,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.internal.creation.MockSettingsImpl;
 
 import java.io.Closeable;
@@ -61,7 +61,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -129,7 +129,7 @@ public class ConfigurationMergerTest {
     merger.mergeConfigurations("cache", configuration);
 
     assertThat(factory.called, is(true));
-    verify(cacheLoaderWriterFactory).registerJsr107Loader(eq("cache"), Matchers.<CacheLoaderWriter<Object, Object>>anyObject());
+    verify(cacheLoaderWriterFactory).registerJsr107Loader(eq("cache"), ArgumentMatchers.<CacheLoaderWriter<Object, Object>>isNotNull());
   }
 
   @Test
@@ -142,7 +142,7 @@ public class ConfigurationMergerTest {
     merger.mergeConfigurations("cache", configuration);
 
     assertThat(factory.called, is(true));
-    verify(cacheLoaderWriterFactory).registerJsr107Loader(eq("cache"), Matchers.<CacheLoaderWriter<Object, Object>>anyObject());
+    verify(cacheLoaderWriterFactory).registerJsr107Loader(eq("cache"), ArgumentMatchers.<CacheLoaderWriter<Object, Object>>isNotNull());
   }
 
   @Test
@@ -311,7 +311,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypes() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-copiers-immutable-types.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<Long, String>();
@@ -349,7 +349,7 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107DefaultEh107IdentityCopierForImmutableTypesWithCMLevelDefaults() {
     XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/ehcache-107-immutable-types-cm-level-copiers.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, xmlConfiguration.getServiceCreationConfigurations().toArray()));
     merger = new ConfigurationMerger(xmlConfiguration, jsr107Service, mock(Eh107CacheLoaderWriterProvider.class));
 
     MutableConfiguration<Long, String> stringCacheConfiguration  = new MutableConfiguration<Long, String>();
@@ -396,11 +396,8 @@ public class ConfigurationMergerTest {
   }
 
   private <T> Factory<T> throwingFactory() {
-    return new Factory<T>() {
-      @Override
-      public T create() {
-        throw new UnsupportedOperationException("Boom");
-      }
+    return (Factory<T>) () -> {
+      throw new UnsupportedOperationException("Boom");
     };
   }
 

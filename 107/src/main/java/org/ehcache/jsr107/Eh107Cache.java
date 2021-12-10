@@ -23,9 +23,6 @@ import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -39,6 +36,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -135,28 +135,25 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     try {
-      jsr107Cache.loadAll(keys, replaceExistingValues, new Function<Iterable<? extends K>, Map<K, V>>() {
-        @Override
-        public Map<K, V> apply(Iterable<? extends K> keys) {
-          try {
-            Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keys);
-            HashMap<K, V> resultMap = new HashMap<K, V>();
-            for (K key : keys) {
-              resultMap.put(key, loadResult.get(key));
-            }
-            return resultMap;
-          } catch (Exception e) {
-            final CacheLoaderException cle;
-            if (e instanceof CacheLoaderException) {
-              cle = (CacheLoaderException) e;
-            } else if (e.getCause() instanceof CacheLoaderException) {
-              cle = (CacheLoaderException) e.getCause();
-            } else {
-              cle = new CacheLoaderException(e);
-            }
-
-            throw cle;
+      jsr107Cache.loadAll(keys, replaceExistingValues, keysIterable -> {
+        try {
+          Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keysIterable);
+          HashMap<K, V> resultMap = new HashMap<K, V>();
+          for (K key : keysIterable) {
+            resultMap.put(key, loadResult.get(key));
           }
+          return resultMap;
+        } catch (Exception e) {
+          final CacheLoaderException cle;
+          if (e instanceof CacheLoaderException) {
+            cle = (CacheLoaderException) e;
+          } else if (e.getCause() instanceof CacheLoaderException) {
+            cle = (CacheLoaderException) e.getCause();
+          } else {
+            cle = new CacheLoaderException(e);
+          }
+
+          throw cle;
         }
       });
     } catch (Exception e) {
@@ -345,44 +342,32 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     final AtomicReference<MutableEntry> mutableEntryRef = new AtomicReference<MutableEntry>();
     final AtomicReference<T> invokeResult = new AtomicReference<T>();
 
-    jsr107Cache.compute(key, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        MutableEntry mutableEntry = new MutableEntry(mappedKey, mappedValue);
-        mutableEntryRef.set(mutableEntry);
+    jsr107Cache.compute(key, (mappedKey, mappedValue) -> {
+      MutableEntry mutableEntry = new MutableEntry(mappedKey, mappedValue);
+      mutableEntryRef.set(mutableEntry);
 
-        T processResult;
-        try {
-          processResult = entryProcessor.process(mutableEntry, arguments);
-        } catch (Exception e) {
-          if (e instanceof EntryProcessorException) {
-            throw new StorePassThroughException(e);
-          }
-          throw new StorePassThroughException(new EntryProcessorException(e));
+      T processResult;
+      try {
+        processResult = entryProcessor.process(mutableEntry, arguments);
+      } catch (Exception e) {
+        if (e instanceof EntryProcessorException) {
+          throw new StorePassThroughException(e);
         }
+        throw new StorePassThroughException(new EntryProcessorException(e));
+      }
 
-        invokeResult.set(processResult);
+      invokeResult.set(processResult);
 
-        return mutableEntry.apply(config.isWriteThrough(), cacheLoaderWriter);
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        MutableEntry mutableEntry = mutableEntryRef.get();
-        return mutableEntry.shouldReplace();
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        MutableEntry mutableEntry = mutableEntryRef.get();
-        return mutableEntry.shouldInvokeWriter();
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        MutableEntry mutableEntry = mutableEntryRef.get();
-        return mutableEntry.shouldGenerateEvent();
-      }
+      return mutableEntry.apply(config.isWriteThrough(), cacheLoaderWriter);
+    }, () -> {
+      MutableEntry mutableEntry = mutableEntryRef.get();
+      return mutableEntry.shouldReplace();
+    }, () -> {
+      MutableEntry mutableEntry = mutableEntryRef.get();
+      return mutableEntry.shouldInvokeWriter();
+    }, () -> {
+      MutableEntry mutableEntry = mutableEntryRef.get();
+      return mutableEntry.shouldGenerateEvent();
     });
 
     return invokeResult.get();
@@ -599,23 +584,15 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       throw new NullPointerException();
     }
 
-    return new EntryProcessorResult<T>() {
-      @Override
-      public T get() throws EntryProcessorException {
-        return result;
-      }
-    };
+    return () -> result;
   }
 
   private static <T> EntryProcessorResult<T> newErrorThrowingEntryProcessorResult(final Exception e) {
-    return new EntryProcessorResult<T>() {
-      @Override
-      public T get() throws EntryProcessorException {
-        if (e instanceof EntryProcessorException) {
-          throw (EntryProcessorException) e;
-        }
-        throw new EntryProcessorException(e);
+    return () -> {
+      if (e instanceof EntryProcessorException) {
+        throw (EntryProcessorException) e;
       }
+      throw new EntryProcessorException(e);
     };
   }
 

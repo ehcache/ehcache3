@@ -19,7 +19,7 @@ package org.ehcache.jsr107;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.InternalCache;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -48,7 +48,7 @@ import javax.cache.integration.CacheWriter;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * ConfigurationMerger
@@ -271,7 +271,7 @@ class ConfigurationMerger {
   }
 
   void setUpManagementAndStats(InternalCache<?, ?> cache, Eh107Configuration<?, ?> configuration) {
-    Jsr107CacheConfiguration cacheConfiguration = ServiceLocator.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
+    Jsr107CacheConfiguration cacheConfiguration = ServiceUtils.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
         .getRuntimeConfiguration().getServiceConfigurations());
     setupManagementAndStatsInternal(configuration, cacheConfiguration);
   }
