@@ -27,11 +27,18 @@ public interface ServerStoreProxy extends ServerStore {
    */
   interface InvalidationListener {
     /**
-     * Callback for invalidation of hash requests
+     * Callback for invalidation of hash requests due to client appends
      *
      * @param hash the hash of the keys to invalidate
      */
-    void onInvalidateHash(long hash);
+    void onAppendInvalidateHash(long hash);
+
+    /**
+     * Callback for invalidation of hash requests due to server eviction
+     *
+     * @param hash the hash of the keys to invalidate
+     */
+    void onEvictInvalidateHash(long hash);
 
     /**
      * Callback for invalidation of all requests

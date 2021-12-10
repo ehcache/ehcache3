@@ -679,7 +679,20 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
       clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
         @Override
-        public void onInvalidateHash(long hash) {
+        public void onAppendInvalidateHash(long hash) {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
+              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here? delegate to resilience strategy?
+              LOGGER.error("Error invalidating hash {}", hash, sae);
+            }
+          }
+        }
+
+        @Override
+        public void onEvictInvalidateHash(long hash) {
           Enum result = StoreOperationOutcomes.EvictionOutcome.SUCCESS;
           clusteredStore.evictionObserver.begin();
           if (clusteredStore.invalidationValve != null) {

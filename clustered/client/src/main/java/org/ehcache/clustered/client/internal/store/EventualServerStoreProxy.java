@@ -46,7 +46,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
           long key = response.getKey();
           LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", messageFactory.getCacheId(), key);
           for (InvalidationListener listener : invalidationListeners) {
-            listener.onInvalidateHash(key);
+            listener.onEvictInvalidateHash(key);
           }
         } else {
           LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
@@ -63,7 +63,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
         if (cacheId.equals(messageFactory.getCacheId())) {
           LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
           for (InvalidationListener listener : invalidationListeners) {
-            listener.onInvalidateHash(key);
+            listener.onAppendInvalidateHash(key);
           }
         } else {
           LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
