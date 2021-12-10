@@ -15,14 +15,13 @@
  */
 package org.ehcache.clustered.reconnect;
 
-import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
-import org.ehcache.clustered.util.TCPProxyUtil;
+import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
@@ -32,17 +31,16 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
-import org.ehcache.testing.TestRetryer;
-import org.ehcache.testing.TestRetryer.OutputIs;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -52,23 +50,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.time.temporal.ChronoUnit.SECONDS;
-import static java.util.EnumSet.of;
-import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
-import static org.ehcache.testing.TestRetryer.tryValues;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 public class EventsReconnectTest extends ClusteredTests {
-  private static final Duration TIMEOUT = ofSeconds(5);
 
+  private static TCPProxyManager proxyManager;
   private static PersistentCacheManager cacheManager;
 
   private static class AccountingCacheEventListener<K, V> implements CacheEventListener<K, V> {
@@ -103,18 +98,16 @@ public class EventsReconnectTest extends ClusteredTests {
     .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
     .build();
 
-  private static final List<TCPProxy> proxies = new ArrayList<>();
-
   @ClassRule @Rule
-  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(
-    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
-    leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
-      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build(),
-    of(OutputIs.CLASS_RULE));
+  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(ofSeconds(1), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build())
+    .outputIs(CLASS_RULE);
 
   @BeforeClass
   public static void initializeCacheManager() throws Exception {
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.get().getConnectionURI(), proxies);
+    proxyManager = TCPProxyManager.create(CLUSTER.get().getConnectionURI());
+    URI connectionURI = proxyManager.getURI();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
@@ -122,6 +115,11 @@ public class EventsReconnectTest extends ClusteredTests {
                     .autoCreate(s -> s.defaultServerResource("primary-server-resource")));
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
+  }
+
+  @AfterClass
+  public static void stopProxies() {
+    proxyManager.close();
   }
 
   @Test
@@ -157,10 +155,9 @@ public class EventsReconnectTest extends ClusteredTests {
         }
       });
 
-      getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
-
-      assertThatEventually(() -> cacheEventListener.events.get(EventType.CREATED), hasSize(beforeDisconnectionEventCounter + 1)).within(TIMEOUT);
-
+      assertThat(getSucceededFuture::isDone, eventually().is(true));
+      getSucceededFuture.getNow(null);
+      assertThat(() -> cacheEventListener.events.get(EventType.CREATED), eventually().matches(hasSize(beforeDisconnectionEventCounter + 1)));
     } finally {
       cacheManager.destroyCache("clustered-cache");
     }
@@ -168,11 +165,11 @@ public class EventsReconnectTest extends ClusteredTests {
 
   private static void expireLease() throws InterruptedException {
     long delay = CLUSTER.input().plusSeconds(1L).toMillis();
-    setDelay(delay, proxies);
+    proxyManager.setDelay(delay);
     try {
       Thread.sleep(delay);
     } finally {
-      setDelay(0L, proxies);
+      proxyManager.setDelay(0);
     }
   }
 }

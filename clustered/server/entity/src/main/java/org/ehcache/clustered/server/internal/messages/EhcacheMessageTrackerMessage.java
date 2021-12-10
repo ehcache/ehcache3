@@ -16,14 +16,9 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.terracotta.client.message.tracker.OOOMessageHandler;
-import org.terracotta.entity.ClientSourceId;
 
 import java.util.Map;
-
-import static java.util.stream.Collectors.toMap;
 
 /**
  * Message sending messages that are tracked for duplication. If a passive becoming active receives
@@ -31,17 +26,10 @@ import static java.util.stream.Collectors.toMap;
  */
 public class EhcacheMessageTrackerMessage extends EhcacheSyncMessage {
 
-  private final int segmentId;
   private final Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages;
 
-  public EhcacheMessageTrackerMessage(int segmentId, Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages) {
-    this.segmentId = segmentId;
+  public EhcacheMessageTrackerMessage(Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages) {
     this.trackedMessages = trackedMessages;
-  }
-
-  public EhcacheMessageTrackerMessage(int segmentId, OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler)  {
-    this(segmentId, messageHandler.getTrackedClients()
-      .collect(toMap(ClientSourceId::toLong, clientSourceId -> messageHandler.getTrackedResponsesForSegment(segmentId, clientSourceId))));
   }
 
   @Override
@@ -51,9 +39,5 @@ public class EhcacheMessageTrackerMessage extends EhcacheSyncMessage {
 
   public Map<Long, Map<Long, EhcacheEntityResponse>> getTrackedMessages() {
     return trackedMessages;
-  }
-
-  public int getSegmentId() {
-    return segmentId;
   }
 }

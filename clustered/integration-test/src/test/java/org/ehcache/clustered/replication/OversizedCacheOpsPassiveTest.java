@@ -52,6 +52,7 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
       newCluster(2).in(clusterPath())
         .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
         .withServiceFragment(offheapResource("primary-server-resource", 2))
+        .withSystemProperty("JAVA_OPTS", "-Xms1024m -Xmx8192m")
         .build();
 
   @Test
@@ -84,7 +85,7 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", CACHE_SIZE_IN_MB, MemoryUnit.MB)))
-        .build();
+          .build();
 
       syncLatch.countDown();
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);

@@ -31,9 +31,9 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;

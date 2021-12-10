@@ -19,10 +19,10 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 public class EhcacheStateServiceImplTest {
 

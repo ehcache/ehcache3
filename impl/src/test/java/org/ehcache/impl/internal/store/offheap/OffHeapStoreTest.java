@@ -42,8 +42,8 @@ import java.util.HashSet;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
 

@@ -16,8 +16,12 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-/**
- * InternalClusterTierClientEntity : Marker interface for any extensions that is used internally
+/*
+ * Since this interface has been used historically as the client-side interface that
+ * identifies a cluster-tier entity it must remain as **the** interface even though
+ * it is empty. We could remove it and hack up the server entity service to accept
+ * both variants but this seems like a cleaner and more future proof decision. This
+ * way if we need to introduce any 'internal' methods we can.
  */
 public interface InternalClusterTierClientEntity extends ClusterTierClientEntity {
 }

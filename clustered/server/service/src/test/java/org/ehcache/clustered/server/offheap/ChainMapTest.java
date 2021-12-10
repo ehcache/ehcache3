@@ -45,12 +45,12 @@ import org.terracotta.offheapstore.storage.portability.StringPortability;
 
 import static java.util.Arrays.asList;
 import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.collection.IsEmptyIterable.emptyIterable;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 

@@ -49,10 +49,10 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class ClusteredEventsTest {
 
@@ -112,7 +112,10 @@ public class ClusteredEventsTest {
           updated(1L, "bat", "bag"),
           removed(1L, "bag"));
 
-        assertThatEventually(() -> driverEvents, expectedSequence).and(() -> observerEvents, expectedSequence).within(Duration.ofSeconds(10));
+        within(Duration.ofSeconds(10)).runsCleanly(() -> {
+          assertThat(driverEvents, expectedSequence);
+          assertThat(observerEvents, expectedSequence);
+        });
       }
     }
   }
@@ -159,7 +162,10 @@ public class ClusteredEventsTest {
           created(1L, "baz"),
           expired(1L, "baz"));
 
-        assertThatEventually(() -> driverEvents, expectedSequence).and(() -> observerEvents, expectedSequence).within(Duration.ofSeconds(10));
+        within(Duration.ofSeconds(10)).runsCleanly(() -> {
+          assertThat(driverEvents, expectedSequence);
+          assertThat(observerEvents, expectedSequence);
+        });
       }
     }
   }

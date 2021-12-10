@@ -55,11 +55,11 @@ import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceId
 import org.ehcache.test.MockitoUtil;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Query;
 import org.terracotta.context.query.QueryBuilder;
-import org.terracotta.org.junit.rules.TemporaryFolder;
 import org.terracotta.statistics.OperationStatistic;
 
 import java.io.IOException;
@@ -90,8 +90,8 @@ import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.D
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

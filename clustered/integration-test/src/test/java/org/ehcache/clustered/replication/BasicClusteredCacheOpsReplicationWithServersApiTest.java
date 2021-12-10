@@ -39,9 +39,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class BasicClusteredCacheOpsReplicationWithServersApiTest extends ClusteredTests {
@@ -52,6 +52,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(2).in(clusterPath())
+    .withServerHeap(512)
     .withServiceFragment(offheapResource("primary-server-resource", 16)).build();
 
   @Before

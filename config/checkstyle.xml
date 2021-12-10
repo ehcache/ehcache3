@@ -38,7 +38,7 @@
     <!-- Avoiding static imports in doc -->
     <!-- as we cannot limit to a specific package, the limitation is enforced by the exclusion on each module -->
     <module name="AvoidStaticImport">
-      <property name="excludes" value="java.util.Collections.*,org.hamcrest.Matchers.*,org.junit.Assert.*"/>
+      <property name="excludes" value="java.util.Collections.*,org.hamcrest.Matchers.*,org.junit.Assert.*,org.hamcrest.MatcherAssert.*"/>
     </module>
   </module>
 

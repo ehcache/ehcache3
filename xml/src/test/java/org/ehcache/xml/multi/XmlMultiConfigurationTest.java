@@ -27,6 +27,7 @@ import org.xmlunit.diff.DefaultNodeMatcher;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
@@ -34,7 +35,6 @@ import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.xmlunit.diff.ElementSelectors.and;
 import static org.xmlunit.diff.ElementSelectors.byNameAndAllAttributes;

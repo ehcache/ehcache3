@@ -49,9 +49,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNull;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -98,7 +96,9 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
@@ -111,7 +111,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
@@ -121,9 +121,6 @@ import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
  * @author Chris Dennis
  */
 public class XmlConfigurationTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
@@ -623,23 +620,20 @@ public class XmlConfigurationTest {
 
   @Test
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The url can not be null");
-    new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock());
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock()));
+    assertThat(thrown, hasProperty("message", Matchers.is("The url can not be null")));
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The classLoader can not be null");
-    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock());
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock()));
+    assertThat(thrown, hasProperty("message", Matchers.is("The classLoader can not be null")));
   }
 
   @Test
   public void testNullCacheClassLoaderMapInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The cacheClassLoaders map can not be null");
-    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null));
+    assertThat(thrown, hasProperty("message", Matchers.is("The cacheClassLoaders map can not be null")));
   }
 
   @Test

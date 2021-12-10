@@ -31,8 +31,8 @@ import static org.ehcache.clustered.common.internal.store.operations.OperationCo
 import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REMOVE_CONDITIONAL;
 import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REPLACE;
 import static org.ehcache.clustered.common.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class PinningOffHeapChainMapTest {
   @Test

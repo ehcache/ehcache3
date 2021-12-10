@@ -19,7 +19,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.TestClientSourceId;
-import org.junit.Assert;
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -51,14 +51,14 @@ public class EhcacheSyncMessageCodecTest {
     EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, encodedMessage);
     Map<Long, Chain> decodedChainMap = decoded.getChainMap();
     assertThat(decodedChainMap).hasSize(3);
-    Assert.assertThat(decodedChainMap.get(1L), matchesChain(chain));
-    Assert.assertThat(decodedChainMap.get(2L), matchesChain(chain));
-    Assert.assertThat(decodedChainMap.get(3L), matchesChain(chain));
+    MatcherAssert.assertThat(decodedChainMap.get(1L), matchesChain(chain));
+    MatcherAssert.assertThat(decodedChainMap.get(2L), matchesChain(chain));
+    MatcherAssert.assertThat(decodedChainMap.get(3L), matchesChain(chain));
   }
 
   @Test
   public void testMessageTrackerSyncEncodeDecode_emptyMessage() throws Exception {
-    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, new HashMap<>());
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(new HashMap<>());
     byte[] encodedMessage = codec.encode(0, message);
     EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
     assertThat(decoded.getTrackedMessages()).isEmpty();
@@ -69,7 +69,7 @@ public class EhcacheSyncMessageCodecTest {
     HashMap<Long, Map<Long, EhcacheEntityResponse>> trackerMap = new HashMap<>();
     trackerMap.put(1L, new HashMap<>());
 
-    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, trackerMap);
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(trackerMap);
     byte[] encodedMessage = codec.encode(0, message);
     EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
     assertThat(decoded.getTrackedMessages()).isEmpty();
@@ -104,7 +104,7 @@ public class EhcacheSyncMessageCodecTest {
     responses2.put(5L, r5);
     trackerMap.put(2L, responses2);
 
-    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, trackerMap);
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(trackerMap);
     byte[] encodedMessage = codec.encode(0, message);
     EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
 

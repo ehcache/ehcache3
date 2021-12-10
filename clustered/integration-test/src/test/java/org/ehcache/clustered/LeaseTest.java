@@ -15,65 +15,47 @@
  */
 package org.ehcache.clustered;
 
-import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
-import org.ehcache.clustered.util.TCPProxyUtil;
+import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.testing.TestRetryer;
-import org.ehcache.testing.TestRetryer.OutputIs;
-import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.testing.rules.Cluster;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.time.temporal.ChronoUnit.SECONDS;
-import static java.util.EnumSet.of;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
-import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.ehcache.testing.TestRetryer.tryValues;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 @RunWith(Parameterized.class)
 public class LeaseTest extends ClusteredTests {
 
   @ClassRule
   @Rule
-  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(
-    Stream.of(ofSeconds(1), ofSeconds(10), ofSeconds(30)),
-    leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
-      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build(),
-    of(OutputIs.CLASS_RULE));
-
-  private final List<TCPProxy> proxies = new ArrayList<>();
-
-  @After
-  public void after() {
-    proxies.forEach(TCPProxy::stop);
-  }
+  public static final TestRetryer<Duration, Cluster> CLUSTER = tryValues(ofSeconds(1), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> newCluster().in(clusterPath()).withServiceFragment(
+      offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build())
+    .outputIs(CLASS_RULE);
 
   @Parameterized.Parameters
   public static ResourcePoolsBuilder[] data() {
@@ -91,38 +73,40 @@ public class LeaseTest extends ClusteredTests {
 
   @Test
   public void leaseExpiry() throws Exception {
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.get().getConnectionURI(), proxies);
+    try (TCPProxyManager proxyManager = TCPProxyManager.create(CLUSTER.get().getConnectionURI())) {
+      URI connectionURI = proxyManager.getURI();
 
-    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-        .timeouts(TimeoutsBuilder.timeouts().connection(Duration.ofSeconds(20)))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
+      CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = newCacheManagerBuilder()
+        .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
+          .timeouts(TimeoutsBuilder.timeouts().connection(Duration.ofSeconds(20)))
+          .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+      PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+      cacheManager.init();
 
-    CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-      resourcePoolsBuilder).build();
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        resourcePoolsBuilder).build();
 
-    Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
-    cache.put(1L, "The one");
-    cache.put(2L, "The two");
-    cache.put(3L, "The three");
-    assertThat(cache.get(1L), equalTo("The one"));
-    assertThat(cache.get(2L), equalTo("The two"));
-    assertThat(cache.get(3L), equalTo("The three"));
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      cache.put(1L, "The one");
+      cache.put(2L, "The two");
+      cache.put(3L, "The three");
+      assertThat(cache.get(1L), equalTo("The one"));
+      assertThat(cache.get(2L), equalTo("The two"));
+      assertThat(cache.get(3L), equalTo("The three"));
 
-    long delay = CLUSTER.input().plusSeconds(1L).toMillis();
-    setDelay(delay, proxies);
-    try {
-      Thread.sleep(delay);
-    } finally {
-      setDelay(0L, proxies);
+      long delay = CLUSTER.input().plusSeconds(1L).toMillis();
+      proxyManager.setDelay(delay);
+      try {
+        Thread.sleep(delay);
+      } finally {
+        proxyManager.setDelay(0);
+      }
+
+      eventually().runsCleanly(() -> {
+        assertThat(cache.get(1L), equalTo("The one"));
+        assertThat(cache.get(2L), equalTo("The two"));
+        assertThat(cache.get(3L), equalTo("The three"));
+      });
     }
-
-    assertThatEventually(() -> cache.get(1L), is("The one")).within(Duration.ofSeconds(30));
-    assertThat(cache.get(2L), equalTo("The two"));
-    assertThat(cache.get(3L), equalTo("The three"));
-
   }
-
 }

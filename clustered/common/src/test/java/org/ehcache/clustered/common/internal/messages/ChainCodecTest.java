@@ -28,7 +28,7 @@ import static org.ehcache.clustered.ChainUtils.readPayload;
 import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.ehcache.clustered.Matchers.sameSequenceAs;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class ChainCodecTest {

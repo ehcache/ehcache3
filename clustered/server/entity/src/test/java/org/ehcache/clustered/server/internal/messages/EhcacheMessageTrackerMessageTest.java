@@ -57,7 +57,7 @@ public class EhcacheMessageTrackerMessageTest {
     trackingMap.put(id1.toLong(), res1);
     trackingMap.put(id2.toLong(), res2);
 
-    message = new EhcacheMessageTrackerMessage(2, trackingMap);
+    message = new EhcacheMessageTrackerMessage(trackingMap);
   }
 
   @Test

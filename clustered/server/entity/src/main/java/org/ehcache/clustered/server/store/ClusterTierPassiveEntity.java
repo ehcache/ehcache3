@@ -36,6 +36,7 @@ import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheMessageTrackerCatchup;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -44,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
+import org.terracotta.client.message.tracker.RecordedMessage;
 import org.terracotta.entity.ClientSourceId;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityUserException;
@@ -55,13 +57,14 @@ import org.terracotta.entity.StateDumpCollector;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.getResponse;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
-import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierConcurrency;
+
 
 /**
  * ClusterTierPassiveEntity
@@ -87,7 +90,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     try {
       stateService = registry.getService(new EhcacheStoreStateServiceConfig(config.getManagerIdentifier(), defaultMapper));
       messageHandler = registry.getService(new OOOMessageHandlerConfiguration<>(managerIdentifier + "###" + storeIdentifier,
-        ClusterTierActiveEntity::isTrackedMessage, defaultMapper.getSegments() + 1, new MessageToTrackerSegmentFunction(clusterTierConcurrency(defaultMapper))));
+        ClusterTierActiveEntity::isTrackedMessage));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -183,6 +186,8 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
       }
     } else if (message instanceof EhcacheSyncMessage) {
       invokeSyncOperation(context, (EhcacheSyncMessage) message);
+    } else if (message instanceof EhcacheMessageTrackerCatchup) {
+      invokeCatchup(context, (EhcacheMessageTrackerCatchup) message);
     } else {
       throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
     }
@@ -191,6 +196,48 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     return success();
   }
 
+  private void invokeCatchup(InvokeContext context, EhcacheMessageTrackerCatchup catchup) {
+    catchup.getTrackedMessages().forEach(r -> {
+      InvokeContext replay = new InvokeContext() {
+        @Override
+        public ClientSourceId getClientSource() {
+          return context.makeClientSourceId(r.getClientSourceId().toLong());
+        }
+
+        @Override
+        public long getCurrentTransactionId() {
+          return r.getTransactionId();
+        }
+
+        @Override
+        public long getOldestTransactionId() {
+          return context.getOldestTransactionId();
+        }
+
+        @Override
+        public boolean isValidClientInformation() {
+          return true;
+        }
+
+        @Override
+        public ClientSourceId makeClientSourceId(long l) {
+          return context.makeClientSourceId(l);
+        }
+
+        @Override
+        public int getConcurrencyKey() {
+          return 0;
+        }
+      };
+      try {
+        messageHandler.invoke(replay, r.getRequest(), this::invokePassiveInternal);
+      } catch (EntityUserException use) {
+        // swallow any user exceptions here
+      }
+    });
+  }
+
+  @SuppressWarnings("deprecation")
   private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) {
     switch (message.getMessageType()) {
       case DATA:
@@ -204,8 +251,31 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         break;
       case MESSAGE_TRACKER:
         EhcacheMessageTrackerMessage messageTrackerMessage = (EhcacheMessageTrackerMessage) message;
-        messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
-          messageHandler.loadTrackedResponsesForSegment(messageTrackerMessage.getSegmentId(), context.makeClientSourceId(key), value));
+        Stream<RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>> converted =
+          messageTrackerMessage.getTrackedMessages().entrySet().stream().flatMap(e -> e.getValue().entrySet().stream().map(v -> {
+              return new RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>() {
+                @Override
+                public ClientSourceId getClientSourceId() {
+                  return context.makeClientSourceId(e.getKey());
+                }
+
+                @Override
+                public long getTransactionId() {
+                  return v.getKey();
+                }
+
+                @Override
+                public EhcacheEntityMessage getRequest() {
+                  return null;
+                }
+
+                @Override
+                public EhcacheEntityResponse getResponse() {
+                  return v.getValue();
+                }
+              };
+            }));
+        messageHandler.loadRecordedMessages(converted);
         break;
       default:
         throw new AssertionError("Unsupported Sync operation " + message.getMessageType());

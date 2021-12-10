@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.cache.Cache;
@@ -40,9 +39,9 @@ import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CompletionListenerFuture;
 import javax.cache.spi.CachingProvider;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * SimpleEh107ConfigTest

@@ -32,21 +32,22 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 public class PassiveSyncTest extends ClusteredTests {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(2).in(clusterPath())
-    .withServiceFragment(offheapResource("primary-server-resource", 16)).build();
+    .withServiceFragment(offheapResource("primary-server-resource", 16))
+    .withServerHeap(512)
+    .build();
 
   @Before
   public void startServers() throws Exception {
@@ -78,7 +79,7 @@ public class PassiveSyncTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateActive();
 
 
-      assertThatEventually(() -> cache.get(0L), notNullValue()).within(Duration.ofSeconds(130));
+      assertThat(() -> cache.get(0L), eventually().matches(notNullValue()));
       for (long i = -5; i < 5; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }

@@ -47,6 +47,7 @@ import org.terracotta.passthrough.PassthroughTestHelpers;
 import java.net.URI;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -138,8 +139,7 @@ public class ActivePassiveClientIdTest {
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
-    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, activeMessageHandler.getTrackedClients().findFirst().get());
-    assertThat(responses).hasSize(1); // should now track one message
+    assertThat(activeMessageHandler.getRecordedMessages().collect(Collectors.toList())).hasSize(1); // should now track one message
 
     assertThat(activeEntity.getConnectedClients()).hasSize(1); // make sure we currently have one client attached
 
@@ -181,7 +181,8 @@ public class ActivePassiveClientIdTest {
 
     assertThat(passiveMessageHandler.getTrackedClients().count()).isEqualTo(1L); // one client tracked
 
-    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, passiveMessageHandler.getTrackedClients().findFirst().get());
+    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getRecordedMessages().filter(r->r.getClientSourceId().toLong() == activeMessageHandler.getTrackedClients().findFirst().get().toLong())
+            .collect(Collectors.toMap(r->r.getTransactionId(), r->r.getResponse()));
     assertThat(responses).hasSize(1); // one message should have sync
   }
 
@@ -191,7 +192,8 @@ public class ActivePassiveClientIdTest {
 
     storeProxy.getAndAppend(42L, createPayload(42L));
 
-    Map<Long, EhcacheEntityResponse> responses = passiveMessageHandler.getTrackedResponsesForSegment(KEY_ENDS_UP_IN_SEGMENT_11, passiveMessageHandler.getTrackedClients().findFirst().get());
+    Map<Long, EhcacheEntityResponse> responses = activeMessageHandler.getRecordedMessages().filter(r->r.getClientSourceId().toLong() == activeMessageHandler.getTrackedClients().findFirst().get().toLong())
+            .collect(Collectors.toMap(r->r.getTransactionId(), r->r.getResponse()));
     assertThat(responses).hasSize(1); // should now track one message
 
     service.stop(); // stop the service. It will remove the client

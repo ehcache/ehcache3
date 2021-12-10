@@ -27,7 +27,7 @@ pluginManagement {
   }
 }
 
-include "test-utilities", "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
+include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
         "clustered", "clustered:common-api", "clustered:common",
         "clustered:server:service-api", "clustered:server:service", "clustered:server:entity",
         "clustered:client", "clustered:clustered-dist", "clustered:ops-tool",

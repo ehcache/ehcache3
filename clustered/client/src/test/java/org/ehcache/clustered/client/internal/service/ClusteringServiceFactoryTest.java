@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Clifford W. Johnson

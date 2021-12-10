@@ -23,11 +23,10 @@ import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 
 public class ClusteredResourcePoolBuilderTest {

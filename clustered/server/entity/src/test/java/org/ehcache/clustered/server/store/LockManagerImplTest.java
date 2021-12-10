@@ -18,21 +18,17 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.server.TestClientDescriptor;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.terracotta.entity.ClientDescriptor;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
@@ -41,7 +37,7 @@ public class LockManagerImplTest {
   @Test
   public void testLock() {
     LockManagerImpl lockManager = new LockManagerImpl();
-    ClientDescriptor clientDescriptor = new TestClientDescriptor();
+    ClientDescriptor clientDescriptor = TestClientDescriptor.newClient();
     assertThat(lockManager.lock(1L, clientDescriptor), is(true));
     assertThat(lockManager.lock(1L, clientDescriptor), is(false));
     assertThat(lockManager.lock(2L, clientDescriptor), is(true));
@@ -50,7 +46,7 @@ public class LockManagerImplTest {
   @Test
   public void testUnlock() {
     LockManagerImpl lockManager = new LockManagerImpl();
-    ClientDescriptor clientDescriptor = new TestClientDescriptor();
+    ClientDescriptor clientDescriptor = TestClientDescriptor.newClient();
     assertThat(lockManager.lock(1L, clientDescriptor), is(true));
     lockManager.unlock(1L);
     assertThat(lockManager.lock(1L, clientDescriptor), is(true));
@@ -60,8 +56,8 @@ public class LockManagerImplTest {
   @SuppressWarnings("unchecked")
   public void testSweepLocksForClient() {
     LockManagerImpl lockManager = new LockManagerImpl();
-    ClientDescriptor clientDescriptor1 = new TestClientDescriptor();
-    ClientDescriptor clientDescriptor2 = new TestClientDescriptor();
+    ClientDescriptor clientDescriptor1 = TestClientDescriptor.newClient();
+    ClientDescriptor clientDescriptor2 = TestClientDescriptor.newClient();
 
     assertThat(lockManager.lock(1L, clientDescriptor1), is(true));
     assertThat(lockManager.lock(2L, clientDescriptor1), is(true));
@@ -98,20 +94,21 @@ public class LockManagerImplTest {
   public void testCreateLockStateAfterFailover() {
     LockManagerImpl lockManager = new LockManagerImpl();
 
-    ClientDescriptor clientDescriptor = new TestClientDescriptor();
+    ClientDescriptor clientDescriptor1 = TestClientDescriptor.newClient();
 
     Set<Long> locks = new HashSet<>();
     locks.add(1L);
     locks.add(100L);
     locks.add(1000L);
 
-    lockManager.createLockStateAfterFailover(clientDescriptor, locks);
+    lockManager.createLockStateAfterFailover(clientDescriptor1, locks);
 
-    ClientDescriptor clientDescriptor1 = new TestClientDescriptor();
+    ClientDescriptor clientDescriptor2 = TestClientDescriptor.newClient();
 
-    assertThat(lockManager.lock(100L, clientDescriptor1), is(false));
-    assertThat(lockManager.lock(1000L, clientDescriptor1), is(false));
-    assertThat(lockManager.lock(1L, clientDescriptor1), is(false));
+
+    assertThat(lockManager.lock(100L, clientDescriptor2), is(false));
+    assertThat(lockManager.lock(1000L, clientDescriptor2), is(false));
+    assertThat(lockManager.lock(1L, clientDescriptor2), is(false));
 
   }
 

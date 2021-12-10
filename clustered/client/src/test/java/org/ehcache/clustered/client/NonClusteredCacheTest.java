@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.junit.Assert.assertThat;
 
 /**
  * Ensures that a non-clustered {@code CacheManager} can be created when clustered classes are

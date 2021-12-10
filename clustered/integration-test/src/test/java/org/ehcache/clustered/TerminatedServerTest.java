@@ -33,8 +33,6 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.DefaultStatisticsService;
-import org.ehcache.testing.TestRetryer;
-import org.ehcache.testing.TestRetryer.OutputIs;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -50,6 +48,7 @@ import com.tc.net.protocol.transport.ClientMessageTransport;
 import com.tc.properties.TCProperties;
 import com.tc.properties.TCPropertiesConsts;
 import com.tc.properties.TCPropertiesImpl;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -60,15 +59,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Stream;
 
 import static java.time.Duration.ofSeconds;
-import static java.time.temporal.ChronoUnit.SECONDS;
-import static java.util.EnumSet.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.ehcache.testing.TestRetryer.tryValues;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
@@ -127,12 +125,11 @@ public class TerminatedServerTest extends ClusteredTests {
   }
 
   @ClassRule @Rule
-  public static final TestRetryer<Duration, ParallelTestCluster> CLUSTER = tryValues(
-    Stream.of(ofSeconds(2), ofSeconds(10), ofSeconds(30)),
-    leaseLength -> new ParallelTestCluster(
+  public static final TestRetryer<Duration, ParallelTestCluster> CLUSTER = tryValues(ofSeconds(2), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> new ParallelTestCluster(
       newCluster().in(clusterPath()).withServiceFragment(
-        offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build()),
-    of(OutputIs.CLASS_RULE, OutputIs.RULE));
+        offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build()))
+    .outputIs(CLASS_RULE, RULE);
 
   @Rule
   public final TestName testName = new TestName();

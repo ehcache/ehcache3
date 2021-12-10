@@ -22,7 +22,6 @@ import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
@@ -45,11 +44,11 @@ import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeo
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-import static org.terracotta.utilities.test.WaitForAssert.assertThatEventually;
 
 /**
  * Simulate multiple clients starting up the same cache manager simultaneously and ensure that puts and gets works just
@@ -109,7 +108,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
           assertThat(customValueCache.get(1L), is("value"));
           synCache.put(firstClientEndKey, true);
         } else {
-          assertThatEventually(() -> synCache.get(firstClientEndKey), notNullValue()).within(Duration.ofSeconds(30));
+          assertThat(() -> synCache.get(firstClientEndKey), eventually().matches(notNullValue()));
           assertThat(customValueCache.get(1L), is("value"));
         }
         return null;

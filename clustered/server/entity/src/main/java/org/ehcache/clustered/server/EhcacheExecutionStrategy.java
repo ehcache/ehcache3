@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheMessageTrackerCatchup;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessage;
 import org.terracotta.entity.ExecutionStrategy;
 
@@ -49,6 +50,8 @@ public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntity
       // State repository operation not needing replication
       return Location.ACTIVE;
     } else if (message instanceof PassiveReplicationMessage) {
+      return Location.PASSIVE;
+    } else if (message instanceof EhcacheMessageTrackerCatchup) {
       return Location.PASSIVE;
     } else if (message instanceof EhcacheSyncMessage) {
       throw new AssertionError("Unexpected use of ExecutionStrategy for sync messages");
