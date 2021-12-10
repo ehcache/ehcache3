@@ -26,18 +26,18 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testDefaultInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultResilienceStrategy(resilienceStrategy);
@@ -49,7 +49,7 @@ public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testDefaultLoaderWriterInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultLoaderWriterResilienceStrategy(resilienceStrategy);
@@ -62,11 +62,11 @@ public class DefaultResilienceStrategyProviderTest {
   @Test
   public void testDefaultInstanceConstructed() {
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
-    configuration.setDefaultResilienceStrategy((Class) TestResilienceStrategy.class, "FooBar");
+    configuration.setDefaultResilienceStrategy(TestResilienceStrategy.class, "FooBar");
 
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    ResilienceStrategy resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class));
+    ResilienceStrategy<?, ?> resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class));
     assertThat(resilienceStrategy, instanceOf(TestResilienceStrategy.class));
     assertThat(((TestResilienceStrategy) resilienceStrategy).message, is("FooBar"));
   }
@@ -74,18 +74,18 @@ public class DefaultResilienceStrategyProviderTest {
   @Test
   public void testDefaultLoaderWriterInstanceConstructed() {
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
-    configuration.setDefaultLoaderWriterResilienceStrategy((Class) TestResilienceStrategy.class, "FooBar");
+    configuration.setDefaultLoaderWriterResilienceStrategy(TestResilienceStrategy.class, "FooBar");
 
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    ResilienceStrategy resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class), mock(CacheLoaderWriter.class));
+    ResilienceStrategy<?, ?> resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class), mock(CacheLoaderWriter.class));
     assertThat(resilienceStrategy, instanceOf(TestResilienceStrategy.class));
     assertThat(((TestResilienceStrategy) resilienceStrategy).message, is("FooBar"));
   }
 
   @Test
   public void testPreconfiguredInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.addResilienceStrategyFor("foo", resilienceStrategy);
@@ -97,7 +97,7 @@ public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testPreconfiguredLoaderWriterInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.addResilienceStrategyFor("foo", resilienceStrategy);
@@ -110,11 +110,11 @@ public class DefaultResilienceStrategyProviderTest {
   @Test
   public void testPreconfiguredInstanceConstructed() {
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
-    configuration.addResilienceStrategyFor("foo", (Class) TestResilienceStrategy.class, "FooBar");
+    configuration.addResilienceStrategyFor("foo", TestResilienceStrategy.class, "FooBar");
 
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    ResilienceStrategy resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class));
+    ResilienceStrategy<?, ?> resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class));
     assertThat(resilienceStrategy, instanceOf(TestResilienceStrategy.class));
     assertThat(((TestResilienceStrategy) resilienceStrategy).message, is("FooBar"));
   }
@@ -122,11 +122,11 @@ public class DefaultResilienceStrategyProviderTest {
   @Test
   public void testPreconfiguredLoaderWriterInstanceConstructed() {
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
-    configuration.addResilienceStrategyFor("foo", (Class) TestResilienceStrategy.class, "FooBar");
+    configuration.addResilienceStrategyFor("foo", TestResilienceStrategy.class, "FooBar");
 
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    ResilienceStrategy resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class), mock(CacheLoaderWriter.class));
+    ResilienceStrategy<?, ?> resilienceStrategy = provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class), mock(CacheLoaderWriter.class));
     assertThat(resilienceStrategy, instanceOf(TestResilienceStrategy.class));
     assertThat(((TestResilienceStrategy) resilienceStrategy).message, is("FooBar"));
   }
@@ -134,12 +134,12 @@ public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testProvidedInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getServiceConfigurations()).thenReturn(Collections.singleton(new DefaultResilienceStrategyConfiguration(resilienceStrategy)));
 
     assertThat(provider.createResilienceStrategy("foo", cacheConfiguration, mock(RecoveryStore.class)), sameInstance(resilienceStrategy));
@@ -147,12 +147,12 @@ public class DefaultResilienceStrategyProviderTest {
 
   @Test
   public void testProvidedLoaderWriterInstanceReturned() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getServiceConfigurations()).thenReturn(Collections.singleton(new DefaultResilienceStrategyConfiguration(resilienceStrategy)));
 
     assertThat(provider.createResilienceStrategy("foo", cacheConfiguration, mock(RecoveryStore.class), mock(CacheLoaderWriter.class)), sameInstance(resilienceStrategy));
@@ -163,10 +163,10 @@ public class DefaultResilienceStrategyProviderTest {
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
-    when(cacheConfiguration.getServiceConfigurations()).thenReturn(Collections.singleton(new DefaultResilienceStrategyConfiguration((Class) TestResilienceStrategy.class, "FooBar")));
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
+    when(cacheConfiguration.getServiceConfigurations()).thenReturn(Collections.singleton(new DefaultResilienceStrategyConfiguration(TestResilienceStrategy.class, "FooBar")));
 
-    ResilienceStrategy resilienceStrategy = provider.createResilienceStrategy("foo", cacheConfiguration, mock(RecoveryStore.class));
+    ResilienceStrategy<?, ?> resilienceStrategy = provider.createResilienceStrategy("foo", cacheConfiguration, mock(RecoveryStore.class));
     assertThat(resilienceStrategy, instanceOf(TestResilienceStrategy.class));
     assertThat(((TestResilienceStrategy) resilienceStrategy).message, is("FooBar"));
   }
@@ -176,10 +176,10 @@ public class DefaultResilienceStrategyProviderTest {
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     DefaultResilienceStrategyProvider provider = new DefaultResilienceStrategyProvider(configuration);
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
-    when(cacheConfiguration.getServiceConfigurations()).thenReturn(Collections.singleton(new DefaultResilienceStrategyConfiguration((Class) TestResilienceStrategy.class, "FooBar")));
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
+    when(cacheConfiguration.getServiceConfigurations()).thenReturn(Collections.singleton(new DefaultResilienceStrategyConfiguration(TestResilienceStrategy.class, "FooBar")));
 
-    ResilienceStrategy resilienceStrategy = provider.createResilienceStrategy("foo", cacheConfiguration, mock(RecoveryStore.class), mock(CacheLoaderWriter.class));
+    ResilienceStrategy<?, ?> resilienceStrategy = provider.createResilienceStrategy("foo", cacheConfiguration, mock(RecoveryStore.class), mock(CacheLoaderWriter.class));
     assertThat(resilienceStrategy, instanceOf(TestResilienceStrategy.class));
     assertThat(((TestResilienceStrategy) resilienceStrategy).message, is("FooBar"));
   }

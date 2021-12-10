@@ -29,6 +29,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.ehcache.impl.internal.statistics.StatsUtils.findStatisticOnDescendants;
 import static org.terracotta.statistics.ValueStatistics.counter;
@@ -85,16 +86,35 @@ class DefaultTierStatistics implements TierStatistics {
 
   private Map<String, ValueStatistic<?>> createKnownStatistics(String tierName) {
     Map<String, ValueStatistic<?>> knownStatistics = new HashMap<>(7);
-    knownStatistics.put(tierName + ":HitCount", counter(this::getHits));
-    knownStatistics.put(tierName + ":MissCount", counter(this::getMisses));
-    knownStatistics.put(tierName + ":PutCount", counter(this::getPuts));
-    knownStatistics.put(tierName + ":RemovalCount", counter(this::getRemovals));
+    addIfPresent(knownStatistics, tierName + ":HitCount", get, this::getHits);
+    addIfPresent(knownStatistics, tierName + ":MissCount", get, this::getMisses);
+    addIfPresent(knownStatistics, tierName + ":PutCount", put, this::getPuts);
+    addIfPresent(knownStatistics, tierName + ":RemovalCount", remove, this::getRemovals);
+
+    // These two a special because they are used by the cache so they should always be there
     knownStatistics.put(tierName + ":EvictionCount", counter(this::getEvictions));
     knownStatistics.put(tierName + ":ExpirationCount", counter(this::getExpirations));
-    mapping.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":MappingCount", counter(this::getMappings)));
+
+    mapping.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":MappingCount", gauge(this::getMappings)));
     allocatedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":AllocatedByteSize", gauge(this::getAllocatedByteSize)));
     occupiedMemory.ifPresent(longValueStatistic -> knownStatistics.put(tierName + ":OccupiedByteSize", gauge(this::getOccupiedByteSize)));
     return knownStatistics;
+  }
+
+  /**
+   * Add the statistic as a known statistic only if the reference statistic is available. We consider that the reference statistic can only be
+   * an instance of {@code ZeroOperationStatistic} when statistics are disabled.
+   *
+   * @param knownStatistics map of known statistics
+   * @param name the name of the statistic to add
+   * @param reference the reference statistic that should be available for the statistic to be added
+   * @param valueSupplier the supplier that will provide the current value for the statistic
+   * @param <T> type of the supplied value
+   */
+  private static <T extends Number> void addIfPresent(Map<String, ValueStatistic<?>> knownStatistics, String name, OperationStatistic<?> reference, Supplier<T> valueSupplier) {
+    if(!(reference instanceof ZeroOperationStatistic)) {
+      knownStatistics.put(name, counter(valueSupplier));
+    }
   }
 
   @Override

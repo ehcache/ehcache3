@@ -20,6 +20,7 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionService;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Properties;
 
@@ -28,17 +29,32 @@ import java.util.Properties;
  */
 public class MockConnectionService implements ConnectionService {
 
+  private static final String CONNECTION_TYPE = "mock";
   public static Connection mockConnection;
 
   @Override
   public boolean handlesURI(URI uri) {
-    return uri.getScheme().equals("mock");
+    return handlesConnectionType(uri.getScheme());
+  }
+
+  @Override
+  public boolean handlesConnectionType(String s) {
+    return CONNECTION_TYPE.equals(s);
   }
 
   @Override
   public Connection connect(URI uri, Properties properties) throws ConnectionException {
+    return getConnection();
+  }
+
+  @Override
+  public Connection connect(Iterable<InetSocketAddress> iterable, Properties properties) throws ConnectionException {
+    return getConnection();
+  }
+
+  private Connection getConnection() throws ConnectionException {
     if (mockConnection == null) {
-      throw new IllegalStateException("Set mock connection first");
+      throw new ConnectionException(new IllegalStateException("Set mock connection first"));
     }
     return mockConnection;
   }

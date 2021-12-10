@@ -1,0 +1,20 @@
+
+<multi:configurations
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:multi='http://www.ehcache.org/v3/multi'
+  xmlns:ehcache='http://www.ehcache.org/v3'>
+  <multi:configuration identity="foo">
+    <ehcache:config>
+      <ehcache:cache alias="foo">
+        <ehcache:heap>100</ehcache:heap>
+      </ehcache:cache>
+    </ehcache:config>
+  </multi:configuration>
+  <multi:configuration identity="bar">
+    <ehcache:config>
+      <ehcache:cache alias="bar">
+        <ehcache:heap>100</ehcache:heap>
+      </ehcache:cache>
+    </ehcache:config>
+  </multi:configuration>
+</multi:configurations>

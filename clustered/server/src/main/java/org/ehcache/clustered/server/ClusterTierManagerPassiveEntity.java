@@ -113,7 +113,7 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
 
   @Override
   public void createNew() {
-    management.init();
+    management.entityCreated();
     management.sharedPoolsConfigured();
   }
 

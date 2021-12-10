@@ -27,7 +27,6 @@ import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
-import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
@@ -46,12 +45,15 @@ import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHo
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.EntityMessage;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
@@ -100,7 +102,6 @@ import static org.mockito.Mockito.when;
 
 public class ClusterTierActiveEntityTest {
 
-  private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private String defaultStoreName = "store";
@@ -217,7 +218,7 @@ public class ClusterTierActiveEntityTest {
     ServerSideServerStore store = mock(ServerSideServerStore.class);
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
 
-    IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
+    IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = mock(IEntityMessenger.class);
     ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.loadExisting();
@@ -1057,7 +1058,7 @@ public class ClusterTierActiveEntityTest {
 
   @SuppressWarnings("unchecked")
   ServiceRegistry getCustomMockedServiceRegistry(EhcacheStateService stateService, ClientCommunicator clientCommunicator,
-                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService,
+                                                 IEntityMessenger<?, ?> entityMessenger, EntityMonitoringService entityMonitoringService,
                                                  EntityManagementRegistry entityManagementRegistry) {
     return new ServiceRegistry() {
       @Override
@@ -1074,7 +1075,7 @@ public class ClusterTierActiveEntityTest {
         } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
           return (T) entityManagementRegistry;
         } else if (serviceType.isAssignableFrom(OOOMessageHandler.class)) {
-          return (T) new OOOMessageHandlerImpl(message -> true, 1, message -> 0);
+          return (T) new OOOMessageHandlerImpl<>(message -> true, 1, message -> 0);
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
       }
@@ -1140,7 +1141,7 @@ public class ClusterTierActiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-        keySerializerType, valueSerializerType, consistency);
+        keySerializerType, valueSerializerType, consistency, false, false);
     }
   }
 
@@ -1261,8 +1262,8 @@ public class ClusterTierActiveEntityTest {
       } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
-        OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
-        return (T) new OOOMessageHandlerImpl(oooMessageHandlerConfiguration.getTrackerPolicy(),
+        OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
           oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 
@@ -1321,5 +1322,10 @@ public class ClusterTierActiveEntityTest {
     private long getUsed() {
       return used;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T mock(Class<?> clazz) {
+    return Mockito.mock((Class<T>) clazz);
   }
 }

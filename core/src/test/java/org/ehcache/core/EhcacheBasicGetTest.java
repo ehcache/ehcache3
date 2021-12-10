@@ -72,7 +72,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#get(Object)} for
+   * Tests the effect of a {@link Ehcache#get(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.get} throws</li>

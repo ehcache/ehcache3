@@ -1,2 +1,5 @@
 org.ehcache.clustered.client.internal.service.ClusteringServiceFactory
 org.ehcache.clustered.client.internal.store.ClusteredStoreProviderFactory
+org.ehcache.clustered.client.internal.loaderwriter.DelegatingLoaderWriterStoreProviderFactory
+org.ehcache.clustered.client.internal.loaderwriter.ClusteredLoaderWriterStoreProviderFactory
+org.ehcache.clustered.client.internal.loaderwriter.writebehind.ClusteredWriteBehindStoreProviderFactory

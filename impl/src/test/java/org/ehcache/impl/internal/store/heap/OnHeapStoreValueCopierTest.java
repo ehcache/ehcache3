@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.Cache;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -39,12 +40,12 @@ import java.util.function.Supplier;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -73,15 +74,16 @@ public class OnHeapStoreValueCopierTest {
 
   private OnHeapStore<Long, Value> store;
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    Store.Configuration configuration = mock(Store.Configuration.class);
+    Store.Configuration<Long, Value> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Long.class);
     when(configuration.getValueType()).thenReturn(Value.class);
-    when(configuration.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
-    @SuppressWarnings("unchecked")
-    Store.Configuration<Long, Value> config = configuration;
+
+    ExpiryPolicy expiryPolicy = ExpiryPolicyBuilder.noExpiration();
+    when(configuration.getExpiry()).thenReturn(expiryPolicy);
 
     Copier<Value> valueCopier = new Copier<Value>() {
       @Override
@@ -101,7 +103,7 @@ public class OnHeapStoreValueCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, new IdentityCopier<>(), valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, Value>nullStoreEventDispatcher());
+    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, new IdentityCopier<>(), valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, Value>nullStoreEventDispatcher());
   }
 
   @Test
@@ -116,34 +118,36 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testCompute() throws StoreAccessException {
-    final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE);
-    store.compute(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.get());
+  public void testGetAndCompute() throws StoreAccessException {
+    store.put(KEY, VALUE);
+    Store.ValueHolder<Value> computedVal = store.getAndCompute(KEY, (aLong, value) -> VALUE);
+    Store.ValueHolder<Value> oldValue = store.get(KEY);
+    store.getAndCompute(KEY, (aLong, value) -> {
+      compareReadValues(value, oldValue.get());
       return value;
     });
 
-    compareValues(VALUE, firstValue.get());
+    compareValues(VALUE, computedVal.get());
   }
 
   @Test
   public void testComputeWithoutReplaceEqual() throws StoreAccessException {
-    final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE, NOT_REPLACE_EQUAL);
-    store.compute(KEY, (aLong, value) -> {
+    final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, NOT_REPLACE_EQUAL, () -> false);
+    store.computeAndGet(KEY, (aLong, value) -> {
       compareReadValues(value, firstValue.get());
       return value;
-    }, NOT_REPLACE_EQUAL);
+    }, NOT_REPLACE_EQUAL, () -> false);
 
     compareValues(VALUE, firstValue.get());
   }
 
   @Test
   public void testComputeWithReplaceEqual() throws StoreAccessException {
-    final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE, REPLACE_EQUAL);
-    store.compute(KEY, (aLong, value) -> {
+    final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, REPLACE_EQUAL, () -> false);
+    store.computeAndGet(KEY, (aLong, value) -> {
       compareReadValues(value, firstValue.get());
       return value;
-    }, REPLACE_EQUAL);
+    }, REPLACE_EQUAL, () -> false);
 
     compareValues(VALUE, firstValue.get());
   }

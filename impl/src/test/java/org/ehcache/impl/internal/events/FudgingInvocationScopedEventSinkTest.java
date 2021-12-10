@@ -25,12 +25,13 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -46,14 +47,13 @@ public class FudgingInvocationScopedEventSinkTest {
   private Matcher<StoreEvent<String, String>> evictedMatcher = eventType(EventType.EVICTED);
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setUp() {
-    HashSet<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
+    Set<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
     listener = mock(StoreEventListener.class);
     storeEventListeners.add(listener);
-    eventSink = new FudgingInvocationScopedEventSink<String, String>(new HashSet<>(),
-        false, new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) }, storeEventListeners);
-
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    BlockingQueue<FireableStoreEventHolder<String, String>>[] blockingQueues = new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) };
+    eventSink = new FudgingInvocationScopedEventSink<>(new HashSet<>(), false, blockingQueues, storeEventListeners);
   }
 
   @Test

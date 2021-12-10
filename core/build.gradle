@@ -17,9 +17,7 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compile project(':api'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  compile ("org.terracotta:statistics:$parent.statisticVersion") {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-  testCompile project(':spi-tester')
+  api project(':api')
+  api "org.terracotta:statistics:$parent.statisticVersion"
+  testImplementation project(':spi-tester')
 }

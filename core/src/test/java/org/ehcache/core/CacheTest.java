@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -249,22 +250,12 @@ public abstract class CacheTest {
         }
 
         @Override
-        public float hitRate(final long now, final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public long hits() {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
         public long getId() {
           throw new UnsupportedOperationException("Implement me!");
         }
       };
     });
-    when(store.putIfAbsent(eq("foo"), any(String.class))).then(invocation -> {
+    when(store.putIfAbsent(eq("foo"), any(String.class), any(Consumer.class))).then(invocation -> {
       final Object toReturn;
       if ((toReturn = existingValue.get()) == null) {
         existingValue.compareAndSet(null, invocation.getArguments()[1]);
@@ -292,16 +283,6 @@ public abstract class CacheTest {
 
         @Override
         public long lastAccessTime(final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public float hitRate(final long now, final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public long hits() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
@@ -337,7 +318,7 @@ public abstract class CacheTest {
       if (ehcache instanceof Ehcache) {
         ((Ehcache)ehcache).removeHook(hook);
       } else {
-        ((EhcacheWithLoaderWriter)ehcache).removeHook(hook);
+        ((Ehcache)ehcache).removeHook(hook);
       }
       fail();
     } catch (IllegalStateException e) {

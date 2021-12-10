@@ -51,9 +51,28 @@ public interface CacheLoaderWriterProvider extends Service {
    * If the {@code CacheLoaderWriter} instance was user provided {@link java.io.Closeable#close() close}
    * will not be invoked.
    *
+   *
+   * @param alias the {@code Cache} alias in the {@code CacheManager}
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} being released
    * @throws Exception when the release fails
    */
-  void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception;
+  void releaseCacheLoaderWriter(String alias, CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception;
+
+  /**
+   * Returns preconfigured {@link org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration} for the given alias
+   *
+   * @param alias the {@code Cache} alias in the {@code CacheManager}
+   *
+   * @return {@code CacheLoaderWriterConfiguration} configured for the {@code Cache}, otherwise null
+   */
+  CacheLoaderWriterConfiguration getPreConfiguredCacheLoaderWriterConfig(String alias);
+
+  /**
+   * Checks whether  {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter} was provided using jsr api
+   *
+   * @param alias the {@code Cache} alias in the {@code CacheManager}
+   * @return {@code true} if {@code CacheLoaderWriter} was provided using jsr api, otherwise false.
+   */
+  boolean isLoaderJsrProvided(String alias);
 
 }

@@ -15,8 +15,13 @@
  */
 
 plugins {
-  id 'org.asciidoctor.convert' version '1.5.7'
+  id 'org.asciidoctor.convert' version '1.5.3'
   id 'org.kordamp.gradle.livereload' version '0.2.1'
+  id 'com.github.jruby-gradle.base' version '1.5.0'
+}
+
+dependencies {
+  gems 'rubygems:asciidoctor-diagram:1.5.4'
 }
 
 configurations.asciidoctor.dependencies.matching({it.group == 'org.asciidoctor' && it.name == 'asciidoctorj-groovy-dsl'}).all {
@@ -39,7 +44,14 @@ task copyImages(type: Copy) {
 
 asciidoctor.dependsOn copyCSS, copyImages
 
+asciidoctorj {
+  version = '1.5.5'
+}
+
 asciidoctor {
+  dependsOn jrubyPrepare
+  gemPath = jrubyPrepare.outputDir
+  requires = ['asciidoctor-diagram']
   separateOutputDirs = false
   attributes 'skip-front-matter': 'true'
 

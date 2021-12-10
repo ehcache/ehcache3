@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 
 import org.hamcrest.Description;
@@ -362,13 +363,13 @@ public class ChainMapTest {
     int nThreads = 10;
     ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
 
-    List<Future> futures = new ArrayList<>();
+    List<Future<Chain>> futures = new ArrayList<>();
 
     for (int i = 0; i < nThreads ; i++) {
       futures.add(executorService.submit(() -> map.get("key")));
     }
 
-    for (Future f : futures) {
+    for (Future<Chain> f : futures) {
       f.get();
     }
 
@@ -390,6 +391,37 @@ public class ChainMapTest {
 
     assertThat(chainStorage.getActiveChains().size(), is(0));
 
+  }
+
+  @Test
+  public void testRemoveMissingKey() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
+  }
+
+  @Test
+  public void testRemoveSingleChain() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("foo", buffer(1));
+    map.append("bar", buffer(2));
+    assertThat(map.get("foo"), contains(element(1)));
+    assertThat(map.get("bar"), contains(element(2)));
+
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
+    assertThat(map.get("bar"), contains(element(2)));
+  }
+
+  @Test
+  public void testRemoveDoubleChain() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("foo", buffer(1));
+    map.append("foo", buffer(2));
+    assertThat(map.get("foo"), contains(element(1), element(2)));
+
+    map.remove("foo");
+    assertThat(map.get("foo").isEmpty(), is(true));
   }
 
   private static ByteBuffer buffer(int i) {

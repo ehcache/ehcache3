@@ -29,14 +29,16 @@ import org.ehcache.clustered.common.internal.store.SequencedElement;
 import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.offheapstore.paging.OffHeapStorageArea;
 import org.terracotta.offheapstore.paging.PageSource;
+import org.terracotta.offheapstore.storage.BinaryStorageEngine;
 import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.StorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
+import org.terracotta.offheapstore.storage.portability.WriteContext;
+import org.terracotta.offheapstore.util.Factory;
 
 import static java.util.Collections.unmodifiableList;
 
-class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
-
+public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, BinaryStorageEngine {
   private static final int ELEMENT_HEADER_SEQUENCE_OFFSET = 0;
   private static final int ELEMENT_HEADER_LENGTH_OFFSET = 8;
   private static final int ELEMENT_HEADER_NEXT_OFFSET = 12;
@@ -47,16 +49,40 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   private static final int CHAIN_HEADER_TAIL_OFFSET = 8;
   private static final int CHAIN_HEADER_SIZE = 16;
 
+  private static final int DETACHED_CONTIGUOUS_CHAIN_ADDRESS_OFFSET = 0;
+  private static final int DETACHED_CONTIGUOUS_CHAIN_HEADER_SIZE = 8;
+
   private final OffHeapStorageArea storage;
   private final Portability<? super K> keyPortability;
   private final Set<AttachedInternalChain> activeChains = Collections.newSetFromMap(new ConcurrentHashMap<AttachedInternalChain, Boolean>());
+  private final int extendedChainHeaderSize;
+  private final ByteBuffer emptyExtendedChainHeader;
+  private final int totalChainHeaderSize;
 
-  private StorageEngine.Owner owner;
+  protected StorageEngine.Owner owner;
   private long nextSequenceNumber = 0;
+  private volatile boolean hasContiguousChains = false;
 
-  public OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean thief, boolean victim) {
+  public static <K> Factory<? extends ChainStorageEngine<K>>
+  createFactory(final PageSource source,
+                final Portability<? super K> keyPortability,
+                final int minPageSize, final int maxPageSize,
+                final boolean thief, final boolean victim) {
+    return (Factory<OffHeapChainStorageEngine<K>>)() -> new OffHeapChainStorageEngine<>(source, keyPortability,
+        minPageSize, maxPageSize, thief, victim);
+  }
+
+  OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean thief, boolean victim) {
+    this(source, keyPortability, minPageSize, maxPageSize, thief, victim, ByteBuffer.allocate(0));
+  }
+
+  protected OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean thief, boolean victim,
+                                      final ByteBuffer emptyExtendedChainHeader) {
     this.storage = new OffHeapStorageArea(PointerSize.LONG, new StorageOwner(), source, minPageSize, maxPageSize, thief, victim);
     this.keyPortability = keyPortability;
+    this.extendedChainHeaderSize = emptyExtendedChainHeader.remaining();
+    this.emptyExtendedChainHeader = emptyExtendedChainHeader;
+    this.totalChainHeaderSize = CHAIN_HEADER_SIZE + this.extendedChainHeaderSize;
   }
 
   //For tests
@@ -64,11 +90,13 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     return this.activeChains;
   }
 
-  InternalChain newChain(ByteBuffer element) {
+  @Override
+  public InternalChain newChain(ByteBuffer element) {
     return new GenesisLink(element);
   }
 
-  InternalChain newChain(Chain chain) {
+  @Override
+  public InternalChain newChain(Chain chain) {
     return new GenesisLinks(chain);
   }
 
@@ -83,7 +111,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   @Override
   public void attachedMapping(long encoding, int hash, int metadata) {
-    //nothing
+    chainAttached(encoding);
   }
 
   @Override
@@ -118,12 +146,148 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   private ByteBuffer readKeyBuffer(long encoding) {
     int keyLength = readKeySize(encoding);
-    int elemLength = storage.readInt(encoding + CHAIN_HEADER_SIZE + ELEMENT_HEADER_LENGTH_OFFSET);
-    return storage.readBuffer(encoding + CHAIN_HEADER_SIZE + ELEMENT_HEADER_SIZE + elemLength, keyLength);
+    int elemLength = readElementLength(encoding + this.totalChainHeaderSize);
+    return storage.readBuffer(encoding + this.totalChainHeaderSize + ELEMENT_HEADER_SIZE + elemLength, keyLength);
   }
 
-  private int readKeyHash(long encoding) {
+  @Override
+  public int readKeyHash(long encoding) {
     return storage.readInt(encoding + CHAIN_HEADER_KEY_HASH_OFFSET);
+  }
+
+  private int readElementLength(long element) {
+    // The most significant bit (MSB) of element length is used to signify whether an element is explicitly allocated
+    // (msb clear) or part of a contiguous chain (msb set). Clear the msb when returning length.
+    return Integer.MAX_VALUE & storage.readInt(element + ELEMENT_HEADER_LENGTH_OFFSET);
+  }
+
+  @Override
+  public ByteBuffer readBinaryKey(long encoding) {
+    return readKeyBuffer(encoding);
+  }
+
+  @Override
+  public ByteBuffer readBinaryValue(long chain) {
+    // first get total element size and allocate buffer
+    long element = chain + this.totalChainHeaderSize;
+    int totalLength = DETACHED_CONTIGUOUS_CHAIN_HEADER_SIZE;
+    do {
+      totalLength += ELEMENT_HEADER_SIZE + readElementLength(element);
+      element = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
+    } while (element != chain);
+
+    final ByteBuffer detachedContiguousBuffer = ByteBuffer.allocate(totalLength);
+    // one way for layers above to extract encoding is to put the encoding of the chain address in the value
+    detachedContiguousBuffer.putLong(chain);
+
+    // now add the elements to the buffer
+    element = chain + this.totalChainHeaderSize;
+    do {
+      final int startPosition = detachedContiguousBuffer.position();
+      detachedContiguousBuffer.put(storage.readBuffer(element, ELEMENT_HEADER_SIZE + readElementLength(element)));
+      detachedContiguousBuffer.mark();
+      detachedContiguousBuffer.putLong(startPosition + ELEMENT_HEADER_NEXT_OFFSET, -1L);
+      detachedContiguousBuffer.reset();
+      element = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
+    } while (element != chain);
+    return (ByteBuffer)detachedContiguousBuffer.flip();
+  }
+
+  @Override
+  public boolean equalsBinaryKey(ByteBuffer binaryKey, long chain) {
+    return binaryKey.equals(readKeyBuffer(chain));
+  }
+
+  @Override
+  public Long writeBinaryMapping(ByteBuffer binaryKey, ByteBuffer binaryValue, int hash, int metadata) {
+    final int totalSize = binaryKey.remaining() +
+                          (binaryValue.remaining() - DETACHED_CONTIGUOUS_CHAIN_HEADER_SIZE)
+                          + this.totalChainHeaderSize;
+    long chain = storage.allocate(totalSize);
+    if (chain < 0) {
+      return null;
+    }
+    if (binaryValue.remaining() < DETACHED_CONTIGUOUS_CHAIN_HEADER_SIZE + ELEMENT_HEADER_SIZE) {
+      // a chain must have at least one element. Something is wrong
+      throw new AssertionError("Invalid chain data detected. Empty links");
+    }
+    binaryValue.mark();
+    binaryKey.mark();
+    try {
+      // extract first element
+      binaryValue.position(DETACHED_CONTIGUOUS_CHAIN_HEADER_SIZE);
+      final ByteBuffer firstElementWithHeader = binaryValue.slice();
+      final int firstElementWithHeaderSize = ELEMENT_HEADER_SIZE +
+                                             (Integer.MAX_VALUE & firstElementWithHeader.getInt(ELEMENT_HEADER_LENGTH_OFFSET));
+      firstElementWithHeader.limit(firstElementWithHeaderSize);
+      binaryValue.position(binaryValue.position() + firstElementWithHeaderSize);
+
+      // mark relevant locations
+      final int keySize = binaryKey.remaining();
+      final long firstElementLocation = chain + this.totalChainHeaderSize;
+      final long keyLocation = firstElementLocation + firstElementWithHeaderSize;
+      final long restOfElementsLocation = keyLocation + keySize;
+
+      // build element length list
+      final ByteBuffer restOfElementsBuffer = binaryValue.slice();
+      final List<Integer> restOfElementLengthsWithHeader = new ArrayList<>();
+      while (restOfElementsBuffer.hasRemaining()) {
+        final int skipLength = ELEMENT_HEADER_SIZE + (Integer.MAX_VALUE & restOfElementsBuffer.getInt(
+            restOfElementsBuffer.position() + ELEMENT_HEADER_LENGTH_OFFSET));
+        restOfElementLengthsWithHeader.add(skipLength);
+        restOfElementsBuffer.position(restOfElementsBuffer.position() + skipLength);
+      }
+      restOfElementsBuffer.rewind();
+
+      // now write all the data
+      storage.writeInt(chain + CHAIN_HEADER_KEY_HASH_OFFSET, hash);
+      storage.writeInt(chain + CHAIN_HEADER_KEY_LENGTH_OFFSET, Integer.MIN_VALUE | keySize);
+      storage.writeBuffer(keyLocation, binaryKey);
+      storage.writeBuffer(firstElementLocation, firstElementWithHeader);
+      storage.writeBuffer(chain + CHAIN_HEADER_SIZE, emptyExtendedChainHeader.duplicate());
+      if (restOfElementsBuffer.hasRemaining()) {
+        storage.writeBuffer(restOfElementsLocation, restOfElementsBuffer);
+      }
+
+      // now adjust offsets
+      if (restOfElementLengthsWithHeader.size() <= 0) {
+        // we have only one element
+        storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, firstElementLocation);
+        storage.writeLong(firstElementLocation + ELEMENT_HEADER_NEXT_OFFSET, chain);
+      } else {
+        // recovering the buffer into a contiguous chain..denote this..
+        this.hasContiguousChains = true;
+        storage.writeLong(firstElementLocation + ELEMENT_HEADER_NEXT_OFFSET, restOfElementsLocation);
+        long currentLocation = restOfElementsLocation;
+        int i = 0;
+        for (; i < restOfElementLengthsWithHeader.size() - 1; i++) {
+          final int elemLength = restOfElementLengthsWithHeader.get(i) - ELEMENT_HEADER_SIZE;
+          final int adjustedLength = Integer.MIN_VALUE | elemLength;
+          long nextLocation = currentLocation + elemLength + ELEMENT_HEADER_SIZE;
+          storage.writeLong(currentLocation + ELEMENT_HEADER_NEXT_OFFSET, nextLocation);
+          // denote that this is not an allocated chunk
+          storage.writeInt(currentLocation + ELEMENT_HEADER_LENGTH_OFFSET, adjustedLength);
+          currentLocation = nextLocation;
+        }
+        final int adjustedLength = Integer.MIN_VALUE | (restOfElementLengthsWithHeader.get(i) - ELEMENT_HEADER_SIZE);
+        storage.writeLong(currentLocation + ELEMENT_HEADER_NEXT_OFFSET, chain);
+        storage.writeInt(currentLocation + ELEMENT_HEADER_LENGTH_OFFSET, adjustedLength);
+        storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, currentLocation);
+      }
+      return chain;
+    } finally {
+      binaryKey.reset();
+      binaryValue.reset();
+    }
+  }
+
+  public static long extractChainAddressFromValue(ByteBuffer valueBuffer) {
+    return valueBuffer.getLong(DETACHED_CONTIGUOUS_CHAIN_ADDRESS_OFFSET);
+  }
+
+  @Override
+  public Long writeBinaryMapping(ByteBuffer[] byteBuffers, ByteBuffer[] byteBuffers1, int i, int i1) {
+    throw new AssertionError("Operation Not supported");
   }
 
   private int readKeySize(long encoding) {
@@ -175,6 +339,53 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     return storage.shrink();
   }
 
+  protected ByteBuffer getExtensionHeader(long chainAddress) {
+    checkExtensionHeaderExists();
+    return storage.readBuffer(toExtensionAddress(chainAddress), extendedChainHeaderSize);
+  }
+
+  protected WriteContext getExtensionWriteContext(long chainAddress) {
+    checkExtensionHeaderExists();
+    return new WriteContext() {
+
+      @Override
+      public void setLong(int offset, long value) {
+        if (offset < 0 || offset >= extendedChainHeaderSize) {
+          throw new IllegalArgumentException("Offset not within bounds 0 >= " + offset + " < " + extendedChainHeaderSize);
+        } else {
+          storage.writeLong(toExtensionAddress(chainAddress) + offset, value);
+        }
+      }
+
+      @Override
+      public void flush() {
+        //no-op
+      }
+    };
+  }
+
+  protected void chainAttached(long chainAddress) {
+  }
+
+  protected void chainFreed(long chainAddress) {
+  }
+
+  protected void chainModified(long chainAddress) {
+  }
+
+  protected void chainMoved(long fromChainAddress, long toChainAddress) {
+  }
+
+  private void checkExtensionHeaderExists() {
+    if (extendedChainHeaderSize <= 0) {
+      throw new AssertionError("No extended header support for this storage engine");
+    }
+  }
+
+  private long toExtensionAddress(long chainAddress) {
+    return chainAddress + CHAIN_HEADER_SIZE;
+  }
+
   private static class DetachedChain implements Chain {
 
     private final List<Element> elements;
@@ -206,7 +417,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   }
 
   /**
-   * Represents mode of formation of a chain before the storage engine writes the chain mapping
+   * Represents the initial form of a chain before the storage engine writes the chain mapping
    * to the underlying map against the key.
    */
   private static abstract class GenesisChain implements InternalChain {
@@ -221,7 +432,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     }
 
     @Override
-    public boolean replace(Chain expected, Chain replacement) {
+    public ReplaceResponse replace(Chain expected, Chain replacement) {
       throw new AssertionError("Chain not in storage yet. Cannot be mutated");
     }
 
@@ -234,7 +445,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   }
 
   /**
-   * Represents a simple genesis chain that contains a single link
+   * Represents a simple {@link GenesisChain} that contains a single link.
    */
   private static class GenesisLink extends GenesisChain {
     private final Element element;
@@ -250,8 +461,8 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   }
 
   /**
-   * Represents a more complex genesis chain that contains multiple links represented itself
-   * as a {@link Chain}
+   * Represents a more complex {@link GenesisChain} that contains multiple links represented itself
+   * as a {@link Chain}.
    */
   private static class GenesisLinks extends GenesisChain {
     private final Chain chain;
@@ -272,6 +483,10 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
      * Location of the chain structure, not of the first element.
      */
     private long chain;
+    /**
+     * track if this chain is modified so that we can signal on close
+     */
+    private boolean chainModified = false;
 
     AttachedInternalChain(long address) {
       this.chain = address;
@@ -282,7 +497,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     public Chain detach() {
       List<Element> buffers = new ArrayList<>();
 
-      long element = chain + CHAIN_HEADER_SIZE;
+      long element = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
       do {
         buffers.add(element(readElementBuffer(element), readElementSequenceNumber(element)));
         element = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
@@ -297,6 +512,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       if (newTail < 0) {
         return false;
       } else {
+        this.chainModified = true;
         long oldTail = storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET);
         storage.writeLong(newTail + ELEMENT_HEADER_NEXT_OFFSET, chain);
         storage.writeLong(oldTail + ELEMENT_HEADER_NEXT_OFFSET, newTail);
@@ -306,7 +522,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     }
 
     @Override
-    public boolean replace(Chain expected, Chain replacement) {
+    public ReplaceResponse replace(Chain expected, Chain replacement) {
       if (expected.isEmpty()) {
         throw new IllegalArgumentException("Empty expected sequence");
       } else if (replacement.isEmpty()) {
@@ -316,14 +532,14 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       }
     }
 
-    public boolean removeHeader(Chain header) {
-      long suffixHead = chain + CHAIN_HEADER_SIZE;
+    public ReplaceResponse removeHeader(Chain header) {
+      long suffixHead = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
       long prefixTail;
 
       Iterator<Element> iterator = header.iterator();
       do {
         if (!compare(iterator.next(), suffixHead)) {
-          return true;
+          return ReplaceResponse.NO_MATCH;
         }
         prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
@@ -335,16 +551,17 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
         if (!owner.evict(slot, true)) {
           throw new AssertionError("Unexpected failure to evict slot " + slot);
         }
-        return true;
+        return ReplaceResponse.EXACT_MATCH_AND_REPLACED;
       } else {
         int hash = readKeyHash(chain);
-        int elemSize = storage.readInt(suffixHead + ELEMENT_HEADER_LENGTH_OFFSET);
+        int elemSize = readElementLength(suffixHead);
         ByteBuffer elemBuffer = storage.readBuffer(suffixHead + ELEMENT_HEADER_SIZE, elemSize);
         Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, elemBuffer);
         if (newChainAddress == null) {
-          return false;
+          return ReplaceResponse.MATCH_BUT_NOT_REPLACED;
         } else {
           try (AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress)) {
+            newChain.chainModified = true;
             //copy remaining elements from old chain (by reference)
             long next = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
             long tail = storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET);
@@ -354,8 +571,9 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
             if (owner.updateEncoding(hash, chain, newChainAddress, ~0)) {
               storage.writeLong(prefixTail + ELEMENT_HEADER_NEXT_OFFSET, chain);
+              chainMoved(chain, newChainAddress);
               free();
-              return true;
+              return ReplaceResponse.MATCH_AND_REPLACED;
             } else {
               newChain.free();
               throw new AssertionError("Encoding update failure - impossible!");
@@ -365,14 +583,14 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       }
     }
 
-    public boolean replaceHeader(Chain expected, Chain replacement) {
-      long suffixHead = chain + CHAIN_HEADER_SIZE;
+    public ReplaceResponse replaceHeader(Chain expected, Chain replacement) {
+      long suffixHead = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
       long prefixTail;
 
       Iterator<Element> expectedIt = expected.iterator();
       do {
         if (!compare(expectedIt.next(), suffixHead)) {
-          return true;
+          return ReplaceResponse.NO_MATCH;
         }
         prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
@@ -381,18 +599,22 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       int hash = readKeyHash(chain);
       Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, replacement.iterator());
       if (newChainAddress == null) {
-        return false;
+        return ReplaceResponse.MATCH_BUT_NOT_REPLACED;
       } else {
         try (AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress)) {
+          newChain.chainModified = true;
+          boolean exactMatch = true;
           //copy remaining elements from old chain (by reference)
           if (suffixHead != chain) {
+            exactMatch = false;
             newChain.append(suffixHead, storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET));
           }
 
           if (owner.updateEncoding(hash, chain, newChainAddress, ~0)) {
             storage.writeLong(prefixTail + ELEMENT_HEADER_NEXT_OFFSET, chain);
+            chainMoved(chain, newChainAddress);
             free();
-            return true;
+            return exactMatch ? ReplaceResponse.EXACT_MATCH_AND_REPLACED : ReplaceResponse.MATCH_AND_REPLACED;
           } else {
             newChain.free();
             throw new AssertionError("Encoding update failure - impossible!");
@@ -402,14 +624,21 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     }
 
     private void free() {
-      long element = storage.readLong(chain + CHAIN_HEADER_SIZE + ELEMENT_HEADER_NEXT_OFFSET);
-      storage.free(chain);
+      // signal dependent engines to act on this free before freeing the storage
+      chainFreed(chain);
+      chainModified = false;
 
+      long element = storage.readLong(chain + OffHeapChainStorageEngine.this.totalChainHeaderSize + ELEMENT_HEADER_NEXT_OFFSET);
       while (element != chain) {
         long next = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
-        storage.free(element);
+        if (storage.readInt(element + ELEMENT_HEADER_LENGTH_OFFSET) >= 0) {
+          // do not free blocks contiguous to chain
+          storage.free(element);
+        }
         element = next;
       }
+
+      storage.free(chain);
     }
 
     private long createElement(ByteBuffer element) {
@@ -436,6 +665,28 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       storage.writeLong(oldTail + ELEMENT_HEADER_NEXT_OFFSET, head);
       storage.writeLong(tail + ELEMENT_HEADER_NEXT_OFFSET, chain);
       storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, tail);
+
+      if (OffHeapChainStorageEngine.this.hasContiguousChains) {
+        // we will have to move out any contiguous elements in the old chain as it is going to be freed soon
+        long current = head;
+        long prev = oldTail;
+        while (current != chain) {
+          final long next = storage.readLong(current + ELEMENT_HEADER_NEXT_OFFSET);
+          final int elemLength = storage.readInt(current + ELEMENT_HEADER_LENGTH_OFFSET);
+          if (elemLength < 0) {
+            final int elemLengthWithHeader = (Integer.MAX_VALUE & elemLength) + ELEMENT_HEADER_SIZE;
+            final long element = storage.allocate(elemLengthWithHeader);
+            storage.writeBuffer(element, storage.readBuffer(current, elemLengthWithHeader));
+            storage.writeInt(element + ELEMENT_HEADER_LENGTH_OFFSET, elemLengthWithHeader - ELEMENT_HEADER_SIZE);
+            storage.writeLong(prev + ELEMENT_HEADER_NEXT_OFFSET, element);
+            prev = element;
+          } else {
+            prev = current;
+          }
+          current = next;
+        }
+        storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, prev);
+      }
     }
 
     private Element element(ByteBuffer attachedBuffer, final long sequence) {
@@ -456,7 +707,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     }
 
     private ByteBuffer readElementBuffer(long address) {
-      int elemLength = storage.readInt(address + ELEMENT_HEADER_LENGTH_OFFSET);
+      int elemLength = readElementLength(address);
       return storage.readBuffer(address + ELEMENT_HEADER_SIZE, elemLength);
     }
 
@@ -467,19 +718,31 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     public void moved(long from, long to) {
       if (from == chain) {
         chain = to;
+        if (from != to) {
+          chainMoved(from, to);
+        }
       }
     }
 
     @Override
     public void close() {
-      OffHeapChainStorageEngine.this.activeChains.remove(this);
+      try {
+        if (this.chainModified) {
+          this.chainModified = false;
+          chainModified(chain);
+        }
+      } finally {
+        // must remove even if chain modified threw an unexpected exception
+        OffHeapChainStorageEngine.this.activeChains.remove(this);
+      }
     }
   }
 
-  private void writeElement(long address, ByteBuffer element) {
+  private long writeElement(long address, ByteBuffer element) {
     storage.writeLong(address + ELEMENT_HEADER_SEQUENCE_OFFSET, nextSequenceNumber++);
     storage.writeInt(address + ELEMENT_HEADER_LENGTH_OFFSET, element.remaining());
     storage.writeBuffer(address + ELEMENT_HEADER_SIZE, element.duplicate());
+    return address;
   }
 
   private Long createAttachedChain(K key, int hash, GenesisChain value) {
@@ -488,15 +751,18 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   }
 
   private Long createAttachedChain(ByteBuffer keyBuffer, int hash, ByteBuffer elemBuffer) {
-    long chain = storage.allocate(keyBuffer.remaining() + elemBuffer.remaining() + CHAIN_HEADER_SIZE + ELEMENT_HEADER_SIZE);
+    long chain = storage.allocate(keyBuffer.remaining() + elemBuffer.remaining() + this.totalChainHeaderSize + ELEMENT_HEADER_SIZE);
     if (chain < 0) {
       return null;
     }
     int keySize = keyBuffer.remaining();
     storage.writeInt(chain + CHAIN_HEADER_KEY_HASH_OFFSET, hash);
     storage.writeInt(chain + CHAIN_HEADER_KEY_LENGTH_OFFSET, Integer.MIN_VALUE | keySize);
-    storage.writeBuffer(chain + CHAIN_HEADER_SIZE + ELEMENT_HEADER_SIZE + elemBuffer.remaining(), keyBuffer);
-    long element = chain + CHAIN_HEADER_SIZE;
+    storage.writeBuffer(chain + this.totalChainHeaderSize + ELEMENT_HEADER_SIZE + elemBuffer.remaining(), keyBuffer);
+    if (extendedChainHeaderSize > 0) {
+      storage.writeBuffer(chain + CHAIN_HEADER_SIZE, emptyExtendedChainHeader.duplicate());
+    }
+    long element = chain + this.totalChainHeaderSize;
     writeElement(element, elemBuffer);
     storage.writeLong(element + ELEMENT_HEADER_NEXT_OFFSET, chain);
     storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, element);
@@ -566,8 +832,8 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
           return false;
         } else {
           long tail = storage.readLong(to + CHAIN_HEADER_TAIL_OFFSET);
-          if (tail == from + CHAIN_HEADER_SIZE) {
-            tail = to + CHAIN_HEADER_SIZE;
+          if (tail == from + OffHeapChainStorageEngine.this.totalChainHeaderSize) {
+            tail = to + OffHeapChainStorageEngine.this.totalChainHeaderSize;
             storage.writeLong(to + CHAIN_HEADER_TAIL_OFFSET, tail);
           }
           storage.writeLong(tail + ELEMENT_HEADER_NEXT_OFFSET, to);
@@ -584,7 +850,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
           storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, to);
         }
 
-        long element = chain + CHAIN_HEADER_SIZE;
+        long element = chain + OffHeapChainStorageEngine.this.totalChainHeaderSize;
         while (element != chain) {
           long next = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
           if (next == from) {
@@ -602,9 +868,9 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     public int sizeOf(long address) {
       if (isHead(address)) {
         int keySize = readKeySize(address);
-        return CHAIN_HEADER_SIZE + keySize + sizeOf(address + CHAIN_HEADER_SIZE);
+        return keySize + OffHeapChainStorageEngine.this.totalChainHeaderSize + sizeOf(address + OffHeapChainStorageEngine.this.totalChainHeaderSize);
       } else {
-        int elementSize = storage.readInt(address + ELEMENT_HEADER_LENGTH_OFFSET);
+        int elementSize = readElementLength(address);
         return ELEMENT_HEADER_SIZE + elementSize;
       }
     }

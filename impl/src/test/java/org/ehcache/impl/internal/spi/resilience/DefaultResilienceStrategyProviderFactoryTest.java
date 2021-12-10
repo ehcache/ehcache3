@@ -21,13 +21,12 @@ import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
 
 public class DefaultResilienceStrategyProviderFactoryTest {
 
@@ -49,7 +48,7 @@ public class DefaultResilienceStrategyProviderFactoryTest {
 
   @Test
   public void testSpecifiedConfigIsPassed() {
-    ResilienceStrategy resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<?, ?> resilienceStrategy = mock(ResilienceStrategy.class);
 
     DefaultResilienceStrategyProviderConfiguration configuration = new DefaultResilienceStrategyProviderConfiguration();
     configuration.setDefaultResilienceStrategy(resilienceStrategy);

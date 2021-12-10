@@ -24,42 +24,84 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.InternalCache;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.statistics.Sample;
-import org.terracotta.statistics.SampledStatistic;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.lang.Thread.sleep;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.*;
 
+@RunWith(Parameterized.class)
 public class DefaultCacheStatisticsTest {
+
+  /**
+   * Statistics can be disabled on the stores. However, the cache statistics should still work nicely when it's the case.
+   *
+   * @return if store statistics are enabled or disabled
+   */
+  @Parameterized.Parameters
+  public static Object[] data() {
+    return new Object[] { Boolean.FALSE, Boolean.TRUE };
+  }
+
+  private static final String[][] KNOWN_STATISTICS = {
+    {
+      // Disabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:RemovalCount",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:MappingCount"
+    },
+    {
+      // Enabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:RemovalCount",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:HitCount",
+      "OnHeap:MappingCount",
+      "OnHeap:MissCount",
+      "OnHeap:PutCount",
+      "OnHeap:RemovalCount"
+    }
+  };
 
   private static final int TIME_TO_EXPIRATION = 100;
 
+  private final boolean enableStoreStatistics;
   private DefaultCacheStatistics cacheStatistics;
   private CacheManager cacheManager;
   private InternalCache<Long, String> cache;
   private final TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
-  private final AtomicLong latency = new AtomicLong();
   private final List<CacheEvent<? extends Long, ? extends String>> expirations = new ArrayList<>();
-  private final Map<Long, String> sor = new HashMap<>();
+
+  public DefaultCacheStatisticsTest(boolean enableStoreStatistics) {
+    this.enableStoreStatistics = enableStoreStatistics;
+  }
 
   @Before
   public void before() {
@@ -68,30 +110,11 @@ public class DefaultCacheStatisticsTest {
       .unordered()
       .synchronous();
 
-    // We need a loaderWriter to easily test latencies, to simulate a latency when loading from a SOR.
-    CacheLoaderWriter<Long, String> loaderWriter = new CacheLoaderWriter<Long, String>() {
-      @Override
-      public String load(Long key) throws Exception {
-        sleep(latency.get()); // latency simulation
-        return sor.get(key);
-      }
-
-      @Override
-      public void write(Long key, String value) {
-        sor.put(key, value);
-      }
-
-      @Override
-      public void delete(Long key) {
-        sor.remove(key);
-      }
-    };
-
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .withLoaderWriter(loaderWriter)
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
         .add(cacheEventListenerConfiguration)
+        .add(new StoreStatisticsConfiguration(enableStoreStatistics))
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -101,9 +124,7 @@ public class DefaultCacheStatisticsTest {
 
     cache = (InternalCache<Long, String>) cacheManager.getCache("aCache", Long.class, String.class);
 
-    cacheStatistics = new DefaultCacheStatistics(cache, new DefaultStatisticsServiceConfiguration()
-      .withLatencyHistorySize(2)
-      .withLatencyHistoryWindow(400, MILLISECONDS), timeSource);
+    cacheStatistics = new DefaultCacheStatistics(cache);
   }
 
   @After
@@ -115,11 +136,7 @@ public class DefaultCacheStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys("Cache:HitCount", "Cache:MissCount",
-      "Cache:RemovalCount", "Cache:EvictionCount", "Cache:PutCount",
-      "OnHeap:ExpirationCount", "Cache:ExpirationCount", "OnHeap:HitCount", "OnHeap:MissCount",
-      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount",
-      "OnHeap:MappingCount", "Cache:GetLatency");
+    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(KNOWN_STATISTICS[enableStoreStatistics ? 1 : 0]);
   }
 
   @Test
@@ -185,7 +202,7 @@ public class DefaultCacheStatisticsTest {
     cache.put(1L, "a");
     assertThat(expirations).isEmpty();
     timeSource.advanceTime(TIME_TO_EXPIRATION);
-    assertThat(cache.get(1L)).isEqualTo("a");
+    assertThat(cache.get(1L)).isNull();
     assertThat(expirations).hasSize(1);
     assertThat(expirations.get(0).getKey()).isEqualTo(1L);
     assertThat(cacheStatistics.getCacheExpirations()).isEqualTo(1L);
@@ -193,71 +210,27 @@ public class DefaultCacheStatisticsTest {
   }
 
   @Test
-  public void getCacheAverageGetTime() throws Exception {
-    cache.get(1L);
-    assertThat(cacheStatistics.getCacheAverageGetTime()).isGreaterThan(0);
-  }
+  public void registerDerivedStatistics() {
+    AtomicBoolean endCalled = new AtomicBoolean();
+    ChainedOperationObserver<CacheOperationOutcomes.PutOutcome> derivedStatistic = new ChainedOperationObserver<CacheOperationOutcomes.PutOutcome>() {
 
-  @Test
-  public void getCacheAveragePutTime() throws Exception {
+      @Override
+      public void begin(long time) {
+
+      }
+
+      @Override
+      public void end(long time, long latency, CacheOperationOutcomes.PutOutcome result) {
+        endCalled.set(true);
+        assertThat(result).isEqualTo(CacheOperationOutcomes.PutOutcome.PUT);
+      }
+    };
+
+    cacheStatistics.registerDerivedStatistic(CacheOperationOutcomes.PutOutcome.class, "put", derivedStatistic);
+
     cache.put(1L, "a");
-    assertThat(cacheStatistics.getCacheAveragePutTime()).isGreaterThan(0);
-  }
 
-  @Test
-  public void getCacheAverageRemoveTime() throws Exception {
-    cache.remove(1L);
-    assertThat(cacheStatistics.getCacheAverageRemoveTime()).isGreaterThan(0);
-  }
-
-  @Test
-  public void getCacheGetLatencyHistory() throws Exception {
-    sor.put(1L, "a");
-    sor.put(2L, "b");
-    sor.put(3L, "c");
-    sor.put(4L, "d");
-    sor.put(5L, "e");
-
-    SampledStatistic<Long> latencyHistory = cacheStatistics.getCacheGetLatencyHistory();
-    List<Sample<Long>> history = latencyHistory.history();
-    assertThat(history).isEmpty();
-
-    latency.set(100);
-    cache.get(1L);
-
-    latency.set(50);
-    cache.get(2L);
-
-    history = latencyHistory.history();
-    assertThat(history).hasSize(1);
-    assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(100L));
-
-    sleep(300); // next window
-
-    latency.set(50);
-    cache.get(3L);
-
-    latency.set(150);
-    cache.get(4L);
-
-    history = latencyHistory.history();
-    assertThat(history).hasSize(2);
-    assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(100L));
-    assertThat(history.get(1).getSample()).isGreaterThanOrEqualTo(nanos(150L));
-
-    sleep(300); // next window, first sample it discarded since history size is 2
-
-    latency.set(200);
-    cache.get(5L);
-
-    history = latencyHistory.history();
-    assertThat(history).hasSize(2);
-    assertThat(history.get(0).getSample()).isGreaterThanOrEqualTo(nanos(150L));
-    assertThat(history.get(1).getSample()).isGreaterThanOrEqualTo(nanos(200L));
-  }
-
-  private long nanos(long millis) {
-    return NANOSECONDS.convert(millis, MILLISECONDS);
+    assertThat(endCalled.get()).isTrue();
   }
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {

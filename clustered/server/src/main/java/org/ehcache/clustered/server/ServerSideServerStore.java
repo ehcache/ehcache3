@@ -31,4 +31,5 @@ public interface ServerSideServerStore extends ServerStore, MapInternals {
   ServerStoreConfiguration getStoreConfiguration();
   List<Set<Long>> getSegmentKeySets();
   void put(long key, Chain chain);
+  void remove(long key);
 }

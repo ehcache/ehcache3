@@ -91,7 +91,7 @@ public class DefaultResilienceStrategyProvider implements ResilienceStrategyProv
       this.defaultConfiguration = dflt;
     }
 
-
+    @SuppressWarnings("unchecked")
     public <K, V> ResilienceStrategy<K, V> create(String alias, DefaultResilienceStrategyConfiguration config,
                                                   RecoveryStore<K> recoveryStore, CacheLoaderWriter<? super K, V> loaderWriter) {
       if (config == null) {
@@ -106,6 +106,7 @@ public class DefaultResilienceStrategyProvider implements ResilienceStrategyProv
       }
     }
 
+    @SuppressWarnings("unchecked")
     public <K, V> ResilienceStrategy<K, V> create(String alias, DefaultResilienceStrategyConfiguration config, RecoveryStore<K> recoveryStore) {
       if (config == null) {
         DefaultResilienceStrategyConfiguration preconfigured = (DefaultResilienceStrategyConfiguration) getPreconfigured(alias);

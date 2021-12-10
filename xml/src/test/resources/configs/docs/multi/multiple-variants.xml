@@ -1,0 +1,47 @@
+<multi:configurations
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns='http://www.ehcache.org/v3'
+  xmlns:multi='http://www.ehcache.org/v3/multi'
+  xsi:schemaLocation='http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core.xsd
+  http://www.ehcache.org/v3/multi http://www.ehcache.org/schema/ehcache-multi.xsd'>
+
+  <!-- tag::variants[] -->
+  <multi:configuration identity="foo-manager">
+    <multi:variant type="heap">
+      <config>
+        <cache alias="foo">
+          <key-type>java.lang.String</key-type>
+          <value-type>java.lang.String</value-type>
+          <resources>
+            <heap unit="entries">1000</heap>
+          </resources>
+        </cache>
+      </config>
+    </multi:variant>
+    <multi:variant type="offheap">
+      <config>
+        <cache alias="foo">
+          <key-type>java.lang.String</key-type>
+          <value-type>java.lang.String</value-type>
+          <resources>
+            <heap unit="entries">1000</heap>
+            <offheap unit="MB">128</offheap>
+          </resources>
+        </cache>
+      </config>
+    </multi:variant>
+  </multi:configuration>
+  <!-- end::variants[] -->
+
+  <multi:configuration identity="bar-manager">
+    <config>
+      <cache alias="bar">
+        <key-type>java.lang.String</key-type>
+        <value-type>java.lang.String</value-type>
+        <resources>
+          <heap unit="entries">1000</heap>
+        </resources>
+      </cache>
+    </config>
+  </multi:configuration>
+</multi:configurations>

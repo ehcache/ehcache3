@@ -20,12 +20,16 @@ apply plugin: EhOsgi
 apply plugin: EhPomMangle
 
 dependencies {
-  compile project(':impl'), project(':xml')
-  compile group: 'javax.transaction', name: 'jta', version: '1.1'
-  testCompile project(path: ':core-spi-test')
-  compile (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+  api group: 'javax.transaction', name: 'jta', version: '1.1'
+  api project(':core')
+  implementation project(':impl')
+  implementation project(':xml')
+  implementation "org.terracotta:statistics:$parent.statisticVersion"
+  implementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
+  testImplementation project(':core-spi-test')
+  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 // For EhPomMangle

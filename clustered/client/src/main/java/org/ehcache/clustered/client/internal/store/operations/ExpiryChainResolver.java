@@ -19,6 +19,8 @@ package org.ehcache.clustered.client.internal.store.operations;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
@@ -32,6 +34,8 @@ import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
  * @param <V> value type
  */
 public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ExpiryChainResolver.class);
 
   private final ExpiryPolicy<? super K, ? super V> expiry;
 
@@ -58,7 +62,7 @@ public class ExpiryChainResolver<K, V> extends ChainResolver<K, V> {
    * @return the equivalent put operation
    */
   @Override
-  protected PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
+  public PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
     final Result<K, V> newValue = operation.apply(existing);
     if (newValue == null) {
       return null;

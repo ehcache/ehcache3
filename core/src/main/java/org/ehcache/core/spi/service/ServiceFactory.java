@@ -32,6 +32,25 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public interface ServiceFactory<T extends Service> {
 
   /**
+   * Returns {@code true} if this factory's services are mandatory in all environments.
+   *
+   * @return {@code true} if this factory's services are mandatory
+   */
+  default boolean isMandatory() {
+    return false;
+  }
+
+  /**
+   * Returns an optional ranking integer is used to choose a service factory when multiple factories are available for
+   * the same service type. <em>Higher ranking value service factories are preferred.</em>
+   *
+   * @return a factory ranking value
+   */
+  default int rank() {
+    return 1;
+  }
+
+  /**
    * Creates an instance of the service using the passed in {@link ServiceCreationConfiguration}.
    * <p>
    * Note that a {@code null} configuration may be supported or even required by a service implementation.

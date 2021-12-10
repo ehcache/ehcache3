@@ -81,6 +81,9 @@ public class StatefulSerializerTest {
   }
 
   public static class Person implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     public final String name;
     public final int age;
 

@@ -20,6 +20,8 @@ import java.io.Serializable;
 
 public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage implements Serializable {
 
+  private static final long serialVersionUID = -6701802926010996981L;
+
   private final String cacheId;
   private final String mapId;
 
@@ -38,6 +40,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
 
   private static abstract class KeyBasedMessage extends StateRepositoryOpMessage {
 
+    private static final long serialVersionUID = 2338704755924839309L;
+
     private final Object key;
 
     private KeyBasedMessage(final String cacheId, final String mapId, final Object key) {
@@ -53,6 +57,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
 
   public static class GetMessage extends KeyBasedMessage {
 
+    private static final long serialVersionUID = 7263513962868446470L;
+
     public GetMessage(final String cacheId, final String mapId, final Object key) {
       super(cacheId, mapId, key);
     }
@@ -64,6 +70,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
   }
 
   public static class PutIfAbsentMessage extends KeyBasedMessage {
+
+    private static final long serialVersionUID = 2743653481411126124L;
 
     private final Object value;
 
@@ -83,6 +91,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
   }
 
   public static class EntrySetMessage extends StateRepositoryOpMessage {
+
+    private static final long serialVersionUID = 5230634750732779978L;
 
     public EntrySetMessage(final String cacheId, final String mapId) {
       super(cacheId, mapId);

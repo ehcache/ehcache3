@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
@@ -76,7 +76,7 @@ public class EhcacheStatisticsProviderTest {
       }
     };
 
-    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(EhcacheWithLoaderWriter.class)));
+    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(Ehcache.class)));
 
     Collection<? extends Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
     assertThat(descriptions.size(), is(3));
@@ -97,7 +97,7 @@ public class EhcacheStatisticsProviderTest {
     };
 
 
-    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(EhcacheWithLoaderWriter.class)));
+    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(Ehcache.class)));
 
     CapabilityContext capabilityContext = ehcacheStatisticsProvider.getCapabilityContext();
 

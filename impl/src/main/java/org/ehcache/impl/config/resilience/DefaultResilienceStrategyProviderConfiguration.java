@@ -17,11 +17,7 @@ package org.ehcache.impl.config.resilience;
 
 import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
 import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
-import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -31,7 +27,9 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  */
 public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanceProviderConfiguration<String, ResilienceStrategy<?, ?>> implements ServiceCreationConfiguration<ResilienceStrategyProvider> {
 
+  @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_RESILIENCE = RobustResilienceStrategy.class;
+  @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_LOADER_WRITER_RESILIENCE = RobustLoaderWriterResilienceStrategy.class;
 
   private DefaultResilienceStrategyConfiguration defaultRegularConfiguration;
@@ -72,13 +70,13 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    * The provided class must have a constructor compatible with the supplied arguments followed by the cache's
    * {@code RecoveryStore}.
    *
-   * @param alias the cache alias
    * @param clazz the resilience strategy class
    * @param arguments the constructor arguments
    *
    * @return this configuration instance
    */
-  public DefaultResilienceStrategyProviderConfiguration setDefaultResilienceStrategy(Class<? extends ResilienceStrategy<?, ?>> clazz, Object... arguments) {
+  @SuppressWarnings("rawtypes")
+  public DefaultResilienceStrategyProviderConfiguration setDefaultResilienceStrategy(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     this.defaultRegularConfiguration = new DefaultResilienceStrategyConfiguration(clazz, arguments);
     return this;
   }
@@ -86,7 +84,6 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
   /**
    * Sets the default {@link ResilienceStrategy} instance to be used for caches without a loader-writer.
    *
-   * @param alias the cache alias
    * @param resilienceStrategy the resilience strategy instance
    *
    * @return this configuration instance
@@ -103,13 +100,13 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    * The provided class must have a constructor compatible with the supplied arguments followed by the cache's
    * {@code RecoveryStore} and {@code CacheLoaderWriter}.
    *
-   * @param alias the cache alias
    * @param clazz the resilience strategy class
    * @param arguments the constructor arguments
    *
    * @return this configuration instance
    */
-  public DefaultResilienceStrategyProviderConfiguration setDefaultLoaderWriterResilienceStrategy(Class<? extends ResilienceStrategy<?, ?>> clazz, Object... arguments) {
+  @SuppressWarnings("rawtypes")
+  public DefaultResilienceStrategyProviderConfiguration setDefaultLoaderWriterResilienceStrategy(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     this.defaultLoaderWriterConfiguration = new DefaultResilienceStrategyConfiguration(clazz, arguments);
     return this;
   }
@@ -117,7 +114,6 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
   /**
    * Sets the default {@link ResilienceStrategy} instance to be used for caches with a loader-writer.
    *
-   * @param alias the cache alias
    * @param resilienceStrategy the resilience strategy instance
    *
    * @return this configuration instance
@@ -140,7 +136,8 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
    *
    * @return this configuration instance
    */
-  public DefaultResilienceStrategyProviderConfiguration addResilienceStrategyFor(String alias, Class<? extends ResilienceStrategy<?, ?>> clazz, Object... arguments) {
+  @SuppressWarnings("rawtypes")
+  public DefaultResilienceStrategyProviderConfiguration addResilienceStrategyFor(String alias, Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     getDefaults().put(alias, new DefaultResilienceStrategyConfiguration(clazz, arguments));
     return this;
   }

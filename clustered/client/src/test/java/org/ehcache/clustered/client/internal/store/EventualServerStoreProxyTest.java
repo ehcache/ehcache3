@@ -44,11 +44,11 @@ import static org.mockito.Mockito.mock;
 public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   private static SimpleClusterTierClientEntity createClientEntity(String name, boolean create) throws Exception {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.EVENTUAL);
+        .getName(), Consistency.EVENTUAL, false);
 
     return createClientEntity(name, serverStoreConfiguration, create);
   }

@@ -57,6 +57,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
 
   @Override
   protected SingleOperation<K, V> getOperation(K key) {
+
     return latest.get(key);
   }
 

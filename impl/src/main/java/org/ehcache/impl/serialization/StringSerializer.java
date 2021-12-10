@@ -52,14 +52,16 @@ public class StringSerializer implements Serializer<String> {
    */
   @Override
   public ByteBuffer serialize(String object) {
-    ByteArrayOutputStream bout = new ByteArrayOutputStream(object.length());
-    try {
-      int length = object.length();
+    int length = object.length();
+
+    try(ByteArrayOutputStream bout = new ByteArrayOutputStream(length)) {
       int i = 0;
 
       for (; i < length; i++) {
         char c = object.charAt(i);
-        if ((c == 0x0000) || (c > 0x007f)) break;
+        if (c == 0x0000 || c > 0x007f) {
+          break;
+        }
         bout.write(c);
       }
 
@@ -79,14 +81,12 @@ public class StringSerializer implements Serializer<String> {
           bout.write(0x80 | (c & 0x3f));
         }
       }
-    } finally {
-      try {
-        bout.close();
-      } catch (IOException ex) {
-        throw new AssertionError(ex);
-      }
+
+      return ByteBuffer.wrap(bout.toByteArray());
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    return ByteBuffer.wrap(bout.toByteArray());
   }
 
   /**

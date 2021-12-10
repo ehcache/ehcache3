@@ -23,6 +23,8 @@ package org.ehcache.spi.test;
  */
 public class LegalSPITesterException extends Exception {
 
+  private static final long serialVersionUID = -8258017920644785486L;
+
   /**
    * Creates a new exception wrapping the {@link Throwable cause} passed in.
    *

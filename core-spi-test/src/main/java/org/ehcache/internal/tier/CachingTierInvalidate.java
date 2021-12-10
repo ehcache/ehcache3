@@ -157,16 +157,6 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
       }
 
       @Override
-      public float hitRate(long now, TimeUnit unit) {
-        return 0L;
-      }
-
-      @Override
-      public long hits() {
-        return 0L;
-      }
-
-      @Override
       public long getId() {
         return -1L;
       }

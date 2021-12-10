@@ -23,9 +23,12 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -35,16 +38,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 
-/**
- *
- */
 public class CacheManagerDestroyRemovesPersistenceTest {
 
   public static final String PERSISTENT_CACHE = "persistent-cache";
+
+  @Rule
+  public final TemporaryFolder diskPath = new TemporaryFolder();
+
   private PersistentCacheManager persistentCacheManager;
 
   @Test
-  public void testDestroyRemovesPersistenceData () throws URISyntaxException, CachePersistenceException {
+  public void testDestroyRemovesPersistenceData () throws Exception {
     File file = new File(getStoragePath(), "myData");
     initCacheManager(file);
     putValuesInCacheAndCloseCacheManager();
@@ -57,7 +61,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   }
 
   @Test
-  public void testDestroyCacheDestroysPersistenceContext() throws URISyntaxException, CachePersistenceException {
+  public void testDestroyCacheDestroysPersistenceContext() throws Exception {
     File file = new File(getStoragePath(), "testDestroy");
     initCacheManager(file);
 
@@ -67,7 +71,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   }
 
   @Test
-  public void testCreateCacheWithSameAliasAfterDestroy() throws URISyntaxException, CachePersistenceException {
+  public void testCreateCacheWithSameAliasAfterDestroy() throws Exception {
     File file = new File(getStoragePath(), "testDestroy");
     initCacheManager(file);
 
@@ -85,7 +89,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   }
 
   @Test
-  public void testDestroyCacheWithUnknownAlias() throws URISyntaxException, CachePersistenceException {
+  public void testDestroyCacheWithUnknownAlias() throws Exception {
     File file = new File(getStoragePath(), "testDestroyUnknownAlias");
     initCacheManager(file);
 
@@ -103,7 +107,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
     assertThat(file, not(containsCacheDirectory(PERSISTENT_CACHE)));
   }
 
-  private void initCacheManager(File file) throws URISyntaxException {
+  private void initCacheManager(File file) {
     persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(file))
         .withCache(PERSISTENT_CACHE, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -121,8 +125,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
     persistentCacheManager.close();
   }
 
-  @SuppressWarnings("ConstantConditions")
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
 }

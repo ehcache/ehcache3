@@ -88,6 +88,13 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
       }
     });
+    entity.addResponseListener(EhcacheEntityResponse.ResolveRequest.class, response -> {
+      Chain incoming = response.getChain();
+      Chain compacted = invalidation.compact(incoming, response.getKey());
+      if (compacted != null) {
+        replaceAtHead(response.getKey(), incoming, compacted);
+      }
+    });
   }
 
   @Override

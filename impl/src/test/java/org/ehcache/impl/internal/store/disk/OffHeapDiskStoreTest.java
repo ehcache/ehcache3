@@ -22,6 +22,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
@@ -47,7 +48,6 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -82,12 +82,12 @@ import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.terracotta.context.ContextManager.nodeFor;
 import static org.terracotta.context.query.Matchers.attributes;
@@ -124,9 +124,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<Long, String> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
       @SuppressWarnings("unchecked")
@@ -174,9 +174,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
       @SuppressWarnings("unchecked")
@@ -219,9 +219,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     @SuppressWarnings("unchecked")
     Store.Configuration<Long, Object[]> storeConfig1 = mock(Store.Configuration.class);
@@ -232,8 +232,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .build());
     when(storeConfig1.getDispatcherConcurrency()).thenReturn(1);
 
-    OffHeapDiskStore<Long, Object[]> offHeapDiskStore1 = provider.createStore(storeConfig1, space,
-      new OffHeapDiskStoreConfiguration("pool", 2, 4));
+    OffHeapDiskStore<Long, Object[]> offHeapDiskStore1 = provider.createStore(
+            storeConfig1, space, new OffHeapDiskStoreConfiguration("pool", 2, 4));
     assertThat(offHeapDiskStore1.getThreadPoolAlias(), is("pool"));
     assertThat(offHeapDiskStore1.getWriterConcurrency(), is(2));
     assertThat(offHeapDiskStore1.getDiskSegments(), is(4));
@@ -248,7 +248,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<>(String.class, String.class,
-        null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
+        null, classLoader, expiry, null, 0, true, keySerializer, valueSerializer, null, false);
       OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<>(
         getPersistenceContext(),
         new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
@@ -271,7 +271,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<>(String.class, byte[].class,
-        evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+        evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, true, keySerializer, valueSerializer, null, false);
       OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<>(
         getPersistenceContext(),
         new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
@@ -298,7 +298,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   public void testStoreInitFailsWithoutLocalPersistenceService() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
     try {
-      ServiceLocator serviceLocator = dependencySet().with(provider).build();
+      dependencySet().with(provider).build();
       fail("IllegalStateException expected");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("Failed to find provider with satisfied dependency set for interface" +
@@ -333,15 +333,15 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
       new HashSet<>(Arrays.asList(resources)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
+        Collections.emptyList()),
         is(expectedRank));
   }
 
   private FileBasedPersistenceContext getPersistenceContext() {
     try {
-      CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+      CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
       when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
-      PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+      PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
       return diskResourceService.createPersistenceContextWithin(space, "store");
     } catch (CachePersistenceException e) {
       throw new AssertionError(e);
@@ -354,8 +354,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     try (CacheManager manager = newCacheManagerBuilder()
       .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
       .build(true)) {
-      final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
-        heap(1000).offheap(20, MB).disk(30, MB))
+
+      CacheConfigurationBuilder<Long, CacheValue> cacheConfigurationBuilder = newCacheConfigurationBuilder(Long.class, CacheValue.class,
+        heap(1000).offheap(10, MB).disk(20, MB))
         .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
           @Override
           public CacheValue load(Long key) {
@@ -382,7 +383,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
           @Override
           public void deleteAll(Iterable<? extends Long> keys) {
           }
-        }));
+        });
+
+      Cache<Long, CacheValue> cache = manager.createCache("test", cacheConfigurationBuilder);
 
       for (long i = 0; i < 100000; i++) {
         cache.put(i, new CacheValue((int) i));
@@ -467,12 +470,19 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   public static class CacheValue implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private final int value;
     private final byte[] padding;
 
     public CacheValue(int value) {
       this.value = value;
       this.padding = new byte[800];
+    }
+
+    @Override
+    public int hashCode() {
+      return value;
     }
 
     public boolean equals(Object o) {

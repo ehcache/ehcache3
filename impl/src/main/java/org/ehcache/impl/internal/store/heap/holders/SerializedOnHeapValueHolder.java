@@ -50,7 +50,6 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
 
   public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Serializer<V> serializer, long now, java.time.Duration expiration) {
     this(valueHolder.getId(), value, valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice, serializer);
-    this.setHits(valueHolder.hits());
     this.accessed(now, expiration);
   }
 
@@ -58,7 +57,6 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
     super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice);
     this.buffer = binaryValue;
     this.serializer = serializer;
-    this.setHits(valueHolder.hits());
     this.accessed(now, expiration);
   }
 

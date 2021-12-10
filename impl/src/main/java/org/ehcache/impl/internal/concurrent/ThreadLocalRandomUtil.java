@@ -87,4 +87,23 @@ class ThreadLocalRandomUtil {
     // there shouldn't be any drawback to do it that way
     ThreadLocalRandom.current();
   }
+
+  /** Optimized form of: key + "=" + val */
+  static String mapEntryToString(Object key, Object val) {
+    final String k, v;
+    final int klen, vlen;
+    final char[] chars =
+      new char[(klen = (k = objectToString(key)).length()) +
+               (vlen = (v = objectToString(val)).length()) + 1];
+    k.getChars(0, klen, chars, 0);
+    chars[klen] = '=';
+    v.getChars(0, vlen, chars, klen + 1);
+    return new String(chars);
+  }
+
+  private static String objectToString(Object x) {
+    // Extreme compatibility with StringBuilder.append(null)
+    String s;
+    return (x == null || (s = x.toString()) == null) ? "null" : s;
+  }
 }

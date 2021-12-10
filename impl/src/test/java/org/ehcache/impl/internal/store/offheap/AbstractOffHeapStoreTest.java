@@ -238,21 +238,6 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testFlushUpdatesHits() throws StoreAccessException {
-    offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.noExpiration());
-    final String key = "foo1";
-    final String value = "bar1";
-    offHeapStore.put(key, value);
-    for(int i = 0; i < 5; i++) {
-      final Store.ValueHolder<String> valueHolder = offHeapStore.getAndFault(key);
-      timeSource.advanceTime(1);
-      ((AbstractValueHolder)valueHolder).accessed(timeSource.getTimeMillis(), Duration.ofMillis(1L));
-      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(valueHolder)), is(true));
-    }
-    assertThat(offHeapStore.getAndFault(key).hits(), is(5L));
-  }
-
-  @Test
   public void testExpiryEventFiredOnExpiredCachedEntry() throws StoreAccessException {
     offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(10L)));
 
@@ -387,7 +372,7 @@ public abstract class AbstractOffHeapStoreTest {
       expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
-    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> s2, () -> false);
+    Store.ValueHolder<String> result = offHeapStore.computeAndGet("key", (s, s2) -> s2, () -> false, () -> false);
 
     assertThat(result, valueHeld("value"));
   }
@@ -400,7 +385,7 @@ public abstract class AbstractOffHeapStoreTest {
       expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
-    Store.ValueHolder<String> result = offHeapStore.compute("key", (s, s2) -> "newValue", () -> false);
+    Store.ValueHolder<String> result = offHeapStore.computeAndGet("key", (s, s2) -> "newValue", () -> false, () -> false);
 
     assertThat(result, valueHeld("newValue"));
   }
@@ -412,7 +397,7 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("key", "value");
     timeSource.advanceTime(20L);
 
-    offHeapStore.compute("key", (mappedKey, mappedValue) -> {
+    offHeapStore.getAndCompute("key", (mappedKey, mappedValue) -> {
       assertThat(mappedKey, is("key"));
       assertThat(mappedValue, Matchers.nullValue());
       return "value2";
@@ -610,16 +595,6 @@ public abstract class AbstractOffHeapStoreTest {
     }
 
     @Override
-    public float hitRate(final long now, final TimeUnit unit) {
-      return valueHolder.hitRate(now, unit);
-    }
-
-    @Override
-    public long hits() {
-      return valueHolder.hits();
-    }
-
-    @Override
     public long getId() {
       return valueHolder.getId();
     }
@@ -661,16 +636,6 @@ public abstract class AbstractOffHeapStoreTest {
 
     @Override
     public long lastAccessTime(TimeUnit unit) {
-      return 0;
-    }
-
-    @Override
-    public float hitRate(long now, TimeUnit unit) {
-      return 0;
-    }
-
-    @Override
-    public long hits() {
       return 0;
     }
 

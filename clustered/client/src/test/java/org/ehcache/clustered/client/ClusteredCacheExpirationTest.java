@@ -63,8 +63,8 @@ public class ClusteredCacheExpirationTest {
         .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
+                .offheap(6, MemoryUnit.MB)
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
               .withExpiry(expiry)
             .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
   }

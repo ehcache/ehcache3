@@ -17,16 +17,12 @@ package org.ehcache.impl.config.resilience;
 
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Arrays;
-
-import static java.lang.System.arraycopy;
-import static java.lang.System.load;
 
 /**
  * {@link ServiceConfiguration} for the default {@link ResilienceStrategyProvider}.
@@ -39,9 +35,10 @@ public class DefaultResilienceStrategyConfiguration extends ClassInstanceConfigu
    * The provided class must have a constructor compatible with the supplied arguments followed by either the cache's
    * {@code RecoveryStore}, or the cache's {@code RecoveryStore} and {@code CacheLoaderWriter}.
    *
-   * @param clazz resilince strategy type to use
+   * @param clazz resilience strategy type to use
    * @param arguments initial constructor arguments
    */
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public DefaultResilienceStrategyConfiguration(Class<? extends ResilienceStrategy> clazz, Object... arguments) {
     super((Class<? extends ResilienceStrategy<?, ?>>) clazz, arguments);
   }

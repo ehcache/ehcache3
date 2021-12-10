@@ -20,6 +20,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
@@ -32,7 +33,6 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.junit.Test;
@@ -61,7 +61,7 @@ public class OnHeapStoreEvictionTest {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put("key", "value");
-    store.compute("key", (mappedKey, mappedValue) -> "value2");
+    store.getAndCompute("key", (mappedKey, mappedValue) -> "value2");
 
     assertThat(store.enforceCapacityWasCalled(), is(true));
   }
@@ -171,21 +171,22 @@ public class OnHeapStoreEvictionTest {
       public int getDispatcherConcurrency() {
         return 1;
       }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
+      }
     }, timeSource);
   }
 
   public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
-    private static final Copier DEFAULT_COPIER = new IdentityCopier();
-
-    @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),  new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
-    @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.nullStoreEventDispatcher());
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
     private boolean enforceCapacityWasCalled = false;

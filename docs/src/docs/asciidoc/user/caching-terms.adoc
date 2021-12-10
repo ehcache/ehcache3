@@ -1,9 +1,9 @@
 ---
 ---
 = Terms Related to Caching
-ifndef::sourcedir34[]
+ifndef::sourcedir36[]
 include::common.adoc[]
-endif::sourcedir34[]
+endif::sourcedir36[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

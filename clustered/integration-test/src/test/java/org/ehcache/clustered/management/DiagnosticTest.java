@@ -23,6 +23,7 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.entity.EntityRef;
+import org.terracotta.management.model.cluster.Server;
 
 import java.net.URI;
 import java.util.Properties;
@@ -38,7 +39,7 @@ public class DiagnosticTest extends AbstractClusteringManagementTest {
   private static final String PROP_REQUEST_TIMEOUTMESSAGE = "request.timeoutMessage";
 
   @Test
-  public void test_state_dump() throws Exception {
+  public void test_CACHE_MANAGER_CLOSED() throws Exception {
     cacheManager.createCache("cache-2", newCacheConfigurationBuilder(
       String.class, String.class,
       newResourcePoolsBuilder()
@@ -47,12 +48,14 @@ public class DiagnosticTest extends AbstractClusteringManagementTest {
         .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
       .build());
 
+    int activePort = readTopology().serverStream().filter(Server::isActive).findFirst().get().getBindPort();
+
     Properties properties = new Properties();
     properties.setProperty(ConnectionPropertyNames.CONNECTION_TIMEOUT, String.valueOf("5000"));
     properties.setProperty(ConnectionPropertyNames.CONNECTION_NAME, "diagnostic");
     properties.setProperty(PROP_REQUEST_TIMEOUT, "5000");
     properties.setProperty(PROP_REQUEST_TIMEOUTMESSAGE, "timed out");
-    URI uri = URI.create("diagnostic://" + CLUSTER.getConnectionURI().getAuthority());
+    URI uri = URI.create("diagnostic://localhost:" + activePort);
 
     Connection connection = ConnectionFactory.connect(uri, properties);
     EntityRef<Diagnostics, Object, Void> ref = connection.getEntityRef(Diagnostics.class, 1, "root");

@@ -1,9 +1,9 @@
 ---
 ---
 = Resilience
-ifndef::sourcedir34[]
+ifndef::sourcedir36[]
 include::common.adoc[]
-endif::sourcedir34[]
+endif::sourcedir36[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -34,8 +34,8 @@ Each time a backend tier fails, it throws a `StoreAccessException` that is then 
 Ehcache provides two implementations by default. One use by the classical cache called the `RobustResilienceStrategy` and one
 for a cache with a link:writers{outfilesuffix}[loader-writer] called the `RobustLoaderWriterResilienceStrategy`.
 
-The `RobustResilienceStrategy` behaves like an always empty cache where everything added to it is immediately evicted
-right away. The result is that the caller will more or less behave as if the cache was disabled.
+The `RobustResilienceStrategy` behaves like an always empty cache where everything added to it is immediately evicted.
+The result is that the caller will more or less behave as if the cache was disabled.
 
 The `RobustLoaderWriterResilienceStrategy` knows about the loader-writer and will try to keep it coherent.
 It will also answer by calling it. So a `get()` will load the value from the loader-writer.
@@ -48,7 +48,7 @@ Both strategies will also try to clean up the store that failed by removing the 
 == Clustering resilience
 
 Let's be honest, your on-heap storage won't fail. Your off-heap won't either.
-Your disk storage might, rarely, unless you used a network drive. But then, you are running for it.
+Your disk storage might, rarely, unless you used a network drive. But then, you are asking for it.
 
 So, what will fail is clustering.
 
@@ -58,13 +58,13 @@ There are 3 timeouts that can be configured.
 
 * Read operation: For any read-only operations: get, contains, getAll, iterator step (default: 5 seconds)
 * Write operation: For any write operation: put, remove, putAll, removeAll, clear, putIfAbsent, remove, replace (default: 5 seconds)
-* Connection: When establish connection to the server (default: 150 seconds)
+* Connection: When establishing connection to the server (default: 150 seconds)
 
 Timeouts can be configured using a dedicated builder or in XML.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir34}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Resilience.java[tag=timeoutsExample]
+include::{sourcedir36}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Resilience.java[tag=timeoutsExample]
 ----
 
 <1> Start setting timeouts using the build
@@ -82,7 +82,7 @@ The connection is closed by one of the two parties if it fails to do so.
 As soon as this happens, link:tiering{outfilesuffix}[caching tiers] are cleared.
 The resilience strategy will then start answering every call.
 
-By default, a lease last 150 seconds.
+By default, a lease lasts 150 seconds.
 It is decided by the server and can be overridden in the server configuration.
 
 === Reconnect

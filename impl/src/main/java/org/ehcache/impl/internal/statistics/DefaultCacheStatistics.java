@@ -17,27 +17,20 @@
 package org.ehcache.impl.internal.statistics;
 
 import org.ehcache.core.InternalCache;
-import org.ehcache.core.spi.service.StatisticsServiceConfiguration;
-import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.core.statistics.TierStatistics;
 import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.SampledStatistic;
 import org.terracotta.statistics.ValueStatistic;
-import org.terracotta.statistics.derived.OperationResultFilter;
-import org.terracotta.statistics.derived.latency.Jsr107LatencyMonitor;
-import org.terracotta.statistics.derived.latency.MaximumLatencyHistory;
+import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.LongAdder;
 
-import static java.util.EnumSet.allOf;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import static org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
@@ -61,21 +54,15 @@ class DefaultCacheStatistics implements CacheStatistics {
   private final OperationStatistic<ReplaceOutcome> replace;
   private final OperationStatistic<ConditionalRemoveOutcome> conditionalRemove;
 
-  private final Map<BulkOps, LongAdder> bulkMethodEntries;
-
-  private final Jsr107LatencyMonitor<GetOutcome> averageGetTime;
-  private final Jsr107LatencyMonitor<PutOutcome> averagePutTime;
-  private final Jsr107LatencyMonitor<RemoveOutcome> averageRemoveTime;
+  private final InternalCache<?, ?> cache;
 
   private final Map<String, TierStatistics> tierStatistics;
   private final TierStatistics lowestTier;
 
   private final Map<String, ValueStatistic<?>> knownStatistics;
 
-  private final MaximumLatencyHistory latencyHistory;
-
-  public DefaultCacheStatistics(InternalCache<?, ?> cache, StatisticsServiceConfiguration configuration, TimeSource timeSource) {
-    bulkMethodEntries = cache.getBulkMethodEntries();
+  public DefaultCacheStatistics(InternalCache<?, ?> cache) {
+    this.cache = cache;
 
     get = findOperationStatisticOnChildren(cache, GetOutcome.class, "get");
     put = findOperationStatisticOnChildren(cache, PutOutcome.class, "put");
@@ -84,24 +71,10 @@ class DefaultCacheStatistics implements CacheStatistics {
     replace = findOperationStatisticOnChildren(cache, ReplaceOutcome.class, "replace");
     conditionalRemove = findOperationStatisticOnChildren(cache, ConditionalRemoveOutcome.class, "conditionalRemove");
 
-    averageGetTime = new Jsr107LatencyMonitor<>(allOf(GetOutcome.class), 1.0);
-    get.addDerivedStatistic(averageGetTime);
-    averagePutTime = new Jsr107LatencyMonitor<>(allOf(PutOutcome.class), 1.0);
-    put.addDerivedStatistic(averagePutTime);
-    averageRemoveTime = new Jsr107LatencyMonitor<>(allOf(RemoveOutcome.class), 1.0);
-    remove.addDerivedStatistic(averageRemoveTime);
-
     String[] tierNames = findTiers(cache);
 
     String lowestTierName = findLowestTier(tierNames);
     TierStatistics lowestTier = null;
-
-    latencyHistory = new MaximumLatencyHistory(
-      configuration.getLatencyHistorySize(),
-      configuration.getLatencyHistoryWindowInterval(),
-      configuration.getLatencyHistoryWindowUnit(),
-      timeSource::getTimeMillis);
-    get.addDerivedStatistic(new OperationResultFilter<>(EnumSet.of(GetOutcome.HIT, GetOutcome.MISS), latencyHistory));
 
     tierStatistics = new HashMap<>(tierNames.length);
     for (String tierName : tierNames) {
@@ -116,6 +89,11 @@ class DefaultCacheStatistics implements CacheStatistics {
     knownStatistics = createKnownStatistics();
   }
 
+  public <T extends Enum<T>, S extends ChainedOperationObserver<? super T>> void registerDerivedStatistic(Class<T> outcomeClass, String statName, S derivedStatistic) {
+    OperationStatistic<T> stat = findOperationStatisticOnChildren(cache, outcomeClass, statName);
+    stat.addDerivedStatistic(derivedStatistic);
+  }
+
   private Map<String, ValueStatistic<?>> createKnownStatistics() {
     Map<String, ValueStatistic<?>> knownStatistics = new HashMap<>(30);
     knownStatistics.put("Cache:HitCount", counter(this::getCacheHits));
@@ -124,7 +102,6 @@ class DefaultCacheStatistics implements CacheStatistics {
     knownStatistics.put("Cache:RemovalCount", counter(this::getCacheRemovals));
     knownStatistics.put("Cache:EvictionCount", counter(this::getCacheEvictions));
     knownStatistics.put("Cache:ExpirationCount", counter(this::getCacheExpirations));
-    knownStatistics.put("Cache:GetLatency", latencyHistory);
 
     for (TierStatistics tier : tierStatistics.values()) {
       knownStatistics.putAll(tier.getKnownStatistics());
@@ -146,9 +123,6 @@ class DefaultCacheStatistics implements CacheStatistics {
   @Override
   public void clear() {
     compensatingCounters = compensatingCounters.snapshot(this);
-    averageGetTime.clear();
-    averagePutTime.clear();
-    averageRemoveTime.clear();
     for (TierStatistics t : tierStatistics.values()) {
       t.clear();
     }
@@ -208,26 +182,6 @@ class DefaultCacheStatistics implements CacheStatistics {
     return normalize(lowestTier.getExpirations());
   }
 
-  @Override
-  public float getCacheAverageGetTime() {
-    return (float) averageGetTime.average();
-  }
-
-  @Override
-  public float getCacheAveragePutTime() {
-    return (float) averagePutTime.average();
-  }
-
-  @Override
-  public float getCacheAverageRemoveTime() {
-    return (float) averageRemoveTime.average();
-  }
-
-  @Override
-  public SampledStatistic<Long> getCacheGetLatencyHistory() {
-    return latencyHistory;
-  }
-
   private long getMisses() {
     return getBulkCount(BulkOps.GET_ALL_MISS) +
       get.sum(EnumSet.of(GetOutcome.MISS)) +
@@ -245,7 +199,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   }
 
   private long getBulkCount(BulkOps bulkOps) {
-    return bulkMethodEntries.get(bulkOps).longValue();
+    return cache.getBulkMethodEntries().get(bulkOps).longValue();
   }
 
   private static long normalize(long value) {

@@ -18,6 +18,8 @@ package org.ehcache.clustered.client.internal.service;
 
 public class ClusteredMapException extends RuntimeException {
 
+  private static final long serialVersionUID = -7486556137969177116L;
+
   public ClusteredMapException(final String message) {
     super(message);
   }

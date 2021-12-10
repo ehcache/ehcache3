@@ -20,14 +20,36 @@ import java.nio.ByteBuffer;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 
-interface InternalChain extends Closeable {
+public interface InternalChain extends Closeable {
 
   Chain detach();
 
   boolean append(ByteBuffer element);
 
-  boolean replace(Chain expected, Chain replacement);
+  ReplaceResponse replace(Chain expected, Chain replacement);
 
   @Override
   void close();
+
+  enum ReplaceResponse {
+    /**
+     * Denotes head of the current chain matches the expected chain and it was replaced with replacement chain
+     */
+    MATCH_AND_REPLACED,
+
+    /**
+     * Denotes head of the current chain matches the expected chain and it was not replaced with replacement chain
+     */
+    MATCH_BUT_NOT_REPLACED,
+
+    /**
+     * Denotes current chain matches the expected chain and it was replaced with replacement chain
+     */
+    EXACT_MATCH_AND_REPLACED,
+
+    /**
+     * Denotes head of the current chain doesn't match the expected chain
+     */
+    NO_MATCH
+  }
 }

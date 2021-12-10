@@ -15,20 +15,31 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.internal.store.lock.LockManager;
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.exception.ConnectionClosedException;
+import org.terracotta.exception.ConnectionShutdownException;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ReconnectingServerStoreProxy implements ServerStoreProxy {
+public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManager {
 
-  private final AtomicReference<ServerStoreProxy> delegateRef;
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReconnectingServerStoreProxy.class);
+
+  private final AtomicReference<LockingServerStoreProxy> delegateRef;
   private final Runnable onReconnect;
 
   public ReconnectingServerStoreProxy(ServerStoreProxy serverStoreProxy, Runnable onReconnect) {
-    this.delegateRef = new AtomicReference<>(serverStoreProxy);
+    if (serverStoreProxy instanceof LockingServerStoreProxy) {
+      this.delegateRef = new AtomicReference<>((LockingServerStoreProxy) serverStoreProxy);
+    } else {
+      this.delegateRef = new AtomicReference<>(new LockingServerStoreProxy(serverStoreProxy, new UnSupportedLockManager()));
+    }
     this.onReconnect = onReconnect;
   }
 
@@ -39,7 +50,11 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public void close() {
-    proxy().close();
+    try {
+      proxy().close();
+    } catch (ConnectionClosedException | ConnectionShutdownException e) {
+      LOGGER.debug("Store was already closed, since connection was closed");
+    }
   }
 
   @Override
@@ -49,7 +64,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public void append(long key, ByteBuffer payLoad) throws TimeoutException {
-    onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>) serverStoreProxy -> {
+    onStoreProxy(serverStoreProxy -> {
       serverStoreProxy.append(key, payLoad);
       return null;
     });
@@ -63,7 +78,7 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
   @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     try {
-      onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>)serverStoreProxy -> {
+      onStoreProxy(serverStoreProxy -> {
         serverStoreProxy.replaceAtHead(key, expect, update);
         return null;
       });
@@ -74,18 +89,18 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
 
   @Override
   public void clear() throws TimeoutException {
-    onStoreProxy((TimeoutExceptionFunction<ServerStoreProxy, Void>) serverStoreProxy -> {
+    onStoreProxy(serverStoreProxy -> {
       serverStoreProxy.clear();
       return null;
     });
   }
 
-  private ServerStoreProxy proxy() {
+  private LockingServerStoreProxy proxy() {
     return delegateRef.get();
   }
 
-  private <T> T onStoreProxy(TimeoutExceptionFunction<ServerStoreProxy, T> function) throws TimeoutException {
-    ServerStoreProxy storeProxy = proxy();
+  private <T> T onStoreProxy(TimeoutExceptionFunction<LockingServerStoreProxy, T> function) throws TimeoutException {
+    LockingServerStoreProxy storeProxy = proxy();
     try {
       return function.apply(storeProxy);
     } catch (ServerStoreProxyException sspe) {
@@ -100,16 +115,30 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     }
   }
 
+  @Override
+  public Chain lock(long hash) throws TimeoutException {
+    return onStoreProxy(lockingServerStoreProxy -> lockingServerStoreProxy.lock(hash));
+  }
+
+  @Override
+  public void unlock(long hash) throws TimeoutException {
+    onStoreProxy(lockingServerStoreProxy -> {
+      lockingServerStoreProxy.unlock(hash);
+      return null;
+    });
+  }
+
   @FunctionalInterface
   private interface TimeoutExceptionFunction<U, V> {
     V apply(U u) throws TimeoutException;
   }
 
-  private static class ReconnectInProgressProxy implements ServerStoreProxy {
+  private static class ReconnectInProgressProxy extends LockingServerStoreProxy {
 
     private final String cacheId;
 
     ReconnectInProgressProxy(String cacheId) {
+      super(null, null);
       this.cacheId = cacheId;
     }
 
@@ -146,6 +175,29 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy {
     @Override
     public void clear() {
       throw new ReconnectInProgressException();
+    }
+
+    @Override
+    public Chain lock(long hash) throws TimeoutException {
+      throw new ReconnectInProgressException();
+    }
+
+    @Override
+    public void unlock(long hash) throws TimeoutException {
+      throw new ReconnectInProgressException();
+    }
+  }
+
+  private static class UnSupportedLockManager implements LockManager {
+
+    @Override
+    public Chain lock(long hash) throws TimeoutException {
+      throw new UnsupportedOperationException("Lock ops are not supported");
+    }
+
+    @Override
+    public void unlock(long hash) throws TimeoutException {
+      throw new UnsupportedOperationException("Lock ops are not supported");
     }
   }
 }

@@ -72,7 +72,7 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
-import static org.mockito.Mockito.mock;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -129,14 +129,13 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
-        @SuppressWarnings("unchecked")
-        final Copier<String> defaultCopier = new IdentityCopier();
+        Copier<String> defaultCopier = IdentityCopier.identityCopier();
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
         try {
-          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          DiskResourceService.PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
@@ -250,16 +249,6 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           }
 
           @Override
-          public float hitRate(long now, TimeUnit unit) {
-            return 0;
-          }
-
-          @Override
-          public long hits() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
           public long getId() {
             throw new UnsupportedOperationException("Implement me!");
           }
@@ -278,7 +267,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override

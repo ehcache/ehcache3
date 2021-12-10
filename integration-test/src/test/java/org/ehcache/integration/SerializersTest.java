@@ -19,6 +19,7 @@ package org.ehcache.integration;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.integration.domain.Person;
@@ -83,7 +84,7 @@ public class SerializersTest {
     CacheManagerBuilder<CacheManager> cmBuilder =
       newCacheManagerBuilder()
         .withCache("heapByRefCache",
-          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10))
+          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .withKeySerializer(serializer)
         );
     cmBuilder.build(true);
@@ -93,7 +94,7 @@ public class SerializersTest {
     CacheManagerBuilder<CacheManager> cmBuilder =
       newCacheManagerBuilder()
         .withCache("heapByValueCache",
-          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10))
+          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .withKeyCopier(SerializingCopier.<Long>asCopierClass())
             .withKeySerializer(serializer)
         );
@@ -114,7 +115,7 @@ public class SerializersTest {
     CacheManagerBuilder<CacheManager> cmBuilder =
       newCacheManagerBuilder()
         .withCache("heapOffheapCache",
-          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10).offheap(2, MemoryUnit.MB))
+          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
             .withKeySerializer(serializer)
         );
     cmBuilder.build(true);
@@ -136,7 +137,7 @@ public class SerializersTest {
       newCacheManagerBuilder()
         .with(persistence(temporaryFolder.newFolder().getAbsolutePath()))
         .withCache("heapDiskCache",
-          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10).disk(8, MemoryUnit.MB, true))
+          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(8, MemoryUnit.MB, true))
             .withKeySerializer(serializer)
         );
     cmBuilder.build(true);
@@ -147,7 +148,7 @@ public class SerializersTest {
       newCacheManagerBuilder()
         .with(persistence(temporaryFolder.newFolder().getAbsolutePath()))
         .withCache("heapOffheapDiskCache",
-          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10).offheap(2, MemoryUnit.MB).disk(8, MemoryUnit.MB, true))
+          newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB).disk(8, MemoryUnit.MB, true))
             .withKeySerializer(serializer)
         );
     cmBuilder.build(true);

@@ -37,11 +37,13 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
@@ -61,6 +63,9 @@ import static org.junit.Assert.assertThat;
  */
 @SuppressWarnings("unused")
 public class GettingStarted {
+
+  @Rule
+  public final TemporaryFolder diskPath = new TemporaryFolder();
 
   @Test
   public void cachemanagerExample() {
@@ -294,6 +299,9 @@ public class GettingStarted {
   }
 
   private static class Person implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     String name;
     int age;
 
@@ -350,8 +358,8 @@ public class GettingStarted {
     }
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
 
   public static class CustomExpiry implements ExpiryPolicy<Long, String> {

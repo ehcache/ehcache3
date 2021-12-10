@@ -72,7 +72,7 @@ public class ConnectionStateTest {
   @Test
   public void testInitializeStateAfterConnectionCloses() throws Exception {
 
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
     connectionState.initClusterConnection();
 
     closeConnection();
@@ -92,7 +92,7 @@ public class ConnectionStateTest {
   @Test
   public void testCreateClusterTierEntityAfterConnectionCloses() throws Exception {
 
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
     connectionState.initClusterConnection();
     connectionState.initializeState();
 
@@ -100,7 +100,7 @@ public class ConnectionStateTest {
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-            Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null);
+            Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null, false);
 
     ClusterTierClientEntity clientEntity = connectionState.createClusterTierClientEntity("cache1", serverStoreConfiguration, false);
 

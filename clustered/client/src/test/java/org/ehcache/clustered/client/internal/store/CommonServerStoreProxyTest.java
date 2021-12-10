@@ -25,6 +25,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
@@ -32,17 +33,21 @@ import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   private static ClusterTierClientEntity createClientEntity(String name) throws Exception {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
       .getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-      .getName(), null);
+      .getName(), null, false);
 
     return createClientEntity(name, serverStoreConfiguration, true);
 
@@ -148,6 +153,27 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy.clear();
     Chain chain = serverStoreProxy.get(1);
     assertThat(chain.isEmpty(), is(true));
+  }
+
+  @Test
+  public void testResolveRequestIsProcessedAtThreshold() throws Exception {
+    ByteBuffer buffer = createPayload(42L);
+
+    ClusterTierClientEntity clientEntity = createClientEntity("testResolveRequestIsProcessed");
+    ServerCallback serverCallback = mock(ServerCallback.class);
+    when(serverCallback.compact(any(Chain.class), any(long.class))).thenReturn(getChain(false, buffer.duplicate()));
+    CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testResolveRequestIsProcessed", clientEntity, serverCallback);
+
+    for (int i = 0; i < 8; i++) {
+      serverStoreProxy.append(1L, buffer.duplicate());
+    }
+    verify(serverCallback, never()).compact(any(Chain.class));
+    assertChainHas(serverStoreProxy.get(1L), 42L, 42L, 42L, 42L, 42L, 42L, 42L, 42L);
+
+    //trigger compaction at > 8 entries
+    serverStoreProxy.append(1L, buffer.duplicate());
+    verify(serverCallback).compact(any(Chain.class), any(long.class));
+    assertChainHas(serverStoreProxy.get(1L), 42L);
   }
 
   private static void assertChainHas(Chain chain, long... payLoads) {

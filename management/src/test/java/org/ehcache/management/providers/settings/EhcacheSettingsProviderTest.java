@@ -88,21 +88,25 @@ public class EhcacheSettingsProviderTest {
         .build();
 
     // ehcache cache manager
+    DefaultManagementRegistryConfiguration serviceConfiguration = new DefaultManagementRegistryConfiguration()
+      .setCacheManagerAlias("my-cm-1")
+      .addTag("boo")
+      .addTags("foo", "baz");
+
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(sharedManagementService)
         .using(new DefaultPersistenceConfiguration(ROOT.newFolder("test_standalone_ehcache")))
-        .using(new DefaultManagementRegistryConfiguration()
-            .setCacheManagerAlias("my-cm-1")
-            .addTag("boo")
-            .addTags("foo", "baz"))
+      .using(serviceConfiguration)
         .withCache("cache-1", cacheConfiguration1)
         .withCache("cache-2", cacheConfiguration2)
         .build(false);
 
     cacheManager.init();
 
-    String expected = read("/settings-capability.json");
-    String actual = mapper.writeValueAsString(getSettingsCapability()).replaceAll("\\\"cacheManagerDescription\\\":\\\".*\\\",\\\"status\\\"", "\\\"cacheManagerDescription\\\":\\\"\\\",\\\"status\\\"");
+    String expected = read("/settings-capability.json")
+      .replaceAll("instance-id", serviceConfiguration.getInstanceId());
+    String actual = mapper.writeValueAsString(getSettingsCapability())
+      .replaceAll("\\\"cacheManagerDescription\\\":\\\".*\\\",\\\"instanceId\\\"", "\\\"cacheManagerDescription\\\":\\\"\\\",\\\"instanceId\\\"");
 
     // assertThat for formatted string comparison: ide support is bad
     assertEquals(expected, actual);

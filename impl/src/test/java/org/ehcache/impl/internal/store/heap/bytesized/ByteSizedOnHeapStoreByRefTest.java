@@ -22,6 +22,7 @@ import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
@@ -29,7 +30,7 @@ import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByRefTest;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -37,7 +38,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
 
   private static final int MAGIC_NUM = 500;
-  private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
   @Override
   protected void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
@@ -54,13 +54,11 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final int capacity) {
 
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
-      @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {
         return (Class<K>) String.class;
       }
 
-      @SuppressWarnings("unchecked")
       @Override
       public Class<V> getValueType() {
         return (Class<V>) String.class;
@@ -100,7 +98,12 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public int getDispatcherConcurrency() {
         return 0;
       }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher);
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
+      }
+    }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), (StoreEventDispatcher<K, V>) eventDispatcher);
   }
 
 }

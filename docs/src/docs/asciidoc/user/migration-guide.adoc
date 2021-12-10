@@ -1,9 +1,9 @@
 ---
 ---
 = Migration Guide
-ifndef::sourcedir34[]
+ifndef::sourcedir36[]
 include::common.adoc[]
-endif::sourcedir34[]
+endif::sourcedir36[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -65,7 +65,7 @@ having dedicated logic in the methods called during the lifecycle of added and u
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
+include::{sourcedir36}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
 ----
 
 <1> Defining custom expiry to be called during the lifecycle of added mappings.

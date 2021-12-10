@@ -1,0 +1,39 @@
+
+<multi:configurations
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:multi='http://www.ehcache.org/v3/multi'
+  xmlns:ehcache='http://www.ehcache.org/v3'>
+  <multi:configuration identity="foo">
+    <multi:variant type="production">
+      <ehcache:config>
+        <ehcache:cache alias="foo-prod">
+          <ehcache:heap>100</ehcache:heap>
+        </ehcache:cache>
+      </ehcache:config>
+    </multi:variant>
+    <multi:variant type="development">
+      <ehcache:config>
+        <ehcache:cache alias="foo-dev">
+          <ehcache:heap>100</ehcache:heap>
+        </ehcache:cache>
+      </ehcache:config>
+    </multi:variant>
+  </multi:configuration>
+
+  <multi:configuration identity="bar">
+    <multi:variant type="production">
+      <ehcache:config>
+        <ehcache:cache alias="bar-prod">
+          <ehcache:heap>100</ehcache:heap>
+        </ehcache:cache>
+      </ehcache:config>
+    </multi:variant>
+    <multi:variant type="development">
+      <ehcache:config>
+        <ehcache:cache alias="bar-dev">
+          <ehcache:heap>100</ehcache:heap>
+        </ehcache:cache>
+      </ehcache:config>
+    </multi:variant>
+  </multi:configuration>
+</multi:configurations>

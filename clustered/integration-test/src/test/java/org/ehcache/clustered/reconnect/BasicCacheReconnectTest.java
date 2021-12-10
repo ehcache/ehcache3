@@ -17,7 +17,10 @@ package org.ehcache.clustered.reconnect;
 
 import com.tc.net.proxy.TCPProxy;
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.StateTransitionException;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
@@ -29,6 +32,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
@@ -44,12 +48,15 @@ import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicCacheReconnectTest {
-  private static final String RESOURCE_CONFIG =
+public class BasicCacheReconnectTest extends ClusteredTests {
+  public static final String RESOURCE_CONFIG =
           "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
                   + "<ohr:offheap-resources>"
                   + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
@@ -61,6 +68,16 @@ public class BasicCacheReconnectTest {
                   + "</lease:connection-leasing>"
                   + "</service>";
 
+  private static PersistentCacheManager cacheManager;
+
+  private static CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+          ResourcePoolsBuilder.newResourcePoolsBuilder()
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+          .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
+          .build();
+
+  private static final List<TCPProxy> proxies = new ArrayList<>();
+
   @ClassRule
   public static Cluster CLUSTER =
           newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
@@ -68,12 +85,6 @@ public class BasicCacheReconnectTest {
   @BeforeClass
   public static void waitForActive() throws Exception {
     CLUSTER.getClusterControl().waitForActive();
-  }
-
-  private final List<TCPProxy> proxies = new ArrayList<>();
-
-  @Test
-  public void cacheOpsDuringReconnection() throws Exception {
 
     URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
 
@@ -82,47 +93,81 @@ public class BasicCacheReconnectTest {
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
                     .autoCreate()
                     .defaultServerResource("primary-server-resource"));
-    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
+  }
 
-    CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
-            .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
-            .build();
+  @Test
+  public void cacheOpsDuringReconnection() throws Exception {
+
+    try {
+
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+
+      CompletableFuture<Void> future = CompletableFuture.runAsync(() ->
+              ThreadLocalRandom.current()
+                      .longs()
+                      .forEach(value ->
+                              cache.put(value, Long.toString(value))));
+
+      expireLease();
+
+      try {
+        future.get(5000, TimeUnit.MILLISECONDS);
+        fail();
+      } catch (ExecutionException e) {
+        assertThat(e.getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
+      }
+
+      CompletableFuture<Void> getSucceededFuture = CompletableFuture.runAsync(() -> {
+        while (true) {
+          try {
+            cache.get(1L);
+            break;
+          } catch (RuntimeException e) {
+
+          }
+        }
+      });
+
+      getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
+    } finally {
+      cacheManager.destroyCache("clustered-cache");
+    }
+
+  }
+
+  @Test
+  public void reconnectDuringCacheCreation() throws Exception {
+
+    expireLease();
 
     Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
 
-    CompletableFuture<Void> future = CompletableFuture.runAsync(() ->
-            ThreadLocalRandom.current()
-            .longs()
-            .forEach(value ->
-                    cache.put(value, Long.toString(value))));
+    assertThat(cache, notNullValue());
 
+    cacheManager.destroyCache("clustered-cache");
+
+  }
+
+  @Test
+  public void reconnectDuringCacheDestroy() throws Exception {
+
+    Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+
+    assertThat(cache, notNullValue());
+
+    expireLease();
+
+    cacheManager.destroyCache("clustered-cache");
+    assertThat(cacheManager.getCache("clustered-cache", Long.class, String.class), nullValue());
+
+  }
+
+  private static void expireLease() throws InterruptedException {
     setDelay(6000, proxies);
     Thread.sleep(6000);
 
     setDelay(0L, proxies);
-
-    try {
-      future.get(5000, TimeUnit.MILLISECONDS);
-      fail();
-    } catch (ExecutionException e) {
-      assertThat(e.getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
-    }
-
-    CompletableFuture<Void> getSucceededFuture = CompletableFuture.runAsync(() -> {
-      while (true) {
-        try {
-          cache.get(1L);
-          break;
-        } catch (RuntimeException e) {
-
-        }
-      }
-    });
-
-    getSucceededFuture.get(5000, TimeUnit.MILLISECONDS);
-
   }
 }

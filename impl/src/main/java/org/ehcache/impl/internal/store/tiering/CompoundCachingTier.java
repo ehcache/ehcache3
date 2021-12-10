@@ -80,6 +80,9 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   static class ComputationException extends RuntimeException {
+
+    private static final long serialVersionUID = 6832417052348277644L;
+
     public ComputationException(StoreAccessException cause) {
       super(cause);
     }
@@ -222,7 +225,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       if (!providersMap.containsKey(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
-      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      CompoundCachingTier<?, ?> compoundCachingTier = (CompoundCachingTier<?, ?>) resource;
       Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
       entry.getKey().releaseHigherCachingTier(compoundCachingTier.higher);
@@ -234,7 +237,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       if (!providersMap.containsKey(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
-      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      CompoundCachingTier<?, ?> compoundCachingTier = (CompoundCachingTier<?, ?>) resource;
       Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
       entry.getValue().initCachingTier(compoundCachingTier.lower);

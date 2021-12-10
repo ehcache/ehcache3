@@ -19,7 +19,6 @@ package org.ehcache.core.spi.store;
 import org.ehcache.core.spi.time.TimeSource;
 import org.junit.Test;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -203,28 +202,6 @@ public class AbstractValueHolderTest {
       }
     }), is(false));
   }
-
-  @Test
-  public void testAbstractValueHolderHitRate() {
-    TestTimeSource timeSource = new TestTimeSource();
-    timeSource.advanceTime(1);
-    AbstractValueHolder<String> valueHolder = new AbstractValueHolder<String>(-1, timeSource.getTimeMillis()) {
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
-
-      @Override
-      public String get() {
-        return "abc";
-      }
-    };
-    valueHolder.accessed((timeSource.getTimeMillis()), Duration.ofMillis(1L));
-    timeSource.advanceTime(1000);
-    assertThat(valueHolder.hitRate(timeSource.getTimeMillis(),
-        TimeUnit.SECONDS), is(1.0f));
-  }
-
 
   private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime) {
     return new AbstractValueHolder<String>(-1, creationTime) {

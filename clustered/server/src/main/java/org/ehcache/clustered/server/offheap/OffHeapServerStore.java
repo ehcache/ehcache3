@@ -41,20 +41,33 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   private final List<OffHeapChainMap<Long>> segments;
   private final KeySegmentMapper mapper;
 
-  OffHeapServerStore(PageSource source, KeySegmentMapper mapper) {
+  public OffHeapServerStore(List<OffHeapChainMap<Long>> segments, KeySegmentMapper mapper) {
+    this.mapper = mapper;
+    this.segments = segments;
+  }
+
+  OffHeapServerStore(PageSource source, KeySegmentMapper mapper, boolean writeBehindConfigured) {
     this.mapper = mapper;
     segments = new ArrayList<>(mapper.getSegments());
     for (int i = 0; i < mapper.getSegments(); i++) {
-      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      if (writeBehindConfigured) {
+        segments.add(new PinningOffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      } else {
+        segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      }
     }
   }
 
-  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper) {
+  public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper, boolean writeBehindConfigured) {
     this.mapper = mapper;
     segments = new ArrayList<>(mapper.getSegments());
     long maxSize = getMaxSize(source.getPool().getSize());
     for (int i = 0; i < mapper.getSegments(); i++) {
-      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+      if (writeBehindConfigured) {
+        segments.add(new PinningOffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+      } else {
+        segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int)KILOBYTES.toBytes(maxSize), false));
+      }
     }
   }
 
@@ -90,7 +103,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     try {
       segmentFor(key).append(key, payLoad);
     } catch (OversizeMappingException e) {
-      handleOversizeMappingException(key, (long k) -> segmentFor(k).append(k, payLoad));
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).append(k, payLoad));
     }
   }
 
@@ -108,18 +121,24 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     try {
       segmentFor(key).replaceAtHead(key, expect, update);
     } catch (OversizeMappingException e) {
-      handleOversizeMappingException(key, (long k) -> segmentFor(k).replaceAtHead(k, expect, update));
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).replaceAtHead(k, expect, update));
     }
   }
 
   public void put(long key, Chain chain) {
     try {
-      segmentFor(key).put(key, chain);
+      try {segmentFor(key).put(key, chain);
     } catch (OversizeMappingException e) {
-      handleOversizeMappingException(key, (long k) -> segmentFor(k).put(k, chain));
+      consumeOversizeMappingException(key, (long k) -> segmentFor(k).put(k, chain));}
+    } catch (Throwable t) {
+      segmentFor(key).remove(key);
+      throw t;
     }
   }
 
+  public void remove(long key) {
+    segmentFor(key).remove(key);
+  }
 
   @Override
   public void clear() {
@@ -144,7 +163,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     }
   }
 
-  private void handleOversizeMappingException(long key, LongConsumer operation) {
+  private void consumeOversizeMappingException(long key, LongConsumer operation) {
     handleOversizeMappingException(key, k -> {
       operation.accept(k);
       return null;
