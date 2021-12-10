@@ -42,7 +42,7 @@ abstract class AbstractWriteBehind<K, V> implements WriteBehind<K, V> {
 
   @Override
   public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
-    Map<K, V> entries = new HashMap<K, V>();
+    Map<K, V> entries = new HashMap<>();
     for (K k : keys) {
       entries.put(k, load(k)) ;
     }
@@ -51,7 +51,7 @@ abstract class AbstractWriteBehind<K, V> implements WriteBehind<K, V> {
 
   @Override
   public void write(K key, V value) throws CacheWritingException {
-    addOperation(new WriteOperation<K, V>(key, value));
+    addOperation(new WriteOperation<>(key, value));
   }
 
   @Override
@@ -63,7 +63,7 @@ abstract class AbstractWriteBehind<K, V> implements WriteBehind<K, V> {
 
   @Override
   public void delete(K key) throws CacheWritingException {
-    addOperation(new DeleteOperation<K, V>(key));
+    addOperation(new DeleteOperation<>(key));
   }
 
   @Override

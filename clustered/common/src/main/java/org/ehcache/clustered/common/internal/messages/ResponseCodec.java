@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static java.nio.ByteBuffer.wrap;
-import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.AllInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
@@ -43,9 +42,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.EHCACHE_RESPONSE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_NAME;
-import static org.ehcache.clustered.common.internal.messages.ExceptionCodec.EXCEPTION_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class ResponseCodec {
@@ -102,7 +99,7 @@ public class ResponseCodec {
         final EhcacheEntityResponse.Failure failure = (EhcacheEntityResponse.Failure)response;
         return FAILURE_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, failure.getResponseType())
-          .struct(EXCEPTION_FIELD, failure.getCause(), EXCEPTION_ENCODER_FUNCTION)
+          .struct(EXCEPTION_FIELD, failure.getCause(), ExceptionCodec::encode)
           .encode().array();
       case SUCCESS:
         return SUCCESS_RESPONSE_STRUCT.encoder()
@@ -112,7 +109,7 @@ public class ResponseCodec {
         final EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse)response;
         return GET_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, getResponse.getResponseType())
-          .struct(CHAIN_FIELD, getResponse.getChain(), CHAIN_ENCODER_FUNCTION)
+          .struct(CHAIN_FIELD, getResponse.getChain(), ChainCodec::encode)
           .encode().array();
       case HASH_INVALIDATION_DONE: {
         HashInvalidationDone hashInvalidationDone = (HashInvalidationDone) response;
@@ -229,7 +226,7 @@ public class ResponseCodec {
       case PREPARE_FOR_DESTROY: {
         decoder = PREPARE_FOR_DESTROY_RESPONSE_STRUCT.decoder(buffer);
         ArrayDecoder<String, StructDecoder<Void>> storesDecoder = decoder.strings(STORES_FIELD);
-        Set<String> stores = new HashSet<String>();
+        Set<String> stores = new HashSet<>();
         for (int i = 0; i < storesDecoder.length(); i++) {
           stores.add(storesDecoder.value());
         }

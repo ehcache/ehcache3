@@ -66,7 +66,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionReturnsIterableOfEntriesForEachInputEntry() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
+    Set<K> inputKeys = new HashSet<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -78,7 +78,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       Map<K, Store.ValueHolder<V>> mapFromRemappingFunction = kvStore.bulkCompute(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           update.put(entry.getKey(), entry.getValue());
         }
@@ -94,7 +94,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
+    Set<K> inputKeys = new HashSet<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
 
@@ -119,7 +119,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void mappingIsRemovedFromStoreForNullValueEntriesFromRemappingFunction() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
+    Set<K> inputKeys = new HashSet<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -131,7 +131,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           update.put(entry.getKey(), null);
         }
@@ -147,8 +147,8 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void remappingFunctionGetsIterableWithMappedStoreEntryValueOrNull() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> mappedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> mappedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -164,7 +164,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           if (mappedEntries.containsKey(entry.getKey())) {
             assertThat(entry.getValue(), is(mappedEntries.get(entry.getKey())));
@@ -183,8 +183,8 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void computeValuesForEveryKeyUsingARemappingFunction() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -196,7 +196,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           update.put(entry.getKey(), computedEntries.get(entry.getKey()));
         }
@@ -214,8 +214,8 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionProducesWrongKeyType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -227,7 +227,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           if (factory.getKeyType() == String.class) {
             update.put((K)new StringBuffer(entry.getKey().toString()), computedEntries.get(entry.getKey()));
@@ -248,8 +248,8 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked" })
   @SPITest
   public void remappingFunctionProducesWrongValueType() throws Exception {
-    Set<K> inputKeys = new HashSet<K>();
-    final Map<K, V> computedEntries = new HashMap<K, V>();
+    Set<K> inputKeys = new HashSet<>();
+    final Map<K, V> computedEntries = new HashMap<>();
     int nbElements = 10;
     for (long i = 0; i < nbElements; i++) {
       K k = factory.createKey(i);
@@ -261,7 +261,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
-        Map<K, V> update = new HashMap<K, V>();
+        Map<K, V> update = new HashMap<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           if (factory.getKeyType() == String.class) {
             update.put(entry.getKey(), (V)new StringBuffer(computedEntries.get(entry.getKey()).toString()));

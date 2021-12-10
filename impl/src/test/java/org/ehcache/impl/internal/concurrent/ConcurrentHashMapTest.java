@@ -41,7 +41,7 @@ public class ConcurrentHashMapTest {
     public void testRemoveAllWithHash() throws Exception {
         final int totalCount = 10037;
 
-        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<Comparable<?>, String>();
+        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<>();
 
         int lastHash = 0;
 
@@ -64,7 +64,7 @@ public class ConcurrentHashMapTest {
     public void testRemoveAllWithHashUsingBadHashes() throws Exception {
         final int totalCount = 10037;
 
-        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<Comparable<?>, String>();
+        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<>();
 
         for(int i = 0; i < totalCount; i++) {
             BadHashKey o = new BadHashKey(i);
@@ -117,20 +117,20 @@ public class ConcurrentHashMapTest {
 
     @Test
     public void testRandomSampleOnEmptyMap() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         assertThat(map.getEvictionCandidate(new Random(), 1, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testEmptyRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
         assertThat(map.getEvictionCandidate(new Random(), 0, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testOversizedRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
         Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, noAdvice());
         assertThat(candidate.getKey(), is("foo"));
@@ -139,7 +139,7 @@ public class ConcurrentHashMapTest {
 
     @Test
     public void testUndersizedRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
@@ -149,7 +149,7 @@ public class ConcurrentHashMapTest {
 
     @Test
     public void testFullyAdvisedAgainstEvictionRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
@@ -159,7 +159,7 @@ public class ConcurrentHashMapTest {
 
     @Test
     public void testSelectivelyAdvisedAgainstEvictionRandomSample() {
-        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
@@ -169,13 +169,13 @@ public class ConcurrentHashMapTest {
 
     @Test
     public void testReplaceWithWeirdBehavior() {
-        ConcurrentHashMap<String, Element> elementMap = new ConcurrentHashMap<String, Element>();
+        ConcurrentHashMap<String, Element> elementMap = new ConcurrentHashMap<>();
         final Element initialElement = new Element("key", "foo");
         elementMap.put("key", initialElement);
         assertThat(elementMap.replace("key", initialElement, new Element("key", "foo")), is(true));
         assertThat(elementMap.replace("key", initialElement, new Element("key", "foo")), is(false));
 
-        ConcurrentHashMap<String, String> stringMap = new ConcurrentHashMap<String, String>();
+        ConcurrentHashMap<String, String> stringMap = new ConcurrentHashMap<>();
         final String initialString = "foo";
         stringMap.put("key", initialString);
         assertThat(stringMap.replace("key", initialString, new String(initialString)), is(true));
@@ -187,7 +187,7 @@ public class ConcurrentHashMapTest {
 
         final String key = "ourKey";
 
-        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<String, Object>();
+        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
 
         String value = new String("key");
         String valueAgain = new String("key");

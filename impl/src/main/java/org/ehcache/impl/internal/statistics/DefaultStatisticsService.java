@@ -43,7 +43,7 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStatisticsService.class);
 
-  private final ConcurrentMap<String, CacheStatistics> cacheStatistics = new ConcurrentHashMap<String, CacheStatistics>();
+  private final ConcurrentMap<String, CacheStatistics> cacheStatistics = new ConcurrentHashMap<>();
 
   private volatile InternalCacheManager cacheManager;
   private volatile boolean started = false;

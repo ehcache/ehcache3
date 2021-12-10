@@ -58,7 +58,7 @@ class NodeListIterable<T extends Node> implements Iterable<T> {
   }
 
   static Iterable<Element> elements(Element root, String ns, String localName) {
-    return new NodeListIterable<Element>(root.getElementsByTagNameNS(ns, localName), Element.class);
+    return new NodeListIterable<>(root.getElementsByTagNameNS(ns, localName), Element.class);
   }
 
 }

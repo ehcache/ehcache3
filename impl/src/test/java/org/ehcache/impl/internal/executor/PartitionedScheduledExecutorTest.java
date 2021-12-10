@@ -76,7 +76,7 @@ public class PartitionedScheduledExecutorTest {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(() -> semaphore.acquireUninterruptibly());
+      executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
@@ -106,7 +106,7 @@ public class PartitionedScheduledExecutorTest {
         testSemaphore.release();
         jobSemaphore.acquireUninterruptibly();
       });
-      executor.submit(() -> jobSemaphore.acquireUninterruptibly());
+      executor.submit((Runnable) jobSemaphore::acquireUninterruptibly);
       testSemaphore.acquireUninterruptibly();
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
@@ -359,7 +359,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<Thread> future = executor.schedule(() -> Thread.currentThread(), 0, MILLISECONDS);
+      ScheduledFuture<Thread> future = executor.schedule(Thread::currentThread, 0, MILLISECONDS);
 
       assertThat(waitFor(future).getName(), is("testScheduledTasksRunOnDeclaredPool"));
       executor.shutdown();

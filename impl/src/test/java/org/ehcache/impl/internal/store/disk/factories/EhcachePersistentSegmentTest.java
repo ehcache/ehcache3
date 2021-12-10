@@ -73,8 +73,8 @@ public class EhcachePersistentSegmentTest {
       MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
-      PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
-      PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
+      PersistentPortability<String> keyPortability = persistent(new SerializerPortability<>(keySerializer));
+      PersistentPortability<String> elementPortability = persistent(new SerializerPortability<>(valueSerializer));
       Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, configuration.getMaximumSize() / 10, BYTES, keyPortability, elementPortability);
       SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
 
@@ -95,7 +95,7 @@ public class EhcachePersistentSegmentTest {
           this.enabled = switchedOn;
         }
       };
-      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, wrappedEvictionAdvisor, evictionListener);
+      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<>(pageSource, storageEngineFactory.newInstance(), 1, true, wrappedEvictionAdvisor, evictionListener);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }

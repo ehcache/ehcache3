@@ -58,7 +58,7 @@ public class ClassLoadingTest {
 
   @SafeVarargs
   private static <T> Enumeration<T> enumerationOf(T... values) {
-    Vector<T> v = new Vector<T>();
+    Vector<T> v = new Vector<>();
     for (T t : values) {
       v.add(t);
     }

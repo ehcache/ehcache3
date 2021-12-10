@@ -45,7 +45,7 @@ class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProdu
   private static final long serialVersionUID = -6421881731950504009L;
 
   @SuppressFBWarnings("SE_BAD_FIELD")
-  private final Map<XAResource, Ehcache3XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<XAResource, Ehcache3XAResourceHolder>();
+  private final Map<XAResource, Ehcache3XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<>();
   private volatile transient RecoveryXAResourceHolder recoveryXAResourceHolder;
 
   Ehcache3XAResourceProducer() {

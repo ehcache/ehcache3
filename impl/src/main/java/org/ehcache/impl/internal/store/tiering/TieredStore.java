@@ -60,13 +60,13 @@ public class TieredStore<K, V> implements Store<K, V> {
   private final AuthoritativeTier<K, V> authoritativeTier;
 
   public TieredStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
-    this.cachingTierRef = new AtomicReference<CachingTier<K, V>>(cachingTier);
+    this.cachingTierRef = new AtomicReference<>(cachingTier);
     this.authoritativeTier = authoritativeTier;
     this.realCachingTier = cachingTier;
-    this.noopCachingTier = new NoopCachingTier<K, V>(authoritativeTier);
+    this.noopCachingTier = new NoopCachingTier<>(authoritativeTier);
 
 
-    this.realCachingTier.setInvalidationListener((key, valueHolder) -> TieredStore.this.authoritativeTier.flush(key, valueHolder));
+    this.realCachingTier.setInvalidationListener(TieredStore.this.authoritativeTier::flush);
 
     this.authoritativeTier.setInvalidationValve(new AuthoritativeTier.InvalidationValve() {
       @Override
@@ -303,7 +303,7 @@ public class TieredStore<K, V> implements Store<K, V> {
   @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList
-        = new ArrayList<CacheConfigurationChangeListener>();
+        = new ArrayList<>();
     configurationChangeListenerList.addAll(realCachingTier.getConfigurationChangeListeners());
     configurationChangeListenerList.addAll(authoritativeTier.getConfigurationChangeListeners());
     return configurationChangeListenerList;
@@ -317,7 +317,7 @@ public class TieredStore<K, V> implements Store<K, V> {
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
+    private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -336,7 +336,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       if (authorityRank == 0) {
         return 0;
       }
-      Set<ResourceType<?>> cachingResources = new HashSet<ResourceType<?>>();
+      Set<ResourceType<?>> cachingResources = new HashSet<>();
       cachingResources.addAll(resourceTypes);
       cachingResources.remove(authorityResource);
       int cachingTierRank = 0;
@@ -365,7 +365,7 @@ public class TieredStore<K, V> implements Store<K, V> {
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      final List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(Arrays.asList(serviceConfigs));
+      final List<ServiceConfiguration<?>> enhancedServiceConfigs = new ArrayList<>(Arrays.asList(serviceConfigs));
 
       final ResourcePools resourcePools = storeConfig.getResourcePools();
       if (rank(resourcePools.getResourceTypeSet(), enhancedServiceConfigs) == 0) {
@@ -376,7 +376,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       ResourceType<?> authorityResource = getAuthorityResource(resourcePools.getResourceTypeSet());
       AuthoritativeTier.Provider authoritativeTierProvider = getAuthoritativeTierProvider(authorityResource, enhancedServiceConfigs);
 
-      Set<ResourceType<?>> cachingResources = new HashSet<ResourceType<?>>();
+      Set<ResourceType<?>> cachingResources = new HashSet<>();
       cachingResources.addAll(resourcePools.getResourceTypeSet());
       cachingResources.remove(authorityResource);
 
@@ -387,7 +387,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, configurations);
       AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, configurations);
 
-      TieredStore<K, V> store = new TieredStore<K, V>(cachingTier, authoritativeTier);
+      TieredStore<K, V> store = new TieredStore<>(cachingTier, authoritativeTier);
       registerStore(store, cachingTierProvider, authoritativeTierProvider);
       return store;
     }
@@ -423,7 +423,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     <K, V> void registerStore(final TieredStore<K, V> store, final CachingTier.Provider cachingTierProvider, final AuthoritativeTier.Provider authoritativeTierProvider) {
-      if(providersMap.putIfAbsent(store, new AbstractMap.SimpleEntry<CachingTier.Provider, AuthoritativeTier.Provider>(cachingTierProvider, authoritativeTierProvider)) != null) {
+      if(providersMap.putIfAbsent(store, new AbstractMap.SimpleEntry<>(cachingTierProvider, authoritativeTierProvider)) != null) {
         throw new IllegalStateException("Instance of the Store already registered!");
       }
     }

@@ -129,7 +129,7 @@ public class ResponseCodecTest {
 
   @Test
   public void testPrepareForDestroy() throws Exception {
-    Set<String> storeIdentifiers = new HashSet<String>();
+    Set<String> storeIdentifiers = new HashSet<>();
     storeIdentifiers.add("store1");
     storeIdentifiers.add("anotherStore");
     EhcacheEntityResponse.PrepareForDestroy response = new EhcacheEntityResponse.PrepareForDestroy(storeIdentifiers);

@@ -41,18 +41,18 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
 
   OffHeapServerStore(PageSource source, KeySegmentMapper mapper) {
     this.mapper = mapper;
-    segments = new ArrayList<OffHeapChainMap<Long>>(mapper.getSegments());
+    segments = new ArrayList<>(mapper.getSegments());
     for (int i = 0; i < mapper.getSegments(); i++) {
-      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
     }
   }
 
   public OffHeapServerStore(ResourcePageSource source, KeySegmentMapper mapper) {
     this.mapper = mapper;
-    segments = new ArrayList<OffHeapChainMap<Long>>(mapper.getSegments());
+    segments = new ArrayList<>(mapper.getSegments());
     long maxSize = getMaxSize(source.getPool().getSize());
     for (int i = 0; i < mapper.getSegments(); i++) {
-      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
+      segments.add(new OffHeapChainMap<>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), (int) KILOBYTES.toBytes(maxSize), false));
     }
   }
 
@@ -72,7 +72,7 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   }
 
   public void setEvictionListener(final ServerStoreEvictionListener listener) {
-    OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = key -> listener.onEviction(key);
+    OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = listener::onEviction;
     for (OffHeapChainMap<Long> segment : segments) {
       segment.setEvictionListener(chainMapEvictionListener);
     }

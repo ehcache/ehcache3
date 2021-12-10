@@ -214,7 +214,7 @@ public abstract class CacheTest {
 
   @Test
   public void testPutIfAbsent() throws StoreAccessException {
-    final AtomicReference<Object> existingValue = new AtomicReference<Object>();
+    final AtomicReference<Object> existingValue = new AtomicReference<>();
     final Store store = mock(Store.class);
     final String value = "bar";
     when(store.computeIfAbsent(eq("foo"), any(Function.class))).thenAnswer(invocationOnMock -> {

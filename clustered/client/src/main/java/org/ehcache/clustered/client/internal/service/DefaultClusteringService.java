@@ -78,13 +78,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
-  private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
+  private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private final Timeouts operationTimeouts;
 
   private volatile Connection clusterConnection;
   private ClusterTierManagerClientEntityFactory entityFactory;
   private ClusterTierManagerClientEntity entity;
-  private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<String, ClusterTierClientEntity>();
+  private final ConcurrentMap<String, ClusterTierClientEntity> clusterTierEntities = new ConcurrentHashMap<>();
 
   private volatile boolean inMaintenance = false;
 
@@ -495,7 +495,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     ClusteredSpace(final ClusteredCacheIdentifier identifier) {
       this.identifier = identifier;
-      this.stateRepositories = new ConcurrentHashMap<String, ClusterStateRepository>();
+      this.stateRepositories = new ConcurrentHashMap<>();
     }
   }
 

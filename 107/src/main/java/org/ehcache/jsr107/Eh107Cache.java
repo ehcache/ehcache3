@@ -135,27 +135,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     try {
-      jsr107Cache.loadAll(keys, replaceExistingValues, keysIterable -> {
-        try {
-          Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keysIterable);
-          HashMap<K, V> resultMap = new HashMap<K, V>();
-          for (K key : keysIterable) {
-            resultMap.put(key, loadResult.get(key));
-          }
-          return resultMap;
-        } catch (Exception e) {
-          final CacheLoaderException cle;
-          if (e instanceof CacheLoaderException) {
-            cle = (CacheLoaderException) e;
-          } else if (e.getCause() instanceof CacheLoaderException) {
-            cle = (CacheLoaderException) e.getCause();
-          } else {
-            cle = new CacheLoaderException(e);
-          }
-
-          throw cle;
-        }
-      });
+      jsr107Cache.loadAll(keys, replaceExistingValues, this::loadAllFunction);
     } catch (Exception e) {
       final CacheLoaderException cle;
       if (e instanceof CacheLoaderException) {
@@ -171,6 +151,28 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
 
     completionListener.onCompletion();
+  }
+
+  private Map<K, V> loadAllFunction(Iterable<? extends K> keysIterable) {
+    try {
+      Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keysIterable);
+      HashMap<K, V> resultMap = new HashMap<>();
+      for (K key : keysIterable) {
+        resultMap.put(key, loadResult.get(key));
+      }
+      return resultMap;
+    } catch (Exception e) {
+      final CacheLoaderException cle;
+      if (e instanceof CacheLoaderException) {
+        cle = (CacheLoaderException) e;
+      } else if (e.getCause() instanceof CacheLoaderException) {
+        cle = (CacheLoaderException) e.getCause();
+      } else {
+        cle = new CacheLoaderException(e);
+      }
+
+      throw cle;
+    }
   }
 
   @Override
@@ -339,8 +341,8 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       throw new NullPointerException();
     }
 
-    final AtomicReference<MutableEntry> mutableEntryRef = new AtomicReference<MutableEntry>();
-    final AtomicReference<T> invokeResult = new AtomicReference<T>();
+    final AtomicReference<MutableEntry> mutableEntryRef = new AtomicReference<>();
+    final AtomicReference<T> invokeResult = new AtomicReference<>();
 
     jsr107Cache.compute(key, (mappedKey, mappedValue) -> {
       MutableEntry mutableEntry = new MutableEntry(mappedKey, mappedValue);
@@ -388,7 +390,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       }
     }
 
-    Map<K, EntryProcessorResult<T>> results = new HashMap<K, EntryProcessorResult<T>>(keys.size());
+    Map<K, EntryProcessorResult<T>> results = new HashMap<>(keys.size());
     for (K key : keys) {
       EntryProcessorResult<T> result = null;
       try {
@@ -527,7 +529,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       public Entry<K, V> next() {
         checkClosed();
         org.ehcache.Cache.Entry<K, V> next = specIterator.next();
-        return next == null ? null : new WrappedEhcacheEntry<K, V>(next);
+        return next == null ? null : new WrappedEhcacheEntry<>(next);
       }
 
       @Override

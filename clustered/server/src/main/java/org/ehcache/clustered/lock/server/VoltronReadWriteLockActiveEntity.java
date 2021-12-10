@@ -39,8 +39,8 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
 
   private final ClientCommunicator communicator;
 
-  private final Set<ClientDescriptor> releaseListeners = new CopyOnWriteArraySet<ClientDescriptor>();
-  private final Set<ClientDescriptor> sharedHolders = new CopyOnWriteArraySet<ClientDescriptor>();
+  private final Set<ClientDescriptor> releaseListeners = new CopyOnWriteArraySet<>();
+  private final Set<ClientDescriptor> sharedHolders = new CopyOnWriteArraySet<>();
 
   private volatile ClientDescriptor exclusiveHolder;
 

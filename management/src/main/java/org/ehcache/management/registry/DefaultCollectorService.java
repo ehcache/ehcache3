@@ -76,7 +76,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     statisticCollector = new DefaultStatisticCollector(
       managementRegistry,
       scheduledExecutorService,
-      statistics -> collector.onStatistics(statistics));
+      collector::onStatistics);
 
     cacheManager.registerListener(this);
   }

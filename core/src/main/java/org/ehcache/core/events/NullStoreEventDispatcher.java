@@ -26,7 +26,7 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
 
   public static <K, V> StoreEventDispatcher<K, V> nullStoreEventDispatcher() {
-    return new NullStoreEventDispatcher<K, V>();
+    return new NullStoreEventDispatcher<>();
   }
 
   private final StoreEventSink<K, V> storeEventSink = new StoreEventSink<K, V>() {

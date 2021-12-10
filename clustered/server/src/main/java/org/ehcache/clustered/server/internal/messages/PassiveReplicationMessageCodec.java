@@ -28,7 +28,6 @@ import org.terracotta.runnel.encoding.StructEncoder;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
@@ -108,7 +107,7 @@ public class PassiveReplicationMessageCodec {
 
     encoder.int64(OLDEST_TRANSACTION_ID_FIELD, message.getOldestTransactionId());
     encoder.int64(KEY_FIELD, message.getKey());
-    encoder.struct(CHAIN_FIELD, message.getChain(), CHAIN_ENCODER_FUNCTION);
+    encoder.struct(CHAIN_FIELD, message.getChain(), ChainCodec::encode);
 
     return encoder.encode().array();
   }

@@ -48,7 +48,7 @@ public class ClusteredConcurrencyTest {
   private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
   private static final String CACHE_NAME = "clustered-cache";
 
-  private AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
+  private AtomicReference<Throwable> exception = new AtomicReference<>();
 
   @Before
   public void definePassthroughServer() throws Exception {
@@ -70,7 +70,7 @@ public class ClusteredConcurrencyTest {
 
     final CountDownLatch latch = new CountDownLatch(THREAD_NUM + 1);
 
-    List<Thread> threads = new ArrayList<Thread>(THREAD_NUM);
+    List<Thread> threads = new ArrayList<>(THREAD_NUM);
     for (int i = 0; i < THREAD_NUM; i++) {
       Thread t1 = new Thread(content(latch));
       t1.start();

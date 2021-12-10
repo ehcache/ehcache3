@@ -29,7 +29,7 @@ import javax.transaction.xa.XAResource;
  */
 public class BitronixXAResourceRegistry implements XAResourceRegistry {
 
-  private final ConcurrentMap<String, Ehcache3XAResourceProducer> producers = new ConcurrentHashMap<String, Ehcache3XAResourceProducer>();
+  private final ConcurrentMap<String, Ehcache3XAResourceProducer> producers = new ConcurrentHashMap<>();
 
   /**
    * Register an XAResource of a cache with BTM. The first time a XAResource is registered a new

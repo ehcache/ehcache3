@@ -117,7 +117,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> entries = new LinkedHashMap<String, String>();
+    final Map<String, String> entries = new LinkedHashMap<>();
     for (final Map.Entry<String, String> entry : getEntryMap(KEY_SET_A).entrySet()) {
       final String key = entry.getKey();
       entries.put(key, entry.getValue());
@@ -142,7 +142,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Map<String, String> entries = new LinkedHashMap<String, String>();
+    final Map<String, String> entries = new LinkedHashMap<>();
     for (final Map.Entry<String, String> entry : getEntryMap(KEY_SET_A).entrySet()) {
       final String key = entry.getKey();
       entries.put(key, entry.getValue());
@@ -287,7 +287,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   public void putAllStoreCallsMethodTwice() throws Exception {
     this.store = mock(Store.class);
     CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    final List<Map.Entry> written = new ArrayList<Map.Entry>();
+    final List<Map.Entry> written = new ArrayList<>();
     doAnswer(invocation -> {
       Iterable<Map.Entry<?, ?>> i = (Iterable<Map.Entry<?, ?>>) invocation.getArguments()[0];
       for (Map.Entry<?, ?> entry : i) {
@@ -317,8 +317,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     ehcache.putAll(map);
 
     assertThat(written.size(), is(2));
-    assertThat(written.contains(new AbstractMap.SimpleEntry<String, String>("1", "one")), is(true));
-    assertThat(written.contains(new AbstractMap.SimpleEntry<String, String>("2", "two")), is(true));
+    assertThat(written.contains(new AbstractMap.SimpleEntry<>("1", "one")), is(true));
+    assertThat(written.contains(new AbstractMap.SimpleEntry<>("2", "two")), is(true));
   }
 
   /**
@@ -327,7 +327,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+      .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -335,7 +336,8 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -438,7 +440,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   private static SortedMap<String, String> sortMap(final Map<String, String> input) {
-    return new TreeMap<String, String>(input);
+    return new TreeMap<>(input);
   }
 
   /**
@@ -449,7 +451,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    in the order observed by the captor.
    */
   private Set<String> getBulkComputeArgs() {
-    final Set<String> bulkComputeArgs = new LinkedHashSet<String>();
+    final Set<String> bulkComputeArgs = new LinkedHashSet<>();
     for (final Set<String> set : this.bulkComputeSetCaptor.getAllValues()) {
       bulkComputeArgs.addAll(set);
     }

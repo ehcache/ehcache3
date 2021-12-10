@@ -120,9 +120,9 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testServerSideEvictionFiresInvalidations() throws Exception {
-    final List<Long> store1EvictInvalidatedHashes = new CopyOnWriteArrayList<Long>();
-    final List<Long> store2AppendInvalidatedHashes = new CopyOnWriteArrayList<Long>();
-    final List<Long> store2EvictInvalidatedHashes = new CopyOnWriteArrayList<Long>();
+    final List<Long> store1EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2AppendInvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
 
     ServerStoreProxy.InvalidationListener listener1 = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -188,7 +188,7 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithAppend() throws Exception {
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
@@ -263,7 +263,7 @@ public class StrongServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override

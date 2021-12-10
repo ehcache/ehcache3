@@ -40,7 +40,7 @@ import java.util.TreeMap;
 @StatisticProvider
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = (o1, o2) -> o1.getName().compareTo(o2.getName());
+  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = Comparator.comparing(StatisticDescriptor::getName);
 
   private final StatisticsService statisticsService;
 
@@ -56,11 +56,11 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
   @Override
   public final Collection<? extends Descriptor> getDescriptors() {
-    Collection<StatisticDescriptor> capabilities = new HashSet<StatisticDescriptor>();
+    Collection<StatisticDescriptor> capabilities = new HashSet<>();
     for (ExposedObject o : getExposedObjects()) {
       capabilities.addAll(((StandardEhcacheStatistics) o).getDescriptors());
     }
-    List<StatisticDescriptor> list = new ArrayList<StatisticDescriptor>(capabilities);
+    List<StatisticDescriptor> list = new ArrayList<>(capabilities);
     Collections.sort(list, STATISTIC_DESCRIPTOR_COMPARATOR);
     return list;
   }
@@ -72,7 +72,7 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
       if (statisticNames == null || statisticNames.isEmpty()) {
         return ehcacheStatistics.queryStatistics();
       } else {
-        Map<String, Number> statistics = new TreeMap<String, Number>();
+        Map<String, Number> statistics = new TreeMap<>();
         for (String statisticName : statisticNames) {
           try {
             statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName));

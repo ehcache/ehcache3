@@ -93,7 +93,7 @@ public class LoaderWriterConfigTest {
 
   private MutableConfiguration<Long, String> getConfiguration(final boolean readThrough, final CacheLoader<Long, String> cacheLoader,
                                                               final boolean writeThrough, final CacheWriter<Long, String> cacheWriter) {
-    MutableConfiguration<Long, String> config = new MutableConfiguration<Long, String>();
+    MutableConfiguration<Long, String> config = new MutableConfiguration<>();
     config.setTypes(Long.class, String.class);
     config.setReadThrough(readThrough);
     config.setCacheLoaderFactory(() -> cacheLoader);

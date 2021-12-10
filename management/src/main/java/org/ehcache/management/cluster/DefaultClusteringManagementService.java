@@ -80,7 +80,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     // get an ordered executor to keep ordering of management call requests
     this.managementCallExecutor = serviceProvider.getService(ExecutionService.class).getOrderedExecutor(
         configuration.getManagementCallExecutorAlias(),
-        new ArrayBlockingQueue<Runnable>(configuration.getManagementCallQueueSize()));
+      new ArrayBlockingQueue<>(configuration.getManagementCallQueueSize()));
 
     this.collectorService = new DefaultCollectorService(this);
     this.collectorService.start(serviceProvider);

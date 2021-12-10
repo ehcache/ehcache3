@@ -66,7 +66,7 @@ public class SimpleEh107ConfigTest {
   public void testExpiryConfiguration() {
     final AtomicBoolean expiryCreated = new AtomicBoolean(false);
 
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class);
     configuration.setExpiryPolicyFactory(() -> {
       expiryCreated.set(true);
@@ -85,7 +85,7 @@ public class SimpleEh107ConfigTest {
   public void testLoaderConfiguration() throws Exception {
     final AtomicBoolean loaderCreated = new AtomicBoolean(false);
 
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class).setReadThrough(true);
     configuration.setCacheLoaderFactory(() -> {
       loaderCreated.set(true);
@@ -110,7 +110,7 @@ public class SimpleEh107ConfigTest {
 
   private static class TestCacheLoader implements CacheLoader<String, String> {
 
-    static Set<String> seen = new HashSet<String>();
+    static Set<String> seen = new HashSet<>();
 
     @Override
     public String load(String key) throws CacheLoaderException {

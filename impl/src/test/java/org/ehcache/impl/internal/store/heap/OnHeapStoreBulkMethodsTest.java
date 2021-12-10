@@ -87,7 +87,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(3, 4);
 
     Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), entries -> {
-      Map<Number, Number> newValues = new HashMap<Number, Number>();
+      Map<Number, Number> newValues = new HashMap<>();
       for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
         final Number currentValue = entry.getValue();
         if(currentValue == null) {
@@ -104,7 +104,7 @@ public class OnHeapStoreBulkMethodsTest {
       return newValues.entrySet();
     });
 
-    ConcurrentMap<Number, Number> check = new ConcurrentHashMap<Number, Number>();
+    ConcurrentMap<Number, Number> check = new ConcurrentHashMap<>();
     check.put(1, 4);
     check.put(2, 6);
     check.put(3, 8);
@@ -136,7 +136,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(1, "one");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2)), entries -> {
-      Map<Number, CharSequence> newValues = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> newValues = new HashMap<>();
       for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
         if(entry.getKey().intValue() == 1) {
           newValues.put(entry.getKey(), "un");
@@ -166,7 +166,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(3, "three");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(2, 1, 5)), entries -> {
-      Map<Number, CharSequence> newValues = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> newValues = new HashMap<>();
       for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
         newValues.put(entry.getKey(), null);
       }
@@ -190,7 +190,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(3, "three");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), entries -> {
-      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> result1 = new HashMap<>();
       for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
         if (entry.getKey().equals(1)) {
           result1.put(entry.getKey(), null);
@@ -223,7 +223,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(3, "three");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), keys -> {
-      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> result1 = new HashMap<>();
 
       for (Number key : keys) {
         if (key.equals(1)) {
@@ -266,7 +266,7 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(3, "three");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), numbers -> {
-      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> result1 = new HashMap<>();
       for (Number key : numbers) {
         if(key.equals(4)) {
           result1.put(key, "quatre");
@@ -304,14 +304,14 @@ public class OnHeapStoreBulkMethodsTest {
     store.put(3, "three");
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(2, 1, 5)), numbers -> {
-      Map<Number, CharSequence> result1 = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> result1 = new HashMap<>();
       for (Number key : numbers) {
         // 5 is a missing key, so it's the only key that is going passed to the function
         if(key.equals(5)) {
           result1.put(key, null);
         }
       }
-      Set<Number> numbersSet =  new HashSet<Number>();
+      Set<Number> numbersSet = new HashSet<>();
       for (Number number : numbers) {
         numbersSet.add(number);
       }

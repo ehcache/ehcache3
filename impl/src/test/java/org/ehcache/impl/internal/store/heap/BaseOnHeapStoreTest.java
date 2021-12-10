@@ -1056,8 +1056,8 @@ public abstract class BaseOnHeapStoreTest {
         fail("Got an exception waiting to start thread " + e);
       }
       try {
-        ValueHolder<String> result = store.getOrComputeIfAbsent("42", key -> new CopiedOnHeapValueHolder<String>("theAnswer!", System
-          .currentTimeMillis(), -1, false, new IdentityCopier<String>()));
+        ValueHolder<String> result = store.getOrComputeIfAbsent("42", key -> new CopiedOnHeapValueHolder<>("theAnswer!", System
+          .currentTimeMillis(), -1, false, new IdentityCopier<>()));
         assertThat(result.value(), is("theAnswer!"));
         endLatch.countDown();
       } catch (Exception e) {
@@ -1085,7 +1085,7 @@ public abstract class BaseOnHeapStoreTest {
     CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
 
-    final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
+    final AtomicReference<AssertionError> failedInThread = new AtomicReference<>();
 
     final CountDownLatch getLatch = new CountDownLatch(1);
     final CountDownLatch invalidateLatch = new CountDownLatch(1);
@@ -1102,7 +1102,7 @@ public abstract class BaseOnHeapStoreTest {
           } catch (InterruptedException e) {
             failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
           }
-          return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
+          return new CopiedOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<>());
         });
       } catch (StoreAccessException caex) {
         failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
@@ -1126,7 +1126,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testConcurrentSilentFaultingAndInvalidate() throws Exception {
     final OnHeapStore<String, String> store = newStore();
 
-    final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
+    final AtomicReference<AssertionError> failedInThread = new AtomicReference<>();
 
     final CountDownLatch getLatch = new CountDownLatch(1);
     final CountDownLatch invalidateLatch = new CountDownLatch(1);
@@ -1143,7 +1143,7 @@ public abstract class BaseOnHeapStoreTest {
           } catch (InterruptedException e) {
             failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
           }
-          return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
+          return new CopiedOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<>());
         });
       } catch (StoreAccessException caex) {
         failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
@@ -1177,8 +1177,8 @@ public abstract class BaseOnHeapStoreTest {
     store.put("keyA", "valueA");
     store.put("keyB", "valueB");
 
-    final Exchanger<String> keyExchanger = new Exchanger<String>();
-    final AtomicReference<String> reference = new AtomicReference<String>();
+    final Exchanger<String> keyExchanger = new Exchanger<>();
+    final AtomicReference<String> reference = new AtomicReference<>();
     final CountDownLatch faultingLatch = new CountDownLatch(1);
 
     // prepare concurrent faulting
@@ -1291,7 +1291,7 @@ public abstract class BaseOnHeapStoreTest {
 
   private static Map<String, Long> observeAccessTimes(Iterator<Entry<String, ValueHolder<String>>> iter)
       throws StoreAccessException {
-    Map<String, Long> map = new HashMap<String, Long>();
+    Map<String, Long> map = new HashMap<>();
     while (iter.hasNext()) {
       Entry<String, ValueHolder<String>> entry = iter.next();
       map.put(entry.getKey(), entry.getValue().lastAccessTime(TimeUnit.MILLISECONDS));
@@ -1301,7 +1301,7 @@ public abstract class BaseOnHeapStoreTest {
 
   private static Map<String, String> observe(Iterator<Entry<String, ValueHolder<String>>> iter)
       throws StoreAccessException {
-    Map<String, String> map = new HashMap<String, String>();
+    Map<String, String> map = new HashMap<>();
     while (iter.hasNext()) {
       Entry<String, ValueHolder<String>> entry = iter.next();
       map.put(entry.getKey(), entry.getValue().value());

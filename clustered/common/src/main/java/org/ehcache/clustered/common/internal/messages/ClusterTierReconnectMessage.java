@@ -23,7 +23,7 @@ import java.util.UUID;
 public class ClusterTierReconnectMessage {
 
   private final UUID clientId;
-  private final Set<Long> hashInvalidationsInProgress = new HashSet<Long>();
+  private final Set<Long> hashInvalidationsInProgress = new HashSet<>();
   private boolean clearInProgress = false;
 
   public ClusterTierReconnectMessage(UUID clientId) {

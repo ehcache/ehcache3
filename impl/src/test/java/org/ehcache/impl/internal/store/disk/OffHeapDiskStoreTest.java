@@ -249,14 +249,14 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
-      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class,
-          null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(
-              getPersistenceContext(),
-              new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
-              storeConfiguration, timeSource,
-              new TestStoreEventDispatcher<String, String>(),
-              MB.toBytes(1));
+      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<>(String.class, String.class,
+        null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<>(
+        getPersistenceContext(),
+        new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+        storeConfiguration, timeSource,
+        new TestStoreEventDispatcher<>(),
+        MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -272,14 +272,14 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
-          evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
-              getPersistenceContext(),
-              new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
-              storeConfiguration, timeSource,
-              new TestStoreEventDispatcher<String, byte[]>(),
-              MB.toBytes(1));
+      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<>(String.class, byte[].class,
+        evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<>(
+        getPersistenceContext(),
+        new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+        storeConfiguration, timeSource,
+        new TestStoreEventDispatcher<>(),
+        MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -334,7 +334,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
-        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
+      new HashSet<>(Arrays.asList(resources)),
         Collections.<ServiceConfiguration<?>>emptyList()),
         is(expectedRank));
   }

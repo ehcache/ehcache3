@@ -324,14 +324,14 @@ public class XACacheTest {
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath())))
         .withCache("txCache1", cacheConfigurationBuilder
                 .add(new XAStoreConfiguration("txCache1"))
-                .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
-                .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+                .add(new DefaultCopierConfiguration<>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+                .add(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
                 .build()
         )
         .withCache("txCache2", cacheConfigurationBuilder
             .add(new XAStoreConfiguration("txCache2"))
-            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
@@ -382,14 +382,14 @@ public class XACacheTest {
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath())))
         .withCache("txCache1", cacheConfigurationBuilder
                 .add(new XAStoreConfiguration("txCache1"))
-                .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
-                .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+                .add(new DefaultCopierConfiguration<>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+                .add(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
                 .build()
         )
         .withCache("txCache2", cacheConfigurationBuilder
             .add(new XAStoreConfiguration("txCache2"))
-            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
@@ -544,7 +544,7 @@ public class XACacheTest {
   public void testAtomicsWithLoaderWriter() throws Exception {
     TestTimeSource testTimeSource = new TestTimeSource();
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
-    SampleLoaderWriter<Long, String> loaderWriter = new SampleLoaderWriter<Long, String>();
+    SampleLoaderWriter<Long, String> loaderWriter = new SampleLoaderWriter<>();
 
     CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder()
@@ -721,7 +721,7 @@ public class XACacheTest {
       txCache1.put(1L, "one");
       txCache1.put(2L, "two");
 
-      Map<Long, String> result = new HashMap<Long, String>();
+      Map<Long, String> result = new HashMap<>();
       Iterator<Cache.Entry<Long, String>> iterator = txCache1.iterator();
       while (iterator.hasNext()) {
         Cache.Entry<Long, String> next = iterator.next();
@@ -735,7 +735,7 @@ public class XACacheTest {
 
     transactionManager.begin();
     {
-      Map<Long, String> result = new HashMap<Long, String>();
+      Map<Long, String> result = new HashMap<>();
       for (Cache.Entry<Long, String> next : txCache1) {
         result.put(next.getKey(), next.getValue());
       }
@@ -745,7 +745,7 @@ public class XACacheTest {
 
     transactionManager.begin();
     {
-      final AtomicReference<Throwable> throwableRef = new AtomicReference<Throwable>();
+      final AtomicReference<Throwable> throwableRef = new AtomicReference<>();
       txCache1.put(1L, "one");
       txCache1.put(2L, "two");
 
@@ -754,7 +754,7 @@ public class XACacheTest {
         public void run() {
           try {
             transactionManager.begin();
-            Map<Long, String> result = new HashMap<Long, String>();
+            Map<Long, String> result = new HashMap<>();
             for (Cache.Entry<Long, String> next : txCache1) {
               result.put(next.getKey(), next.getValue());
             }
@@ -777,7 +777,7 @@ public class XACacheTest {
 
     transactionManager.begin();
     {
-      Map<Long, String> result = new HashMap<Long, String>();
+      Map<Long, String> result = new HashMap<>();
       Iterator<Cache.Entry<Long, String>> iterator = txCache1.iterator();
       while (iterator.hasNext()) {
         Cache.Entry<Long, String> next = iterator.next();
@@ -791,7 +791,7 @@ public class XACacheTest {
 
     transactionManager.begin();
     {
-      Map<Long, String> result = new HashMap<Long, String>();
+      Map<Long, String> result = new HashMap<>();
       for (Cache.Entry<Long, String> next : txCache1) {
         result.put(next.getKey(), next.getValue());
       }

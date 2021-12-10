@@ -38,7 +38,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
 
   SimpleBackend(boolean byteSized) {
     this.byteSized = byteSized;
-    realMap = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
+    realMap = new ConcurrentHashMap<>();
   }
 
   @Override
@@ -98,7 +98,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
 
   @Override
   public Backend<K, V> clear() {
-    return new SimpleBackend<K, V>(byteSized);
+    return new SimpleBackend<>(byteSized);
   }
 
   @Override

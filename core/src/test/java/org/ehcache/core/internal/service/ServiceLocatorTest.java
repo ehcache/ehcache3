@@ -245,7 +245,7 @@ public class ServiceLocatorTest {
 
     final class StartStopCounter {
       final AtomicInteger startCounter = new AtomicInteger(0);
-      final AtomicReference<ServiceProvider<Service>> startServiceProvider = new AtomicReference<ServiceProvider<Service>>();
+      final AtomicReference<ServiceProvider<Service>> startServiceProvider = new AtomicReference<>();
       final AtomicInteger stopCounter = new AtomicInteger(0);
       public void countStart(ServiceProvider<Service> serviceProvider) {
         startCounter.incrementAndGet();

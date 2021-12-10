@@ -29,7 +29,7 @@ public class IdentityCopierTest {
   @Test
   public void testCopy() throws Exception {
     String foo = new String("foo");
-    IdentityCopier<String> copier = new IdentityCopier<String>();
+    IdentityCopier<String> copier = new IdentityCopier<>();
     assertSame(foo, copier.copy(foo));
   }
 }

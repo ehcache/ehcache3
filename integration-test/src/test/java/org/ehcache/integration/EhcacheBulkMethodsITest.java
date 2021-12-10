@@ -82,7 +82,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    HashMap<String, String> stringStringHashMap = new HashMap<String, String>();
+    HashMap<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }
@@ -114,7 +114,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    HashMap<String, String> stringStringHashMap = new HashMap<String, String>();
+    HashMap<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }
@@ -155,7 +155,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    HashMap<String, String> stringStringHashMap = new HashMap<String, String>();
+    HashMap<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }
@@ -190,7 +190,7 @@ public class EhcacheBulkMethodsITest {
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 
-    Map<String, String> stringStringHashMap = new HashMap<String, String>();
+    Map<String, String> stringStringHashMap = new HashMap<>();
     for (int i = 0; i < 3; i++) {
       stringStringHashMap.put("key" + i, "value" + i);
     }

@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class XATransactionContextFactory<K, V> {
 
-  private final Map<TransactionId, XATransactionContext<K, V>> transactionContextMap = new ConcurrentHashMap<TransactionId, XATransactionContext<K, V>>();
+  private final Map<TransactionId, XATransactionContext<K, V>> transactionContextMap = new ConcurrentHashMap<>();
   private final TimeSource timeSource;
 
   public XATransactionContextFactory(TimeSource timeSource) {
@@ -39,7 +39,7 @@ public class XATransactionContextFactory<K, V> {
   public XATransactionContext<K, V> createTransactionContext(TransactionId transactionId, Store<K, SoftLock<V>> underlyingStore, Journal<K> journal, int transactionTimeoutInSeconds) {
     long nowTimestamp = timeSource.getTimeMillis();
     long timeoutTimestamp = nowTimestamp + TimeUnit.SECONDS.toMillis(transactionTimeoutInSeconds);
-    XATransactionContext<K, V> transactionContext = new XATransactionContext<K, V>(transactionId, underlyingStore, journal, timeSource, timeoutTimestamp);
+    XATransactionContext<K, V> transactionContext = new XATransactionContext<>(transactionId, underlyingStore, journal, timeSource, timeoutTimestamp);
     transactionContextMap.put(transactionId, transactionContext);
     return transactionContext;
   }

@@ -49,7 +49,7 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       final Expiry<? super K, ? super V> expiry,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final Copier<K> keyCopier, final Copier<V> valueCopier, final int capacity) {
     StoreEventDispatcher<K, V> eventDispatcher = getStoreEventDispatcher();
-    return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
+    return new OnHeapStore<>(new Store.Configuration<K, V>() {
 
       @SuppressWarnings("unchecked")
       @Override
@@ -85,12 +85,12 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
 
       @Override
       public Serializer<K> getKeySerializer() {
-        return new JavaSerializer<K>(getClass().getClassLoader());
+        return new JavaSerializer<>(getClass().getClassLoader());
       }
 
       @Override
       public Serializer<V> getValueSerializer() {
-        return new JavaSerializer<V>(getClass().getClassLoader());
+        return new JavaSerializer<>(getClass().getClassLoader());
       }
 
       @Override

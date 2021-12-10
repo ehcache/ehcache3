@@ -74,7 +74,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testGetAllNullKey() throws Exception {
-    final Set<String> keys = new LinkedHashSet<String>();
+    final Set<String> keys = new LinkedHashSet<>();
     for (final String key : KEY_SET_A) {
       keys.add(key);
       if ("keyA2".equals(key)) {
@@ -309,7 +309,8 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+      .getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

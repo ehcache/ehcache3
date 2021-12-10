@@ -34,7 +34,7 @@ public class ServiceUtils {
   }
 
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
-    Collection<T> matches = new ArrayList<T>();
+    Collection<T> matches = new ArrayList<>();
     for (Object instance : instances) {
       if (instance != null && clazz.isAssignableFrom(instance.getClass())) {
         matches.add(clazz.cast(instance));

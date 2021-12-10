@@ -74,8 +74,8 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
   };
 
-  private final Set<StoreEventFilter<K, V>> filters = new CopyOnWriteArraySet<StoreEventFilter<K, V>>();
-  private final Set<StoreEventListener<K, V>> listeners = new CopyOnWriteArraySet<StoreEventListener<K, V>>();
+  private final Set<StoreEventFilter<K, V>> filters = new CopyOnWriteArraySet<>();
+  private final Set<StoreEventListener<K, V>> listeners = new CopyOnWriteArraySet<>();
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
   private volatile boolean ordered = false;
 
@@ -87,7 +87,7 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = new LinkedBlockingQueue[dispatcherConcurrency];
     orderedQueues = queues;
     for (int i = 0; i < orderedQueues.length; i++) {
-      orderedQueues[i] = new LinkedBlockingQueue<FireableStoreEventHolder<K, V>>(10000);
+      orderedQueues[i] = new LinkedBlockingQueue<>(10000);
     }
   }
 

@@ -39,7 +39,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testBasicOperations() {
-    final ConcurrentWeakIdentityHashMap<Integer, String> map = new ConcurrentWeakIdentityHashMap<Integer, String>();
+    final ConcurrentWeakIdentityHashMap<Integer, String> map = new ConcurrentWeakIdentityHashMap<>();
 
     final Integer key = 1;
     final String firstValue = "foo";
@@ -70,7 +70,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testSizeAccountsForGCedKeys() {
-    final ConcurrentWeakIdentityHashMap<Object, String> map = new ConcurrentWeakIdentityHashMap<Object, String>();
+    final ConcurrentWeakIdentityHashMap<Object, String> map = new ConcurrentWeakIdentityHashMap<>();
 
     final String v = "present";
 
@@ -85,7 +85,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testRemoveAccountsForReference() {
-    final ConcurrentWeakIdentityHashMap<Object, String> map = new ConcurrentWeakIdentityHashMap<Object, String>();
+    final ConcurrentWeakIdentityHashMap<Object, String> map = new ConcurrentWeakIdentityHashMap<>();
 
     final Integer key = 1;
     final String v = "present";
@@ -96,7 +96,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testIteration() throws InterruptedException {
-    final ConcurrentWeakIdentityHashMap<Object, Integer> map = new ConcurrentWeakIdentityHashMap<Object, Integer>();
+    final ConcurrentWeakIdentityHashMap<Object, Integer> map = new ConcurrentWeakIdentityHashMap<>();
     int i = 0;
     while(i < 10240) {
       if (i % 1024 == 0) {
@@ -128,7 +128,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testKeySetSize() throws Exception {
-    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<>();
     Set<String> keys = map.keySet();
 
     String key1 = "key1";
@@ -143,7 +143,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testKeySetContainsReflectsMapChanges() throws Exception {
-    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<>();
     Set<String> keys = map.keySet();
 
     String key1 = "key1";
@@ -160,7 +160,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testKeySetIteratorReflectsMapChanges() {
-    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<>();
     Set<String> keys = map.keySet();
 
     String key1 = "key1";
@@ -182,7 +182,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testEntrySetSize() throws Exception {
-    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<>();
     Set<Map.Entry<String, String>> entries = map.entrySet();
 
     String key1 = "key1";
@@ -197,7 +197,7 @@ public class ConcurrentWeakIdentityHashMapTest {
 
   @Test
   public void testEntrySetContainsReflectsMapChanges() throws Exception {
-    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<>();
     Set<Map.Entry<String, String>> entries = map.entrySet();
 
     String key1 = "key1";
@@ -207,14 +207,14 @@ public class ConcurrentWeakIdentityHashMapTest {
     map.put(key2, "value2");
     map.put(key3, "value3");
 
-    assertThat(entries.contains(new AbstractMap.SimpleEntry<String, String>("key1", "value1")), is(true));
-    assertThat(entries.contains(new AbstractMap.SimpleEntry<String, String>("key1", "value1")), is(true));
-    assertThat(entries.contains(new AbstractMap.SimpleEntry<String, String>("key1", "value1")), is(true));
+    assertThat(entries.contains(new AbstractMap.SimpleEntry<>("key1", "value1")), is(true));
+    assertThat(entries.contains(new AbstractMap.SimpleEntry<>("key1", "value1")), is(true));
+    assertThat(entries.contains(new AbstractMap.SimpleEntry<>("key1", "value1")), is(true));
   }
 
   @Test
   public void testEntrySetIteratorReflectsMapChanges() {
-    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<String, String>();
+    ConcurrentWeakIdentityHashMap<String, String> map = new ConcurrentWeakIdentityHashMap<>();
     Set<Map.Entry<String, String>> entries = map.entrySet();
 
     String key1 = "key1";

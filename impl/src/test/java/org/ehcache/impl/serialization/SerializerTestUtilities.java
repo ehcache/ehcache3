@@ -43,7 +43,7 @@ public final class SerializerTestUtilities {
 
   public static ClassLoader createClassNameRewritingLoader(Class<?> initial, Class<?> ... more) {
     ClassLoader loader = initial.getClassLoader();
-    Map<String, String> remapping = new HashMap<String, String>();
+    Map<String, String> remapping = new HashMap<>();
     remapping.putAll(createRemappings(initial));
     for (Class<?> klazz : more) {
       remapping.putAll(createRemappings(klazz));
@@ -52,7 +52,7 @@ public final class SerializerTestUtilities {
   }
 
   private static Map<String, String> createRemappings(Class<?> initial) {
-    HashMap<String, String> remappings = new HashMap<String, String>();
+    HashMap<String, String> remappings = new HashMap<>();
     remappings.put(initial.getName(), newClassName(initial));
     for (Class<?> inner : initial.getDeclaredClasses()) {
       remappings.put(inner.getName(), newClassName(inner));
@@ -86,7 +86,7 @@ public final class SerializerTestUtilities {
   private static final ThreadLocal<Deque<ClassLoader>> tcclStacks = new ThreadLocal<Deque<ClassLoader>>() {
     @Override
     protected Deque<ClassLoader> initialValue() {
-      return new LinkedList<ClassLoader>();
+      return new LinkedList<>();
     }
   };
 
@@ -105,7 +105,7 @@ public final class SerializerTestUtilities {
 
     RewritingClassloader(ClassLoader parent, Map<String, String> remappings) {
       super(parent);
-      this.remappings = Collections.unmodifiableMap(new HashMap<String, String>(remappings));
+      this.remappings = Collections.unmodifiableMap(new HashMap<>(remappings));
     }
 
     @Override

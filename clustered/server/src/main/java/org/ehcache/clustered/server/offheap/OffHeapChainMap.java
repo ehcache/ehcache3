@@ -249,7 +249,7 @@ public class OffHeapChainMap<K> implements MapInternals {
   };
 
   public static Chain chain(ByteBuffer... buffers) {
-    final List<Element> list = new ArrayList<Element>();
+    final List<Element> list = new ArrayList<>();
     for (ByteBuffer b : buffers) {
       list.add(element(b));
     }
@@ -276,7 +276,7 @@ public class OffHeapChainMap<K> implements MapInternals {
   }
 
   private static Element element(final ByteBuffer b) {
-    return () -> b.asReadOnlyBuffer();
+    return b::asReadOnlyBuffer;
   }
 
   @Override

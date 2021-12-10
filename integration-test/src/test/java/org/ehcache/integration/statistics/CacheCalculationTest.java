@@ -181,7 +181,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
 
   @Test
   public void putAll() {
-    Map<Integer, String> vals = new HashMap<Integer, String>();
+    Map<Integer, String> vals = new HashMap<>();
     vals.put(1, "a");
     vals.put(2, "b");
     cache.putAll(vals);

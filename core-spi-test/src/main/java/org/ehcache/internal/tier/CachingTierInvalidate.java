@@ -109,11 +109,11 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
 
     try {
       // register invalidation listener
-      final Set<K> invalidatedKeys = new HashSet<K>();
+      final Set<K> invalidatedKeys = new HashSet<>();
       tier.setInvalidationListener((key, valueHolder) -> invalidatedKeys.add(key));
 
       // install values
-      final Set<K> generatedKeys = new HashSet<K>();
+      final Set<K> generatedKeys = new HashSet<>();
       for (int i = 0; i < 5; i++) {
         final K key = factory.createKey(i^3);
         final V value = factory.createValue(i^5);

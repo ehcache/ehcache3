@@ -273,7 +273,7 @@ public class ClusterTierManagerPassiveEntityTest {
   }
 
   private static final class ServerSideConfigBuilder {
-    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
+    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
     private String defaultServerResource;
 
     ServerSideConfigBuilder sharedPool(String poolName, String resourceName, int size, MemoryUnit unit) {
@@ -305,7 +305,7 @@ public class ClusterTierManagerPassiveEntityTest {
     private EhcacheStateServiceImpl storeManagerService;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
-        new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
+      new HashMap<>();
 
     /**
      * Instantiate an "open" {@code ServiceRegistry}.  Using this constructor creates a
@@ -347,7 +347,7 @@ public class ClusterTierManagerPassiveEntityTest {
     }
 
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<String>();
+      Set<String> names = new HashSet<>();
       for (OffHeapResourceIdentifier identifier: pools) {
         names.add(identifier.getName());
       }

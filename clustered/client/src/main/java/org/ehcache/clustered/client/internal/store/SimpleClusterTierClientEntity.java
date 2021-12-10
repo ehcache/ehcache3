@@ -67,7 +67,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final Object lock = new Object();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
-    new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
+    new ConcurrentHashMap<>();
 
   private UUID clientId;
   private ReconnectListener reconnectListener = reconnectMessage -> {
@@ -170,7 +170,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
     List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
     if (responseListeners == null) {
-      responseListeners = new CopyOnWriteArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
+      responseListeners = new CopyOnWriteArrayList<>();
       this.responseListeners.put(responseType, responseListeners);
     }
     responseListeners.add(responseListener);

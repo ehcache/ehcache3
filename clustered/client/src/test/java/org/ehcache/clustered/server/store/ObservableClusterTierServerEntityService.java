@@ -46,7 +46,7 @@ public class ObservableClusterTierServerEntityService
   private final List<ClusterTierPassiveEntity> servedPassiveEntities = new ArrayList<>();
 
   public List<ObservableClusterTierActiveEntity> getServedActiveEntities() throws NoSuchFieldException, IllegalAccessException {
-    List<ObservableClusterTierActiveEntity> observables = new ArrayList<ObservableClusterTierActiveEntity>(servedActiveEntities.size());
+    List<ObservableClusterTierActiveEntity> observables = new ArrayList<>(servedActiveEntities.size());
     for (ClusterTierActiveEntity servedActiveEntity : servedActiveEntities) {
       observables.add(new ObservableClusterTierActiveEntity(servedActiveEntity));
     }

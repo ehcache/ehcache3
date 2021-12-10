@@ -64,8 +64,8 @@ public class EhcacheSegmentTest {
       PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcacheSegmentTest.class.getClassLoader());
-      Portability<String> keyPortability = new SerializerPortability<String>(keySerializer);
-      Portability<String> elementPortability = new SerializerPortability<String>(valueSerializer);
+      Portability<String> keyPortability = new SerializerPortability<>(keySerializer);
+      Portability<String> elementPortability = new SerializerPortability<>(valueSerializer);
       Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);
       SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
 
@@ -86,7 +86,7 @@ public class EhcacheSegmentTest {
           this.enabled = switchedOn;
         }
       };
-      return new EhcacheSegmentFactory.EhcacheSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, wrappedEvictionAdvisor, evictionListener);
+      return new EhcacheSegmentFactory.EhcacheSegment<>(pageSource, storageEngineFactory.newInstance(), 1, wrappedEvictionAdvisor, evictionListener);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }

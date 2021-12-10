@@ -156,13 +156,13 @@ public class BasicClusteredCacheOpsTest extends ClusteredTests {
         final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
         final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
 
-        Map<Long, String> entriesMap = new HashMap<Long, String>();
+        Map<Long, String> entriesMap = new HashMap<>();
         entriesMap.put(1L, "one");
         entriesMap.put(2L, "two");
         entriesMap.put(3L, "three");
         cache1.putAll(entriesMap);
 
-        Set<Long> keySet  = new HashSet<Long>(Arrays.asList(1L, 2L, 3L));
+        Set<Long> keySet  = new HashSet<>(Arrays.asList(1L, 2L, 3L));
         Map<Long, String> all = cache2.getAll(keySet);
         assertThat(all.get(1L), is("one"));
         assertThat(all.get(2L), is("two"));

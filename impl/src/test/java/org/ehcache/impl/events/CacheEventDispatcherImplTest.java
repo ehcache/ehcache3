@@ -65,7 +65,7 @@ public class CacheEventDispatcherImplTest {
       return null;
     }).when(unorderedExecutor).submit(any(Runnable.class));
     storeEventDispatcher = mock(StoreEventSource.class);
-    eventService = new CacheEventDispatcherImpl<Number, String>(unorderedExecutor, orderedExecutor);
+    eventService = new CacheEventDispatcherImpl<>(unorderedExecutor, orderedExecutor);
     eventService.setStoreEventSource(storeEventDispatcher);
     listener = mock(CacheEventListener.class);
   }
@@ -78,7 +78,7 @@ public class CacheEventDispatcherImplTest {
 
   @Test
   public void testAsyncEventFiring() throws Exception {
-    eventService = new CacheEventDispatcherImpl<Number, String>(Executors.newCachedThreadPool(), orderedExecutor);
+    eventService = new CacheEventDispatcherImpl<>(Executors.newCachedThreadPool(), orderedExecutor);
     eventService.setStoreEventSource(storeEventDispatcher);
     final CountDownLatch signal = new CountDownLatch(1);
     final CountDownLatch signal2 = new CountDownLatch(1);

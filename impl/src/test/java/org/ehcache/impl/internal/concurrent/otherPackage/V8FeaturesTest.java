@@ -40,7 +40,7 @@ public class V8FeaturesTest {
 
     @Test
     public void testCompute() throws Exception {
-        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<String, Integer>();
+        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<>();
         chm.put("one", 1);
         chm.put("two", 2);
         chm.put("three", 3);
@@ -51,7 +51,7 @@ public class V8FeaturesTest {
 
     @Test
     public void testComputeIfAbsent() throws Exception {
-        ConcurrentHashMap<String, AtomicInteger> chm = new ConcurrentHashMap<String, AtomicInteger>();
+        ConcurrentHashMap<String, AtomicInteger> chm = new ConcurrentHashMap<>();
 
         assertThat(chm.get("four"), is(nullValue()));
 
@@ -65,7 +65,7 @@ public class V8FeaturesTest {
 
     @Test
     public void testComputeIfPresent() throws Exception {
-        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<String, Integer>();
+        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<>();
         chm.put("four", 0);
 
         assertThat(chm.get("four"), equalTo(0));
@@ -80,7 +80,7 @@ public class V8FeaturesTest {
 
     @Test
     public void testMerge() throws Exception {
-        ConcurrentHashMap<Integer, String> chm = new ConcurrentHashMap<Integer, String>();
+        ConcurrentHashMap<Integer, String> chm = new ConcurrentHashMap<>();
         chm.put(1, "one");
         chm.put(2, "two");
         chm.put(3, "three");
@@ -93,7 +93,7 @@ public class V8FeaturesTest {
     @SuppressWarnings("serial")
     @Test
     public void testReplaceAll() throws Exception {
-        ConcurrentHashMap<Integer, String> chm = new ConcurrentHashMap<Integer, String>();
+        ConcurrentHashMap<Integer, String> chm = new ConcurrentHashMap<>();
         chm.put(1, "one");
         chm.put(2, "two");
         chm.put(3, "three");
@@ -113,7 +113,7 @@ public class V8FeaturesTest {
 
     @Test
     public void testForEach() throws Exception {
-        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<String, Integer>();
+        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<>();
         chm.put("one", 1);
         chm.put("two", 2);
         chm.put("three", 3);
@@ -125,14 +125,14 @@ public class V8FeaturesTest {
 
         final Map<String, Integer> collector = Collections.synchronizedMap(new HashMap<String, Integer>());
 
-        chm.forEach((JSR166Helper.BiConsumer<String, Integer>) (s, i) -> collector.put(s, i));
+        chm.forEach((JSR166Helper.BiConsumer<String, Integer>) collector::put);
 
         assertThat(chm, equalTo(collector));
     }
 
     @Test
     public void testParallelForEach() throws Exception {
-        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<String, Integer>();
+        ConcurrentHashMap<String, Integer> chm = new ConcurrentHashMap<>();
         chm.put("one", 1);
         chm.put("two", 2);
         chm.put("three", 3);
@@ -155,7 +155,7 @@ public class V8FeaturesTest {
 
     @Test
     public void testReduce() throws Exception {
-        ConcurrentHashMap<String, Entry> chm = new ConcurrentHashMap<String, Entry>();
+        ConcurrentHashMap<String, Entry> chm = new ConcurrentHashMap<>();
         chm.put("SF", new Entry("CA", "San Francisco", 20));
         chm.put("PX", new Entry("AZ", "Phoenix", 2000));
         chm.put("NY", new Entry("NY", "New York City", 1));

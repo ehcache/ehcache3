@@ -53,7 +53,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
     protected SerializableEntry(Entry<K> entry, Serializer<K> keySerializer) {
       this.state = entry.state;
       this.heuristic = entry.heuristic;
-      this.serializedKeys = new ArrayList<byte[]>();
+      this.serializedKeys = new ArrayList<>();
       for (K key : entry.keys) {
         ByteBuffer byteBuffer = keySerializer.serialize(key);
         byte[] bytes = new byte[byteBuffer.remaining()];
@@ -63,7 +63,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
     }
 
     protected Collection<K> deserializeKeys(Serializer<K> keySerializer) throws ClassNotFoundException {
-      Collection<K> result = new ArrayList<K>();
+      Collection<K> result = new ArrayList<>();
       for (byte[] serializedKey : serializedKeys) {
         K key = keySerializer.read(ByteBuffer.wrap(serializedKey));
         result.add(key);
@@ -100,7 +100,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
           Map<TransactionId, SerializableEntry<K>> readStates = (Map<TransactionId, SerializableEntry<K>>) ois.readObject();
           for (Map.Entry<TransactionId, SerializableEntry<K>> entry : readStates.entrySet()) {
             SerializableEntry<K> value = entry.getValue();
-            states.put(entry.getKey(), new Entry<K>(value.state, value.heuristic, value.deserializeKeys(keySerializer)));
+            states.put(entry.getKey(), new Entry<>(value.state, value.heuristic, value.deserializeKeys(keySerializer)));
           }
         }
       } catch (IOException ioe) {
@@ -124,11 +124,11 @@ public class PersistentJournal<K> extends TransientJournal<K> {
     ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(directory, JOURNAL_FILENAME)));
     try {
       oos.writeBoolean(true);
-      Map<TransactionId, SerializableEntry<K>> toSerialize = new HashMap<TransactionId, SerializableEntry<K>>();
+      Map<TransactionId, SerializableEntry<K>> toSerialize = new HashMap<>();
       for (Map.Entry<TransactionId, Entry<K>> entry : states.entrySet()) {
         TransactionId key = entry.getKey();
         Entry<K> value = entry.getValue();
-        toSerialize.put(key, new SerializableEntry<K>(value, keySerializer));
+        toSerialize.put(key, new SerializableEntry<>(value, keySerializer));
       }
       oos.writeObject(toSerialize);
       states.clear();

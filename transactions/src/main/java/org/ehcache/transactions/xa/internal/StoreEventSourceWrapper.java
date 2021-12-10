@@ -35,7 +35,7 @@ import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;
 class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
   private final StoreEventSource<K, SoftLock<V>> underlying;
-  private final Map<StoreEventListener<K, V>, StoreEventListener<K, SoftLock<V>>> listenersMap = new ConcurrentHashMap<StoreEventListener<K, V>, StoreEventListener<K, SoftLock<V>>>(10);
+  private final Map<StoreEventListener<K, V>, StoreEventListener<K, SoftLock<V>>> listenersMap = new ConcurrentHashMap<>(10);
 
   StoreEventSourceWrapper(StoreEventSource<K, SoftLock<V>> underlying) {
     this.underlying = underlying;
@@ -51,7 +51,7 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
 
   @Override
   public void addEventListener(final StoreEventListener<K, V> eventListener) {
-    StoreEventListenerWrapper<K, V> listenerWrapper = new StoreEventListenerWrapper<K, V>(eventListener);
+    StoreEventListenerWrapper<K, V> listenerWrapper = new StoreEventListenerWrapper<>(eventListener);
     listenersMap.put(eventListener, listenerWrapper);
     underlying.addEventListener(listenerWrapper);
   }
@@ -117,7 +117,8 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
         case REMOVED:
         case EXPIRED:
         case EVICTED:
-          eventToPropagate = new StoreEventImpl<K, V>(event.getType(), event.getKey(), event.getOldValue().getOldValue(), null);
+          eventToPropagate = new StoreEventImpl<>(event.getType(), event.getKey(), event.getOldValue()
+            .getOldValue(), null);
           break;
       }
       wrappedOne.onEvent(eventToPropagate);

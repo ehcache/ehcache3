@@ -58,7 +58,7 @@ public class HeapChainImpl implements Chain {
    * @param element to be appended to the chain
    */
   Chain append(Element element) {
-    List<Element> presentElements = new LinkedList<Element>();
+    List<Element> presentElements = new LinkedList<>();
     for (Element l : this) {
       presentElements.add(l);
     }
@@ -82,7 +82,7 @@ public class HeapChainImpl implements Chain {
           return 0;
         }
       });
-      List<Element> sortedList = new ArrayList<Element>(reordered);
+      List<Element> sortedList = new ArrayList<>(reordered);
       if (!sortedList.isEmpty()) {
         createFirst(sortedList.remove(0));
       }

@@ -101,7 +101,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
-  private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
+  private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<>(BulkOps.class);
   private final OperationObserver<ClearOutcome> clearObserver = operation(ClearOutcome.class).named("clear").of(this).tag("cache").build();
 
   /**
@@ -113,7 +113,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
    * @param logger the logger
    */
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, CacheEventDispatcher<K, V> eventDispatcher, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, new StatusTransitioner(logger));
+    this(new EhcacheRuntimeConfiguration<>(configuration), store, eventDispatcher, logger, new StatusTransitioner(logger));
   }
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
@@ -123,9 +123,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     StatisticsManager.associate(store).withParent(this);
 
     if (store instanceof RecoveryCache) {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(castToRecoveryCache(store));
+      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(castToRecoveryCache(store));
     } else {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
+      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(recoveryCache(store));
     }
 
     this.runtimeConfiguration = runtimeConfiguration;
@@ -311,9 +311,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       return Collections.emptyMap();
     }
 
-    Map<K, V> result = new HashMap<K, V>();
+    Map<K, V> result = new HashMap<>();
     try {
-      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new GetAllFunction<K, V>());
+      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new GetAllFunction<>());
 
       int hits = 0;
       int keyCount = 0;
@@ -341,9 +341,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   LinkedHashSet<Map.Entry<? extends K, ? extends V>> nullValuesForKeys(final Iterable<? extends K> keys) {
-    final LinkedHashSet<Map.Entry<? extends K, ? extends V>> entries = new LinkedHashSet<Map.Entry<? extends K, ? extends V>>();
+    final LinkedHashSet<Map.Entry<? extends K, ? extends V>> entries = new LinkedHashSet<>();
     for (K key : keys) {
-      entries.add(new AbstractMap.SimpleEntry<K, V>(key, null));
+      entries.add(new AbstractMap.SimpleEntry<>(key, null));
     }
     return entries;
   }
@@ -362,7 +362,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     // Copy all entries to write into a Map
-    final Map<K, V> entriesToRemap = new HashMap<K, V>();
+    final Map<K, V> entriesToRemap = new HashMap<>();
     for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
       // If a key/value is null, throw NPE, nothing gets mutated
       if (entry.getKey() == null || entry.getValue() == null) {
@@ -372,7 +372,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     try {
-      PutAllFunction<K, V> putAllFunction = new PutAllFunction<K, V>(logger, entriesToRemap, runtimeConfiguration.getExpiry());
+      PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiry());
       store.bulkCompute(entries.keySet(), putAllFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
       addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
@@ -407,7 +407,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
 
     try {
-      RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<K, V>();
+      RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<>();
       store.bulkCompute(keys, removeAllFunction);
       addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, removeAllFunction.getActualRemoveCount().get());
       removeAllObserver.end(RemoveAllOutcome.SUCCESS);
@@ -649,7 +649,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterator<Entry<K, V>> specIterator() {
-      return new SpecIterator<K, V>(this, store);
+      return new SpecIterator<>(this, store);
     }
 
     @Override
@@ -675,7 +675,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         Map<? super K, ? extends V> loaded = loadFunction.apply(keys);
 
         // put into a new map since we can't assume the 107 cache loader returns things ordered, or necessarily with all the desired keys
-        Map<K, V> rv = new LinkedHashMap<K, V>();
+        Map<K, V> rv = new LinkedHashMap<>();
         for (K key : keys) {
           rv.put(key, loaded.get(key));
         }
@@ -688,7 +688,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
         store.bulkCompute(keys, entries -> {
-          Collection<K> keys1 = new ArrayList<K>();
+          Collection<K> keys1 = new ArrayList<>();
           for (Map.Entry<? extends K, ? extends V> entry : entries) {
             keys1.add(entry.getKey());
           }
@@ -748,7 +748,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       getObserver.begin();
       removeObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<V>();
+      final AtomicReference<V> existingValue = new AtomicReference<>();
       try {
         store.compute(key, (mappedKey, mappedValue) -> {
           existingValue.set(mappedValue);
@@ -776,7 +776,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       getObserver.begin();
       putObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<V>();
+      final AtomicReference<V> existingValue = new AtomicReference<>();
       try {
         store.compute(key, (mappedKey, mappedValue) -> {
           existingValue.set(mappedValue);
@@ -872,7 +872,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         current = next;
         advance();
-        return new ValueHolderBasedEntry<K, V>(current);
+        return new ValueHolderBasedEntry<>(current);
       } else {
         if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         StoreAccessException cae = nextException;
@@ -971,7 +971,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-      Map<K, V> mutations = new LinkedHashMap<K, V>();
+      Map<K, V> mutations = new LinkedHashMap<>();
 
       // then record we handled these mappings
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
@@ -1017,7 +1017,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-      Map<K, V> results = new LinkedHashMap<K, V>();
+      Map<K, V> results = new LinkedHashMap<>();
 
       for (Map.Entry<? extends K, ? extends V> entry : entries) {
         K key = entry.getKey();
@@ -1041,7 +1041,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends K> keys) {
-      Map<K, V> computeResult = new LinkedHashMap<K ,V>();
+      Map<K, V> computeResult = new LinkedHashMap<>();
 
       // put all the entries to get ordering correct
       for (K key : keys) {

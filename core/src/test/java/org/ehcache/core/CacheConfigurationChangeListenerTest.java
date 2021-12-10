@@ -53,9 +53,9 @@ public class CacheConfigurationChangeListenerTest {
     this.store = mock(Store.class);
     this.eventNotifier = mock(CacheEventDispatcher.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
-    this.config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
-    this.cache = new EhcacheWithLoaderWriter<Object, Object>(config, store, loaderWriter, eventNotifier,
-        LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "CacheConfigurationListenerTest"));
+    this.config = new BaseCacheConfiguration<>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
+    this.cache = new EhcacheWithLoaderWriter<>(config, store, loaderWriter, eventNotifier,
+      LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "CacheConfigurationListenerTest"));
     cache.init();
     this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();
   }
@@ -69,7 +69,7 @@ public class CacheConfigurationChangeListenerTest {
   public void testCacheConfigurationChangeFiresEvent () {
     Listener configurationListener = new Listener();
     List<CacheConfigurationChangeListener> cacheConfigurationChangeListeners
-        = new ArrayList<CacheConfigurationChangeListener>();
+        = new ArrayList<>();
     cacheConfigurationChangeListeners.add(configurationListener);
     this.runtimeConfiguration.addCacheConfigurationListener(cacheConfigurationChangeListeners);
     this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsHelper.createHeapOnlyPools(10));
@@ -80,7 +80,7 @@ public class CacheConfigurationChangeListenerTest {
   public void testRemovingCacheConfigurationListener() {
     Listener configurationListener = new Listener();
     List<CacheConfigurationChangeListener> cacheConfigurationChangeListeners
-        = new ArrayList<CacheConfigurationChangeListener>();
+        = new ArrayList<>();
     cacheConfigurationChangeListeners.add(configurationListener);
     this.runtimeConfiguration.addCacheConfigurationListener(cacheConfigurationChangeListeners);
     this.cache.getRuntimeConfiguration().updateResourcePools(ResourcePoolsHelper.createHeapOnlyPools(20));
@@ -91,7 +91,7 @@ public class CacheConfigurationChangeListenerTest {
   }
 
   private class Listener implements CacheConfigurationChangeListener {
-    private final Set<CacheConfigurationChangeEvent> eventSet = new HashSet<CacheConfigurationChangeEvent>();
+    private final Set<CacheConfigurationChangeEvent> eventSet = new HashSet<>();
 
     @Override
     public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {

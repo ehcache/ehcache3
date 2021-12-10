@@ -89,8 +89,8 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   private final ClassLoader cacheManagerClassLoader;
 
   private final boolean useLoaderInAtomics;
-  private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
-  private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
+  private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<>();
+  private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<>();
 
   private final StatusTransitioner statusTransitioner = new StatusTransitioner(LOGGER);
   private final String simpleName;
@@ -115,7 +115,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   private void validateServicesConfigs() {
-    HashSet<Class> classes = new HashSet<Class>();
+    HashSet<Class> classes = new HashSet<>();
     for (ServiceCreationConfiguration<?> service : configuration.getServiceCreationConfigurations()) {
       if (!classes.add(service.getServiceType())) {
         throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
@@ -294,9 +294,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
   <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                         final Class<K> keyType, final Class<V> valueType) {
-    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
+    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
 
-    List<ServiceConfiguration> unknownServiceConfigs = new ArrayList<ServiceConfiguration>();
+    List<ServiceConfiguration> unknownServiceConfigs = new ArrayList<>();
     for (ServiceConfiguration serviceConfig : adjustedServiceConfigs) {
       if (!serviceLocator.knowsServiceFor(serviceConfig)) {
         unknownServiceConfigs.add(serviceConfig);
@@ -306,7 +306,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       throw new IllegalStateException("Cannot find service(s) that can handle following configuration(s) : " + unknownServiceConfigs);
     }
 
-    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
+    List<LifeCycled> lifeCycledList = new ArrayList<>();
 
     final Store<K, V> store = getStore(alias, config, keyType, valueType, adjustedServiceConfigs, lifeCycledList);
 
@@ -357,10 +357,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     final InternalCache<K, V> cache;
     if (decorator == null) {
-      cache = new Ehcache<K, V>(config, store, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+      cache = new Ehcache<>(config, store, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
     } else {
-      cache = new EhcacheWithLoaderWriter<K, V>(config, store, decorator, evtService,
-                    useLoaderInAtomics, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + alias));
+      cache = new EhcacheWithLoaderWriter<>(config, store, decorator, evtService,
+        useLoaderInAtomics, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + alias));
     }
 
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
@@ -490,7 +490,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       dispatcherConcurrency = StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
     }
 
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, dispatcherConcurrency, keySerializer, valueSerializer);
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     lifeCycledList.add(new LifeCycled() {
@@ -527,10 +527,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       cacheClassLoader = cacheManagerClassLoader;
     }
     if (cacheClassLoader != config.getClassLoader() ) {
-      config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
-          config.getEvictionAdvisor(), cacheClassLoader, config.getExpiry(),
-          config.getResourcePools(), config.getServiceConfigurations().toArray(
-          new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
+      config = new BaseCacheConfiguration<>(config.getKeyType(), config.getValueType(),
+        config.getEvictionAdvisor(), cacheClassLoader, config.getExpiry(),
+        config.getResourcePools(), config.getServiceConfigurations().toArray(
+        new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     return config;
   }
@@ -559,7 +559,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     try {
       serviceLocator.startAllServices();
 
-      Deque<String> initiatedCaches = new ArrayDeque<String>();
+      Deque<String> initiatedCaches = new ArrayDeque<>();
       try {
         for (Map.Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations()
             .entrySet()) {

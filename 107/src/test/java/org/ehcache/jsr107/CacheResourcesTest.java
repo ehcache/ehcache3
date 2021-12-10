@@ -36,7 +36,7 @@ public class CacheResourcesTest {
   @Test
   public void testRegisterDeregisterAfterClose() {
     Map<CacheEntryListenerConfiguration<Object, Object>, ListenerResources<Object, Object>> emptyMap = emptyMap();
-    CacheResources<Object, Object> cacheResources = new CacheResources<Object, Object>("cache", null, null, emptyMap);
+    CacheResources<Object, Object> cacheResources = new CacheResources<>("cache", null, null, emptyMap);
     cacheResources.closeResources(new MultiCacheException());
 
     try {
@@ -57,16 +57,16 @@ public class CacheResourcesTest {
   @SuppressWarnings("unchecked")
   @Test
   public void closesAllResources() throws Exception {
-    Jsr107CacheLoaderWriter<Object, Object> loaderWriter = mock(Jsr107CacheLoaderWriter.class, new MockSettingsImpl<Object>().extraInterfaces(Closeable.class));
-    Eh107Expiry<Object, Object> expiry = mock(Eh107Expiry.class, new MockSettingsImpl<Object>().extraInterfaces(Closeable.class));
+    Jsr107CacheLoaderWriter<Object, Object> loaderWriter = mock(Jsr107CacheLoaderWriter.class, new MockSettingsImpl<>().extraInterfaces(Closeable.class));
+    Eh107Expiry<Object, Object> expiry = mock(Eh107Expiry.class, new MockSettingsImpl<>().extraInterfaces(Closeable.class));
     CacheEntryListenerConfiguration<Object, Object> listenerConfiguration = mock(CacheEntryListenerConfiguration.class);
     ListenerResources<Object, Object> listenerResources = mock(ListenerResources.class);
 
     Map<CacheEntryListenerConfiguration<Object, Object>, ListenerResources<Object, Object>> map =
-        new HashMap<CacheEntryListenerConfiguration<Object, Object>, ListenerResources<Object, Object>>();
+      new HashMap<>();
     map.put(listenerConfiguration, listenerResources);
 
-    CacheResources<Object, Object> cacheResources = new CacheResources<Object, Object>("cache", loaderWriter, expiry, map);
+    CacheResources<Object, Object> cacheResources = new CacheResources<>("cache", loaderWriter, expiry, map);
     cacheResources.closeResources(new MultiCacheException());
 
     verify((Closeable) loaderWriter).close();

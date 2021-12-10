@@ -110,18 +110,18 @@ public class OnHeapStoreEvictionTest {
   @Test
   public void testEvictionCandidateLimits() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
-    StoreConfigurationImpl<String, String> configuration = new StoreConfigurationImpl<String, String>(
-        String.class, String.class, noAdvice(),
-        getClass().getClassLoader(), Expirations.noExpiration(), heap(1).build(), 1, null, null);
-    TestStoreEventDispatcher<String, String> eventDispatcher = new TestStoreEventDispatcher<String, String>();
+    StoreConfigurationImpl<String, String> configuration = new StoreConfigurationImpl<>(
+      String.class, String.class, noAdvice(),
+      getClass().getClassLoader(), Expirations.noExpiration(), heap(1).build(), 1, null, null);
+    TestStoreEventDispatcher<String, String> eventDispatcher = new TestStoreEventDispatcher<>();
     final String firstKey = "daFirst";
     eventDispatcher.addEventListener(event -> {
       if (event.getType().equals(EventType.EVICTED)) {
         assertThat(event.getKey(), is(firstKey));
       }
     });
-    OnHeapStore<String, String> store = new OnHeapStore<String, String>(configuration, timeSource,
-        new IdentityCopier<String>(), new IdentityCopier<String>(), new NoopSizeOfEngine(), eventDispatcher);
+    OnHeapStore<String, String> store = new OnHeapStore<>(configuration, timeSource,
+      new IdentityCopier<>(), new IdentityCopier<>(), new NoopSizeOfEngine(), eventDispatcher);
     timeSource.advanceTime(10000L);
     store.put(firstKey, "daValue");
     timeSource.advanceTime(10000L);
@@ -130,7 +130,7 @@ public class OnHeapStoreEvictionTest {
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
-    return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
+    return new OnHeapStoreForTests<>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {

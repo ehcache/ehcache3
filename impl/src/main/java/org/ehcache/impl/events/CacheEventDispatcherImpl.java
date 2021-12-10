@@ -58,8 +58,8 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   private final ExecutorService orderedExecutor;
   private int listenersCount = 0;
   private int orderedListenerCount = 0;
-  private final List<EventListenerWrapper<K, V>> syncListenersList = new CopyOnWriteArrayList<EventListenerWrapper<K, V>>();
-  private final List<EventListenerWrapper<K, V>> aSyncListenersList = new CopyOnWriteArrayList<EventListenerWrapper<K, V>>();
+  private final List<EventListenerWrapper<K, V>> syncListenersList = new CopyOnWriteArrayList<>();
+  private final List<EventListenerWrapper<K, V>> aSyncListenersList = new CopyOnWriteArrayList<>();
   private final StoreEventListener<K, V> eventListener = new StoreListener();
 
   private volatile Cache<K, V> listenerSource;
@@ -83,7 +83,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
                                   EventOrdering ordering, EventFiring firing, EnumSet<EventType> forEventTypes) {
-    EventListenerWrapper<K, V> wrapper = new EventListenerWrapper<K, V>(listener, firing, ordering, forEventTypes);
+    EventListenerWrapper<K, V> wrapper = new EventListenerWrapper<>(listener, firing, ordering, forEventTypes);
 
     registerCacheEventListener(wrapper);
   }
@@ -124,7 +124,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    */
   @Override
   public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-    EventListenerWrapper<K, V> wrapper = new EventListenerWrapper<K, V>(listener);
+    EventListenerWrapper<K, V> wrapper = new EventListenerWrapper<>(listener);
 
     if (!removeWrapperFromList(wrapper, aSyncListenersList)) {
       if (!removeWrapperFromList(wrapper, syncListenersList)) {
@@ -183,10 +183,10 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
       executor = unOrderedExectuor;
     }
     if (!aSyncListenersList.isEmpty()) {
-      executor.submit(new EventDispatchTask<K, V>(event, aSyncListenersList));
+      executor.submit(new EventDispatchTask<>(event, aSyncListenersList));
     }
     if (!syncListenersList.isEmpty()) {
-      Future<?> future = executor.submit(new EventDispatchTask<K, V>(event, syncListenersList));
+      Future<?> future = executor.submit(new EventDispatchTask<>(event, syncListenersList));
       try {
         future.get();
       } catch (Exception e) {
@@ -201,7 +201,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   @Override
   @SuppressWarnings("unchecked")
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
-    List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<CacheConfigurationChangeListener>();
+    List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<>();
     configurationChangeListenerList.add(event -> {
       if (event.getProperty().equals(CacheConfigurationProperty.ADD_LISTENER)) {
         registerCacheEventListener((EventListenerWrapper<K, V>)event.getNewValue());

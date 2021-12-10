@@ -106,9 +106,9 @@ public class Eh107XmlIntegrationTest {
     CacheManager cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-107-listeners.xml")
         .toURI(), getClass().getClassLoader());
 
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class);
-    MutableCacheEntryListenerConfiguration<String, String> listenerConfiguration = new MutableCacheEntryListenerConfiguration<String, String>(Test107CacheEntryListener::new, null, false, true);
+    MutableCacheEntryListenerConfiguration<String, String> listenerConfiguration = new MutableCacheEntryListenerConfiguration<>(Test107CacheEntryListener::new, null, false, true);
     configuration.addCacheEntryListenerConfiguration(listenerConfiguration);
 
     Cache<String, String> cache = cacheManager.createCache("foos", configuration);
@@ -123,7 +123,7 @@ public class Eh107XmlIntegrationTest {
     final AtomicBoolean loaderFactoryInvoked = new AtomicBoolean(false);
     final DumbCacheLoader product2CacheLoader = new DumbCacheLoader();
 
-    MutableConfiguration<Long, Product> product2Configuration = new MutableConfiguration<Long, Product>();
+    MutableConfiguration<Long, Product> product2Configuration = new MutableConfiguration<>();
     product2Configuration.setTypes(Long.class, Product.class).setReadThrough(true);
     product2Configuration.setCacheLoaderFactory(() -> {
       loaderFactoryInvoked.set(true);
@@ -149,7 +149,7 @@ public class Eh107XmlIntegrationTest {
   @Test
   public void test107ExpiryOverriddenByEhcacheTemplateExpiry() {
     final AtomicBoolean expiryFactoryInvoked = new AtomicBoolean(false);
-    MutableConfiguration<Long, Product> configuration = new MutableConfiguration<Long, Product>();
+    MutableConfiguration<Long, Product> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, Product.class);
     configuration.setExpiryPolicyFactory(() -> {
       expiryFactoryInvoked.set(true);
@@ -199,7 +199,7 @@ public class Eh107XmlIntegrationTest {
         getClass().getResource("/ehcache-107-default-copiers.xml").toURI(),
         getClass().getClassLoader());
 
-    MutableConfiguration<Long, Client> config = new MutableConfiguration<Long, Client>();
+    MutableConfiguration<Long, Client> config = new MutableConfiguration<>();
     config.setTypes(Long.class, Client.class);
     Cache<Long, Client> bar = cacheManager.createCache("bar", config);
     Client client = new Client("tc", 1000000L);
@@ -210,7 +210,7 @@ public class Eh107XmlIntegrationTest {
 
   static class DumbCacheLoader implements CacheLoader<Long, Product> {
 
-    Set<Long> seen = new HashSet<Long>();
+    Set<Long> seen = new HashSet<>();
 
     @Override
     public Product load(Long aLong) throws CacheLoaderException {

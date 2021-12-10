@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
@@ -37,67 +38,71 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private static final Logger LOGGER = LoggerFactory.getLogger(StrongServerStoreProxy.class);
 
   private final CommonServerStoreProxy delegate;
-  private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
+  private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<>();
   private final Lock invalidateAllLock = new ReentrantLock();
   private volatile CountDownLatch invalidateAllLatch;
   private final ClusterTierClientEntity entity;
-  private final ClusterTierClientEntity.ReconnectListener reconnectListener;
-  private final ClusterTierClientEntity.DisconnectionListener disconnectionListener;
 
   public StrongServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory, final ClusterTierClientEntity entity) {
     this.delegate = new CommonServerStoreProxy(cacheId, messageFactory, entity);
     this.entity = entity;
-    this.reconnectListener = reconnectMessage -> {
-      Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
-      reconnectMessage.addInvalidationsInProgress(inflightInvalidations);
+    entity.setReconnectListener(this::reconnectListener);
+
+    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, this::hashInvalidationDoneResponseListener);
+    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, this::allInvalidationDoneResponseListener);
+
+    entity.setDisconnectionListener(this::disconnectionListener);
+  }
+
+  private void disconnectionListener() {
+    for (Map.Entry<Long, CountDownLatch> entry : hashInvalidationsInProgress.entrySet()) {
+      entry.getValue().countDown();
+    }
+    hashInvalidationsInProgress.clear();
+
+    invalidateAllLock.lock();
+    try {
       if (invalidateAllLatch != null) {
-        reconnectMessage.clearInProgress();
+        invalidateAllLatch.countDown();
       }
-    };
-    entity.setReconnectListener(reconnectListener);
+    } finally {
+      invalidateAllLock.unlock();
+    }
+  }
 
-    delegate.addResponseListeners(EhcacheEntityResponse.HashInvalidationDone.class, response -> {
-      long key = response.getKey();
-      LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated hash {}", cacheId, key);
-      CountDownLatch countDownLatch = hashInvalidationsInProgress.remove(key);
-      if (countDownLatch != null) {
-        countDownLatch.countDown();
-      }
-    });
-    delegate.addResponseListeners(EhcacheEntityResponse.AllInvalidationDone.class, response -> {
-      LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated all", cacheId);
+  private void allInvalidationDoneResponseListener(EhcacheEntityResponse.AllInvalidationDone response) {
+    LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated all", getCacheId());
 
-      CountDownLatch countDownLatch;
-      invalidateAllLock.lock();
-      try {
-        countDownLatch = invalidateAllLatch;
-        invalidateAllLatch = null;
-      } finally {
-        invalidateAllLock.unlock();
-      }
+    CountDownLatch countDownLatch;
+    invalidateAllLock.lock();
+    try {
+      countDownLatch = invalidateAllLatch;
+      invalidateAllLatch = null;
+    } finally {
+      invalidateAllLock.unlock();
+    }
 
-      if (countDownLatch != null) {
-        LOGGER.debug("CLIENT: on cache {}, count down", cacheId);
-        countDownLatch.countDown();
-      }
-    });
+    if (countDownLatch != null) {
+      LOGGER.debug("CLIENT: on cache {}, count down", getCacheId());
+      countDownLatch.countDown();
+    }
+  }
 
-    this.disconnectionListener = () -> {
-      for (Map.Entry<Long, CountDownLatch> entry : hashInvalidationsInProgress.entrySet()) {
-        entry.getValue().countDown();
-      }
-      hashInvalidationsInProgress.clear();
+  private void hashInvalidationDoneResponseListener(EhcacheEntityResponse.HashInvalidationDone response) {
+    long key = response.getKey();
+    LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated hash {}", getCacheId(), key);
+    CountDownLatch countDownLatch = hashInvalidationsInProgress.remove(key);
+    if (countDownLatch != null) {
+      countDownLatch.countDown();
+    }
+  }
 
-      invalidateAllLock.lock();
-      try {
-        if (invalidateAllLatch != null) {
-          invalidateAllLatch.countDown();
-        }
-      } finally {
-        invalidateAllLock.unlock();
-      }
-    };
-    entity.setDisconnectionListener(disconnectionListener);
+  private void reconnectListener(ClusterTierReconnectMessage reconnectMessage) {
+    Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
+    reconnectMessage.addInvalidationsInProgress(inflightInvalidations);
+    if (invalidateAllLatch != null) {
+      reconnectMessage.clearInProgress();
+    }
   }
 
   private <T> T performWaitingForHashInvalidation(long key, NullaryFunction<T> c) throws InterruptedException, TimeoutException {

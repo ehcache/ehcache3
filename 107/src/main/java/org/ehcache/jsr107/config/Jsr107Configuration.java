@@ -46,7 +46,7 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
     this.jsr107CompliantAtomics = jsr107CompliantAtomics;
     this.enableManagementAll = enableManagementAll;
     this.enableStatisticsAll = enableStatisticsAll;
-    this.templates = new ConcurrentHashMap<String, String>(templates);
+    this.templates = new ConcurrentHashMap<>(templates);
   }
 
   /**

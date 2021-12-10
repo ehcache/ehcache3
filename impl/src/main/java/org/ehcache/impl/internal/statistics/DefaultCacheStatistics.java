@@ -75,11 +75,11 @@ class DefaultCacheStatistics implements CacheStatistics {
     replace = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
     conditionalRemove = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
 
-    averageGetTime = new LatencyMonitor<CacheOperationOutcomes.GetOutcome>(allOf(CacheOperationOutcomes.GetOutcome.class));
+    averageGetTime = new LatencyMonitor<>(allOf(CacheOperationOutcomes.GetOutcome.class));
     get.addDerivedStatistic(averageGetTime);
-    averagePutTime = new LatencyMonitor<CacheOperationOutcomes.PutOutcome>(allOf(CacheOperationOutcomes.PutOutcome.class));
+    averagePutTime = new LatencyMonitor<>(allOf(CacheOperationOutcomes.PutOutcome.class));
     put.addDerivedStatistic(averagePutTime);
-    averageRemoveTime = new LatencyMonitor<CacheOperationOutcomes.RemoveOutcome>(allOf(CacheOperationOutcomes.RemoveOutcome.class));
+    averageRemoveTime = new LatencyMonitor<>(allOf(CacheOperationOutcomes.RemoveOutcome.class));
     remove.addDerivedStatistic(averageRemoveTime);
 
     String[] tierNames = findTiers(cache);
@@ -87,7 +87,7 @@ class DefaultCacheStatistics implements CacheStatistics {
     String lowestTierName = findLowestTier(tierNames);
     TierStatistics lowestTier = null;
 
-    tierStatistics = new HashMap<String, TierStatistics>(tierNames.length);
+    tierStatistics = new HashMap<>(tierNames.length);
     for (String tierName : tierNames) {
       TierStatistics tierStatistics = new DefaultTierStatistics(cache, tierName);
       this.tierStatistics.put(tierName, tierStatistics);
@@ -101,7 +101,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   }
 
   private Map<String, TypedValueStatistic> createKnownStatistics() {
-    Map<String, TypedValueStatistic> knownStatistics = new HashMap<String, TypedValueStatistic>(30);
+    Map<String, TypedValueStatistic> knownStatistics = new HashMap<>(30);
     knownStatistics.put("Cache:HitCount", new TypedValueStatistic(StatisticType.COUNTER) {
       @Override
       public Number value() {
@@ -305,7 +305,7 @@ class DefaultCacheStatistics implements CacheStatistics {
     private volatile MinMaxAverage average;
 
     public LatencyMonitor(Set<T> targets) {
-      this.sampling = new LatencySampling<T>(targets, 1.0);
+      this.sampling = new LatencySampling<>(targets, 1.0);
       this.average = new MinMaxAverage();
       sampling.addDerivedStatistic(average);
     }

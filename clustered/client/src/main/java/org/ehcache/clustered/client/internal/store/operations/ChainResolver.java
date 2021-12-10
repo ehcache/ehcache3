@@ -122,13 +122,13 @@ public class ChainResolver<K, V> {
     compacted = (result == null) ? (keyMatch > 0) : (compacted || keyMatch > 1);
     if(compacted) {
       if(result != null) {
-        Operation<K, V> resolvedOperation = new PutOperation<K, V>(key, result.getValue(), -expirationTime);
+        Operation<K, V> resolvedOperation = new PutOperation<>(key, result.getValue(), -expirationTime);
         ByteBuffer payload = codec.encode(resolvedOperation);
         chainBuilder = chainBuilder.add(payload);
       }
-      return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result, keyMatch, expirationTime);
+      return new ResolvedChain.Impl<>(chainBuilder.build(), key, result, keyMatch, expirationTime);
     } else {
-      return new ResolvedChain.Impl<K, V>(chain, key, result, 0, expirationTime);
+      return new ResolvedChain.Impl<>(chain, key, result, 0, expirationTime);
     }
   }
 }

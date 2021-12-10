@@ -37,7 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static java.nio.ByteBuffer.wrap;
-import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
@@ -172,7 +171,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     encoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT,
       syncMessage.getChainMap().entrySet(), (entryEncoder, entry) -> {
         entryEncoder.int64(KEY_FIELD, entry.getKey());
-        entryEncoder.struct(CHAIN_FIELD, entry.getValue(), CHAIN_ENCODER_FUNCTION);
+        entryEncoder.struct(CHAIN_FIELD, entry.getValue(), ChainCodec::encode);
       });
     return encoder.encode().array();
   }

@@ -64,7 +64,7 @@ public class CompoundCachingTierTest {
     when(lowerTier.getAndRemove(anyString())).thenReturn(null);
 
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     final AtomicBoolean computed = new AtomicBoolean(false);
 
@@ -86,7 +86,7 @@ public class CompoundCachingTierTest {
     when(lowerTier.getAndRemove(anyString())).thenThrow(AssertionError.class);
 
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     final AtomicBoolean computed = new AtomicBoolean(false);
 
@@ -110,7 +110,7 @@ public class CompoundCachingTierTest {
     when(lowerTier.getAndRemove(anyString())).thenReturn(valueHolder);
 
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     final AtomicBoolean computed = new AtomicBoolean(false);
 
@@ -139,9 +139,9 @@ public class CompoundCachingTierTest {
       return null;
     });
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
     compoundCachingTier.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     final AtomicBoolean computed = new AtomicBoolean(false);
@@ -160,7 +160,7 @@ public class CompoundCachingTierTest {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     compoundCachingTier.clear();
     verify(higherTier, times(1)).clear();
@@ -173,9 +173,9 @@ public class CompoundCachingTierTest {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
     compoundCachingTier.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
 
     compoundCachingTier.invalidate("1");
@@ -190,8 +190,8 @@ public class CompoundCachingTierTest {
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
-    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<Store.ValueHolder<String>>();
-    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<Store.ValueHolder<String>>(valueHolder);
+    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<>();
+    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<>(valueHolder);
 
     final ArgumentCaptor<CachingTier.InvalidationListener> higherTierInvalidationListenerArg = ArgumentCaptor.forClass(CachingTier.InvalidationListener.class);
     doNothing().when(higherTier).setInvalidationListener(higherTierInvalidationListenerArg.capture());
@@ -212,9 +212,9 @@ public class CompoundCachingTierTest {
       return null;
     }).when(lowerTier).invalidate(anyString());
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
     compoundCachingTier.setInvalidationListener((key, valueHolder1) -> invalidated.set(valueHolder1));
 
 
@@ -232,8 +232,8 @@ public class CompoundCachingTierTest {
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
     final Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
-    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<Store.ValueHolder<String>>(valueHolder);
-    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> higherTierValueHolder = new AtomicReference<>(valueHolder);
+    final AtomicReference<Store.ValueHolder<String>> lowerTierValueHolder = new AtomicReference<>();
 
     final ArgumentCaptor<CachingTier.InvalidationListener> higherTierInvalidationListenerArg = ArgumentCaptor.forClass(CachingTier.InvalidationListener.class);
     doNothing().when(higherTier).setInvalidationListener(higherTierInvalidationListenerArg.capture());
@@ -257,9 +257,9 @@ public class CompoundCachingTierTest {
       return null;
     }).when(lowerTier).invalidate(anyString());
 
-    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
+    final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
     compoundCachingTier.setInvalidationListener((key, valueHolder1) -> invalidated.set(valueHolder1));
 
 
@@ -276,7 +276,7 @@ public class CompoundCachingTierTest {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
 
-    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(higherTier, lowerTier);
 
     compoundCachingTier.invalidateAll();
 
@@ -288,7 +288,7 @@ public class CompoundCachingTierTest {
   @SuppressWarnings("unchecked")
   public void testRankCachingTier() throws Exception {
     CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
-    HashSet<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();
+    HashSet<ResourceType<?>> resourceTypes = new HashSet<>();
     resourceTypes.addAll(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
     assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(2));
 

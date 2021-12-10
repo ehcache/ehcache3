@@ -47,7 +47,7 @@ public class DurationTest {
 
   @Test
   public void testEqualsHashcode() {
-    Set<Duration> set = new HashSet<Duration>();
+    Set<Duration> set = new HashSet<>();
     assertAdd(Duration.INFINITE, set);
     assertAdd(Duration.ZERO, set);
     assertThat(set.add(new Duration(0L, TimeUnit.SECONDS)), equalTo(false));

@@ -79,7 +79,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     store.put(3, 4);
 
     Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), entries -> {
-      Map<Number, Number> newValues = new HashMap<Number, Number>();
+      Map<Number, Number> newValues = new HashMap<>();
       for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
         final Number currentValue = entry.getValue();
         if(currentValue == null) {
@@ -96,7 +96,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
       return newValues.entrySet();
     });
 
-    ConcurrentMap<Number, Number> check = new ConcurrentHashMap<Number, Number>();
+    ConcurrentMap<Number, Number> check = new ConcurrentHashMap<>();
     check.put(1, 4);
     check.put(2, 6);
     check.put(3, 8);
