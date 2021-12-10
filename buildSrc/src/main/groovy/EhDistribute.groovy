@@ -64,13 +64,6 @@ class EhDistribute implements Plugin<Project> {
       duplicatesStrategy = 'exclude'
 
       classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
-      bnd(
-        'Bundle-DocURL': 'http://ehcache.org',
-        'Bundle-License': 'LICENSE',
-        'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
-        'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
-        'Service-Component': 'OSGI-INF/*.xml'
-      )
 
       utils.fillManifest(manifest, project.archivesBaseName)
     }

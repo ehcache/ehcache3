@@ -1,9 +1,9 @@
 ---
 ---
 = Concepts Related to Caching
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir36[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -61,7 +61,29 @@ The remote server may optionally have a failover server providing improved high 
 Since clustered storage comes with performance penalties due to such factors as network latency as well as for establishing client/server consistency,
 this tier, by nature, is slower than local off-heap storage.
 
-image::EhcacheTerminology.png[]
+[ditaa]
+....
+ +-----------------------------------+
+ |cBE7        Application            |
+ |                                   |
+ | +-------------------------------+ |
+ | |c7DE     Cache Manager         | |  Applications may have one or
+ | |                               | |  more Cache Managers
+ | |  +-------------------------+  | |
+ | |  |c7AE      Cache          |  | |  A Cache Manager can manage
+ | |  |+-----------------------+|  | |  many Caches
+ | |  ||cFA4   Heap Tier       ||  | |
+ | |  |+-----------------------+|  | |
+ | |  ||                       ||  | |  Caches are configured to utilize
+ | |  ||cFA4 Off Heap Tier     ||  | |  one or more Tiers for storing
+ | |  ||                       ||  | |  cache entries
+ | |  |+-----------------------+|  | |
+ | |  ||cA8D   Disk Tier       ||  | |  Ehcache keeps the hotter data
+ | |  |+-----------------------+|  | |  in faster tiers
+ | |  +-------------------------+  | |
+ | +-------------------------------+ |
+ +-----------------------------------+
+....
 
 == Topology Types
 
@@ -78,7 +100,47 @@ This topology offers offers a selection of consistency options.
 A distributed topology is the recommended approach in a clustered or scaled-out application environment.
 It provides the best combination of performance, availability, and scalability.
 
-image::ClusteredEhcacheTopology.png[]
+[ditaa]
+....
++------------------------------+            +------------------------------+
+|          Application         |            |          Application         |
+|                          cBE7|            |                          cBE7|
+|+----------------------------+|            |+----------------------------+|
+||        Cache Manager   c7DE||            ||        Cache Manager   c7DE||
+||+--------------------------+||            ||+--------------------------+||
+|||           Cache      c7AE|||            |||           Cache      c7AE|||
+|||+------------------------+|||            |||+------------------------+|||
+||||    Heap Tier       cFA4||||            ||||        Heap Tier   cFA4||||
+|||+------------------------+|||            |||+------------------------+|||
+||||                        ||||            ||||                        ||||
+||||      Off Heap Tier     ||||            ||||      Off Heap Tier     ||||
+||||                    cFA4||||            ||||                    cFA4||||
+|||+------------------------+|||            |||+------------------------+|||
+||||     Clustered Tier cA8D||||<--+    +-->||||     Clustered Tier cA8D||||
+|||+------------------------+|||   |    |   |||+------------------------+|||
+||+--------------------------+||   |    |   ||+--------------------------+||
+|+----------------------------+|   |    |   |+----------------------------+|
++------------------------------+   |    |   +------------------------------+
+                                   |    |
+                                   V    V
+                      +------------------------------+
+                      |       Terracotta Server      |
+                      |                          c7AE|
+                      |+----------------------------+|
+                      ||       Cache Clustered      ||
+                      ||        Tier Manager    cF55||
+                      |+----------------------------+|
+                      ||                            ||
+                      ||          Off Heap          ||
+                      ||        Data Storage        ||
+                      ||                        cFA4||
+                      |+----------------------------+|
+                      +------------------------------+
+....
+* Hot data is cached locally, hotter data in faster tiers
+* Data cached by one application instance is available to all cluster members.
+* Full data is available in the cluster.
+* One or more mirror servers may be deployed to provide HA
 
 It is common for many production applications to be deployed in clusters of multiple instances for availability and scalability.
 However, without a distributed cache, application clusters exhibit a number of undesirable behaviors, such as:

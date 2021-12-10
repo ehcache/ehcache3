@@ -62,7 +62,7 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
 
           // please leave it there - it's really useful to see what's coming
           /*System.out.println("stats:");
-          for (Map.Entry<String, Statistic<?, ?>> entry : stat.getStatistics().entrySet()) {
+          for (Map.ChainEntry<String, Statistic<?, ?>> entry : stat.getStatistics().entrySet()) {
             System.out.println(" - " + entry.getKey() + " : " + entry.getValue());
           }*/
 

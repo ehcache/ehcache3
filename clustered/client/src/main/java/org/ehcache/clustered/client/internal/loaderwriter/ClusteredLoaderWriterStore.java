@@ -17,26 +17,25 @@ package org.ehcache.clustered.client.internal.loaderwriter;
 
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.ClusteredValueHolder;
-import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.client.internal.store.lock.LockManager;
+import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ConditionalReplaceOperation;
 import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.clustered.common.internal.store.operations.PutOperation;
 import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
-import org.ehcache.clustered.common.internal.store.operations.Result;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
-import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
@@ -50,7 +49,6 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
-import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
 
 public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
@@ -59,8 +57,8 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   private final boolean useLoaderInAtomics;
 
   public ClusteredLoaderWriterStore(Configuration<K, V> config, OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, TimeSource timeSource,
-                                    CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics) {
-    super(config, codec, resolver, timeSource);
+                                    CacheLoaderWriter<? super K, V> loaderWriter, boolean useLoaderInAtomics, StoreEventDispatcher<K, V> storeEventDispatcher) {
+    super(config, codec, resolver, timeSource, storeEventDispatcher);
     this.cacheLoaderWriter = loaderWriter;
     this.useLoaderInAtomics = useLoaderInAtomics;
   }
@@ -70,13 +68,13 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
    */
   ClusteredLoaderWriterStore(Configuration<K, V> config, OperationsCodec<K, V> codec, EternalChainResolver<K, V> resolver,
                              ServerStoreProxy proxy, TimeSource timeSource, CacheLoaderWriter<? super K, V> loaderWriter) {
-    super(config, codec, resolver, proxy, timeSource);
+    super(config, codec, resolver, proxy, timeSource, null);
     this.cacheLoaderWriter = loaderWriter;
     this.useLoaderInAtomics = true;
   }
 
-  private LockManager getProxy() {
-    return (LockManager) storeProxy;
+  private LockingServerStoreProxy getProxy() {
+    return (LockingServerStoreProxy) storeProxy;
   }
 
   @Override
@@ -88,7 +86,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         boolean unlocked = false;
         getProxy().lock(hash);
         try {
-          V value = null;
+          V value;
           try {
             value = cacheLoaderWriter.load(key);
           } catch (Exception e) {
@@ -143,17 +141,12 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
       boolean unlocked = false;
       RemoveOperation<K, V> operation = new RemoveOperation<>(key, timeSource.getTimeMillis());
       ByteBuffer payLoad = codec.encode(operation);
-      Chain chain = getProxy().lock(hash);
+      ServerStoreProxy.ChainEntry chain = getProxy().lock(hash);
       try {
         cacheLoaderWriter.delete(key);
         storeProxy.append(hash, payLoad);
         unlocked = true;
-        ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-        if (resolvedChain.getResolvedResult(key) != null) {
-          return true;
-        } else {
-          return false;
-        }
+        return resolver.resolve(chain, key, timeSource.getTimeMillis()) != null;
       } finally {
         getProxy().unlock(hash, unlocked);
       }
@@ -163,15 +156,13 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   }
 
   @Override
-  protected V silentPutIfAbsent(K key, V value) throws StoreAccessException {
+  protected ValueHolder<V> silentPutIfAbsent(K key, V value) throws StoreAccessException {
     try {
       long hash = extractLongKey(key);
       boolean unlocked = false;
-      Chain existing = getProxy().lock(hash);
+      ServerStoreProxy.ChainEntry existing = getProxy().lock(hash);
       try {
-        ResolvedChain<K, V> resolvedChain = resolver.resolve(existing, key, timeSource.getTimeMillis());
-        Result<K, V> result = resolvedChain.getResolvedResult(key);
-        V existingVal = result == null ? null : result.getValue();
+        ValueHolder<V> existingVal = resolver.resolve(existing, key, timeSource.getTimeMillis());
         if (existingVal != null) {
           return existingVal;
         } else {
@@ -194,15 +185,13 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   }
 
   @Override
-  protected V silentReplace(K key, V value) throws StoreAccessException {
+  protected ValueHolder<V> silentReplace(K key, V value) throws StoreAccessException {
     try {
       long hash = extractLongKey(key);
       boolean unlocked = false;
-      Chain existing = getProxy().lock(hash);
+      ServerStoreProxy.ChainEntry existing = getProxy().lock(hash);
       try {
-        ResolvedChain<K, V> resolvedChain = resolver.resolve(existing, key, timeSource.getTimeMillis());
-        Result<K, V> result = resolvedChain.getResolvedResult(key);
-        V existingVal = result == null ? null : result.getValue();
+        ValueHolder<V> existingVal = resolver.resolve(existing, key, timeSource.getTimeMillis());
         if (existingVal != null) {
           cacheLoaderWriter.write(key, value);
           ReplaceOperation<K, V> operation = new ReplaceOperation<>(key, value, timeSource.getTimeMillis());
@@ -211,7 +200,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           unlocked = true;
           return existingVal;
         } else {
-          V inCache = loadFromLoaderWriter(key);
+          ValueHolder<V> inCache = loadFromLoaderWriter(key);
           if (inCache != null) {
             cacheLoaderWriter.write(key, value);
             ReplaceOperation<K, V> operation = new ReplaceOperation<>(key, value, timeSource.getTimeMillis());
@@ -232,19 +221,17 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   }
 
   @Override
-  protected V silentRemove(K key, V value) throws StoreAccessException {
+  protected ValueHolder<V> silentRemove(K key, V value) throws StoreAccessException {
     try {
       long hash = extractLongKey(key);
       boolean unlocked = false;
-      Chain existing = getProxy().lock(hash);
+      ServerStoreProxy.ChainEntry existing = getProxy().lock(hash);
       try {
-        ResolvedChain<K, V> resolvedChain = resolver.resolve(existing, key, timeSource.getTimeMillis());
-        Result<K, V> result = resolvedChain.getResolvedResult(key);
-        V existingVal = result == null ? null : result.getValue();
+        ValueHolder<V> existingVal = resolver.resolve(existing, key, timeSource.getTimeMillis());
         if (existingVal == null) {
           existingVal = loadFromLoaderWriter(key);
         }
-        if (value.equals(existingVal)) {
+        if (existingVal != null && value.equals(existingVal.get())) {
           cacheLoaderWriter.delete(key);
           ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<>(key, value, timeSource.getTimeMillis());
           ByteBuffer payLoad = codec.encode(operation);
@@ -261,19 +248,17 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
   }
 
   @Override
-  protected V silentReplace(K key, V oldValue, V newValue) throws StoreAccessException {
+  protected ValueHolder<V> silentReplace(K key, V oldValue, V newValue) throws StoreAccessException {
     try {
       long hash = extractLongKey(key);
       boolean unlocked = false;
-      Chain existing = getProxy().lock(hash);
+      ServerStoreProxy.ChainEntry existing = getProxy().lock(hash);
       try {
-        ResolvedChain<K, V> resolvedChain = resolver.resolve(existing, key, timeSource.getTimeMillis());
-        Result<K, V> result = resolvedChain.getResolvedResult(key);
-        V existingVal = result == null ? null : result.getValue();
+        ValueHolder<V> existingVal = resolver.resolve(existing, key, timeSource.getTimeMillis());
         if (existingVal == null) {
           existingVal = loadFromLoaderWriter(key);
         }
-        if (oldValue.equals(existingVal)) {
+        if (existingVal != null && oldValue.equals(existingVal.get())) {
           cacheLoaderWriter.write(key, newValue);
           ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<>(key, oldValue, newValue, timeSource.getTimeMillis());
           ByteBuffer payLoad = codec.encode(operation);
@@ -289,10 +274,15 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
     }
   }
 
-  private V loadFromLoaderWriter(K key) {
+  private ValueHolder<V> loadFromLoaderWriter(K key) {
     if (useLoaderInAtomics) {
       try {
-        return cacheLoaderWriter.load(key);
+        V loaded = cacheLoaderWriter.load(key);
+        if (loaded == null) {
+          return null;
+        } else {
+          return new ClusteredValueHolder<>(loaded);
+        }
       } catch (Exception e) {
         throw new StorePassThroughException(newCacheLoadingException(e));
       }
@@ -312,8 +302,9 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
                                                       TimeSource timeSource,
                                                       boolean useLoaderInAtomics,
                                                       Object[] serviceConfigs) {
+      StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
       return new ClusteredLoaderWriterStore<>(storeConfig, codec, resolver, timeSource,
-                                              storeConfig.getCacheLoaderWriter(), useLoaderInAtomics);
+                                              storeConfig.getCacheLoaderWriter(), useLoaderInAtomics, storeEventDispatcher);
     }
 
     @Override

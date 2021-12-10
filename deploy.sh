@@ -117,7 +117,7 @@ else
   echo git checkout -b release-${version}
   echo git add gradle.properties dist/templates/github-release.md
   echo git commit -m "Version ${version}"
-  echo git tag -m ":ship: Release ${version}" -v${version}
+  echo git tag -m ":ship: Release ${version}" v${version}
   echo git push $git_origin v${version}
 fi
 
@@ -208,7 +208,7 @@ if [ $is_major ]; then
   echo "      layout: \"docs35_page\"" >> _config.yml
   echo "      ehc_version: \"${major_version}\"" >> _config.yml
   echo "      ehc_javadoc_version: \"${version}\"" >> _config.yml
-  echo "      ehc_checkout_dir_var: \"sourcedir36\"" >> _config.yml
+  echo "      ehc_checkout_dir_var: \"sourcedir37\"" >> _config.yml
 
   sed -i '' "s/#needle\_for\_sourcedir/    - sourcedir${short_major_version}=\/_eh${short_major_version}\\
 #needle_for_sourcedir/" _config.yml

@@ -26,7 +26,7 @@ plugins {
   // Declare spotbugs at the top
   id 'com.github.spotbugs' version '1.6.9' apply false
   // Declare osgi-ds at the top
-  id 'org.jayware.osgi-ds' version '0.5.5' apply false
+  id 'org.jayware.osgi-ds' version '0.5.6' apply false
   //OWASP Security Vulnerability Detection
   id 'org.owasp.dependencycheck' version '4.0.2' apply false
   // Declare bnd at the top
@@ -108,7 +108,7 @@ subprojects {
       mavenLocal()
     }
     mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
+    maven { url "https://repo.terracotta.org/maven2" }
   }
 
   sourceSets {
@@ -128,7 +128,6 @@ subprojects {
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testCompile 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
     testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   }
 
@@ -231,7 +230,16 @@ subprojects {
     }
   }
 
-  plugins.withType(aQute.bnd.gradle.BndBuilderPlugin) {
+  plugins.withId('biz.aQute.bnd.builder') {
+    /*
+     * The bnd gradle plugin does not handle our 2-digit snapshot versioning scheme very well. It maps `x.y-SNAPSHOT`
+     * to `x.y.0.SNAPSHOT`. This is bad since `x.y.0.SNAPSHOT` is considered to be less than *all* `x.y.z`. This means
+     * the baseline version range expression `(,x.y.0.SNAPSHOT[` will always pick the last release from the previous
+     * minor line. To fix this we manually map to a 3-digit snapshot version where the 3rd digit is a number chosen
+     * to be higher than we would ever release ('All the worlds a VAX').
+     */
+    def fixedVersion = project.version.asType(String).replaceAll(/^(\d+.\d+)-SNAPSHOT$/, "\$1.999-SNAPSHOT")
+
     jar {
       bnd(
         'Bundle-Name': project.properties.subPomName,
@@ -240,10 +248,20 @@ subprojects {
         'Bundle-DocURL': 'http://ehcache.org',
         'Bundle-License': 'LICENSE',
         'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
-        'Bundle-RequiredExecutionEnvironment': 'JavaSE-1.8',
+        'Bundle-Version': fixedVersion,
+        'Service-Component': 'OSGI-INF/*.xml'
       )
     }
-    check.dependsOn(baseline)
+    dependencies {
+      baseline(group: group, name: jar.archiveBaseName.get()) {
+        version {
+          require "(,${fixedVersion}["
+          reject "${fixedVersion}-internal+"
+        }
+        force = true
+        transitive = false
+      }
+    }
   }
 }
 

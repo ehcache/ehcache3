@@ -1,6 +1,6 @@
 ---
 ---
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 :notBuildingForSite: true
 ifdef::basebackend-html[:outfilesuffix: .html]
 :source-highlighter: coderay
@@ -10,9 +10,9 @@ ifdef::basebackend-html[:outfilesuffix: .html]
 :icons: font
 :iconfont-remote!:
 :iconfont-name: font-awesome.min
-:sourcedir36: ../../../../../
+:sourcedir37: ../../../../../
 :imagesdir: images
 :sectanchors:
 :idprefix:
 :idseparator: -
-endif::sourcedir36[]
+endif::sourcedir37[]

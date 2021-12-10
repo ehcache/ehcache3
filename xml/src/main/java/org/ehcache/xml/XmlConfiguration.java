@@ -26,14 +26,20 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
+import static java.lang.Class.forName;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 import static org.ehcache.xml.ConfigurationParser.documentToText;
+import static org.ehcache.xml.XmlConfiguration.PrettyClassFormat.when;
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
@@ -335,10 +341,6 @@ public class XmlConfiguration implements Configuration {
     return newCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
-  public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
-    return Class.forName(name, true, classLoader);
-  }
-
   @Override
   public Map<String, CacheConfiguration<?, ?>> getCacheConfigurations() {
     return configuration.getCacheConfigurations();
@@ -357,4 +359,75 @@ public class XmlConfiguration implements Configuration {
   public interface Template {
     <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ClassNotFoundException, InstantiationException, IllegalAccessException;
   }
+
+  public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
+    return PRETTY_FORMATS.stream().filter(p -> p.applies().test(name)).findFirst().map(PrettyClassFormat::lookup).orElseThrow(AssertionError::new).lookup(name, classLoader);
+  }
+
+  private static final List<PrettyClassFormat> PRETTY_FORMATS = asList(
+    //Primitive Types
+    when("boolean"::equals).then((n, l) -> Boolean.TYPE),
+    when("byte"::equals).then((n, l) -> Byte.TYPE),
+    when("short"::equals).then((n, l) -> Short.TYPE),
+    when("int"::equals).then((n, l) -> Integer.TYPE),
+    when("long"::equals).then((n, l) -> Long.TYPE),
+    when("char"::equals).then((n, l) -> Character.TYPE),
+    when("float"::equals).then((n, l) -> Float.TYPE),
+    when("double"::equals).then((n, l) -> Double.TYPE),
+
+    //Java Language Array Syntax
+    when(n -> n.endsWith("[]")).then((n, l) -> {
+      String component = n.split("(\\[\\])+$", 2)[0];
+      int dimensions = (n.length() - component.length()) >> 1;
+      return Array.newInstance(getClassForName(component, l), new int[dimensions]).getClass();
+    }),
+
+    //Inner Classes
+    when(n -> n.contains(".")).then((n, l) -> {
+      try {
+        return forName(n, false, l);
+      } catch (ClassNotFoundException e) {
+        int innerSeperator = n.lastIndexOf(".");
+        if (innerSeperator == -1) {
+          throw e;
+        } else {
+          return forName(n.substring(0, innerSeperator) + "$" + n.substring(innerSeperator + 1), false, l);
+        }
+      }
+    }),
+
+    //Everything Else
+    when(n -> true).then((n, l) -> forName(n, false, l))
+  );
+
+  interface PrettyClassFormat {
+
+    static Builder when(Predicate<String> predicate) {
+      return lookup -> new PrettyClassFormat() {
+        @Override
+        public Predicate<String> applies() {
+          return predicate;
+        }
+
+        @Override
+        public Lookup lookup() {
+          return lookup;
+        }
+      };
+    }
+
+    Predicate<String> applies();
+
+    Lookup lookup();
+
+    interface Builder {
+      PrettyClassFormat then(Lookup lookup);
+    }
+  }
+
+  private interface Lookup {
+
+    Class<?> lookup(String name, ClassLoader loader) throws ClassNotFoundException;
+  }
+
 }

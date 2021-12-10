@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.events;
+package org.ehcache.impl.store;
 
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventSink;
@@ -45,15 +45,15 @@ import static org.mockito.Mockito.withSettings;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
- * ScopedStoreEventDispatcherTest
+ * DefaultStoreEventDispatcherTest
  */
-public class ScopedStoreEventDispatcherTest {
+public class DefaultStoreEventDispatcherTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ScopedStoreEventDispatcherTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStoreEventDispatcherTest.class);
 
   @Test
   public void testRegistersOrderingChange() {
-    ScopedStoreEventDispatcher<Object, Object> dispatcher = new ScopedStoreEventDispatcher<>(1);
+    DefaultStoreEventDispatcher<Object, Object> dispatcher = new DefaultStoreEventDispatcher<>(1);
 
     assertThat(dispatcher.isEventOrdering(), is(false));
     dispatcher.setEventOrdering(true);
@@ -65,7 +65,7 @@ public class ScopedStoreEventDispatcherTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testListenerNotifiedUnordered() {
-    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<>(1);
+    DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
     @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
@@ -80,7 +80,7 @@ public class ScopedStoreEventDispatcherTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testListenerNotifiedOrdered() {
-    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<>(1);
+    DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
     @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
@@ -95,7 +95,7 @@ public class ScopedStoreEventDispatcherTest {
 
   @Test
   public void testEventFiltering() {
-    ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<>(1);
+    DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
     @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class, withSettings().verboseLogging());
     dispatcher.addEventListener(listener);
@@ -118,7 +118,7 @@ public class ScopedStoreEventDispatcherTest {
 
   @Test
   public void testOrderedEventDelivery() throws Exception {
-    final ScopedStoreEventDispatcher<Long, Boolean> dispatcher = new ScopedStoreEventDispatcher<>(4);
+    final DefaultStoreEventDispatcher<Long, Boolean> dispatcher = new DefaultStoreEventDispatcher<>(4);
     dispatcher.setEventOrdering(true);
     final ConcurrentHashMap<Long, Long> map = new ConcurrentHashMap<>();
     final long[] keys = new long[] { 1L, 42L, 256L };

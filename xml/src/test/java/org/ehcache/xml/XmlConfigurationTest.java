@@ -47,6 +47,7 @@ import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
+import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,7 +56,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXParseException;
-import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 
@@ -93,6 +93,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.core.util.ClassLoading.getDefaultClassLoader;
+import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -772,7 +774,80 @@ public class XmlConfigurationTest {
     URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-complete.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
-    assertThat(xmlConfig.toString(), isSimilarTo(Input.from(resource)).ignoreComments().ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    assertThat(xmlConfig.toString(), isSimilarTo(resource).ignoreComments().ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+  }
+
+  @Test
+  public void testPrettyTypeNames() {
+    URL resource = XmlConfigurationTest.class.getResource("/configs/pretty-typed-caches.xml");
+    Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
+
+    CacheConfiguration<?, ?> byteArray = config.getCacheConfigurations().get("byte-array");
+    assertThat(byteArray.getValueType(), equalTo(byte[].class));
+
+    CacheConfiguration<?, ?> stringArray = config.getCacheConfigurations().get("string-array");
+    assertThat(stringArray.getValueType(), equalTo(String[].class));
+
+    CacheConfiguration<?, ?> string2dArray = config.getCacheConfigurations().get("string-2d-array");
+    assertThat(string2dArray.getValueType(), equalTo(String[][].class));
+
+    CacheConfiguration<?, ?> mapEntry = config.getCacheConfigurations().get("map-entry");
+    assertThat(mapEntry.getValueType(), equalTo(Map.Entry.class));
+  }
+
+  @Test
+  public void testPrimitiveNameConversion() throws ClassNotFoundException {
+    assertThat(getClassForName("boolean", getDefaultClassLoader()), IsEqual.equalTo(Boolean.TYPE));
+    assertThat(getClassForName("byte", getDefaultClassLoader()), IsEqual.equalTo(Byte.TYPE));
+    assertThat(getClassForName("short", getDefaultClassLoader()), IsEqual.equalTo(Short.TYPE));
+    assertThat(getClassForName("int", getDefaultClassLoader()), IsEqual.equalTo(Integer.TYPE));
+    assertThat(getClassForName("long", getDefaultClassLoader()), IsEqual.equalTo(Long.TYPE));
+    assertThat(getClassForName("char", getDefaultClassLoader()), IsEqual.equalTo(Character.TYPE));
+    assertThat(getClassForName("float", getDefaultClassLoader()), IsEqual.equalTo(Float.TYPE));
+    assertThat(getClassForName("double", getDefaultClassLoader()), IsEqual.equalTo(Double.TYPE));
+  }
+
+  @Test
+  public void testPrimitiveArrayClassNameConversion() throws ClassNotFoundException {
+    assertThat(getClassForName("boolean[]", getDefaultClassLoader()), IsEqual.equalTo(boolean[].class));
+    assertThat(getClassForName("byte[]", getDefaultClassLoader()), IsEqual.equalTo(byte[].class));
+    assertThat(getClassForName("short[]", getDefaultClassLoader()), IsEqual.equalTo(short[].class));
+    assertThat(getClassForName("int[]", getDefaultClassLoader()), IsEqual.equalTo(int[].class));
+    assertThat(getClassForName("long[]", getDefaultClassLoader()), IsEqual.equalTo(long[].class));
+    assertThat(getClassForName("char[]", getDefaultClassLoader()), IsEqual.equalTo(char[].class));
+    assertThat(getClassForName("float[]", getDefaultClassLoader()), IsEqual.equalTo(float[].class));
+    assertThat(getClassForName("double[]", getDefaultClassLoader()), IsEqual.equalTo(double[].class));
+  }
+
+  @Test
+  public void testMultiDimensionPrimitiveArrayClassNameConversion() throws ClassNotFoundException {
+    assertThat(getClassForName("byte[][][][]", getDefaultClassLoader()), IsEqual.equalTo(byte[][][][].class));
+    assertThat(getClassForName("short[][][][]", getDefaultClassLoader()), IsEqual.equalTo(short[][][][].class));
+    assertThat(getClassForName("int[][][][]", getDefaultClassLoader()), IsEqual.equalTo(int[][][][].class));
+    assertThat(getClassForName("long[][][][]", getDefaultClassLoader()), IsEqual.equalTo(long[][][][].class));
+    assertThat(getClassForName("char[][][][]", getDefaultClassLoader()), IsEqual.equalTo(char[][][][].class));
+    assertThat(getClassForName("float[][][][]", getDefaultClassLoader()), IsEqual.equalTo(float[][][][].class));
+    assertThat(getClassForName("double[][][][]", getDefaultClassLoader()), IsEqual.equalTo(double[][][][].class));
+  }
+
+  @Test
+  public void testArrayClassNameConversion() throws ClassNotFoundException {
+    assertThat(getClassForName("java.lang.String[]", getDefaultClassLoader()), IsEqual.equalTo(String[].class));
+  }
+
+  @Test
+  public void testMultiDimensionArrayClassNameConversion() throws ClassNotFoundException {
+    assertThat(getClassForName("java.lang.String[][][][]", getDefaultClassLoader()), IsEqual.equalTo(String[][][][].class));
+  }
+
+  @Test
+  public void testInnerClassNameConversion() throws ClassNotFoundException {
+    assertThat(getClassForName("java.util.Map.Entry", getDefaultClassLoader()), IsEqual.equalTo(Map.Entry.class));
+  }
+
+  @Test
+  public void testInnerClassNameArrayConversion() throws ClassNotFoundException {
+    assertThat(getClassForName("java.util.Map.Entry[]", getDefaultClassLoader()), IsEqual.equalTo(Map.Entry[].class));
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

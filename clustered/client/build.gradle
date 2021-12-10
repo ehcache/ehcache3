@@ -43,11 +43,6 @@ dependencies {
   testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testCompile project(path: ':xml', configuration: 'testArchives')
-}
-
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
+  testImplementation 'org.xmlunit:xmlunit-core:2.6.0'
+  testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
 }

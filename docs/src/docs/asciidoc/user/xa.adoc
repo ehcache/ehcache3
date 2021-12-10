@@ -1,9 +1,9 @@
 ---
 ---
 = XA transactional caches
-ifndef::sourcedir36[]
+ifndef::sourcedir37[]
 include::common.adoc[]
-endif::sourcedir36[]
+endif::sourcedir37[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -65,7 +65,7 @@ Here is an example:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testSimpleXACache]
+include::{sourcedir37}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testSimpleXACache]
 ----
 
 <1> First start the Bitronix transaction manager. By default, Ehcache will auto-detect it but will throw an exception during the cache manager initialization if BTM isn't started.
@@ -96,7 +96,7 @@ Nothing special needs to be configured for this to happen, just ensure that the 
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testXACacheWithWriteThrough]
+include::{sourcedir37}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testXACacheWithWriteThrough]
 ----
 
 <1> First start the Bitronix transaction manager.
@@ -122,7 +122,7 @@ Any attempt to access one outside of such context will result in `XACacheExcepti
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testNonTransactionalAccess]
+include::{sourcedir37}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testNonTransactionalAccess]
 ----
 
 <1> First start the Bitronix transaction manager.
@@ -151,7 +151,7 @@ Here is an example:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testXACacheWithThreeTiers]
+include::{sourcedir37}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testXACacheWithThreeTiers]
 ----
 
 <1> First start the Bitronix transaction manager.
@@ -174,7 +174,7 @@ You can create a XML file to configure a `CacheManager`, lookup a specific trans
 
 [source%nowrap,xml,indent=0]
 ----
-include::{sourcedir36}/transactions/src/test/resources/docs/configs/xa-getting-started.xml[tags=gettingStarted]
+include::{sourcedir37}/transactions/src/test/resources/docs/configs/xa-getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declare a `TransactionManagerLookup` that will lookup your transaction manager.
@@ -185,7 +185,7 @@ In order to parse an XML configuration, you can use the XmlConfiguration type:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testXACacheWithXMLConfig]
+include::{sourcedir37}/transactions/src/test/java/org/ehcache/docs/transactions/xa/XAGettingStarted.java[tag=testXACacheWithXMLConfig]
 ----
 
 <1> The Bitronix transaction manager must be started before the cache manager is initialized.
@@ -198,7 +198,7 @@ And here is what the BitronixTransactionManagerLookup implementation looks like:
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir36}/transactions/src/main/java/org/ehcache/transactions/xa/txmgr/btm/BitronixTransactionManagerLookup.java[tag=BitronixLookup]
+include::{sourcedir37}/transactions/src/main/java/org/ehcache/transactions/xa/txmgr/btm/BitronixTransactionManagerLookup.java[tag=BitronixLookup]
 ----
 
 <1> The `TransactionManagerLookup` interface must be implemented and the offer a `no-arg` constructor.

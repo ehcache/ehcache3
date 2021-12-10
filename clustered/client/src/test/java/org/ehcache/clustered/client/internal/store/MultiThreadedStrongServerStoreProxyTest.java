@@ -26,6 +26,7 @@ import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -72,7 +73,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
           }
 
           @Override
-          public void onEvictInvalidateHash(long hash) {
+          public void onEvictInvalidateHash(long hash, Chain evictedChain) {
             throw new AssertionError("Should not be called");
           }
 
@@ -82,7 +83,12 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
           }
 
           @Override
-          public Chain compact(Chain chain) {
+          public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+            throw new AssertionError("Should not be called");
+          }
+
+          @Override
+          public void compact(ServerStoreProxy.ChainEntry chain) {
             throw new AssertionError();
           }
         });

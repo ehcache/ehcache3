@@ -36,12 +36,14 @@ import java.util.stream.Stream;
 import static java.lang.String.join;
 import static java.nio.file.Files.find;
 import static java.nio.file.Files.isRegularFile;
+import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.cleanCaches;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.systemPackages;
 import static org.ops4j.pax.exam.CoreOptions.systemProperty;
 import static org.ops4j.pax.exam.CoreOptions.workingDirectory;
 import static org.ops4j.pax.exam.CoreOptions.wrappedBundle;
@@ -54,6 +56,11 @@ public class OsgiTestUtils {
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
       systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
+      systemPackages(
+        "javax.xml.bind;version=2.3.0",
+        "javax.xml.bind.annotation;version=2.3.0",
+        "javax.xml.bind.annotation.adapters;version=2.3.0"
+      ),
       cleanCaches(true),
       workingDirectory(join(File.separator, "build", "osgi-container", join(File.separator, path))),
       junitBundles()
@@ -123,12 +130,18 @@ public class OsgiTestUtils {
     ProcessBuilder serverProcess = new ProcessBuilder()
       .directory(serverDirectory.toFile())
       .command(Paths.get(System.getProperty("java.home")).resolve("bin")
-          .resolve(System.getProperty("os.name").contains("Windows") ? "java.exe" : "java").toString(),
-        "-Dtc.install-root=" + serverDir,
-        "-cp", serverDir.resolve("lib").resolve("tc.jar") + File.pathSeparator + pluginClasspath,
-        "com.tc.server.TCServerMain",
-        "-f", configFile.toString())
-      .inheritIO();
+          .resolve(System.getProperty("os.name").contains("Windows") ? "java.exe" : "java").toString());
+
+    String tcServerOptions = System.getProperty("tc-server-opts");
+    if (tcServerOptions != null) {
+      serverProcess.command().addAll(asList(tcServerOptions.split("\\s")));
+    }
+    serverProcess.command().addAll(asList(
+      "-Dtc.install-root=" + serverDir,
+      "-cp", serverDir.resolve("lib").resolve("tc.jar") + File.pathSeparator + pluginClasspath,
+      "com.tc.server.TCServerMain",
+      "-f", configFile.toString()));
+    serverProcess.inheritIO();
 
     return new Cluster(serverProcess.start(), URI.create("terracotta://localhost:" + tsaPort), serverDirectory);
   }

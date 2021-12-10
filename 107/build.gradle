@@ -45,7 +45,6 @@ dependencies {
   tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     transitive = false
   }
-  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 javadoc {
@@ -56,14 +55,7 @@ jar {
   bnd(
     'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.jsr107.internal.*, org.ehcache.jsr107.*',
     'Import-Package': 'javax.cache.*;resolution:=optional, *',
-    'Service-Component': 'OSGI-INF/*.xml'
   )
-}
-
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
 }
 
 task unpackTckTests(type: Copy) {

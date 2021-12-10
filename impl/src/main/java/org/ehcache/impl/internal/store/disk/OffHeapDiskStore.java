@@ -32,7 +32,6 @@ import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
-import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -72,6 +71,7 @@ import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -82,6 +82,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static java.lang.Math.max;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static java.util.Arrays.asList;
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 /**
@@ -215,11 +216,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       MappedPageSource source = new MappedPageSource(dataFile, false, size);
       try {
         PersistentPortability<K> keyPortability = persistent(new SerializerPortability<>(keySerializer));
-        PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<>(valueSerializer));
+        PersistentPortability<OffHeapValueHolder<V>> valuePortability = persistent(createValuePortability(valueSerializer));
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-          max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
+          max((size / diskSegments) / 10, 1024), BYTES, keyPortability, valuePortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<>(
           source,
@@ -253,11 +254,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     MappedPageSource source = new MappedPageSource(getDataFile(), size);
     PersistentPortability<K> keyPortability = persistent(new SerializerPortability<>(keySerializer));
-    PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<>(valueSerializer));
+    PersistentPortability<OffHeapValueHolder<V>> valuePortability = persistent(createValuePortability(valueSerializer));
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-        max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
+        max((size / diskSegments) / 10, 1024), BYTES, keyPortability, valuePortability, writeWorkers, true);
 
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<>(
       source,
@@ -488,18 +489,23 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
    */
   @SuppressWarnings("unchecked")
   public static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
-    final Class<?> normalKlazz = normal.getClass();
-    Class<?>[] delegateInterfaces = normalKlazz.getInterfaces();
-    Class<?>[] proxyInterfaces = Arrays.copyOf(delegateInterfaces, delegateInterfaces.length + 1);
-    proxyInterfaces[delegateInterfaces.length] = PersistentPortability.class;
-
-    return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, (o, method, os) -> {
-      if (method.getDeclaringClass().equals(Persistent.class)) {
-        return null;
-      } else {
-        return method.invoke(normal, os);
+    if (normal instanceof PersistentPortability<?>) {
+      return (PersistentPortability<T>) normal;
+    } else {
+      LinkedHashSet<Class<?>> proxyInterfaces = new LinkedHashSet<>();
+      for (Class<?> klazz = normal.getClass(); klazz != null; klazz = klazz.getSuperclass()) {
+        proxyInterfaces.addAll(asList(klazz.getInterfaces()));
       }
-    });
+      proxyInterfaces.add(PersistentPortability.class);
+
+      return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces.toArray(new Class<?>[0]), (o, method, os) -> {
+        if (method.getDeclaringClass().equals(Persistent.class)) {
+          return null;
+        } else {
+          return method.invoke(normal, os);
+        }
+      });
+    }
   }
 
   String getThreadPoolAlias() {

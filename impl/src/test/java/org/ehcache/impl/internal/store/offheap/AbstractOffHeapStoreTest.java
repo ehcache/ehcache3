@@ -112,7 +112,10 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("1", "one");
 
     final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
-    offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
+    offHeapStore.setInvalidationListener((key, valueHolder) -> {
+      valueHolder.get();
+      invalidated.set(valueHolder);
+    });
 
     timeSource.advanceTime(20);
     assertThat(offHeapStore.getAndRemove("1"), is(nullValue()));
@@ -158,7 +161,10 @@ public abstract class AbstractOffHeapStoreTest {
     offHeapStore.put("1", "one");
 
     final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<>();
-    offHeapStore.setInvalidationListener((key, valueHolder) -> invalidated.set(valueHolder));
+    offHeapStore.setInvalidationListener((key, valueHolder) -> {
+      valueHolder.get();
+      invalidated.set(valueHolder);
+    });
 
     offHeapStore.invalidate("1");
     assertThat(invalidated.get().get(), equalTo("one"));

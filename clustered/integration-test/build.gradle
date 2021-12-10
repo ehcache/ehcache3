@@ -19,7 +19,7 @@ configurations {
 }
 
 dependencies {
-  // not required by gradle but required by the IDE because 'dist' do not has any transitive dependencies
+  // not required by gradle but required by the IDE because 'dist' does not have any transitive dependencies
   testCompileOnly project(':clustered:client')
   testCompileOnly project(':clustered:common')
   testCompileOnly project(':impl')
@@ -32,8 +32,11 @@ dependencies {
   testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
   testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
+  testImplementation "org.awaitility:awaitility:3.1.6"
   testRuntimeOnly project(':clustered:clustered-dist')
   testRuntimeOnly project(':dist')
+
+  testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
 
   testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
   testImplementation (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
@@ -63,12 +66,13 @@ test {
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
   if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
     environment 'JAVA_OPTS', '--add-modules java.xml.bind'
   }
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
+}.doFirst {
+  if (testJava.javaVersion.isJava11Compatible()) throw new StopExecutionException("Clustered Tests Not Working in Java 11")
 }
 

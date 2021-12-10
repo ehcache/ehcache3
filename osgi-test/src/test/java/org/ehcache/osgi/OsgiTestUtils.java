@@ -31,6 +31,7 @@ import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.cleanCaches;
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.systemPackages;
 import static org.ops4j.pax.exam.CoreOptions.systemProperty;
 import static org.ops4j.pax.exam.CoreOptions.workingDirectory;
 import static org.ops4j.pax.exam.CoreOptions.wrappedBundle;
@@ -43,6 +44,11 @@ public class OsgiTestUtils {
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
       systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
+      systemPackages(
+        "javax.xml.bind;version=2.3.0",
+        "javax.xml.bind.annotation;version=2.3.0",
+        "javax.xml.bind.annotation.adapters;version=2.3.0"
+      ),
       cleanCaches(true),
       workingDirectory(join(File.separator, "build", "osgi-container", join(File.separator, path))),
       junitBundles()

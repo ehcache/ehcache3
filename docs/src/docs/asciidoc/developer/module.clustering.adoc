@@ -66,4 +66,7 @@ _HA_?
 
 ==== putIfAbsent
 
-image::https://github.com/ehcache/ehcache3/blob/master/docs/images/design/clustered/putIfAbsentUml.png[putIfAbsent sequence]
+[plantuml]
+....
+include::../../uml/putIfAbsentUml.puml[]
+....

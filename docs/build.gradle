@@ -15,18 +15,21 @@
  */
 
 plugins {
-  // Use 1.5.9.1 for now and wait for 1.5.9.3. The 1.5.9.2 prints annoying false warnings
-  id 'org.asciidoctor.convert' version '1.5.9.1'
+  id 'org.asciidoctor.convert' version '1.6.0'
   id 'org.kordamp.gradle.livereload' version '0.2.1'
   id 'com.github.jruby-gradle.base' version '1.6.0'
 }
 
 dependencies {
-  gems 'rubygems:asciidoctor-diagram:1.5.11'
+  gems 'rubygems:asciidoctor-diagram:1.5.15'
 }
 
-configurations.asciidoctor.dependencies.matching({it.group == 'org.asciidoctor' && it.name == 'asciidoctorj-groovy-dsl'}).all {
-  exclude group:'org.asciidoctor', module:'asciidoctorj'
+configurations.asciidoctor {
+  resolutionStrategy {
+    force 'com.github.jnr:jnr-enxio:0.19'
+    force 'com.github.jnr:jnr-posix:3.0.49'
+    force 'com.github.jnr:jnr-constants:0.9.12'
+  }
 }
 
 task copyCSS(type: Copy) {
@@ -36,18 +39,7 @@ task copyCSS(type: Copy) {
   into("${buildDir}/asciidoc/user/css")
 }
 
-task copyImages(type: Copy) {
-  from('src/docs/asciidoc/user/images') {
-    include '**'
-  }
-  into("${buildDir}/asciidoc/user/images")
-}
-
-asciidoctor.dependsOn copyCSS, copyImages
-
-asciidoctorj {
-  version = '1.5.8.1'
-}
+asciidoctor.dependsOn copyCSS
 
 asciidoctor {
   dependsOn jrubyPrepare
@@ -71,3 +63,4 @@ liveReload {
 dependencyCheck {
   skip = true
 }
+
