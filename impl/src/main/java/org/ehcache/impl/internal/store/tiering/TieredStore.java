@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -213,7 +214,74 @@ public class TieredStore<K, V> implements Store<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
-    return authoritativeTier.iterator();
+    Iterator<Cache.Entry<K, ValueHolder<V>>> authoritativeIterator = authoritativeTier.iterator();
+
+    return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
+
+      private StoreAccessException prefetchFailure;
+      private Cache.Entry<K, ValueHolder<V>> prefetched;
+
+      {
+        try {
+          prefetched = advance();
+        } catch (StoreAccessException sae) {
+          prefetchFailure = sae;
+        }
+      }
+
+      @Override
+      public boolean hasNext() {
+        return prefetched != null || prefetchFailure != null;
+      }
+
+      @Override
+      public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+        StoreAccessException nextFailure = prefetchFailure;
+        Cache.Entry<K, ValueHolder<V>> next = prefetched;
+
+        try {
+          prefetchFailure = null;
+          prefetched = advance();
+        } catch (StoreAccessException sae) {
+          prefetchFailure = sae;
+          prefetched = null;
+        }
+        if (nextFailure == null) {
+          if (next == null) {
+            throw new NoSuchElementException();
+          } else {
+            return next;
+          }
+        } else {
+          throw nextFailure;
+        }
+      }
+
+      private Cache.Entry<K, ValueHolder<V>> advance() throws StoreAccessException {
+        while (authoritativeIterator.hasNext()) {
+          Cache.Entry<K, ValueHolder<V>> next = authoritativeIterator.next();
+          K authKey = next.getKey();
+
+          ValueHolder<V> checked = cachingTier().getOrDefault(authKey, key -> next.getValue());
+
+          if (checked != null) {
+            return new Cache.Entry<K, ValueHolder<V>>() {
+              @Override
+              public K getKey() {
+                return authKey;
+              }
+
+              @Override
+              public ValueHolder<V> getValue() {
+                return checked;
+              }
+            };
+          }
+        }
+
+        return null;
+      }
+    };
   }
 
   @Override
@@ -483,6 +551,11 @@ public class TieredStore<K, V> implements Store<K, V> {
       final ValueHolder<V> apply = source.apply(key);
       authoritativeTier.flush(key, apply);
       return apply;
+    }
+
+    @Override
+    public ValueHolder<V> getOrDefault(K key, Function<K, ValueHolder<V>> source) {
+      return source.apply(key);
     }
 
     @Override

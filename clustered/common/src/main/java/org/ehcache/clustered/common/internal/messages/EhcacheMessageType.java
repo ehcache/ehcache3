@@ -44,6 +44,9 @@ public enum EhcacheMessageType {
   GET_STORE,
   LOCK,
   UNLOCK,
+  ITERATOR_OPEN,
+  ITERATOR_CLOSE,
+  ITERATOR_ADVANCE,
 
   // StateRepository operation messages
   GET_STATE_REPO,
@@ -71,6 +74,9 @@ public enum EhcacheMessageType {
     .mapping(GET_STORE, 27)
     .mapping(LOCK, 28)
     .mapping(UNLOCK, 29)
+    .mapping(ITERATOR_OPEN, 30)
+    .mapping(ITERATOR_CLOSE, 31)
+    .mapping(ITERATOR_ADVANCE, 32)
 
     .mapping(GET_STATE_REPO, 41)
     .mapping(PUT_IF_ABSENT, 42)
@@ -87,7 +93,7 @@ public enum EhcacheMessageType {
   }
 
   public static final EnumSet<EhcacheMessageType> STORE_OPERATION_MESSAGES = of(GET_AND_APPEND, APPEND,
-          REPLACE, CLIENT_INVALIDATION_ACK, CLIENT_INVALIDATION_ALL_ACK, CLEAR, GET_STORE, LOCK, UNLOCK);
+          REPLACE, CLIENT_INVALIDATION_ACK, CLIENT_INVALIDATION_ALL_ACK, CLEAR, GET_STORE, LOCK, UNLOCK, ITERATOR_OPEN, ITERATOR_CLOSE, ITERATOR_ADVANCE);
   public static boolean isStoreOperationMessage(EhcacheMessageType value) {
     return STORE_OPERATION_MESSAGES.contains(value);
   }

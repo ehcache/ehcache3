@@ -22,6 +22,7 @@ import org.ehcache.clustered.common.PoolAllocation.Dedicated;
 import org.ehcache.clustered.common.PoolAllocation.Shared;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -29,6 +30,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
 import org.ehcache.clustered.server.ConcurrencyStrategies;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
@@ -42,6 +44,10 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHolder;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -70,14 +76,14 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -88,13 +94,14 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.core.CombinableMatcher.both;
+import static org.hamcrest.core.CombinableMatcher.either;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -239,20 +246,12 @@ public class ClusterTierActiveEntityTest {
 
 
     // attach to the store
-    assertSuccess(
-        activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     // perform an append
-    assertSuccess(
-        activeEntity.invokeActive(context1, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)))
-    );
+    assertThat(activeEntity.invokeActive(context1, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L))), succeeds());
 
     // assert that an invalidation request is pending
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
@@ -262,9 +261,7 @@ public class ClusterTierActiveEntityTest {
     assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(context2.getClientDescriptor(), context3.getClientDescriptor()));
 
     // client 2 acks
-    assertSuccess(
-        activeEntity.invokeActive(context2, new ServerStoreOpMessage.ClientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
-    );
+    assertThat(activeEntity.invokeActive(context2, new ServerStoreOpMessage.ClientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next())), succeeds());
 
     // assert that client 2 is not waited for anymore
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
@@ -274,9 +271,7 @@ public class ClusterTierActiveEntityTest {
     assertThat(invalidationHolder.clientsHavingToInvalidate, contains(context3.getClientDescriptor()));
 
     // client 3 acks
-    assertSuccess(
-        activeEntity.invokeActive(context3, new ServerStoreOpMessage.ClientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
-    );
+    assertThat(activeEntity.invokeActive(context3, new ServerStoreOpMessage.ClientInvalidationAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next())), succeeds());
 
     // assert that the invalidation request is done since all clients disconnected
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
@@ -295,20 +290,12 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context3.getClientDescriptor());
 
     // attach to the store
-    assertSuccess(
-        activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     // perform a clear
-    assertSuccess(
-        activeEntity.invokeActive(context1, new ServerStoreOpMessage.ClearMessage())
-    );
+    assertThat(activeEntity.invokeActive(context1, new ServerStoreOpMessage.ClearMessage()), succeeds());
 
     // assert that an invalidation request is pending
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
@@ -318,9 +305,7 @@ public class ClusterTierActiveEntityTest {
     assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(context2.getClientDescriptor(), context3.getClientDescriptor()));
 
     // client 2 acks
-    assertSuccess(
-        activeEntity.invokeActive(context2, new ServerStoreOpMessage.ClientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
-    );
+    assertThat(activeEntity.invokeActive(context2, new ServerStoreOpMessage.ClientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next())), succeeds());
 
     // assert that client 2 is not waited for anymore
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
@@ -330,9 +315,7 @@ public class ClusterTierActiveEntityTest {
     assertThat(invalidationHolder.clientsHavingToInvalidate, contains(context3.getClientDescriptor()));
 
     // client 3 acks
-    assertSuccess(
-        activeEntity.invokeActive(context3, new ServerStoreOpMessage.ClientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
-    );
+    assertThat(activeEntity.invokeActive(context3, new ServerStoreOpMessage.ClientInvalidationAllAck(activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next())), succeeds());
 
     // assert that the invalidation request is done since all clients disconnected
     assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
@@ -351,20 +334,12 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context3.getClientDescriptor());
 
     // attach to the store
-    assertSuccess(
-        activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     // perform an append
-    assertSuccess(
-        activeEntity.invokeActive(context1, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)))
-    );
+    assertThat(activeEntity.invokeActive(context1, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L))), succeeds());
 
     // disconnect client2
     activeEntity.disconnected(context2.getClientDescriptor());
@@ -396,20 +371,12 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context3.getClientDescriptor());
 
     // attach to the store
-    assertSuccess(
-        activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     // perform an append
-    assertSuccess(
-        activeEntity.invokeActive(context1, new ServerStoreOpMessage.ClearMessage())
-    );
+    assertThat(activeEntity.invokeActive(context1, new ServerStoreOpMessage.ClearMessage()), succeeds());
 
     // disconnect client2
     activeEntity.disconnected(context2.getClientDescriptor());
@@ -446,20 +413,12 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context3.getClientDescriptor());
 
     // attach to the store
-    assertSuccess(
-        activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration)), succeeds());
 
     // perform an append
-    assertSuccess(
-        activeEntity.invokeActive(context1, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)))
-    );
+    assertThat(activeEntity.invokeActive(context1, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L))), succeeds());
 
     // disconnect client1
     activeEntity.disconnected(context1.getClientDescriptor());
@@ -486,20 +445,12 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context3.getClientDescriptor());
 
     // attach to the store
-    assertSuccess(
-        activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
-    );
-    assertSuccess(
-        activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration)), succeeds());
+    assertThat(activeEntity.invokeActive(context3, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration)), succeeds());
 
     // perform an append
-    assertSuccess(
-        activeEntity.invokeActive(context1, new ServerStoreOpMessage.ClearMessage())
-    );
+    assertThat(activeEntity.invokeActive(context1, new ServerStoreOpMessage.ClearMessage()), succeeds());
 
     // disconnect client1
     activeEntity.disconnected(context1.getClientDescriptor());
@@ -517,13 +468,9 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context.getClientDescriptor());
 
     // attach to the store
-    assertSuccess(
-        activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
-    assertSuccess(
-        activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)))
-    );
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L))), succeeds());
 
     EhcacheEntityResponse response = activeEntity.invokeActive(context, new ServerStoreOpMessage.GetMessage(1L));
     assertThat(response, instanceOf(EhcacheEntityResponse.GetResponse.class));
@@ -546,9 +493,7 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(
-        activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
-    );
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     assertThat(activeEntity.getConnectedClients(), contains(context.getClientDescriptor()));
 
@@ -588,8 +533,7 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 
-    assertSuccess(activeEntity.invokeActive(context2,
-        new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertThat(activeEntity.invokeActive(context2, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     assertThat(defaultRegistry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder(defaultStoreName));
 
@@ -608,13 +552,12 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    assertFailure(activeEntity.invokeActive(context,
+    assertThat(activeEntity.invokeActive(context,
         new LifecycleMessage.ValidateServerStore(defaultStoreName,
             new ServerStoreConfigBuilder()
                 .dedicated(defaultResource, 8, MemoryUnit.MEGABYTES)
                 .build())),
-        InvalidServerStoreConfigurationException.class);
-
+      failsWith(instanceOf(InvalidServerStoreConfigurationException.class)));
   }
 
   @Test
@@ -625,8 +568,8 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName,
-      new ServerStoreConfigBuilder().unknown().build())));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName,
+      new ServerStoreConfigBuilder().unknown().build())), succeeds());
   }
 
   @Test
@@ -682,7 +625,7 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)), succeeds());
 
     assertThat(activeEntity.getConnectedClients(), contains(context.getClientDescriptor()));
   }
@@ -706,8 +649,8 @@ public class ClusterTierActiveEntityTest {
                                     ", desired: " +
                                     storeConfiguration.getPoolAllocation();
 
-    assertFailure(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)),
-      InvalidServerStoreConfigurationException.class, expectedMessageContent);
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)),
+      failsWith(both(IsInstanceOf.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
   }
 
   @Test
@@ -729,8 +672,8 @@ public class ClusterTierActiveEntityTest {
                                     ", desired: " +
                                     storeConfiguration.getPoolAllocation();
 
-    assertFailure(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)),
-      InvalidServerStoreConfigurationException.class, expectedMessageContent);
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, storeConfiguration)),
+      failsWith(both(IsInstanceOf.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
   }
 
   @Test
@@ -757,9 +700,8 @@ public class ClusterTierActiveEntityTest {
                                     ", desired: " +
                                     otherConfiguration.getPoolAllocation();
 
-    assertFailure(activeEntity.invokeActive(context,
-        new LifecycleMessage.ValidateServerStore(defaultStoreName,
-          otherConfiguration)),InvalidServerStoreConfigurationException.class,expectedMessageContent);
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, otherConfiguration)),
+      failsWith(both(IsInstanceOf.any(InvalidServerStoreConfigurationException.class)).and(withMessage(containsString(expectedMessageContent)))));
   }
 
   @Test
@@ -832,7 +774,7 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context.getClientDescriptor());
 
 
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
@@ -850,13 +792,13 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context.getClientDescriptor());
 
 
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
-    assertSuccess(activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, payload)));
-    assertSuccess(activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(-2L, payload)));
-    assertSuccess(activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(17L, payload)));
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, payload)), succeeds());
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(-2L, payload)), succeeds());
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(17L, payload)), succeeds());
 
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
@@ -943,7 +885,7 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     reset(entityMessenger);
     EhcacheEntityMessage getAndAppend = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L));
@@ -978,7 +920,7 @@ public class ClusterTierActiveEntityTest {
 
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     ServerStoreOpMessage.AppendMessage message = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
     activeEntity.invokeActive(context, message);
@@ -1002,7 +944,7 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     context.incrementCurrentTransactionId();
 
@@ -1016,6 +958,94 @@ public class ClusterTierActiveEntityTest {
     assertThat(actual, sameInstance(expected));
   }
 
+  @Test @SuppressWarnings("unchecked")
+  public void testShortIterationIsNotTracked() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(2L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(3L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(4L)));
+
+    EhcacheEntityResponse.IteratorBatch iteratorBatch = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorOpenMessage(Integer.MAX_VALUE));
+
+    assertThat(iteratorBatch.isLast(), is(true));
+    assertThat(iteratorBatch.getChains(), containsInAnyOrder(hasPayloads(1L, 2L), hasPayloads(3L, 4L)));
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(iteratorBatch.getIdentity(), Integer.MAX_VALUE)), failsWith(instanceOf(InvalidOperationException.class)));
+  }
+
+  @Test
+  public void testLongIteration() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(2L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(3L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(4L)));
+
+    EhcacheEntityResponse.IteratorBatch batchOne = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorOpenMessage(1));
+
+    Matcher<Chain> chainOne = hasPayloads(1L, 2L);
+    Matcher<Chain> chainTwo = hasPayloads(3L, 4L);
+
+    assertThat(batchOne.isLast(), is(false));
+    assertThat(batchOne.getChains(), either(contains(chainOne)).or(contains(chainTwo)));
+
+    EhcacheEntityResponse.IteratorBatch batchTwo = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(batchOne.getIdentity(), Integer.MAX_VALUE));
+    assertThat(batchTwo.isLast(), is(true));
+    if (contains(chainOne).matches(batchOne.getChains())) {
+      assertThat(batchTwo.getChains(), contains(chainTwo));
+    } else {
+      assertThat(batchTwo.getChains(), contains(chainOne));
+    }
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(batchOne.getIdentity(), Integer.MAX_VALUE)), failsWith(instanceOf(InvalidOperationException.class)));
+  }
+
+  @Test
+  public void testExplicitIteratorClose() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //hack to enable message tracking on active
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
+
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(1L, createPayload(2L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(3L)));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(2L, createPayload(4L)));
+
+    EhcacheEntityResponse.IteratorBatch batchOne = (EhcacheEntityResponse.IteratorBatch) activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorOpenMessage(1));
+
+    Matcher<Chain> chainOne = hasPayloads(1L, 2L);
+    Matcher<Chain> chainTwo = hasPayloads(3L, 4L);
+
+    assertThat(batchOne.isLast(), is(false));
+    assertThat(batchOne.getChains(), either(contains(chainOne)).or(contains(chainTwo)));
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorCloseMessage(batchOne.getIdentity())), succeeds());
+
+    assertThat(activeEntity.invokeActive(context, new ServerStoreOpMessage.IteratorAdvanceMessage(batchOne.getIdentity(), Integer.MAX_VALUE)), failsWith(instanceOf(InvalidOperationException.class)));
+  }
+
   private void prepareAndRunActiveEntityForPassiveSync(BiConsumer<ClusterTierActiveEntity, Integer> testConsumer) throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.createNew();
@@ -1023,7 +1053,7 @@ public class ClusterTierActiveEntityTest {
     TestInvokeContext context = new TestInvokeContext();
     activeEntity.connected(context.getClientDescriptor());
 
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+    assertThat(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)), succeeds());
 
     ByteBuffer payload = ByteBuffer.allocate(512);
     // Put keys that maps to the same concurrency key
@@ -1038,22 +1068,50 @@ public class ClusterTierActiveEntityTest {
     testConsumer.accept(activeEntity, concurrencyKey);
   }
 
-  private void assertSuccess(EhcacheEntityResponse response) throws Exception {
-    if (!EhcacheResponseType.SUCCESS.equals(response.getResponseType())) {
-      throw ((EhcacheEntityResponse.Failure) response).getCause();
-    }
+  private Matcher<EhcacheEntityResponse> succeeds() {
+    return new TypeSafeMatcher<EhcacheEntityResponse>() {
+      @Override
+      protected boolean matchesSafely(EhcacheEntityResponse item) {
+        return EhcacheResponseType.SUCCESS.equals(item.getResponseType());
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(" a success response");
+      }
+    };
   }
 
-  private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException) {
-    assertThat(response.getResponseType(), is(EhcacheResponseType.FAILURE));
-    assertThat(((EhcacheEntityResponse.Failure) response).getCause(), is(instanceOf(expectedException)));
+  private Matcher<EhcacheEntityResponse> failsWith(Matcher<? extends Throwable> failure) {
+    return new TypeSafeMatcher<EhcacheEntityResponse>() {
+      @Override
+      protected boolean matchesSafely(EhcacheEntityResponse item) {
+        if (EhcacheResponseType.FAILURE.equals(item.getResponseType())) {
+          return failure.matches(((EhcacheEntityResponse.Failure) item).getCause());
+        } else {
+          return false;
+        }
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(" failure caused by ").appendDescriptionOf(failure);
+      }
+    };
   }
 
-  private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException, String expectedMessageContent) {
-    assertThat(response.getResponseType(), is(EhcacheResponseType.FAILURE));
-    Exception cause = ((EhcacheEntityResponse.Failure) response).getCause();
-    assertThat(cause, is(instanceOf(expectedException)));
-    assertThat(cause.getMessage(), containsString(expectedMessageContent));
+  private Matcher<Throwable> withMessage(Matcher<String> message) {
+    return new TypeSafeMatcher<Throwable>() {
+      @Override
+      protected boolean matchesSafely(Throwable item) {
+        return message.matches(item.getMessage());
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(" throwable with message ").appendDescriptionOf(message);
+      }
+    };
   }
 
   @SuppressWarnings("unchecked")
@@ -1211,19 +1269,6 @@ public class ClusterTierActiveEntityTest {
 
     private IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> getEntityMessenger() {
       return entityMessenger;
-    }
-
-    private ClientCommunicator getClientCommunicator() {
-      return clientCommunicator;
-    }
-
-    private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
-      Set<String> names = new HashSet<>();
-      for (OffHeapResourceIdentifier identifier: pools) {
-        names.add(identifier.getName());
-      }
-
-      return Collections.unmodifiableSet(names);
     }
 
     @SuppressWarnings("unchecked")

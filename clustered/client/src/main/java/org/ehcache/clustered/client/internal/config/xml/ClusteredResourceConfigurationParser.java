@@ -24,6 +24,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheResourceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -46,6 +47,7 @@ import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheCon
 /**
  * Provides a parser for the {@code /config/cache/resources} extension elements.
  */
+@Component
 public class ClusteredResourceConfigurationParser extends BaseConfigParser<ResourcePool> implements CacheResourceConfigurationParser {
 
   private static final String CLUSTERED_ELEMENT_NAME = "clustered";

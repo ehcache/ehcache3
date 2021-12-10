@@ -3,7 +3,7 @@
     xmlns='http://www.ehcache.org/v3'
     xmlns:jsr107='http://www.ehcache.org/v3/jsr107'
     xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../xml/src/main/resources/ehcache-core.xsd
-                        http://www.ehcache.org/v3/jsr107 ../../main/resources/ehcache-107ext.xsd">
+                        http://www.ehcache.org/v3/jsr107 ../../main/resources/ehcache-107-ext.xsd">
 
   <service>
     <jsr107:defaults default-template="tinyCache">

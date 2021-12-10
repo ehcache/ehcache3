@@ -24,7 +24,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link CacheLoaderWriterProvider}.
  */
-public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<String, CacheLoaderWriter<?, ?>> implements ServiceCreationConfiguration<CacheLoaderWriterProvider> {
+public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<String, DefaultCacheLoaderWriterConfiguration> implements ServiceCreationConfiguration<CacheLoaderWriterProvider> {
 
   /**
    * {@inheritDoc}

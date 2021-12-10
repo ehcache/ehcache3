@@ -42,7 +42,7 @@ public class FancyParser implements CacheServiceConfigurationParser<Service> {
   }
 
   @Override
-  public ServiceConfiguration<Service> parseServiceConfiguration(Element fragment) {
+  public ServiceConfiguration<Service> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     return new FooConfiguration();
   }
 

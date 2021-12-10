@@ -27,11 +27,11 @@ import java.util.Map;
  *
  * @author Alex Snaps
  */
-public class ClassInstanceProviderConfiguration<K, T> {
+public class ClassInstanceProviderConfiguration<K, C extends ClassInstanceConfiguration<?>> {
 
-  private final Map<K, ClassInstanceConfiguration<T>> defaults = new LinkedHashMap<>();
+  private final Map<K, C> defaults = new LinkedHashMap<>();
 
-  public Map<K, ClassInstanceConfiguration<T>> getDefaults() {
+  public Map<K, C> getDefaults() {
     return defaults;
   }
 

@@ -15,11 +15,12 @@
  */
 
 plugins {
-  id 'org.unbroken-dome.xjc' version '1.1.3'
+  id 'org.unbroken-dome.xjc' version '1.4.1'
   id 'com.github.hauner.jarTest' version '1.0.1'
 }
 
 apply plugin: EhDeploy
+apply plugin: 'biz.aQute.bnd.builder'
 apply plugin: 'com.github.hauner.jarTest'
 
 dependencies {
@@ -35,6 +36,12 @@ test {
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
+}
+
+jar {
+  bnd (
+    'Export-Package': 'org.ehcache.xml, org.ehcache.xml.exceptions, org.ehcache.xml.model',
+  )
 }
 
 xjcGenerate {

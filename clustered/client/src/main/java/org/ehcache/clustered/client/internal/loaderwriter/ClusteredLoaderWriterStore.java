@@ -15,24 +15,21 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter;
 
-import org.ehcache.CacheIterationException;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.ClusteredValueHolder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.lock.LockManager;
-import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
 import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.Operation;
-import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutOperation;
-import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.ReplaceOperation;
-import org.ehcache.clustered.client.internal.store.operations.Result;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.Result;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.ResourceType;
@@ -42,16 +39,15 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
@@ -96,7 +92,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           try {
             value = cacheLoaderWriter.load(key);
           } catch (Exception e) {
-            throw new StorePassThroughException(new CacheIterationException(e));
+            throw new StorePassThroughException(new CacheLoadingException(e));
           }
           if (value == null) {
             return null;
@@ -105,9 +101,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           unlocked = true;
           return new ClusteredValueHolder<>(value);
         } finally {
-          if (!unlocked) {
-            getProxy().unlock(hash);
-          }
+          getProxy().unlock(hash, unlocked);
         }
       }
     } catch (RuntimeException re) {
@@ -134,9 +128,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         append(key, value);
         unlocked = true;
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
       return PutStatus.PUT;
     } catch (Exception e) {
@@ -163,9 +155,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           return false;
         }
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -196,9 +186,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           return existingVal;
         }
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -236,9 +224,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
           }
         }
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -267,9 +253,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         }
         return existingVal;
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);
@@ -298,9 +282,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
         }
         return existingVal;
       } finally {
-        if (!unlocked) {
-          getProxy().unlock(hash);
-        }
+        getProxy().unlock(hash, unlocked);
       }
     } catch (Exception e) {
       throw handleException(e);

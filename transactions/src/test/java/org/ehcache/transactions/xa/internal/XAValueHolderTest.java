@@ -49,9 +49,9 @@ public class XAValueHolderTest {
     XAValueHolder<String> result = (XAValueHolder<String>) new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray())).readObject();
 
     assertThat(result.getId(), is(valueHolder.getId()));
-    assertThat(result.creationTime(TimeUnit.MILLISECONDS), is(valueHolder.creationTime(TimeUnit.MILLISECONDS)));
-    assertThat(result.lastAccessTime(TimeUnit.MILLISECONDS), is(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS)));
-    assertThat(result.expirationTime(TimeUnit.MILLISECONDS), is(valueHolder.expirationTime(TimeUnit.MILLISECONDS)));
+    assertThat(result.creationTime(), is(valueHolder.creationTime()));
+    assertThat(result.lastAccessTime(), is(valueHolder.lastAccessTime()));
+    assertThat(result.expirationTime(), is(valueHolder.expirationTime()));
     assertThat(result.get(), is(valueHolder.get()));
   }
 }

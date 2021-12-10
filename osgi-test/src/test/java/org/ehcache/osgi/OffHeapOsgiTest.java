@@ -33,86 +33,122 @@ import java.io.Serializable;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.osgi.EhcacheActivator.OSGI_LOADING;
+import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
+import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
+import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.ops4j.pax.exam.CoreOptions.bundle;
-import static org.ops4j.pax.exam.CoreOptions.junitBundles;
-import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
-/**
- * OffHeapOsgiTest
- */
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerMethod.class)
 public class OffHeapOsgiTest {
 
   @Configuration
-  public Option[] config() {
-    String slf4jVersion = VersionUtil.version("ehcache.osgi.slf4j.version", "slf4jVersion");
+  public Option[] individualModules() {
     return options(
-        mavenBundle("org.slf4j", "slf4j-api", slf4jVersion),
-        mavenBundle("org.slf4j", "slf4j-simple", slf4jVersion).noStart(),
-        bundle("file:" + VersionUtil.ehcacheOsgiJar()),
-        junitBundles()
+      gradleBundle("org.ehcache.modules:api"),
+      gradleBundle("org.ehcache.modules:core"),
+      gradleBundle("org.ehcache.modules:impl"),
+
+      wrappedGradleBundle("org.terracotta:statistics"),
+      wrappedGradleBundle("org.ehcache:sizeof"),
+      wrappedGradleBundle("org.terracotta:offheap-store"),
+
+      baseConfiguration("OffHeapOsgiTest", "individualModules")
+    );
+  }
+
+  @Configuration
+  public Option[] uberJarWithOsgiServiceLoading() {
+    return options(
+      gradleBundle("org.ehcache:dist"),
+
+      baseConfiguration("OffHeapOsgiTest", "uberJarWithOsgiServiceLoading")
+    );
+  }
+
+  @Configuration
+  public Option[] uberJarWithJdkServiceLoading() {
+    return options(
+      frameworkProperty(OSGI_LOADING).value("false"),
+
+      gradleBundle("org.ehcache:dist"),
+
+      baseConfiguration("OffHeapOsgiTest", "uberJarWithJdkServiceLoading")
     );
   }
 
   @Test
   public void testOffHeapInOsgi() {
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-            .build())
-        .build(true);
-
-    Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
-
-    cache.put(42L, "I am out of heap!!");
-
-    cache.get(42L);
+    TestMethods.testOffHeapInOsgi();
   }
 
   @Test
   public void testOffHeapClientClass() {
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withClassLoader(getClass().getClassLoader())
-        .withCache("myCache", newCacheConfigurationBuilder(Long.class, Order.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
-            .build())
-        .build(true);
-
-    Cache<Long, Order> cache = cacheManager.getCache("myCache", Long.class, Order.class);
-
-    Order order = new Order(42L);
-    cache.put(42L, order);
-
-    assertTrue(cache.get(42L) instanceof Order);
-
-    cache.replace(42L, order, new Order(-1L));
-
-    assertEquals(-1L, cache.get(42L).id);
+    TestMethods.testOffHeapClientClass();
   }
 
-  private static class Order implements Serializable {
+  private static class TestMethods {
 
-    private static final long serialVersionUID = 1L;
+    public static void testOffHeapInOsgi() {
+      CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+          .build())
+        .build(true);
 
-    final long id;
+      Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
 
-    Order(long id) {
-      this.id = id;
+      cache.put(42L, "I am out of heap!!");
+
+      cache.get(42L);
     }
 
-    @Override
-    public int hashCode() {
-      return (int) id;
+    public static void testOffHeapClientClass() {
+      CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withClassLoader(TestMethods.class.getClassLoader())
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, Order.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
+          .build())
+        .build(true);
+
+      Cache<Long, Order> cache = cacheManager.getCache("myCache", Long.class, Order.class);
+
+      Order order = new Order(42L);
+      cache.put(42L, order);
+
+      assertTrue(cache.get(42L) instanceof Order);
+
+      cache.replace(42L, order, new Order(-1L));
+
+      assertEquals(-1L, cache.get(42L).id);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-      if (obj instanceof Order) {
-        return ((Order) obj).id == this.id;
+    private static class Order implements Serializable {
+
+      private static final long serialVersionUID = 1L;
+
+      final long id;
+
+      Order(long id) {
+        this.id = id;
       }
-      return false;
+
+      @Override
+      public int hashCode() {
+        return (int) id;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (obj instanceof Order) {
+          return ((Order) obj).id == this.id;
+        }
+        return false;
+      }
     }
+
+
   }
 }

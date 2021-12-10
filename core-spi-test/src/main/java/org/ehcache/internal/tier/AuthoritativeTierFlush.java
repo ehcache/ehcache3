@@ -60,7 +60,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
+    when(valueHolder.expirationTime()).thenReturn(1L);
 
     tier = factory.newStoreWithCapacity(1L);
 
@@ -81,7 +81,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
+    when(valueHolder.expirationTime()).thenReturn(1L);
 
     tier = factory.newStoreWithCapacity(1L);
 
@@ -99,7 +99,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   public void entryDoesNotExist() {
     K key = factory.createKey(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
+    when(valueHolder.expirationTime()).thenReturn(1L);
 
     tier = factory.newStoreWithCapacity(1L);
 

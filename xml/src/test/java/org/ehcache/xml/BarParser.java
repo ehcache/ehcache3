@@ -50,7 +50,7 @@ public class BarParser implements CacheManagerServiceConfigurationParser<Service
   }
 
   @Override
-  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment) {
+  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
     return new BarConfiguration();
   }
 

@@ -19,11 +19,9 @@ package org.ehcache.clustered.server.internal.messages;
 import org.ehcache.clustered.common.internal.messages.ChainCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
-import org.ehcache.clustered.common.internal.messages.MessageCodecUtils;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.decoding.StructDecoder;
-import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
 
@@ -32,6 +30,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.encodeMandatoryFields;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class PassiveReplicationMessageCodec {
@@ -60,14 +59,7 @@ public class PassiveReplicationMessageCodec {
     .int64(KEY_FIELD, 20)
     .build();
 
-  private final MessageCodecUtils messageCodecUtils;
-
-  public PassiveReplicationMessageCodec() {
-    this.messageCodecUtils = new MessageCodecUtils();
-  }
-
   public byte[] encode(PassiveReplicationMessage message) {
-
     switch (message.getMessageType()) {
       case CHAIN_REPLICATION_OP:
         return encodeChainReplicationMessage((PassiveReplicationMessage.ChainReplicationMessage) message);
@@ -81,34 +73,24 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encodeInvalidationCompleteMessage(PassiveReplicationMessage.InvalidationCompleteMessage message) {
-    StructEncoder<Void> encoder = INVALIDATION_COMPLETE_STRUCT.encoder();
-
-    encoder.enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
-      .int64(KEY_FIELD, message.getKey());
-
-    return encoder.encode().array();
+    return encodeMandatoryFields(INVALIDATION_COMPLETE_STRUCT, message)
+      .int64(KEY_FIELD, message.getKey())
+      .encode().array();
   }
 
   private byte[] encodeClearInvalidationCompleteMessage(PassiveReplicationMessage.ClearInvalidationCompleteMessage message) {
-    StructEncoder<Void> encoder = CLEAR_INVALIDATION_COMPLETE_STRUCT.encoder();
-
-    encoder.enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType());
-
-    return encoder.encode().array();
+    return encodeMandatoryFields(CLEAR_INVALIDATION_COMPLETE_STRUCT, message)
+      .encode().array();
   }
 
   private byte[] encodeChainReplicationMessage(PassiveReplicationMessage.ChainReplicationMessage message) {
-    StructEncoder<Void> encoder = CHAIN_REPLICATION_STRUCT.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-
-    encoder.int64(TRANSACTION_ID_FIELD, message.getTransactionId());
-    encoder.int64(CLIENT_ID_FIELD, message.getClientId());
-    encoder.int64(OLDEST_TRANSACTION_ID_FIELD, message.getOldestTransactionId());
-    encoder.int64(KEY_FIELD, message.getKey());
-    encoder.struct(CHAIN_FIELD, message.getChain(), ChainCodec::encode);
-
-    return encoder.encode().array();
+    return encodeMandatoryFields(CHAIN_REPLICATION_STRUCT, message)
+      .int64(TRANSACTION_ID_FIELD, message.getTransactionId())
+      .int64(CLIENT_ID_FIELD, message.getClientId())
+      .int64(OLDEST_TRANSACTION_ID_FIELD, message.getOldestTransactionId())
+      .int64(KEY_FIELD, message.getKey())
+      .struct(CHAIN_FIELD, message.getChain(), ChainCodec::encode)
+      .encode().array();
   }
 
   public EhcacheEntityMessage decode(EhcacheMessageType messageType, ByteBuffer messageBuffer) {

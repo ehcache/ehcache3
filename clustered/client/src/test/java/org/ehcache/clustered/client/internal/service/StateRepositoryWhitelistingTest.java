@@ -30,7 +30,7 @@ import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
 import org.junit.After;
 import org.junit.Before;

@@ -16,7 +16,6 @@
 
 package org.ehcache.core.spi;
 
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -27,7 +26,7 @@ import org.hamcrest.core.IsCollectionContaining;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 

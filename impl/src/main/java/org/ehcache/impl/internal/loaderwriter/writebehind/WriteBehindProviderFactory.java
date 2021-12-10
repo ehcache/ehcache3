@@ -15,21 +15,23 @@
  */
 package org.ehcache.impl.internal.loaderwriter.writebehind;
 
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
-import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.spi.service.ServiceProvider;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Abhilash
  *
  */
+@Component
 public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindProvider> {
 
   @Override

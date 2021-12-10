@@ -36,7 +36,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
-import static org.ehcache.clustered.server.offheap.OffHeapChainMap.chain;
+import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.emptyIterable;
@@ -81,7 +81,7 @@ public class ChainMapExtensionTest {
     OffHeapChainMap<String> map = getChainMapWithExtendedStorageEngine();
     map.append("foo", buffer(1));
     assertThat(map.get("foo"), contains(element(1)));
-    map.replaceAtHead("foo", chain(buffer(1)), chain());
+    map.replaceAtHead("foo", chainOf(buffer(1)), chainOf());
     ChainStorageEngine<String> se = map.getStorageEngine();
     assertThat(se, is(instanceOf(ExtendedOffHeapChainStorageEngine.class)));
     @SuppressWarnings("unchecked")
@@ -102,7 +102,7 @@ public class ChainMapExtensionTest {
       assertThat(map.getAndAppend("foo" + i, buffer(1)), contains(element(i)));
     }
     for (int i = 10; i < 15; i++) {
-      map.replaceAtHead("foo" + i, chain(buffer(i), buffer(1)), chain());
+      map.replaceAtHead("foo" + i, chainOf(buffer(i), buffer(1)), chainOf());
     }
 
     ChainStorageEngine<String> se = map.getStorageEngine();

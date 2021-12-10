@@ -131,10 +131,10 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     changesOf(0, 0, 2, 0);
 
     Iterator<Cache.Entry<Integer, String>> iterator = cache.iterator();
-    changesOf(1, 0, 0, 0); // FIXME Why one?!?
+    changesOf(0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(2, 0, 0, 0); // FIXME Why two?!?
+    changesOf(1, 0, 0, 0);
 
     expect(iterator.hasNext()).isTrue();
     changesOf(0, 0, 0, 0);
@@ -157,7 +157,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     changesOf(0, 0, 3, 0);
 
     cache.forEach(e -> {});
-    changesOf(6, 0, 0, 0); // FIXME counted twice but works for JCache
+    changesOf(3, 0, 0, 0);
   }
 
   @Test
@@ -168,7 +168,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     changesOf(0, 0, 3, 0);
 
     StreamSupport.stream(cache.spliterator(), false).forEach(e -> {});
-    changesOf(6, 0, 0, 0); // FIXME counted twice but works for JCache
+    changesOf(3, 0, 0, 0);
   }
 
   @Test

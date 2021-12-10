@@ -16,15 +16,17 @@
 
 package org.ehcache.impl.internal.persistence;
 
-import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.spi.service.ServiceFactory;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Alex Snaps
  */
+@Component
 @ServiceFactory.RequiresConfiguration
 public class DefaultLocalPersistenceServiceFactory implements ServiceFactory<LocalPersistenceService> {
 

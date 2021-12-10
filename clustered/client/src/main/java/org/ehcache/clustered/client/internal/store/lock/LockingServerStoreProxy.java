@@ -19,6 +19,7 @@ import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
 
 public class LockingServerStoreProxy implements ServerStoreProxy, LockManager {
@@ -47,8 +48,8 @@ public class LockingServerStoreProxy implements ServerStoreProxy, LockManager {
   }
 
   @Override
-  public void unlock(long hash) throws TimeoutException {
-    lockManager.unlock(hash);
+  public void unlock(long hash, boolean localonly) throws TimeoutException {
+    lockManager.unlock(hash, localonly);
   }
 
   @Override
@@ -74,5 +75,10 @@ public class LockingServerStoreProxy implements ServerStoreProxy, LockManager {
   @Override
   public void clear() throws TimeoutException {
     storeProxy.clear();
+  }
+
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    return storeProxy.iterator();
   }
 }

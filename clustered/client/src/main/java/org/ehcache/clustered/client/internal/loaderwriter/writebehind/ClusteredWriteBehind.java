@@ -15,13 +15,13 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter.writebehind;
 
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.Operation;
-import org.ehcache.clustered.client.internal.store.operations.PutOperation;
-import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.core.spi.time.TimeSource;
@@ -29,6 +29,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
@@ -96,7 +97,7 @@ class ClusteredWriteBehind<K, V> {
             clusteredWriteBehindStore.replaceAtHead(hash, chain, builder.build());
           }
         } finally {
-          clusteredWriteBehindStore.unlock(hash);
+          clusteredWriteBehindStore.unlock(hash, false);
         }
       } catch (TimeoutException e) {
         throw new RuntimeException(e);

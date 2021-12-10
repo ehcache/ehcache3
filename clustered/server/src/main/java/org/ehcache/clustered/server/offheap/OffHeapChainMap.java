@@ -16,18 +16,13 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.clustered.common.internal.store.Util;
-import org.ehcache.clustered.server.offheap.InternalChain.ReplaceResponse;
 import org.terracotta.offheapstore.MapInternals;
 
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
@@ -38,14 +33,16 @@ import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 
-public class OffHeapChainMap<K> implements MapInternals {
+import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
+
+public class OffHeapChainMap<K> implements MapInternals, Iterable<Chain> {
 
   interface ChainMapEvictionListener<K> {
     void onEviction(K key);
   }
 
   protected final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
-  protected final ChainStorageEngine<K> chainStorage;
+  private final ChainStorageEngine<K> chainStorage;
   private volatile ChainMapEvictionListener<K> evictionListener;
 
   private OffHeapChainMap(PageSource source, ChainStorageEngine<K> storageEngine) {
@@ -179,8 +176,7 @@ public class OffHeapChainMap<K> implements MapInternals {
           }
         } else {
           try {
-            ReplaceResponse response = chain.replace(expected, replacement);
-            if (response != ReplaceResponse.MATCH_BUT_NOT_REPLACED) {
+            if (chain.replace(expected, replacement)) {
               return;
             } else {
               evict();
@@ -244,7 +240,39 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
-  protected void evict() {
+  @Override
+  public Iterator<Chain> iterator() {
+    Iterator<Map.Entry<K, InternalChain>> headsIterator = heads.entrySet().iterator();
+
+    return new Iterator<Chain>() {
+      @Override
+      public boolean hasNext() {
+        return headsIterator.hasNext();
+      }
+
+      @Override
+      public Chain next() {
+        final Lock lock = heads.readLock();
+        lock.lock();
+        try {
+          InternalChain chain = headsIterator.next().getValue();
+          if (chain == null) {
+            return EMPTY_CHAIN;
+          } else {
+            try {
+              return chain.detach();
+            } finally {
+              chain.close();
+            }
+          }
+        } finally {
+          lock.unlock();
+        }
+      }
+    };
+  }
+
+  private void evict() {
     int evictionIndex = heads.getEvictionIndex();
     if (evictionIndex < 0) {
       throw new OversizeMappingException("Storage Engine and Eviction Failed - Everything Pinned (" + getSize() + " mappings) \n" + "Storage Engine : " + chainStorage);
@@ -253,63 +281,7 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
-  protected static final Chain EMPTY_CHAIN = new Chain() {
-    @Override
-    public Iterator<Element> reverseIterator() {
-      return Collections.<Element>emptyList().iterator();
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return true;
-    }
-
-    @Override
-    public int length() {
-      return 0;
-    }
-
-    @Override
-    public Iterator<Element> iterator() {
-      return Collections.<Element>emptyList().iterator();
-    }
-  };
-
-  public static Chain chain(ByteBuffer... buffers) {
-    final List<Element> list = new ArrayList<>();
-    for (ByteBuffer b : buffers) {
-      list.add(element(b));
-    }
-
-    return new Chain() {
-
-      final List<Element> elements = Collections.unmodifiableList(list);
-
-      @Override
-      public Iterator<Element> iterator() {
-        return elements.iterator();
-      }
-
-      @Override
-      public Iterator<Element> reverseIterator() {
-        return Util.reverseIterator(elements);
-      }
-
-      @Override
-      public boolean isEmpty() {
-        return elements.isEmpty();
-      }
-
-      @Override
-      public int length() {
-        return elements.size();
-      }
-    };
-  }
-
-  private static Element element(final ByteBuffer b) {
-    return b::asReadOnlyBuffer;
-  }
+  private static final Chain EMPTY_CHAIN = chainFromList(Collections.emptyList());
 
   @Override
   public long getSize() {

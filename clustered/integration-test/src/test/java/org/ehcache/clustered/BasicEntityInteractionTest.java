@@ -16,10 +16,21 @@
 package org.ehcache.clustered;
 
 import java.io.File;
+import java.net.URI;
+
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.management.cluster.DefaultClusteringManagementService;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -34,6 +45,8 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.testing.rules.Cluster;
 
 import static java.util.Collections.emptyMap;
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
+import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -60,6 +73,76 @@ public class BasicEntityInteractionTest extends ClusteredTests {
 
   @Rule
   public TestName testName= new TestName();
+
+  @Test
+  public void testClusteringServiceConfigurationBuilderThrowsNPE() throws Exception {
+    String cacheName = "myCACHE";
+    String offheap = "primary-server-resource";
+    URI tsaUri = CLUSTER.getConnectionURI();
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .heap(100, ENTRIES)
+        .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+        .autoCreate()
+        .defaultServerResource(offheap)
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.put(1L, "one");
+    }
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .heap(100, ENTRIES)
+          .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
+        )
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+        // these two shouldn't be needed as the clustered cache entity has already been created
+//              .autoCreate()
+//              .defaultServerResource(offheap)
+      ).using(new DefaultStatisticsService()
+      ).using(new DefaultClusteringManagementService()
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.get(1L);
+    }
+
+  }
+
+  @Test
+  public void testServicesStoppedTwice() throws Exception {
+    String cacheName = "myCACHE";
+    String offheap = "primary-server-resource";
+    URI tsaUri = CLUSTER.getConnectionURI();
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .heap(100, ENTRIES)
+        .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+        .autoCreate()
+        .defaultServerResource(offheap)
+        // manually adding the following two services should work
+      ).using(new DefaultStatisticsService()
+      ).using(new DefaultClusteringManagementService()
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.put(1L, "one");
+    }
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .heap(100, ENTRIES)
+          .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
+        )
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.get(1L);
+    }
+
+  }
 
   @Test
   public void testAbsentEntityRetrievalFails() throws Throwable {

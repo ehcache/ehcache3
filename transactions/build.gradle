@@ -16,7 +16,8 @@
 
 group = 'org.ehcache'
 
-apply plugin: EhOsgi
+apply plugin: 'biz.aQute.bnd.builder'
+apply plugin: 'osgi-ds'
 apply plugin: EhPomMangle
 
 dependencies {
@@ -28,6 +29,7 @@ dependencies {
   implementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
+  compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
   testImplementation project(':core-spi-test')
   testCompile project(path: ':xml', configuration: 'testArchives')
 }
@@ -42,6 +44,15 @@ test {
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
+}
+
+jar {
+  bnd (
+    'Bundle-SymbolicName': 'org.ehcache.transactions',
+    'Export-Package': 'org.ehcache.transactions.xa.*',
+    'Import-Package': 'bitronix.tm.*;resolution:=optional, javax.transaction.*;resolution:=optional, org.ehcache.xml.*;resolution:=optional, *',
+    'Service-Component': 'OSGI-INF/*.xml'
+  )
 }
 
 project.signing {

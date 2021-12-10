@@ -17,7 +17,9 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
 
@@ -337,4 +339,77 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     return total;
   }
 
+  @Override
+  public Iterator<Chain> iterator() {
+    return new AggregateIterator<Chain>() {
+      @Override
+      protected Iterator<Chain> getNextIterator() {
+        return listIterator.next().iterator();
+      }
+    };
+  }
+
+
+  protected abstract class AggregateIterator<T> implements Iterator<T> {
+
+    protected final Iterator<OffHeapChainMap<Long>> listIterator;
+    protected Iterator<T>               currentIterator;
+
+    protected abstract Iterator<T> getNextIterator();
+
+    public AggregateIterator() {
+      listIterator = segments.iterator();
+      while (listIterator.hasNext()) {
+        currentIterator = getNextIterator();
+        if (currentIterator.hasNext()) {
+          return;
+        }
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (currentIterator == null) {
+        return false;
+      }
+
+      if (currentIterator.hasNext()) {
+        return true;
+      } else {
+        while (listIterator.hasNext()) {
+          currentIterator = getNextIterator();
+          if (currentIterator.hasNext()) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    @Override
+    public T next() {
+      if (currentIterator == null) {
+        throw new NoSuchElementException();
+      }
+
+      if (currentIterator.hasNext()) {
+        return currentIterator.next();
+      } else {
+        while (listIterator.hasNext()) {
+          currentIterator = getNextIterator();
+
+          if (currentIterator.hasNext()) {
+            return currentIterator.next();
+          }
+        }
+      }
+
+      throw new NoSuchElementException();
+    }
+
+    @Override
+    public void remove() {
+      currentIterator.remove();
+    }
+  }
 }

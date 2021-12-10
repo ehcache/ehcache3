@@ -21,7 +21,9 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public abstract class EhcacheEntityResponse implements EntityResponse {
 
@@ -301,6 +303,40 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     @Override
     public EhcacheResponseType getResponseType() {
       return EhcacheResponseType.LOCK_FAILURE;
+    }
+  }
+
+  public static IteratorBatch iteratorBatchResponse(UUID id, List<Chain> chains, boolean last) {
+    return new IteratorBatch(id, chains, last);
+  }
+
+  public static class IteratorBatch extends EhcacheEntityResponse {
+
+    private final UUID id;
+    private final List<Chain> chains;
+    private final boolean last;
+
+    public IteratorBatch(UUID id, List<Chain> chains, boolean last) {
+      this.id = id;
+      this.chains = chains;
+      this.last = last;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.ITERATOR_BATCH;
+    }
+
+    public boolean isLast() {
+      return last;
+    }
+
+    public List<Chain> getChains() {
+      return chains;
+    }
+
+    public UUID getIdentity() {
+      return id;
     }
   }
 }

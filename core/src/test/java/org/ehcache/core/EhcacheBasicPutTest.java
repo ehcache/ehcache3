@@ -20,8 +20,6 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
-import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
@@ -29,7 +27,6 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -161,7 +158,6 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     ehcache.put("key", "value");
     verify(this.store).put(eq("key"), eq("value"));
     verify(this.resilienceStrategy).putFailure(eq("key"), eq("value"), any(StoreAccessException.class));
-    assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.FAILURE));
   }
 
@@ -205,8 +201,8 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     return getEhcache(CACHE_CONFIGURATION);
   }
 
+  @SuppressWarnings("unchecked")
   private Ehcache<String, String> getEhcache(CacheConfiguration<String, String> config) {
-    this.resilienceStrategy = spy(new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(this.store)));
     final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));

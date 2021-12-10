@@ -15,10 +15,11 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter.writebehind;
 
-import org.ehcache.clustered.client.internal.loaderwriter.ClusteredLoaderWriterStore;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
+@Component
 public class ClusteredWriteBehindStoreProviderFactory implements ServiceFactory<ClusteredWriteBehindStore.Provider> {
 
   @Override

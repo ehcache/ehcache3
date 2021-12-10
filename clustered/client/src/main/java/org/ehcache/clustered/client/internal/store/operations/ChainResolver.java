@@ -16,13 +16,13 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -96,7 +96,22 @@ public abstract class ChainResolver<K, V> {
    * @param now time when the chain is being resolved
    * @return a compacted chain
    */
-  public Chain applyOperation(Chain chain, long now) {
+  public Chain compactChain(Chain chain, long now) {
+    ChainBuilder builder = new ChainBuilder();
+    for (PutOperation<K, V> operation : resolveChain(chain, now).values()) {
+      builder = builder.add(codec.encode(operation));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Resolves all keys within the given chain.
+   *
+   * @param chain a compacted heterogenous {@code Chain}
+   * @param now time when the chain is being resolved
+   * @return a compacted chain
+   */
+  public Map<K, PutOperation<K, V>> resolveChain(Chain chain, long now) {
     //absent hash-collisions this should always be a 1 entry map
     Map<K, PutOperation<K, V>> compacted = new HashMap<>(2);
     for (Element element : chain) {
@@ -104,12 +119,7 @@ public abstract class ChainResolver<K, V> {
       Operation<K, V> operation = codec.decode(payload);
       compacted.compute(operation.getKey(), (k, v) -> applyOperation(k, v, operation, now));
     }
-
-    ChainBuilder builder = new ChainBuilder();
-    for (PutOperation<K, V> operation : compacted.values()) {
-      builder = builder.add(codec.encode(operation));
-    }
-    return builder.build();
+    return compacted;
   }
 
   /**

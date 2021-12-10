@@ -22,15 +22,15 @@ import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.lock.LockManager;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutWithWriterOperation;
-import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.ReplaceOperation;
-import org.ehcache.clustered.client.internal.store.operations.Result;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutWithWriterOperation;
+import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.ReplaceOperation;
+import org.ehcache.clustered.common.internal.store.operations.Result;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.ResourceType;
@@ -46,7 +46,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
@@ -79,8 +78,8 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     return ((LockManager) storeProxy).lock(hash);
   }
 
-  void unlock(long hash) throws TimeoutException {
-    ((LockManager) storeProxy).unlock(hash);
+  void unlock(long hash, boolean localOnly) throws TimeoutException {
+    ((LockManager) storeProxy).unlock(hash, localOnly);
   }
 
   void replaceAtHead(long key, Chain expected, Chain replacement) {
@@ -121,7 +120,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
           append(key, value);
           return new ClusteredValueHolder<>(value);
         } finally {
-          unlock(hash);
+          unlock(hash, false);
         }
       }
     } catch (RuntimeException re) {

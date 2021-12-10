@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.Matchers;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
@@ -33,8 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -114,7 +114,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     for (int i = 0; i < ITERATIONS; i++) {
       Chain elements1 = serverStoreProxy1.get(i);
       Chain elements2 = serverStoreProxy2.get(i);
-      assertThat(chainsEqual(elements1, elements2), is(true));
+      assertThat(elements1, Matchers.matchesChain(elements2));
       if (elements1.isEmpty()) {
         evictionCount++;
       }

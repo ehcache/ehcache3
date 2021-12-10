@@ -26,4 +26,9 @@ public class DestroyInProgressException extends LifecycleException {
   public DestroyInProgressException(String message) {
     super(message);
   }
+
+  @Override
+  public DestroyInProgressException withClientStackTrace() {
+    return new DestroyInProgressException(this.getMessage());
+  }
 }

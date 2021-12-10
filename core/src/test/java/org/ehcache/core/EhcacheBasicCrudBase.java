@@ -600,23 +600,23 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
-      public long creationTime(final TimeUnit unit) {
-        return unit.convert(this.creationTime, TimeUnit.MICROSECONDS);
+      public long creationTime() {
+        return creationTime;
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(final TimeUnit unit) {
-        return unit.convert(this.lastAccessTime, TimeUnit.MICROSECONDS);
+      public long lastAccessTime() {
+        return lastAccessTime;
       }
 
       @Override

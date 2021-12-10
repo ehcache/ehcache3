@@ -4,7 +4,7 @@
     xmlns:jsr107='http://www.ehcache.org/v3/jsr107'
     xmlns:ehcache='http://www.ehcache.org/v3'
     xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../xml/src/main/resources/ehcache-core.xsd
-                        http://www.ehcache.org/v3/jsr107 ../../main/resources/ehcache-107ext.xsd">
+                        http://www.ehcache.org/v3/jsr107 ../../main/resources/ehcache-107-ext.xsd">
 
   <ehcache:default-serializers>
     <ehcache:serializer type="java.lang.String">org.ehcache.impl.serialization.CompactJavaSerializer</ehcache:serializer>

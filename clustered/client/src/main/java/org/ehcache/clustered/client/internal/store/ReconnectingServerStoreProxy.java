@@ -24,6 +24,7 @@ import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.exception.ConnectionShutdownException;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -95,6 +96,11 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManag
     });
   }
 
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    return onStoreProxy(LockingServerStoreProxy::iterator);
+  }
+
   private LockingServerStoreProxy proxy() {
     return delegateRef.get();
   }
@@ -121,9 +127,9 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManag
   }
 
   @Override
-  public void unlock(long hash) throws TimeoutException {
+  public void unlock(long hash, boolean localonly) throws TimeoutException {
     onStoreProxy(lockingServerStoreProxy -> {
-      lockingServerStoreProxy.unlock(hash);
+      lockingServerStoreProxy.unlock(hash, localonly);
       return null;
     });
   }
@@ -178,12 +184,17 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManag
     }
 
     @Override
-    public Chain lock(long hash) throws TimeoutException {
+    public Iterator<Chain> iterator() {
       throw new ReconnectInProgressException();
     }
 
     @Override
-    public void unlock(long hash) throws TimeoutException {
+    public Chain lock(long hash) {
+      throw new ReconnectInProgressException();
+    }
+
+    @Override
+    public void unlock(long hash, boolean localonly) {
       throw new ReconnectInProgressException();
     }
   }
@@ -191,12 +202,12 @@ public class ReconnectingServerStoreProxy implements ServerStoreProxy, LockManag
   private static class UnSupportedLockManager implements LockManager {
 
     @Override
-    public Chain lock(long hash) throws TimeoutException {
+    public Chain lock(long hash) {
       throw new UnsupportedOperationException("Lock ops are not supported");
     }
 
     @Override
-    public void unlock(long hash) throws TimeoutException {
+    public void unlock(long hash, boolean localonly) {
       throw new UnsupportedOperationException("Lock ops are not supported");
     }
   }

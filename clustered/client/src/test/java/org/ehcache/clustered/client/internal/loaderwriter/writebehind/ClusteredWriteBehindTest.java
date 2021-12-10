@@ -15,18 +15,18 @@
  */
 package org.ehcache.clustered.client.internal.loaderwriter.writebehind;
 
+import org.ehcache.clustered.common.internal.util.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.ExpiryChainResolver;
-import org.ehcache.clustered.client.internal.store.operations.Operation;
-import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutOperation;
-import org.ehcache.clustered.client.internal.store.operations.PutWithWriterOperation;
-import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
+import org.ehcache.clustered.common.internal.store.operations.ConditionalRemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutIfAbsentOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.PutWithWriterOperation;
+import org.ehcache.clustered.common.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.ehcache.clustered.loaderWriter.writebehind.RecordingLoaderWriter;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
@@ -40,7 +40,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.AbstractExecutorService;
@@ -188,7 +187,7 @@ public class ClusteredWriteBehindTest {
       assertThat(entry.getValue(), is(expectedChainContents.get(entry.getKey())));
     }
 
-    verify(clusteredWriteBehindStore).unlock(1L);
+    verify(clusteredWriteBehindStore).unlock(1L, false);
   }
 
   private Map<Long, String> convert(Chain chain, OperationsCodec<Long, String> codec,
@@ -208,11 +207,11 @@ public class ClusteredWriteBehindTest {
   }
 
   private Chain makeChain(List<EventInfo> expected, OperationsCodec<Long, String> operationsCodec) {
-    ByteBuffer[] byteBuffers = new ByteBuffer[expected.size()];
-    for (int i = 0; i < byteBuffers.length; i++) {
-      byteBuffers[i] = operationsCodec.encode(expected.get(i).operation);
+    ChainBuilder builder = new ChainBuilder();
+    for (EventInfo eventInfo : expected) {
+      builder.add(operationsCodec.encode(eventInfo.operation));
     }
-    return chain(byteBuffers);
+    return builder.build();
   }
 
 
@@ -247,38 +246,6 @@ public class ClusteredWriteBehindTest {
     public void execute(Runnable command) {
       command.run();
     }
-  }
-
-  public static Chain chain(ByteBuffer... buffers) {
-    final List<Element> list = new ArrayList<>();
-    for (ByteBuffer b : buffers) {
-      list.add(b::asReadOnlyBuffer);
-    }
-
-    return new Chain() {
-
-      final List<Element> elements = Collections.unmodifiableList(list);
-
-      @Override
-      public Iterator<Element> iterator() {
-        return elements.iterator();
-      }
-
-      @Override
-      public Iterator<Element> reverseIterator() {
-        return Util.reverseIterator(elements);
-      }
-
-      @Override
-      public boolean isEmpty() {
-        return elements.isEmpty();
-      }
-
-      @Override
-      public int length() {
-        return elements.size();
-      }
-    };
   }
 
   private class EventInfo {

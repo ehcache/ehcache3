@@ -17,7 +17,7 @@
 package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;

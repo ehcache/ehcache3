@@ -49,12 +49,12 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
   }
 
   public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Serializer<V> serializer, long now, java.time.Duration expiration) {
-    this(valueHolder.getId(), value, valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice, serializer);
+    this(valueHolder.getId(), value, valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice, serializer);
     this.accessed(now, expiration);
   }
 
   public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, ByteBuffer binaryValue, boolean evictionAdvice, Serializer<V> serializer, long now, java.time.Duration expiration) {
-    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice);
+    super(valueHolder.getId(), valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice);
     this.buffer = binaryValue;
     this.serializer = serializer;
     this.accessed(now, expiration);

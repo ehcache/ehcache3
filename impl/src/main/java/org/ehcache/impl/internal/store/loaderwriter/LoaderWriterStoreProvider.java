@@ -16,69 +16,65 @@
 package org.ehcache.impl.internal.store.loaderwriter;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.internal.store.StoreSupport;
+import org.ehcache.core.spi.store.AbstractWrapperStoreProvider;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.WrapperStore;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
-@ServiceDependencies({CacheLoaderWriterProvider.class})
-public class LoaderWriterStoreProvider implements WrapperStore.Provider {
+@ServiceDependencies({CacheLoaderWriterProvider.class, WriteBehindProvider.class})
+public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
 
-  private volatile ServiceProvider<Service> serviceProvider;
-
-  private final Map<Store<?, ?>, StoreRef<?, ?>> createdStores = new ConcurrentHashMap<>();
+  private volatile WriteBehindProvider writeBehindProvider;
 
   @Override
-  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-    Store.Provider underlyingStoreProvider = StoreSupport.selectStoreProvider(serviceProvider,
-            storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs));
-    Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
-
-    LocalLoaderWriterStore<K, V> loaderWriterStore = new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(),
-            storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
-    createdStores.put(loaderWriterStore, new StoreRef<>(store, underlyingStoreProvider));
-    return loaderWriterStore;
+  protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    WriteBehindConfiguration writeBehindConfiguration = findSingletonAmongst(WriteBehindConfiguration.class, (Object[]) serviceConfigs);
+    if(writeBehindConfiguration == null) {
+      return new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
+    } else {
+      CacheLoaderWriter<? super K, V> writeBehindLoaderWriter = writeBehindProvider.createWriteBehindLoaderWriter(storeConfig.getCacheLoaderWriter(), writeBehindConfiguration);
+      return new LocalWriteBehindLoaderWriterStore<>(store, writeBehindLoaderWriter, storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
+    }
   }
 
   @Override
   public void releaseStore(Store<?, ?> resource) {
-    StoreRef<?, ?> storeRef = createdStores.remove(resource);
-    storeRef.getUnderlyingStoreProvider().releaseStore(storeRef.getUnderlyingStore());
+    try {
+      if (resource instanceof LocalWriteBehindLoaderWriterStore<?, ?>) {
+        writeBehindProvider.releaseWriteBehindLoaderWriter(((LocalWriteBehindLoaderWriterStore<?, ?>) resource).getCacheLoaderWriter());
+      }
+    } finally {
+      super.releaseStore(resource);
+    }
   }
 
   @Override
-  public void initStore(Store<?, ?> resource) {
-    StoreRef<?, ?> storeRef = createdStores.get(resource);
-    storeRef.getUnderlyingStoreProvider().initStore(storeRef.getUnderlyingStore());
+  public void start(ServiceProvider<Service> serviceProvider) {
+    super.start(serviceProvider);
+    this.writeBehindProvider = serviceProvider.getService(WriteBehindProvider.class);
+  }
+
+  @Override
+  public void stop() {
+    this.writeBehindProvider = null;
+    super.stop();
   }
 
   @Override
   public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
     throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
-  }
-
-  @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
-    this.serviceProvider = serviceProvider;
-  }
-
-  @Override
-  public void stop() {
-    this.serviceProvider = null;
-    this.createdStores.clear();
   }
 
   @Override
@@ -89,24 +85,4 @@ public class LoaderWriterStoreProvider implements WrapperStore.Provider {
     }
     return 2;
   }
-
-  public static class StoreRef<K, V> {
-    private final Store<K, V> underlyingStore;
-    private final Store.Provider underlyingStoreProvider;
-
-    public StoreRef(Store<K, V> underlyingStore, Store.Provider underlyingStoreProvider) {
-      this.underlyingStore = underlyingStore;
-      this.underlyingStoreProvider = underlyingStoreProvider;
-    }
-
-    public Store.Provider getUnderlyingStoreProvider() {
-      return underlyingStoreProvider;
-    }
-
-    public Store<K, V> getUnderlyingStore() {
-      return underlyingStore;
-    }
-
-  }
-
 }

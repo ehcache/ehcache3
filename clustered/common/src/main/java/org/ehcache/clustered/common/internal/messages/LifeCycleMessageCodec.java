@@ -29,6 +29,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.encodeMandatoryFields;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class LifeCycleMessageCodec {
@@ -45,11 +46,9 @@ public class LifeCycleMessageCodec {
   private final Struct validateMessageStruct;
   private final Struct validateStoreMessageStruct;
 
-  private final MessageCodecUtils messageCodecUtils;
   private final ConfigCodec configCodec;
 
   public LifeCycleMessageCodec(ConfigCodec configCodec) {
-    this.messageCodecUtils = new MessageCodecUtils();
     this.configCodec = configCodec;
 
     StructBuilder validateMessageStructBuilderPrefix = newStructBuilder()
@@ -81,14 +80,11 @@ public class LifeCycleMessageCodec {
   }
 
   private byte[] encodePrepareForDestroyMessage(LifecycleMessage message) {
-    return PREPARE_FOR_DESTROY_STRUCT.encoder()
-      .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
-      .encode().array();
+    return encodeMandatoryFields(PREPARE_FOR_DESTROY_STRUCT, message).encode().array();
   }
 
   private byte[] encodeValidateStoreMessage(LifecycleMessage.ValidateServerStore message) {
-    StructEncoder<Void> encoder = validateStoreMessageStruct.encoder();
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
+    StructEncoder<Void> encoder = encodeMandatoryFields(validateStoreMessageStruct, message);
 
     encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
     configCodec.encodeServerStoreConfiguration(encoder, message.getStoreConfiguration());
@@ -96,9 +92,8 @@ public class LifeCycleMessageCodec {
   }
 
   private byte[] encodeTierManagerValidateMessage(LifecycleMessage.ValidateStoreManager message) {
-    StructEncoder<Void> encoder = validateMessageStruct.encoder();
+    StructEncoder<Void> encoder = encodeMandatoryFields(validateMessageStruct, message);
     ServerSideConfiguration config = message.getConfiguration();
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
     if (config == null) {
       encoder.bool(CONFIG_PRESENT_FIELD, false);
     } else {

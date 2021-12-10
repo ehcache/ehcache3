@@ -19,7 +19,6 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.SequencedElement;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.StructArrayDecoder;
@@ -30,6 +29,8 @@ import org.terracotta.runnel.encoding.StructEncoder;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
 public final class ChainCodec {
 
@@ -84,14 +85,24 @@ public final class ChainCodec {
       elementDecoder.end();
 
       if (sequence == null) {
-        elements.add(Util.getElement(byteBuffer));
+        elements.add(byteBuffer::asReadOnlyBuffer);
       } else {
-        elements.add(Util.getElement(sequence, byteBuffer));
+        elements.add(new SequencedElement() {
+          @Override
+          public long getSequenceNumber() {
+            return sequence;
+          }
+
+          @Override
+          public ByteBuffer getPayload() {
+            return byteBuffer.asReadOnlyBuffer();
+          }
+        });
       }
     }
 
     elementsDecoder.end();
 
-    return Util.getChain(elements);
+    return chainFromList(elements);
   }
 }
