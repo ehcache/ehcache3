@@ -17,7 +17,7 @@ package org.ehcache.impl.internal.store.basic;
 
 import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -51,7 +51,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) {
     return null;
   }
 
@@ -66,12 +66,12 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> get(K key) throws StoreAccessException {
+  public ValueHolder<V> get(K key) {
     return null;
   }
 
   @Override
-  public boolean containsKey(K key) throws StoreAccessException {
+  public boolean containsKey(K key) {
     return false;
   }
 
@@ -106,7 +106,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public void clear() throws StoreAccessException {
+  public void clear() {
 
   }
 
@@ -149,24 +149,24 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
       }
 
       @Override
-      public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+      public Cache.Entry<K, ValueHolder<V>> next() {
         return null;
       }
     };
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
     return EmptyValueHolder.empty();
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) {
     return null;
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
     return null;
   }
 
@@ -176,19 +176,19 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) {
     Map<K, ValueHolder<V>> map = new HashMap<>(keys.size());
     for(K key : keys) {
-      map.put(key, EmptyValueHolder.<V>empty());
+      map.put(key, EmptyValueHolder.empty());
     }
     return map;
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) {
     Map<K, ValueHolder<V>> map = new HashMap<>(keys.size());
     for(K key : keys) {
-      map.put(key, EmptyValueHolder.<V>empty());
+      map.put(key, EmptyValueHolder.empty());
     }
     return map;
   }

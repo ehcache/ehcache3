@@ -17,7 +17,6 @@
 package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.serialization.TransientStateHolder;
@@ -28,7 +27,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -36,6 +34,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 
@@ -65,6 +64,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void loadMaps() throws CachePersistenceException {
     try {
+      //noinspection ConstantConditions
       for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
         try (FileInputStream fis = new FileInputStream(file);
              ObjectInputStream oin = new ObjectInputStream(fis)) {
@@ -96,7 +96,12 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   private String createFileName(Map.Entry<String, Tuple> entry) {return HOLDER_FILE_PREFIX + entry.getValue().index + "-" + safeIdentifier(entry.getKey(), false) + HOLDER_FILE_SUFFIX;}
 
   @Override
-  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
+  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name,
+                                                                                                     Class<K> keyClass,
+                                                                                                     Class<V> valueClass,
+                                                                                                     Predicate<Class<?>> isClassPermitted,
+                                                                                                     ClassLoader classLoader) {
+    // isClassPermitted and  classLoader are ignored because this state repository has already being read from file and cached in
     Tuple result = knownHolders.get(name);
     if (result == null) {
       StateHolder<K, V> holder = new TransientStateHolder<>();

@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.util;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
@@ -25,26 +24,13 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
+import java.util.function.Supplier;
+
 /**
  *
  * @author cdennis
  */
 public class Matchers {
-
-  public static <K> Matcher<Cache<? super K, ?>> hasKey(final K key) {
-    return new TypeSafeMatcher<Cache<? super K, ?>>() {
-
-      @Override
-      protected boolean matchesSafely(Cache<? super K, ?> item) {
-        return item.containsKey(key);
-      }
-
-      @Override
-      public void describeTo(Description description) {
-        description.appendText("cache containing key '").appendValue(key).appendText("'");
-      }
-    };
-  }
 
   public static <K, V> Matcher<Cache<? super K, ? super V>> hasEntry(final K key, final V value) {
     return new TypeSafeMatcher<Cache<? super K, ? super V>>() {
@@ -65,7 +51,7 @@ public class Matchers {
     return new TypeSafeMatcher<Store.ValueHolder<V>>() {
       @Override
       protected boolean matchesSafely(Store.ValueHolder<V> item) {
-        return item.value().equals(value);
+        return item.get().equals(value);
       }
 
       @Override
@@ -75,11 +61,11 @@ public class Matchers {
     };
   }
 
-  public static <V> Matcher<ValueSupplier<V>> holding(final V value) {
-    return new TypeSafeMatcher<ValueSupplier<V>>() {
+  public static <V> Matcher<Supplier<V>> holding(final V value) {
+    return new TypeSafeMatcher<Supplier<V>>() {
       @Override
-      protected boolean matchesSafely(ValueSupplier<V> item) {
-        return item.value().equals(value);
+      protected boolean matchesSafely(Supplier<V> item) {
+        return item.get().equals(value);
       }
 
       @Override

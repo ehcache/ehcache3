@@ -57,7 +57,23 @@
         <xs:annotation>
           <xs:documentation>
             Specifies the amount of time a cache read operation will wait for a response from a cluster
-            server before abandoning the cluster operation and returning a null.
+            server before abandoning the cluster operation.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="write-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the amount of time a cache write operation will wait for a response from a cluster
+            server before abandoning the cluster operation.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="connection-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the amount of time a cache will wait to connect to a cluster
+            server before abandoning the cluster operation.
           </xs:documentation>
         </xs:annotation>
       </xs:element>

@@ -19,19 +19,17 @@ package org.ehcache.docs;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
@@ -44,8 +42,10 @@ import org.junit.Test;
 import java.io.File;
 import java.io.Serializable;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
@@ -130,7 +130,7 @@ public class GettingStarted {
   }
 
   @Test
-  public void writeThroughCache() throws ClassNotFoundException {
+  public void writeThroughCache() {
     // tag::writeThroughCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
@@ -148,7 +148,7 @@ public class GettingStarted {
   }
 
   @Test
-  public void writeBehindCache() throws ClassNotFoundException {
+  public void writeBehindCache() {
     // tag::writeBehindCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
@@ -173,7 +173,7 @@ public class GettingStarted {
   }
 
   @Test
-  public void registerListenerAtRuntime() throws InterruptedException {
+  public void registerListenerAtRuntime() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.heap(10L)))
@@ -244,7 +244,7 @@ public class GettingStarted {
     // tag::expiry[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.heap(100)) // <1>
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(20, TimeUnit.SECONDS))) // <2>
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(20))) // <2>
         .build();
     // end::expiry[]
   }
@@ -354,7 +354,7 @@ public class GettingStarted {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
   }
 
-  public static class CustomExpiry implements Expiry<Long, String> {
+  public static class CustomExpiry implements ExpiryPolicy<Long, String> {
 
     @Override
     public Duration getExpiryForCreation(Long key, String value) {
@@ -362,12 +362,12 @@ public class GettingStarted {
     }
 
     @Override
-    public Duration getExpiryForAccess(Long key, ValueSupplier<? extends String> value) {
+    public Duration getExpiryForAccess(Long key, Supplier<? extends String> value) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public Duration getExpiryForUpdate(Long key, ValueSupplier<? extends String> oldValue, String newValue) {
+    public Duration getExpiryForUpdate(Long key, Supplier<? extends String> oldValue, String newValue) {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
   }

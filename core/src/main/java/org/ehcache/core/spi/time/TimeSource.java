@@ -22,6 +22,7 @@ package org.ehcache.core.spi.time;
  * The main purpose of this interface is to allow tests to control time arbitrarily (as opposed to using system time
  * and sleep()'ing to advance time.
  */
+@FunctionalInterface
 public interface TimeSource {
 
   /**

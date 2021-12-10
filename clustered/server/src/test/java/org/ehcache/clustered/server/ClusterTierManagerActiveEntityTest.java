@@ -29,13 +29,12 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.ehcache.clustered.server.store.InvalidMessage;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -47,7 +46,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -232,7 +230,6 @@ public class ClusterTierManagerActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
-    UUID client2Id = UUID.randomUUID();
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 
@@ -612,7 +609,7 @@ public class ClusterTierManagerActiveEntityTest {
           }, config.getConfig().getConfiguration(), DEFAULT_MAPPER, service -> {});
         }
         return (T) (this.storeManagerService);
-      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       }
 

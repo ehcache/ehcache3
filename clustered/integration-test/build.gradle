@@ -28,8 +28,8 @@ dependencies {
   testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
 
   testCompile project(':management')
-  testCompile "org.terracotta.management.dist:mnm-nms:$parent.managementVersion"
-  testCompile "org.terracotta.management.dist:mnm-nms-agent:$parent.managementVersion"
+  testCompile "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
+  testCompile "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
   testRuntime project(':clustered:clustered-dist')
   testRuntime project(':dist')
@@ -44,7 +44,7 @@ dependencies {
   }
   testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
-  serverLibs ("org.terracotta.management.dist:mnm-server:$parent.managementVersion") {
+  serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {
     exclude group:'org.terracotta.management.dist', module:'mnm-common'
   }
 }
@@ -64,17 +64,12 @@ task copyServerLibs(type: Copy) {
 test {
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
-  // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
-  environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
+    environment 'JAVA_OPTS', '--add-modules java.xml.bind'
   }
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
 }

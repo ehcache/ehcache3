@@ -15,24 +15,13 @@
  */
 
 plugins {
-    id 'com.github.jacobono.jaxb' version '1.3.5'
+  id 'org.unbroken-dome.xjc' version '1.1.3'
 }
 
 apply plugin: EhDeploy
 
 dependencies {
   compile project(':api'), project(':core'), project(':impl')
-
-  // Constrained to JAXB 2.1 due to JDK 1.6 compatibility requirements
-  jaxb 'com.sun.xml.bind:jaxb-xjc:2.1.17'
-  jaxb 'com.sun.xml.bind:jaxb-impl:2.1.17'
-  jaxb 'javax.xml:jaxb-api:2.1'
-}
-
-def generatedSources = "src/generated/java"
-
-sourceSets.main.java {
-  srcDir generatedSources
 }
 
 test {
@@ -41,18 +30,13 @@ test {
   }
 }
 
-jaxb {
-  xsdDir = "$name/src/main/resources"
-  episodesDir = "$name/build/xsd/episodes"
-  bindingsDir = "$name/build/xsd/bindings"
-  xjc {
-    destinationDir = generatedSources
-    generatePackage    = "org.ehcache.xml.model"
-  }
-
-  compileJava.dependsOn "xjc"
+xjcGenerate {
+  source = fileTree('src/main/resources') { include '*.xsd' }
+  targetPackage = 'org.ehcache.xml.model'
+  extension = true
 }
 
-clean {
-  delete generatedSources
+tasks.withType(JavaCompile) {
+  // We can't check for unchecked errors because of XJC that produces them
+  options.compilerArgs = ['-Werror', '-Xlint:deprecation']
 }

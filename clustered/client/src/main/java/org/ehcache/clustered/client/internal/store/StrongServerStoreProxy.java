@@ -15,20 +15,14 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
-import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ReconnectListener;
-import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ResponseListener;
 import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.AllInvalidationDone;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.HashInvalidationDone;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,7 +33,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 
-import static org.ehcache.clustered.client.internal.Timeouts.nanosStartingFromNow;
+import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 
 public class StrongServerStoreProxy implements ServerStoreProxy {
 
@@ -57,7 +51,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     delegate.addResponseListener(EhcacheEntityResponse.AllInvalidationDone.class, this::allInvalidationDoneResponseListener);
 
     entity.setReconnectListener(this::reconnectListener);
-    entity.setDisconnectionListener(this::disconnectionListener);
+    entity.addDisconnectionListener(this::disconnectionListener);
   }
 
   private void disconnectionListener() {
@@ -99,7 +93,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     }
   }
 
-  private <T> T performWaitingForHashInvalidation(long key, Callable<T> c, TimeoutDuration timeout) throws TimeoutException {
+  private <T> T performWaitingForHashInvalidation(long key, Callable<T> c, Duration timeout) throws TimeoutException {
     LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
 
     CountDownLatch latch = new CountDownLatch(1);
@@ -131,7 +125,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     }
   }
 
-  private <T> T performWaitingForAllInvalidation(Callable<T> c, TimeoutDuration timeout) throws TimeoutException {
+  private <T> T performWaitingForAllInvalidation(Callable<T> c, Duration timeout) throws TimeoutException {
     LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
 
     CountDownLatch newLatch = new CountDownLatch(1);
@@ -212,12 +206,12 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     performWaitingForHashInvalidation(key, () -> {
       delegate.append(key, payLoad);
       return null;
-    }, entity.getTimeouts().getMutativeOperationTimeout());
+    }, entity.getTimeouts().getWriteOperationTimeout());
   }
 
   @Override
   public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
-    return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getMutativeOperationTimeout());
+    return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getWriteOperationTimeout());
   }
 
   @Override
@@ -230,6 +224,6 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     performWaitingForAllInvalidation(() -> {
       delegate.clear();
       return null;
-    }, entity.getTimeouts().getMutativeOperationTimeout());
+    }, entity.getTimeouts().getWriteOperationTimeout());
   }
 }

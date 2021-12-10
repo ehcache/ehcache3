@@ -42,10 +42,10 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ServerInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.MapValue;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.EHCACHE_RESPONSE_TYPES_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESOLVE_REQUEST;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
+import static org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec.WHITELIST_PREDICATE;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class ResponseCodec {
@@ -237,7 +237,8 @@ public class ResponseCodec {
       }
       case MAP_VALUE: {
         decoder = MAP_VALUE_RESPONSE_STRUCT.decoder(buffer);
-        return EhcacheEntityResponse.mapValue(Util.unmarshall(decoder.byteBuffer(MAP_VALUE_FIELD)));
+        return EhcacheEntityResponse.mapValue(
+          Util.unmarshall(decoder.byteBuffer(MAP_VALUE_FIELD), WHITELIST_PREDICATE));
       }
       case PREPARE_FOR_DESTROY: {
         decoder = PREPARE_FOR_DESTROY_RESPONSE_STRUCT.decoder(buffer);

@@ -48,7 +48,7 @@ if (deployUrl.contains('nexus')) {
 project.nexusStaging {
   username = project.ext.deployUser
   password = project.ext.deployPwd
-  logger.warn("Nexus Staging: Using login ${username} and url ${serverUrl}")
+  logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
 }
 
 // Disable automatic promotion for added safety
@@ -59,60 +59,20 @@ ext {
 
   baseVersion = findProperty('overrideVersion') ?: '3.5.0-SNAPSHOT'
 
-  // Third parties
-  offheapVersion = '2.4.0'
-  statisticVersion = '1.4.3'
-  jcacheVersion = '1.0.0'
-  slf4jVersion = '1.7.25'
-  sizeofVersion = '0.3.0'
-  ehcache2Version = '2.10.3'
-
-  // Clustered
-  terracottaPlatformVersion = '5.4.0-pre3'
-  managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.4.0-pre6'
-  terracottaCoreVersion = '5.4.0-pre7'
-  offheapResourceVersion = terracottaPlatformVersion
-  entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.4.0-pre5'
-  entityTestLibVersion = terracottaPassthroughTestingVersion
-
-  // Tools
-  findbugsVersion = '3.0.1'
-
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
   isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
 }
 
 
-// Java 6 build setup
 assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
 ext {
   testJava = Jvm.current()
 }
 
 if (hasProperty('testVM')) {
-  switch (testVM) {
-    case '8':
-      if (JavaVersion.current().isJava8()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java8Home') : 'Set the poperty \'java8Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 8 installation'
-        testJava = Jvm.discovered(new File(java8Home), JavaVersion.VERSION_1_8)
-      }
-      break
-    case '9':
-      if (JavaVersion.current().isJava9()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java9Home'): 'Set the poperty \'java9Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 9 installation'
-        testJava = Jvm.discovered(new File(java9Home), JavaVersion.VERSION_1_9)
-      }
-      break
-    default:
-      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 8 or 9")
-  }
+  testJava = Utils.jvmForHome(new File(testVM))
+  println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
 subprojects {
@@ -150,8 +110,8 @@ subprojects {
   dependencies {
     compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
     testCompileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
-    testCompile 'junit:junit:4.12', 'org.assertj:assertj-core:3.8.0', 'org.hamcrest:hamcrest-library:1.3'
-    testCompile('org.mockito:mockito-core:2.10.0') {
+    testCompile "junit:junit:$junitVersion", "org.assertj:assertj-core:$assertjVersion", "org.hamcrest:hamcrest-library:$hamcrestVersion"
+    testCompile("org.mockito:mockito-core:$mockitoVersion") {
       exclude group:'org.hamcrest', module:'hamcrest-core'
     }
     testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
@@ -204,13 +164,13 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.9'
+    toolVersion = checkstyleVersion
   }
 
   findbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    findbugs.toolVersion = parent.findbugsVersion
+    toolVersion = findbugsVersion
   }
 
   findbugsMain {
@@ -222,7 +182,7 @@ subprojects {
   }
 
   jacoco {
-    toolVersion = '0.7.9'
+    toolVersion = jacocoVersion
   }
 
   jacocoTestReport {
@@ -254,7 +214,7 @@ subprojects {
 allprojects {
   tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint:unchecked']
+    options.compilerArgs += ['-Werror', '-Xlint:unchecked,deprecation']
   }
   tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'

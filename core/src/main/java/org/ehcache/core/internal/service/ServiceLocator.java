@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,7 +90,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return services.contains(serviceConfig.getServiceType());
   }
 
-  public void startAllServices() throws Exception {
+  public void startAllServices() {
     Deque<Service> started = new LinkedList<>();
     final Lock lock = runningLock.writeLock();
     lock.lock();
@@ -437,9 +436,9 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   private static Set<Class<? extends Service>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
-    Set<Class<? extends Service>> transitive = new HashSet<>();
 
     Set<Class<? extends Service>> dependencies = identifyImmediateDependenciesOf(clazz);
+    Set<Class<? extends Service>> transitive = new HashSet<>(dependencies.size() * 3); // 3 is my feeling of how many there should be per class at most
     transitive.addAll(dependencies);
 
     for (Class<? extends Service> klazz : dependencies) {

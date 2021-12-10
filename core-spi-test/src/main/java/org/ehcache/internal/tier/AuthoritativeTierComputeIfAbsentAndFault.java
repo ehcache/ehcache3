@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -81,10 +81,10 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
 
     try {
       assertThat(tier.get(key), is(nullValue()));
-      assertThat(tier.computeIfAbsentAndFault(key, k -> factory.createValue(1L)).value(), is(equalTo(value)));
+      assertThat(tier.computeIfAbsentAndFault(key, k -> factory.createValue(1L)).get(), is(equalTo(value)));
 
       fillTierOverCapacity(tier, factory);
-      assertThat(tier.get(key).value(), is(equalTo(value)));
+      assertThat(tier.get(key).get(), is(equalTo(value)));
 
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

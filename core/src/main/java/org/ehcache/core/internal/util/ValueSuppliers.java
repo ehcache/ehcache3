@@ -16,21 +16,22 @@
 
 package org.ehcache.core.internal.util;
 
-import org.ehcache.ValueSupplier;
-
 /**
- * Utility for creating basic {@link ValueSupplier} instances
+ * Utility for creating basic {@link org.ehcache.ValueSupplier} instances
+ *
+ * @deprecated Now using {@code Supplier} for {@link org.ehcache.expiry.ExpiryPolicy}
  */
-public class ValueSuppliers {
+@Deprecated
+public final class ValueSuppliers {
 
   /**
-   * Returns a basic {@link ValueSupplier} that serves the value passed in
+   * Returns a basic {@link org.ehcache.ValueSupplier} that serves the value passed in
    *
    * @param value the value to hold
    * @param <V> the value type
    * @return a value supplier with the given value
    */
-  public static <V> ValueSupplier<V> supplierOf(final V value) {
+  public static <V> org.ehcache.ValueSupplier<V> supplierOf(final V value) {
     return () -> value;
   }
 

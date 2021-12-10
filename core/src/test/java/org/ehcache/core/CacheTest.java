@@ -18,13 +18,11 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.StateTransitionException;
 import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -226,7 +224,7 @@ public abstract class CacheTest {
       }
       return new Store.ValueHolder<Object>() {
         @Override
-        public Object value() {
+        public Object get() {
           return existingValue.get();
         }
 
@@ -273,7 +271,7 @@ public abstract class CacheTest {
       }
       return new Store.ValueHolder<Object>() {
         @Override
-        public Object value() {
+        public Object get() {
           return toReturn;
         }
 
@@ -316,9 +314,9 @@ public abstract class CacheTest {
     InternalCache<Object, Object> ehcache = getCache(store);
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
-    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.<Object>is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.is(value));
   }
 
   @Test

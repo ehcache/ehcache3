@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -28,6 +27,7 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
+import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
@@ -35,31 +35,38 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
  * An instance of this class is created by the {@link ClusterTierManagerClientEntityService}.
  * The server-side partner is the {@code EhcacheActiveEntity}.
  */
-public class SimpleClusterTierManagerClientEntity implements InternalClusterTierManagerClientEntity {
+public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerClientEntity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierManagerClientEntity.class);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
 
-  private Timeouts timeouts = Timeouts.builder().build();
-
   public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
-  }
+    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
+      @Override
+      public void handleMessage(EhcacheEntityResponse messageFromServer) {
 
-  @Override
-  public void setTimeouts(Timeouts timeouts) {
-    this.timeouts = timeouts;
+      }
+
+      @Override
+      public byte[] createExtendedReconnectData() {
+        return new byte[0];
+      }
+
+      @Override
+      public void didDisconnectUnexpectedly() {
+        LOGGER.info("CacheManager got disconnected from server");
+      }
+    });
   }
 
   @Override
@@ -68,27 +75,26 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
   }
 
   @Override
-  public void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException {
-    invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
+  public void validate(ServerSideConfiguration config) throws ClusterException {
+    invokeInternal(messageFactory.validateStoreManager(config), false);
   }
 
   @Override
   public Set<String> prepareForDestroy() {
     try {
-      PrepareForDestroy response = (PrepareForDestroy) invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory
-        .prepareForDestroy(), true);
+      PrepareForDestroy response = (PrepareForDestroy) invokeInternal(messageFactory.prepareForDestroy(), true);
       return response.getStores();
-    } catch (ClusterException | TimeoutException e) {
+    } catch (ClusterException e) {
       // TODO handle this
     }
     return null;
   }
 
-  private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate)
-      throws ClusterException, TimeoutException {
+  private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message, boolean replicate)
+      throws ClusterException {
 
     try {
-      EhcacheEntityResponse response = waitFor(timeLimit, invokeAsync(message, replicate));
+      EhcacheEntityResponse response = waitFor(invokeAsync(message, replicate));
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
@@ -96,12 +102,6 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
       }
     } catch (EntityException | MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
-    } catch (TimeoutException e) {
-      String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
-      TimeoutException timeoutException = new TimeoutException(msg);
-      timeoutException.initCause(e);
-      LOGGER.info(msg, timeoutException);
-      throw timeoutException;
     }
   }
 
@@ -110,15 +110,22 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
     return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
   }
 
-  private static <T extends EntityResponse> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
-      throws EntityException, TimeoutException {
-    boolean interrupted = false;
-    long deadlineTimeout = System.nanoTime() + timeLimit.toNanos();
+  /**
+   * Will wait forever on {@code Future.get()}. In case of interruption, it will take note and resume waiting on get. The
+   * interruption flag is then set if needed before returning the get value (or if an exception occurred).
+   *
+   * @param future Future we want to get
+   * @param <T> type of the response
+   * @return the result of the get
+   * @throws EntityException exception that might be thrown by the future in case of error
+   */
+  private static <T extends EntityResponse> T waitFor(InvokeFuture<T> future)
+      throws EntityException {
+    boolean interrupted = Thread.interrupted();
     try {
       while (true) {
         try {
-          long timeRemaining = deadlineTimeout - System.nanoTime();
-          return future.getWithTimeout(timeRemaining, TimeUnit.NANOSECONDS);
+          return future.get();
         } catch (InterruptedException e) {
           interrupted = true;
         }

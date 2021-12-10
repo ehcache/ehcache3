@@ -170,7 +170,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    * {@inheritDoc}
    */
   @Override
-  public void destroy(String name) throws CachePersistenceException {
+  public void destroy(String name) {
     checkStarted();
 
     if(persistenceService == null) {
@@ -218,7 +218,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
     return stateRepository;
   }
 
-  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
+  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) {
     return new CachePersistenceException("Unknown space: " + identifier);
   }
 

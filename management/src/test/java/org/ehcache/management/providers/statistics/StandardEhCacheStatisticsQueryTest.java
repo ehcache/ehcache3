@@ -24,7 +24,6 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -163,7 +162,7 @@ public class StandardEhCacheStatisticsQueryTest {
 
     assertThat(counters.size(), Matchers.is(1));
 
-    Long counter = (Long) statisticsContext.getStatistic(statName);
+    Long counter = statisticsContext.<Long>getLatestSampleValue(statName).get();
 
     assertThat(counter, Matchers.is(expectedResult));
 

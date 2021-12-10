@@ -36,21 +36,24 @@ public class EntityConfigurationCodec {
 
   private static final String IDENTIFIER = "identifier";
 
-  private final StructBuilder tierManagerConfigurationBaseStruct = newStructBuilder()
-    .string(IDENTIFIER, 10);
-  private final StructBuilder clusteredStoreConfigurationBaseStruct = newStructBuilder()
-    .string(IDENTIFIER, 10)
-    .string(SERVER_STORE_NAME_FIELD, 20);
-
   private final ConfigCodec configCodec;
   private final Struct tierManagerConfigurationStruct;
   private final Struct clusteredStoreConfigurationStruct;
 
   public EntityConfigurationCodec(ConfigCodec configCodec) {
     this.configCodec = configCodec;
+
+    StructBuilder tierManagerConfigurationBaseStruct = newStructBuilder()
+      .string(IDENTIFIER, 10);
+
     tierManagerConfigurationStruct = configCodec.injectServerSideConfiguration(tierManagerConfigurationBaseStruct, 10)
       .getUpdatedBuilder()
       .build();
+
+    StructBuilder clusteredStoreConfigurationBaseStruct = newStructBuilder()
+      .string(IDENTIFIER, 10)
+      .string(SERVER_STORE_NAME_FIELD, 20);
+
     clusteredStoreConfigurationStruct = configCodec.injectServerStoreConfiguration(clusteredStoreConfigurationBaseStruct, 30)
       .getUpdatedBuilder()
       .build();

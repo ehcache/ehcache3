@@ -40,6 +40,7 @@ import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec.WHITELIST_PREDICATE;
 import static org.ehcache.clustered.common.internal.store.Util.marshall;
 import static org.ehcache.clustered.common.internal.store.Util.unmarshall;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.DATA;
@@ -103,7 +104,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .int32(MESSAGE_TRACKER_SEGMENT_FIELD, 30)
     .build();
 
-  private ResponseCodec responseCodec;
+  private final ResponseCodec responseCodec;
 
   public EhcacheSyncMessageCodec(ResponseCodec responseCodec) {
     this.responseCodec = responseCodec;
@@ -241,8 +242,8 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     if (structsDecoder != null) {
       while (structsDecoder.hasNext()) {
         StructDecoder<StructArrayDecoder<StructDecoder<Void>>> structDecoder = structsDecoder.next();
-        Object key = unmarshall(structDecoder.byteBuffer(KEY_FIELD));
-        Object value = unmarshall(structDecoder.byteBuffer(STATE_REPO_VALUE_FIELD));
+        Object key = unmarshall(structDecoder.byteBuffer(KEY_FIELD), WHITELIST_PREDICATE);
+        Object value = unmarshall(structDecoder.byteBuffer(STATE_REPO_VALUE_FIELD), WHITELIST_PREDICATE);
         mappings.put(key, value);
       }
     }

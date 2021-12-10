@@ -31,6 +31,7 @@ import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
@@ -38,6 +39,9 @@ import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
+import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.DiskResourceService;
@@ -45,8 +49,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
@@ -57,6 +60,7 @@ import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -108,7 +112,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private String id;
   private final Set<Service> services = new HashSet<>();
   private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<>();
-  private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
+  private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicy.NO_EXPIRY;
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
@@ -278,12 +282,12 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
     lifeCycledList.add(new LifeCycled() {
       @Override
-      public void init() throws Exception {
+      public void init() {
         storeProvider.initStore(store);
       }
 
       @Override
-      public void close() throws Exception {
+      public void close() {
         storeProvider.releaseStore(store);
       }
     });
@@ -293,6 +297,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     }
     eventDispatcher.setStoreEventSource(store.getStoreEventSource());
 
+    ResilienceStrategy<K, V> resilienceStrategy;
+    if (cacheLoaderWriter == null) {
+      resilienceStrategy = new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(store));
+    } else {
+      resilienceStrategy = new RobustLoaderWriterResilienceStrategy<K, V>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
+    }
+
     if (persistent) {
       DiskResourceService diskResourceService = serviceLocator
           .getService(DiskResourceService.class);
@@ -300,7 +311,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<>(cacheConfig, store, diskResourceService, cacheLoaderWriter, eventDispatcher, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<>(cacheConfig, store, resilienceStrategy, diskResourceService, cacheLoaderWriter, eventDispatcher, id);
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
@@ -309,9 +320,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     } else {
       final InternalCache<K, V> cache;
       if (cacheLoaderWriter == null) {
-        cache = new Ehcache<>(cacheConfig, store, eventDispatcher, getLoggerFor(Ehcache.class));
+        cache = new Ehcache<>(cacheConfig, store, resilienceStrategy, eventDispatcher, getLoggerFor(Ehcache.class));
       } else {
-        cache = new EhcacheWithLoaderWriter<>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, getLoggerFor(EhcacheWithLoaderWriter.class));
+        cache = new EhcacheWithLoaderWriter<>(cacheConfig, store, resilienceStrategy, cacheLoaderWriter, eventDispatcher, getLoggerFor(EhcacheWithLoaderWriter.class));
       }
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
@@ -356,7 +367,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
           lifeCycledList.add(new LifeCycled() {
 
             @Override
-            public void init() throws Exception {
+            public void init() {
 
             }
 
@@ -445,12 +456,30 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds {@link Expiry} configuration to the returned builder.
+   * Adds {@link org.ehcache.expiry.Expiry} configuration to the returned builder.
+   *
+   * @param expiry the expiry to use
+   * @return a new builer with the added expiry
+   *
+   * @deprecated Use {@link #withExpiry(ExpiryPolicy)} instead
+   */
+  @Deprecated
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(org.ehcache.expiry.Expiry<? super K, ? super V> expiry) {
+    if (expiry == null) {
+      throw new NullPointerException("Null expiry");
+    }
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
+    otherBuilder.expiry = ExpiryUtils.convertToExpiryPolicy(expiry);
+    return otherBuilder;
+  }
+
+  /**
+   * Adds {@link ExpiryPolicy} configuration to the returned builder.
    *
    * @param expiry the expiry to use
    * @return a new builer with the added expiry
    */
-  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<? super K, ? super V> expiry) {
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(ExpiryPolicy<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }

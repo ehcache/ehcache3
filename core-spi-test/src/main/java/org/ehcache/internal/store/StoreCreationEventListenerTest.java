@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
@@ -28,9 +28,6 @@ import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;

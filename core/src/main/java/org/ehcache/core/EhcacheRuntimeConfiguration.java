@@ -20,12 +20,13 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.internal.events.EventListenerWrapper;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   private final Class<V> valueType;
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final ClassLoader classLoader;
-  private final Expiry<? super K, ? super V> expiry;
+  private final ExpiryPolicy<? super K, ? super V> expiry;
   private volatile ResourcePools resourcePools;
 
   private final List<CacheConfigurationChangeListener> cacheConfigurationListenerList
@@ -57,7 +58,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     this.valueType = config.getValueType();
     this.evictionAdvisor = config.getEvictionAdvisor();
     this.classLoader = config.getClassLoader();
-    this.expiry = config.getExpiry();
+    this.expiry = config.getExpiryPolicy();
     this.resourcePools = config.getResourcePools();
   }
 
@@ -98,8 +99,14 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     return this.classLoader;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
-  public Expiry<? super K, ? super V> getExpiry() {
+  public org.ehcache.expiry.Expiry<? super K, ? super V> getExpiry() {
+    return ExpiryUtils.convertToExpiry(expiry);
+  }
+
+  @Override
+  public ExpiryPolicy<? super K, ? super V> getExpiryPolicy() {
     return expiry;
   }
 
@@ -177,12 +184,20 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
       serviceConfigurationsToStringBuilder.append(" None");
     }
 
+    String expiryPolicy;
+
+    if (ExpiryPolicy.NO_EXPIRY == expiry) {
+      expiryPolicy = "NoExpiryPolicy";
+    } else {
+      expiryPolicy = expiry.toString();
+    }
+
     return
         "keyType: " + keyType.getName() + "\n" +
         "valueType: " + valueType.getName() + "\n" +
         "serviceConfigurations:" + serviceConfigurationsToStringBuilder.toString().replace("\n", "\n    ") + "\n" +
         "evictionAdvisor: " + ((evictionAdvisor != null) ? evictionAdvisor.getClass().getName() : "None") + "\n" +
-        "expiry: " + ((expiry != null) ? expiry.getClass().getSimpleName() : "") + "\n" +
+        "expiry: " + expiryPolicy + "\n" +
         "resourcePools: " + "\n    " + ((resourcePools instanceof HumanReadable) ? ((HumanReadable)resourcePools).readableString() : "").replace("\n", "\n    ");
   }
 }

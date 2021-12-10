@@ -45,14 +45,14 @@ public abstract class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
     OffHeapValueHolder<?> that = (OffHeapValueHolder<?>)other;
 
     if (!super.equals(that)) return false;
-    return value().equals(that.value());
+    return get().equals(that.get());
 
   }
 
   @Override
   public int hashCode() {
     int result = 1;
-    result = 31 * result + value().hashCode();
+    result = 31 * result + get().hashCode();
     result = 31 * result + super.hashCode();
     return result;
   }

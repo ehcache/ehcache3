@@ -36,9 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -84,7 +81,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = ehCache.getJsr107Cache();
+    this.jsr107Cache = ehCache.createJsr107Cache();
   }
 
   @Override
@@ -138,19 +135,24 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       jsr107Cache.loadAll(keys, replaceExistingValues, this::loadAllFunction);
     } catch (Exception e) {
       final CacheLoaderException cle;
-      if (e instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e;
-      } else if (e.getCause() instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e.getCause();
-      } else {
-        cle = new CacheLoaderException(e);
-      }
-
+      cle = getCacheLoaderException(e);
       completionListener.onException(cle);
       return;
     }
 
     completionListener.onCompletion();
+  }
+
+  private CacheLoaderException getCacheLoaderException(Exception e) {
+    CacheLoaderException cle;
+    if (e instanceof CacheLoaderException) {
+      cle = (CacheLoaderException) e;
+    } else if (e.getCause() instanceof CacheLoaderException) {
+      cle = (CacheLoaderException) e.getCause();
+    } else {
+      cle = new CacheLoaderException(e);
+    }
+    return cle;
   }
 
   private Map<K, V> loadAllFunction(Iterable<? extends K> keysIterable) {
@@ -162,15 +164,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       }
       return resultMap;
     } catch (Exception e) {
-      final CacheLoaderException cle;
-      if (e instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e;
-      } else if (e.getCause() instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e.getCause();
-      } else {
-        cle = new CacheLoaderException(e);
-      }
-
+      CacheLoaderException cle = getCacheLoaderException(e);
       throw cle;
     }
   }
@@ -451,7 +445,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   }
 
   private boolean syncedIsClose() {
-    if (((UserManagedCache)ehCache).getStatus() == Status.UNINITIALIZED && !hypotheticallyClosed.get()) {
+    if (ehCache.getStatus() == Status.UNINITIALIZED && !hypotheticallyClosed.get()) {
       close();
     }
     return hypotheticallyClosed.get();
@@ -622,8 +616,8 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
   }
 
-  private static enum MutableEntryOperation {
-    NONE, ACCESS, CREATE, LOAD, REMOVE, UPDATE;
+  private enum MutableEntryOperation {
+    NONE, ACCESS, CREATE, LOAD, REMOVE, UPDATE
   }
 
   private static final Object UNDEFINED = new Object();

@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -58,7 +58,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     } catch (NullPointerException e) {
       // Expected
     }
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -71,7 +71,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("key"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -87,7 +87,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("key");
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).containsKeyFailure(eq("key"), any(StoreAccessException.class));
   }
 
   /**
@@ -101,7 +101,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertTrue(ehcache.containsKey("keyA"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -117,7 +117,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("keyA");
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).containsKeyFailure(eq("keyA"), any(StoreAccessException.class));
   }
 
   /**
@@ -131,7 +131,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("missingKey"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -147,7 +147,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("missingKey");
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).containsKeyFailure(eq("missingKey"), any(StoreAccessException.class));
   }
 
   private Map<String, String> getTestStoreEntries() {
@@ -167,10 +167,9 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-      new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicContainsKeyTest"));
+      new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicContainsKeyTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

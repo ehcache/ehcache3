@@ -132,34 +132,34 @@ public class DefaultCacheLoaderWriterProviderTest {
     };
 
     @Override
-    public Object load(final Object key) throws Exception {
+    public Object load(final Object key) {
       return object;
     }
 
     @Override
-    public Map<Object, Object> loadAll(final Iterable<?> keys) throws Exception {
+    public Map<Object, Object> loadAll(final Iterable<?> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     private static Object lastWritten;
 
     @Override
-    public void write(final Object key, final Object value) throws Exception {
+    public void write(final Object key, final Object value) {
       lastWritten = value;
     }
 
     @Override
-    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) throws Exception {
+    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void delete(final Object key) throws Exception {
+    public void delete(final Object key) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void deleteAll(final Iterable<?> keys) throws Exception {
+    public void deleteAll(final Iterable<?> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
   }
@@ -176,12 +176,12 @@ public class DefaultCacheLoaderWriterProviderTest {
     private static Object lastWritten;
 
     @Override
-    public Object load(final Object key) throws Exception {
+    public Object load(final Object key) {
       return object;
     }
 
     @Override
-    public void write(final Object key, final Object value) throws Exception {
+    public void write(final Object key, final Object value) {
       lastWritten = value;
     }
 

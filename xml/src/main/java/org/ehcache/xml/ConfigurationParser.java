@@ -18,7 +18,6 @@ package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
-import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
@@ -75,6 +74,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -378,6 +378,18 @@ class ConfigurationParser {
           }
 
           @Override
+          public String resilienceStrategy() {
+            String resilienceClass = null;
+            for (BaseCacheType source : sources) {
+              resilienceClass = source.getResilience();
+              if (resilienceClass != null) {
+                return resilienceClass;
+              }
+            }
+            return resilienceClass;
+          }
+
+          @Override
           public ListenersConfig listenersConfig() {
             ListenersType base = null;
             ArrayList<ListenersType> additionals = new ArrayList<>();
@@ -538,6 +550,11 @@ class ConfigurationParser {
           public String loaderWriter() {
             final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
             return loaderWriter != null ? loaderWriter.getClazz() : null;
+          }
+
+          @Override
+          public String resilienceStrategy() {
+            return cacheTemplate.getResilience();
           }
 
           @Override
@@ -706,6 +723,8 @@ class ConfigurationParser {
 
     String loaderWriter();
 
+    String resilienceStrategy();
+
     ListenersConfig listenersConfig();
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
@@ -759,7 +778,7 @@ class ConfigurationParser {
 
     long value();
 
-    TimeUnit unit();
+    TemporalUnit unit();
 
   }
 
@@ -804,6 +823,9 @@ class ConfigurationParser {
     MemoryUnit getUnit();
   }
 
+  interface ResilienceStrategy {
+
+  }
   private static class XmlListenersConfig implements ListenersConfig {
 
     final int dispatcherConcurrency;
@@ -913,7 +935,7 @@ class ConfigurationParser {
     }
 
     @Override
-    public TimeUnit unit() {
+    public TemporalUnit unit() {
       final TimeType time;
       if(isTTI()) {
         time = type.getTti();
@@ -921,7 +943,7 @@ class ConfigurationParser {
         time = type.getTtl();
       }
       if(time != null) {
-        return XmlModel.convertToJavaTimeUnit(time.getUnit());
+        return XmlModel.convertToJavaTemporalUnit(time.getUnit());
       }
       return null;
     }
@@ -1027,7 +1049,7 @@ class ConfigurationParser {
 
     @Override
     public TimeUnit maxDelayUnit() {
-      return XmlModel.convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
+      return XmlModel.convertToJUCTimeUnit(this.batching.getMaxWriteDelay().getUnit());
     }
 
   }

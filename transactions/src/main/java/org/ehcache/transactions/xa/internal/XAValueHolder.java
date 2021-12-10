@@ -90,7 +90,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
   }
 
   @Override
-  public V value() {
+  public V get() {
     return value;
   }
 
@@ -114,9 +114,9 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
     return value.equals(that.value);
   }
 
-  private Object writeReplace() throws ObjectStreamException {
+  private Object writeReplace() {
     return new SerializedXAValueHolder<>(getId(), creationTime(NATIVE_TIME_UNIT), lastAccessTime(NATIVE_TIME_UNIT), expirationTime(NATIVE_TIME_UNIT),
-      hits(), value(), valueSerialized);
+      hits(), get(), valueSerialized);
   }
 
   /**
@@ -143,7 +143,7 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
       this.valueSerialized = valueSerialized;
     }
 
-    private Object readResolve() throws ObjectStreamException {
+    private Object readResolve() {
       return new XAValueHolder<>(id, creationTime, lastAccessTime, expirationTime, hits, value, valueSerialized);
     }
   }

@@ -17,12 +17,12 @@
 package org.ehcache.core.spi.store;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -452,7 +452,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
-   * @throws StoreAccessException
+   * @throws StoreAccessException when a failure occurs when accessing the store
    */
   Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException;
 
@@ -461,7 +461,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param <V> the value type
    */
-  interface ValueHolder<V> extends ValueSupplier<V> {
+  interface ValueHolder<V> extends Supplier<V> {
 
     /**
      * Constant value indicating no expiration - an eternal mapping.
@@ -608,7 +608,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * The expiration policy instance for this store
      */
-    Expiry<? super K, ? super V> getExpiry();
+    ExpiryPolicy<? super K, ? super V> getExpiry();
 
     /**
      * The resource pools this store can make use of

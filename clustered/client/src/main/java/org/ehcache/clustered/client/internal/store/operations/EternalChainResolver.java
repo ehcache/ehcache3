@@ -18,8 +18,6 @@ package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 
-import static java.lang.Math.max;
-
 /**
  * A specialized chain resolver for eternal caches.
  *

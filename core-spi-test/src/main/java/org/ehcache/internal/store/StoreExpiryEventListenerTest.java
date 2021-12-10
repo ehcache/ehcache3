@@ -22,17 +22,14 @@ import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
 
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.time.Duration;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.Matchers.*;
@@ -54,15 +51,15 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   final K k = factory.createKey(1L);
-  final V v = factory.createValue(1l);
-  final V v2 = factory.createValue(2l);
+  final V v = factory.createValue(1L);
+  final V v2 = factory.createValue(2L);
 
   protected Store<K, V> kvStore;
 
   @Before
   public void setUp() {
     timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.tTL(Duration.ofMillis(1)), timeSource);
   }
 
   @After
@@ -140,7 +137,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.compute(k, (mappedKey, mappedValue) -> v2).value(), is(v2));
+    assertThat(kvStore.compute(k, (mappedKey, mappedValue) -> v2).get(), is(v2));
     verifyListenerInteractions(listener);
   }
 
@@ -150,7 +147,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
 
-    assertThat(kvStore.computeIfAbsent(k, mappedKey -> v2).value(), is(v2));
+    assertThat(kvStore.computeIfAbsent(k, mappedKey -> v2).get(), is(v2));
     verifyListenerInteractions(listener);
   }
 

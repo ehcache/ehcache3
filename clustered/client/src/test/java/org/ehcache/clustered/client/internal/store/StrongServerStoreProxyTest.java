@@ -23,6 +23,7 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;

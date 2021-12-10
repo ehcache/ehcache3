@@ -22,7 +22,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
@@ -274,7 +274,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     @Override
     public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), serviceConfigs);
+      OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
       Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
       MappedOperationStatistic<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome, TierOperationOutcomes.GetOutcome> get
@@ -303,12 +303,10 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       releaseStore((Store<?, ?>) resource);
     }
 
-    private void flushToLowerTier(OffHeapStore<Object, ?> resource) {
+    private void flushToLowerTier(OffHeapStore<Object, ?> offheapStore) {
       StoreAccessException lastFailure = null;
       int failureCount = 0;
-      OffHeapStore<Object, ?> offheapStore = resource;
-      Set<Object> keys = offheapStore.backingMap().keySet();
-      for (Object key : keys) {
+      for (Object key : offheapStore.backingMap().keySet()) {
         try {
           offheapStore.invalidate(key);
         } catch (StoreAccessException cae) {

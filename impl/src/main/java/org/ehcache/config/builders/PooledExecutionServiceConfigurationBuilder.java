@@ -99,9 +99,9 @@ public class PooledExecutionServiceConfigurationBuilder implements Builder<Poole
 
 
   private static class Pool {
-    private String alias;
-    private int minSize;
-    private int maxSize;
+    private final String alias;
+    private final int minSize;
+    private final int maxSize;
 
     Pool(String alias, int minSize, int maxSize) {
       this.alias = alias;

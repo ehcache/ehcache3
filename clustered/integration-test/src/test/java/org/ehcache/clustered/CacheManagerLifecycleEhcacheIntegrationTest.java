@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.InternalClusterTierManagerClientEntity;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
@@ -79,14 +79,14 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
 
   @Test
   public void testAutoCreatedCacheManager() throws Exception {
-    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate().build())
             .build();
-    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     manager.init();
     try {
-      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
+      assertEntityExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     } finally {
       manager.close();
     }
@@ -98,10 +98,10 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
     PersistentCacheManager manager = (PersistentCacheManager) newCacheManager(new XmlConfiguration(substitutedXml));
-    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     manager.init();
     try {
-      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
+      assertEntityExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     } finally {
       manager.close();
     }
@@ -109,7 +109,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
 
   @Test
   public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
-    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate().build());
@@ -120,7 +120,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
       return manager;
     };
 
-    assertEntityNotExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    assertEntityNotExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
@@ -131,7 +131,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
       for (Future<PersistentCacheManager> result : results) {
         result.get().close();
       }
-      assertEntityExists(InternalClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+      assertEntityExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
     } finally {
       executor.shutdown();
     }

@@ -20,8 +20,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
 import com.tc.classloader.CommonComponent;
 
-import java.util.UUID;
-
 @CommonComponent
 public abstract class EhcacheSyncMessage extends EhcacheEntityMessage {
 

@@ -40,10 +40,6 @@ test {
   }
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}
-
 project.signing {
   required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
   sign project.configurations.getByName('archives')

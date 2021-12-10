@@ -17,6 +17,8 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
@@ -57,7 +59,7 @@ public class ClusterTierManagerClientEntityFactory {
   private final Timeouts entityTimeouts;
 
   public ClusterTierManagerClientEntityFactory(Connection connection) {
-    this(connection, Timeouts.builder().build());
+    this(connection, TimeoutsBuilder.timeouts().build());
   }
 
   public ClusterTierManagerClientEntityFactory(Connection connection, Timeouts entityTimeouts) {
@@ -96,58 +98,25 @@ public class ClusterTierManagerClientEntityFactory {
    * @throws ClusterTierManagerCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised
    * @throws EntityBusyException if another client holding operational leadership prevented this client
    *        from becoming leader and creating the {@code EhcacheActiveEntity} instance
-   * @throws TimeoutException if the creation and configuration of the {@code EhcacheActiveEntity} exceed the
-   *        lifecycle operation timeout
    */
   public void create(final String identifier, final ServerSideConfiguration config)
-    throws EntityAlreadyExistsException, ClusterTierManagerCreationException, EntityBusyException, TimeoutException {
+    throws EntityAlreadyExistsException, ClusterTierManagerCreationException, EntityBusyException {
+
     Hold existingMaintenance = maintenanceHolds.get(identifier);
-    Hold localMaintenance = null;
-    if (existingMaintenance == null) {
-      localMaintenance = createAccessLockFor(identifier).tryWriteLock();
-    }
-    if (existingMaintenance == null && localMaintenance == null) {
-      throw new EntityBusyException("Unable to create cluster tier manager for id "
-                                    + identifier + ": another client owns the maintenance lease");
-    }
 
-    boolean finished = false;
+    try(Hold localMaintenance = (existingMaintenance == null ? createAccessLockFor(identifier).tryWriteLock() : null)) {
+      if (localMaintenance == null && existingMaintenance == null) {
+        throw new EntityBusyException("Unable to obtain maintenance lease for " + identifier);
+      }
 
-    try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
       try {
-        while (true) {
-          ref.create(new ClusterTierManagerConfiguration(identifier, config));
-          try {
-            InternalClusterTierManagerClientEntity entity = ref.fetchEntity(null);
-            try {
-              entity.setTimeouts(entityTimeouts);
-              finished = true;
-              return;
-            } finally {
-              if  (finished) {
-                entity.close();
-              } else {
-                silentlyClose(entity, identifier);
-              }
-            }
-          } catch (EntityNotFoundException e) {
-            //continue;
-          }
-        }
+        ref.create(new ClusterTierManagerConfiguration(identifier, config));
       } catch (EntityConfigurationException e) {
         throw new ClusterTierManagerCreationException("Unable to configure cluster tier manager for id " + identifier, e);
       } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
         LOGGER.error("Unable to create cluster tier manager for id {}", identifier, e);
         throw new AssertionError(e);
-      }
-    } finally {
-      if (localMaintenance != null) {
-        if (finished) {
-          localMaintenance.unlock();
-        } else {
-          silentlyUnlock(localMaintenance, identifier);
-        }
       }
     }
   }
@@ -171,7 +140,7 @@ public class ClusterTierManagerClientEntityFactory {
 
     Hold fetchHold = createAccessLockFor(identifier).readLock();
 
-    InternalClusterTierManagerClientEntity entity;
+    ClusterTierManagerClientEntity entity;
     try {
       entity = getEntityRef(identifier).fetchEntity(null);
     } catch (EntityVersionMismatchException e) {
@@ -180,7 +149,6 @@ public class ClusterTierManagerClientEntityFactory {
       throw new AssertionError(e);
     }
 
-    entity.setTimeouts(entityTimeouts);
     boolean validated = false;
     try {
       entity.validate(config);
@@ -198,28 +166,20 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public void destroy(final String identifier) throws ClusterTierManagerNotFoundException, EntityBusyException {
+  public void destroy(final String identifier) throws EntityBusyException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
-    Hold localMaintenance = null;
 
-    if (existingMaintenance == null) {
-      localMaintenance = createAccessLockFor(identifier).tryWriteLock();
-    }
+    try(Hold localMaintenance = (existingMaintenance == null ? createAccessLockFor(identifier).tryWriteLock() : null)) {
+      if (localMaintenance == null && existingMaintenance == null) {
+        throw new EntityBusyException("Unable to obtain maintenance lease for " + identifier);
+      }
 
-    if (existingMaintenance == null && localMaintenance == null) {
-      throw new EntityBusyException("Destroy operation failed; " + identifier + " cluster tier's maintenance lease held");
-    }
-
-    boolean finished = false;
-
-    try {
-      EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(identifier);
       destroyAllClusterTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
           throw new EntityBusyException("Destroy operation failed; " + identifier + " cluster tier in use by other clients");
         }
-        finished = true;
       } catch (EntityNotProvidedException e) {
         LOGGER.error("Unable to delete cluster tier manager for id {}", identifier, e);
         throw new AssertionError(e);
@@ -229,19 +189,11 @@ public class ClusterTierManagerClientEntityFactory {
         LOGGER.error("Unable to destroy entity - server says it is permanent", e);
         throw new AssertionError(e);
       }
-    } finally {
-      if (localMaintenance != null) {
-        if (finished) {
-          localMaintenance.unlock();
-        } else {
-          silentlyUnlock(localMaintenance, identifier);
-        }
-      }
     }
   }
 
-  private void destroyAllClusterTiers(EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref, String identifier) throws ClusterTierManagerNotFoundException {
-    InternalClusterTierManagerClientEntity entity;
+  private void destroyAllClusterTiers(EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref, String identifier) {
+    ClusterTierManagerClientEntity entity;
     try {
       entity = ref.fetchEntity(null);
     } catch (EntityNotFoundException e) {
@@ -284,9 +236,9 @@ public class ClusterTierManagerClientEntityFactory {
     return new VoltronReadWriteLock(connection, "ClusterTierManagerClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(String identifier) {
+  private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(String identifier) {
     try {
-      return connection.getEntityRef(InternalClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
+      return connection.getEntityRef(ClusterTierManagerClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to get cluster tier manager for id {}", identifier, e);
       throw new AssertionError(e);
@@ -326,16 +278,32 @@ public class ClusterTierManagerClientEntityFactory {
         }
       }
     } else {
-      try {
-        InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
-        entity.setStoreIdentifier(storeIdentifier);
-        entity.setTimeouts(entityTimeouts);
-        return entity;
-      } catch (EntityNotFoundException e) {
-        throw e;
-      } catch (EntityException e) {
-        throw new AssertionError(e);
-      }
+      return fetchClusterTierClientEntity(storeIdentifier, entityRef);
+    }
+  }
+
+  public ClusterTierClientEntity getClusterTierClientEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException {
+    EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef;
+    try {
+      entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, entityName(clusterTierManagerIdentifier, storeIdentifier));
+    } catch (EntityNotProvidedException e) {
+      throw new AssertionError(e);
+    }
+
+    return fetchClusterTierClientEntity(storeIdentifier, entityRef);
+  }
+
+  private ClusterTierClientEntity fetchClusterTierClientEntity(String storeIdentifier,
+                                  EntityRef<InternalClusterTierClientEntity, ClusterTierEntityConfiguration, Void> entityRef) throws EntityNotFoundException {
+    try {
+      InternalClusterTierClientEntity entity = entityRef.fetchEntity(null);
+      entity.setStoreIdentifier(storeIdentifier);
+      entity.setTimeouts(entityTimeouts);
+      return entity;
+    } catch (EntityNotFoundException e) {
+      throw e;
+    } catch (EntityException e) {
+      throw new AssertionError(e);
     }
   }
 

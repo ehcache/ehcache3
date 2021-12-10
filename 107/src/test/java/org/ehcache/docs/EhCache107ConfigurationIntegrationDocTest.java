@@ -22,7 +22,6 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.config.DefaultConfiguration;
-import org.ehcache.core.internal.util.ValueSuppliers;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.ehcache.jsr107.EhcacheCachingProvider;
@@ -39,7 +38,6 @@ import com.pany.domain.Product;
 
 import java.io.File;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -129,12 +127,12 @@ public class EhCache107ConfigurationIntegrationDocTest {
     long nanoTime = System.nanoTime();
     LOGGER.info("Seeding random with {}", nanoTime);
     Random random = new Random(nanoTime);
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
-                equalTo(org.ehcache.expiry.Duration.INFINITE));
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForAccess(random.nextLong(),
-                  ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong()))), nullValue());
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForUpdate(random.nextLong(),
-                  ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong())), Long.toOctalString(random.nextLong())), nullValue());
+    assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
+                equalTo(org.ehcache.expiry.ExpiryPolicy.INFINITE));
+    assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForAccess(random.nextLong(),
+      () -> Long.toOctalString(random.nextLong())), nullValue());
+    assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForUpdate(random.nextLong(),
+      () -> Long.toOctalString(random.nextLong()), Long.toOctalString(random.nextLong())), nullValue());
   }
 
   @Test
@@ -201,7 +199,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     CacheRuntimeConfiguration<Long, Client> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, Client>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
     Client client1 = new Client("client1", 1);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1).getLength(); // <8>
+    foosEhcacheConfig.getExpiryPolicy().getExpiryForCreation(42L, client1).toMinutes(); // <8>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 
@@ -214,8 +212,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
     }
     // end::jsr107SupplementWithTemplatesExample[]
     assertThat(ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
-    assertThat(foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1),
-        is(new org.ehcache.expiry.Duration(2, TimeUnit.MINUTES)));
+    assertThat(foosEhcacheConfig.getExpiryPolicy().getExpiryForCreation(42L, client1),
+        is(java.time.Duration.ofMinutes(2)));
   }
 
   @Test

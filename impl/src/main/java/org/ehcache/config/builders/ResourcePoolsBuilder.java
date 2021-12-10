@@ -46,7 +46,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   private final Map<ResourceType<?>, ResourcePool> resourcePools;
 
   private ResourcePoolsBuilder() {
-    this(Collections.<ResourceType<?>, ResourcePool>emptyMap());
+    this(Collections.emptyMap());
   }
 
   private ResourcePoolsBuilder(Map<ResourceType<?>, ResourcePool> resourcePools) {

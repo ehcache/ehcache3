@@ -64,7 +64,6 @@ public class Validate {
      * @param values  the optional values for the formatted exception message
      * @return the validated object (never {@code null} for method chaining)
      * @throws NullPointerException if the object is {@code null}
-     * @see #notNull(Object)
      */
     public static <T> T notNull(final T object, final String message, final Object... values) {
         if (object == null) {

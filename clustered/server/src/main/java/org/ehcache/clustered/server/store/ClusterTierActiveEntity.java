@@ -34,7 +34,6 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAck;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAllAck;
-import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAndAppendMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBasedServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
@@ -71,7 +70,6 @@ import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.InvokeContext;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
-import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
@@ -83,14 +81,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.stream.Collectors.toMap;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
@@ -115,9 +118,16 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterTierActiveEntity.class);
   static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
-  private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 4 * 1024 * 1024;
+  private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 2 * 1024 * 1024;
+  static final String SYNC_DATA_GETS_PROP = "ehcache.sync.data.gets.threshold";
+  private static final int DEFAULT_SYNC_DATA_GETS_THRESHOLD = 16 * 1024;
+
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.server.chain.compaction.threshold";
-  static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 8;
+  private static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 8;
+
+  private static final int MAX_SYNC_CONCURRENCY = 1;
+  private static final Executor SYNC_GETS_EXECUTOR = new ThreadPoolExecutor(0, MAX_SYNC_CONCURRENCY,
+    20, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
   private final String storeIdentifier;
   private final ServerStoreConfiguration configuration;
@@ -136,6 +146,10 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private volatile List<InvalidationTuple> inflightInvalidations;
   private final Set<ClientDescriptor> connectedClients = ConcurrentHashMap.newKeySet();
   private final int chainCompactionLimit;
+
+  private final long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
+  private final int dataGetsThreshold = Integer.getInteger(SYNC_DATA_GETS_PROP, DEFAULT_SYNC_DATA_GETS_THRESHOLD);
+  private volatile Integer dataMapInitialCapacity = null;
 
   @SuppressWarnings("unchecked")
   public ClusterTierActiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper) throws ConfigurationException {
@@ -589,38 +603,166 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     if (concurrencyKey == DEFAULT_KEY) {
       stateService.getStateRepositoryManager().syncMessageFor(storeIdentifier).forEach(syncChannel::synchronizeToPassive);
     } else {
+      boolean interrupted = false;
+      BlockingQueue<DataSyncMessageHandler> messageQ = new SynchronousQueue<>();
       int segmentId = concurrencyKey - DEFAULT_KEY - 1;
-      Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
-      AtomicLong size = new AtomicLong(0);
-      ServerSideServerStore store = stateService.getStore(storeIdentifier);
-      final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
-      store.getSegmentKeySets().get(segmentId)
-        .forEach(key -> {
-          final Chain chain;
-          try {
-            chain = store.get(key);
-          } catch (TimeoutException e) {
-            throw new AssertionError("Server side store is not expected to throw timeout exception");
-          }
-          for (Element element : chain) {
-            size.addAndGet(element.getPayload().remaining());
-          }
-          mappingsToSend.get().put(key, chain);
-          if (size.get() > dataSizeThreshold) {
-            syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
-            mappingsToSend.set(new HashMap<>());
-            size.set(0);
-          }
-        });
-      if (!mappingsToSend.get().isEmpty()) {
-        syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(mappingsToSend.get()));
-        mappingsToSend.set(new HashMap<>());
-        size.set(0);
+      Thread thisThread = Thread.currentThread();
+      CompletableFuture<Void> asyncGet = CompletableFuture.runAsync(
+        () -> doGetsForSync(segmentId, messageQ, syncChannel, thisThread), SYNC_GETS_EXECUTOR);
+      try {
+        try {
+          while (messageQ.take().execute()) ;
+        } catch (InterruptedException e) {
+          interrupted = true;
+        }
+        if (interrupted) {
+          // here we may have been interrupted due to a genuine exception on the async get thread
+          // let us try and not loose that exception as it takes precedence over the interrupt
+          asyncGet.get(10, TimeUnit.SECONDS);
+          // we received a genuine interrupt
+          throw new InterruptedException();
+        } else {
+          asyncGet.get();
+        }
+      } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        throw new RuntimeException(e);
       }
     }
     sendMessageTrackerReplication(syncChannel, concurrencyKey - 1);
 
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
+  }
+
+  private void doGetsForSync(int segmentId, BlockingQueue<DataSyncMessageHandler> messageQ,
+                             PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, Thread waitingThread) {
+    int numKeyGets = 0;
+    long dataSize = 0;
+    try {
+      ServerSideServerStore store = stateService.getStore(storeIdentifier);
+      Set<Long> keys = store.getSegmentKeySets().get(segmentId);
+      int remainingKeys = keys.size();
+      Map<Long, Chain> mappingsToSend = new HashMap<>(computeInitialMapCapacity(remainingKeys));
+      boolean capacityAdjusted = false;
+      for (Long key : keys) {
+        final Chain chain;
+        try {
+          chain = store.get(key);
+          numKeyGets++;
+        } catch (TimeoutException e) {
+          throw new AssertionError("Server side store is not expected to throw timeout exception");
+        }
+        for (Element element : chain) {
+          dataSize += element.getPayload().remaining();
+        }
+        mappingsToSend.put(key, chain);
+        if (dataSize > dataSizeThreshold || numKeyGets >= dataGetsThreshold) {
+          putMessage(messageQ, syncChannel, mappingsToSend);
+          if (!capacityAdjusted && segmentId == 0) {
+            capacityAdjusted = true;
+            adjustInitialCapacity(numKeyGets);
+          }
+          remainingKeys -= numKeyGets;
+          mappingsToSend = new HashMap<>(computeMapCapacity(remainingKeys, numKeyGets));
+          dataSize = 0;
+          numKeyGets = 0;
+        }
+      }
+      if (!mappingsToSend.isEmpty()) {
+        putMessage(messageQ, syncChannel, mappingsToSend);
+      }
+      // put the last message indicator into the queue
+      putMessage(messageQ, null, null);
+    } catch (Throwable e) {
+      // ensure waiting peer thread is interrupted, if we run into trouble
+      waitingThread.interrupt();
+      throw e;
+    }
+  }
+
+  private void putMessage(BlockingQueue<DataSyncMessageHandler> messageQ,
+                          PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel,
+                          Map<Long, Chain> mappingsToSend) {
+    try {
+      if (syncChannel != null) {
+        final EhcacheDataSyncMessage msg = new EhcacheDataSyncMessage(mappingsToSend);
+        messageQ.put(() -> {
+          syncChannel.synchronizeToPassive(msg);
+          return true;
+        });
+      } else {
+        // we are done
+        messageQ.put(() -> false);
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Compute map capacity based on {@code remainingSize} and {@code expectedGets}. Both varies depending on the size of
+   * the chains and number of keys in the map.
+   * <p>
+   * NOTE: if expected gets dips below 32, keep at 32 as it indicates a large segment with possibly smaller number of keys
+   * which means the next iteration may show more keys in the map.
+   *
+   * @param remainingSize is the number of keys left in the segment yet to be send
+   * @param expectedGets is the max expected number of keys that could be put in the map before the map gets full
+   * @return required capacity for the map.
+   */
+  private int computeMapCapacity(int remainingSize, int expectedGets) {
+    if (remainingSize < 16) {
+      return 16;
+    } else if (expectedGets < 32) {
+      return 32;
+    } else if (remainingSize < expectedGets) {
+      return (int) ((float) remainingSize / 0.75f + 1.0f);
+    } else {
+      return (int) ((float) expectedGets / 0.75f + 1.0f);
+    }
+  }
+
+  /**
+   * Adjust {@link this#dataMapInitialCapacity} based on what we learned about the cache during iteration of segment 0.
+   *
+   * NOTE: The required capacity calculation and the initial capacity adjustment assumes some sort of symmetry across
+   * multiple segments, but it is possible that in a given segment, some keys has chain with LARGE data and some keys
+   * has small chain with smaller data sizes. But on a larger sweep that should even out. Even if it does not even out,
+   * this should perform better as the initial size is reset back to a minimum of 32 and not 16 when a cache is large
+   * and when a cache is very small it starts with initial size of 16 as the {@link this#computeInitialMapCapacity(int)}
+   * will take the total number of keys in the segment into account.
+   *
+   * @param actualKeyGets the actual number of keys we got when the map got full
+   */
+  private void adjustInitialCapacity(int actualKeyGets) {
+    // even when there are larger data chains with less keys..let us keep the lower bound at 32.
+    dataMapInitialCapacity =  (actualKeyGets < 32) ? 32 : (int) ((float) actualKeyGets / 0.75f + 1.0f);
+  }
+
+  /**
+   * Starts with an initial size of configured {@link this#dataGetsThreshold} or adjusted initial size, unless the
+   * segment of the cache is smaller than the initial expected size.
+   *
+   * @param totalKeys is the total number of keys in this segment
+   */
+  private int computeInitialMapCapacity(int totalKeys) {
+    if (dataMapInitialCapacity == null) {
+      dataMapInitialCapacity = (int) ((float) dataGetsThreshold / 0.75f + 1.0f);
+    }
+    if (totalKeys < 16) {
+      return 16;
+    } else if (totalKeys < dataMapInitialCapacity) {
+      return (int) ((float) totalKeys / 0.75f + 1.0f);
+    } else {
+      return dataMapInitialCapacity;
+    }
+  }
+
+  /**
+   * Executes message sending asynchronously to preparation of message.
+   */
+  @FunctionalInterface
+  private interface DataSyncMessageHandler {
+    boolean execute();
   }
 
   private void sendMessageTrackerReplication(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {

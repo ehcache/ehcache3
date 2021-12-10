@@ -17,14 +17,12 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.event.EventType;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -33,7 +31,6 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
@@ -41,12 +38,9 @@ import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.junit.Test;
 
 import java.io.Serializable;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
@@ -93,7 +87,7 @@ public class OnHeapStoreEvictionTest {
         semaphore.acquireUninterruptibly();
         return new OnHeapValueHolder<String>(0, 0, false) {
           @Override
-          public String value() {
+          public String get() {
             return key;
           }
         };
@@ -112,7 +106,7 @@ public class OnHeapStoreEvictionTest {
     TestTimeSource timeSource = new TestTimeSource();
     StoreConfigurationImpl<String, String> configuration = new StoreConfigurationImpl<>(
       String.class, String.class, noAdvice(),
-      getClass().getClassLoader(), Expirations.noExpiration(), heap(1).build(), 1, null, null);
+      getClass().getClassLoader(), ExpiryPolicyBuilder.noExpiration(), heap(1).build(), 1, null, null);
     TestStoreEventDispatcher<String, String> eventDispatcher = new TestStoreEventDispatcher<>();
     final String firstKey = "daFirst";
     eventDispatcher.addEventListener(event -> {
@@ -154,8 +148,8 @@ public class OnHeapStoreEvictionTest {
       }
 
       @Override
-      public Expiry<? super K, ? super V> getExpiry() {
-        return Expirations.noExpiration();
+      public ExpiryPolicy<? super K, ? super V> getExpiry() {
+        return ExpiryPolicyBuilder.noExpiration();
       }
 
       @Override
@@ -186,12 +180,12 @@ public class OnHeapStoreEvictionTest {
 
     @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
     @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
+      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.nullStoreEventDispatcher());
     }
 
     private boolean enforceCapacityWasCalled = false;

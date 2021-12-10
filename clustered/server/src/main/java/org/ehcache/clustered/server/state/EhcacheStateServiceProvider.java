@@ -47,7 +47,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceProvider.class);
 
-  private ConcurrentMap<String, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
   private OffHeapResources offHeapResourcesProvider;
 
   @Override
@@ -112,7 +112,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   }
 
   @Override
-  public void prepareForSynchronization() throws ServiceProviderCleanupException {
+  public void prepareForSynchronization() {
     serviceMap.clear();
   }
 

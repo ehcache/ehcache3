@@ -24,7 +24,7 @@ import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -39,7 +39,6 @@ import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.AbstractMap;
@@ -98,7 +97,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.get(1).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.get(1).get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberAuthoritativeTier, times(0)).getAndFault(any(Number.class));
   }
@@ -116,7 +115,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.get(1).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.get(1).get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
     verify(numberAuthoritativeTier, times(1)).getAndFault(any(Number.class));
@@ -166,7 +165,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.putIfAbsent(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
+    assertThat(tieredStore.putIfAbsent(1, "one").get(), Matchers.<CharSequence>equalTo("un"));
 
     verify(numberCachingTier, times(1)).invalidate(1);
     verify(numberAuthoritativeTier, times(1)).putIfAbsent(1, "one");
@@ -212,7 +211,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.replace(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
+    assertThat(tieredStore.replace(1, "one").get(), Matchers.<CharSequence>equalTo("un"));
 
     verify(numberCachingTier, times(1)).invalidate(eq(1));
     verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("one"));
@@ -275,7 +274,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.compute(1, (number, charSequence) -> "one").value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.compute(1, (number, charSequence) -> "one").get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class));
@@ -292,7 +291,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.compute(1, (number, charSequence) -> "one", () -> true).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.compute(1, (number, charSequence) -> "one", () -> true).get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(Supplier.class));
@@ -314,7 +313,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.computeIfAbsent(1, number -> "one").value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.computeIfAbsent(1, number -> "one").get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
     verify(numberAuthoritativeTier, times(1)).computeIfAbsentAndFault(eq(1), any(Function.class));
@@ -328,7 +327,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.computeIfAbsent(1, number -> "one").value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.computeIfAbsent(1, number -> "one").get(), Matchers.<CharSequence>equalTo("one"));
 
     verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
     verify(numberAuthoritativeTier, times(0)).computeIfAbsentAndFault(eq(1), any(Function.class));
@@ -362,9 +361,9 @@ public class TieredStoreTest {
       .asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three"))));
 
     assertThat(result.size(), is(3));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    assertThat(result.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(result.get(3).get(), Matchers.<CharSequence>equalTo("three"));
 
     verify(numberCachingTier, times(1)).invalidate(1);
     verify(numberCachingTier, times(1)).invalidate(2);
@@ -401,9 +400,9 @@ public class TieredStoreTest {
       .asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three"))), () -> true);
 
     assertThat(result.size(), is(3));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    assertThat(result.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(result.get(3).get(), Matchers.<CharSequence>equalTo("three"));
 
     verify(numberCachingTier, times(1)).invalidate(1);
     verify(numberCachingTier, times(1)).invalidate(2);
@@ -439,9 +438,9 @@ public class TieredStoreTest {
     Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), numbers -> Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three")));
 
     assertThat(result.size(), is(3));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    assertThat(result.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(result.get(3).get(), Matchers.<CharSequence>equalTo("three"));
 
     verify(numberCachingTier, times(1)).invalidate(1);
     verify(numberCachingTier, times(1)).invalidate(2);
@@ -576,7 +575,7 @@ public class TieredStoreTest {
     return new Store.ValueHolder<CharSequence>() {
 
       @Override
-      public CharSequence value() {
+      public CharSequence get() {
         return v;
       }
 

@@ -22,11 +22,10 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.Matchers.hasEntry;
@@ -119,9 +118,10 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
 
   protected InternalCache<Number, CharSequence> getCache(Store<Number, CharSequence> store, CacheLoaderWriter cacheLoaderWriter) {
     CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
-    when(cacheConfig.getExpiry()).thenReturn(mock(Expiry.class));
+    when(cacheConfig.getExpiryPolicy()).thenReturn(mock(ExpiryPolicy.class));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    return new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBulkMethodsTest"));
+    ResilienceStrategy<Number, CharSequence> resilienceStrategy = mock(ResilienceStrategy.class);
+    return new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBulkMethodsTest"));
   }
 
 }

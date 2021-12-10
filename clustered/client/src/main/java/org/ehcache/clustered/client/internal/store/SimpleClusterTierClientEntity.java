@@ -16,8 +16,8 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
-import org.ehcache.clustered.client.internal.Timeouts;
+import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -42,19 +42,19 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.LongSupplier;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.ehcache.clustered.client.config.TimeoutDuration.of;
-import static org.ehcache.clustered.client.internal.Timeouts.nanosStartingFromNow;
+import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 
 /**
  * ClusterTierClientEntity
@@ -70,17 +70,15 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
+  private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
 
   private ReconnectListener reconnectListener = reconnectMessage -> {
     // No op
   };
-  private DisconnectionListener disconnectionListener = () -> {
-    // No op
-  };
-  private Timeouts timeouts = Timeouts.builder().build();
+
+  private Timeouts timeouts = TimeoutsBuilder.timeouts().build();
   private String storeIdentifier;
   private volatile boolean connected = true;
-
 
   public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
@@ -103,6 +101,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
       @Override
       public void didDisconnectUnexpectedly() {
+        LOGGER.info("Cluster tier for cache {} disconnected", storeIdentifier);
         fireDisconnectionEvent();
       }
     });
@@ -115,7 +114,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   void fireDisconnectionEvent() {
     connected = false;
-    disconnectionListener.onDisconnection();
+    disconnectionListeners.forEach(DisconnectionListener::onDisconnection);
   }
 
   private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
@@ -133,9 +132,9 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   @Override
   public void close() {
-    reconnectListener = null;
-    disconnectionListener = null;
     endpoint.close();
+    reconnectListener = null;
+    disconnectionListeners.clear();
   }
 
   @Override
@@ -149,8 +148,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setDisconnectionListener(DisconnectionListener disconnectionListener) {
-    this.disconnectionListener = disconnectionListener;
+  public void addDisconnectionListener(DisconnectionListener disconnectionListener) {
+    this.disconnectionListeners.add(disconnectionListener);
   }
 
   @Override
@@ -171,7 +170,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
     try {
-      invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
+      invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getConnectionTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
@@ -182,24 +181,20 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     this.storeIdentifier = storeIdentifier;
   }
 
-  void setConnected(boolean connected) {
-    this.connected = connected;
-  }
-
   @Override
   public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException {
     return invokeAndWaitForRetired(message, track);
   }
 
   @Override
-  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws ClusterException, TimeoutException {
+  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws TimeoutException {
     invokeInternal(endpoint.beginInvoke().ackSent(), getTimeoutDuration(message), message, track);
   }
 
   @Override
   public void invokeAndWaitForReceive(EhcacheOperationMessage message, boolean track)
-    throws ClusterException, TimeoutException {
-    invokeInternal(endpoint.beginInvoke().ackReceived(), getTimeoutDuration(message), message, track);
+          throws ClusterException, TimeoutException  {
+    invokeInternalAndWait(endpoint.beginInvoke().ackReceived(), message, track);
   }
 
   @Override
@@ -219,11 +214,11 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     return invokeInternalAndWait(invocationBuilder, getTimeoutDuration(message), message, track);
   }
 
-  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean track)
+  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeLimit, EhcacheEntityMessage message, boolean track)
       throws ClusterException, TimeoutException {
     try {
       LongSupplier nanosRemaining = nanosStartingFromNow(timeLimit);
-      InvokeFuture<EhcacheEntityResponse> future = invokeInternal(invocationBuilder, of(nanosRemaining.getAsLong(), NANOSECONDS), message, track);
+      InvokeFuture<EhcacheEntityResponse> future = invokeInternal(invocationBuilder, Duration.ofNanos(nanosRemaining.getAsLong()), message, track);
       EhcacheEntityResponse response = waitFor(nanosRemaining.getAsLong(), future);
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
@@ -241,7 +236,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private InvokeFuture<EhcacheEntityResponse> invokeInternal(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, TimeoutDuration timeout, EhcacheEntityMessage message, boolean track) throws TimeoutException {
+  private InvokeFuture<EhcacheEntityResponse> invokeInternal(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeout, EhcacheEntityMessage message, boolean track) throws TimeoutException {
     boolean interrupted = Thread.interrupted();
     try {
       LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
@@ -266,11 +261,11 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private TimeoutDuration getTimeoutDuration(EhcacheOperationMessage message) {
+  private Duration getTimeoutDuration(EhcacheOperationMessage message) {
     if (GET_STORE_OPS.contains(message.getMessageType())) {
       return timeouts.getReadOperationTimeout();
     } else {
-      return timeouts.getMutativeOperationTimeout();
+      return timeouts.getWriteOperationTimeout();
     }
   }
 

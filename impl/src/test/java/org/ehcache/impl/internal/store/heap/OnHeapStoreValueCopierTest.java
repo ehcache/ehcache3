@@ -17,9 +17,9 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -34,8 +34,6 @@ import org.junit.runners.Parameterized;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.util.Collections.singleton;
@@ -81,7 +79,7 @@ public class OnHeapStoreValueCopierTest {
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Long.class);
     when(configuration.getValueType()).thenReturn(Value.class);
-    when(configuration.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(configuration.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     @SuppressWarnings("unchecked")
     Store.Configuration<Long, Value> config = configuration;
 
@@ -112,42 +110,42 @@ public class OnHeapStoreValueCopierTest {
 
     Store.ValueHolder<Value> firstStoreValue = store.get(KEY);
     Store.ValueHolder<Value> secondStoreValue = store.get(KEY);
-    compareValues(VALUE, firstStoreValue.value());
-    compareValues(VALUE, secondStoreValue.value());
-    compareReadValues(firstStoreValue.value(), secondStoreValue.value());
+    compareValues(VALUE, firstStoreValue.get());
+    compareValues(VALUE, secondStoreValue.get());
+    compareReadValues(firstStoreValue.get(), secondStoreValue.get());
   }
 
   @Test
   public void testCompute() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE);
     store.compute(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.value());
+      compareReadValues(value, firstValue.get());
       return value;
     });
 
-    compareValues(VALUE, firstValue.value());
+    compareValues(VALUE, firstValue.get());
   }
 
   @Test
   public void testComputeWithoutReplaceEqual() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE, NOT_REPLACE_EQUAL);
     store.compute(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.value());
+      compareReadValues(value, firstValue.get());
       return value;
     }, NOT_REPLACE_EQUAL);
 
-    compareValues(VALUE, firstValue.value());
+    compareValues(VALUE, firstValue.get());
   }
 
   @Test
   public void testComputeWithReplaceEqual() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.compute(KEY, (aLong, value) -> VALUE, REPLACE_EQUAL);
     store.compute(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.value());
+      compareReadValues(value, firstValue.get());
       return value;
     }, REPLACE_EQUAL);
 
-    compareValues(VALUE, firstValue.value());
+    compareValues(VALUE, firstValue.get());
   }
 
   @Test
@@ -157,38 +155,38 @@ public class OnHeapStoreValueCopierTest {
       fail("There should have been a mapping");
       return null;
     });
-    compareValues(VALUE, computedValue.value());
-    compareReadValues(computedValue.value(), secondComputedValue.value());
+    compareValues(VALUE, computedValue.get());
+    compareReadValues(computedValue.get(), secondComputedValue.get());
   }
 
   @Test
   public void testBulkCompute() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet());
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).value(), entries.iterator().next().getValue());
+      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
       return entries;
     });
-    compareValues(VALUE, results.get(KEY).value());
+    compareValues(VALUE, results.get(KEY).get());
   }
 
   @Test
   public void testBulkComputeWithoutReplaceEqual() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet(), NOT_REPLACE_EQUAL);
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).value(), entries.iterator().next().getValue());
+      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
       return entries;
     }, NOT_REPLACE_EQUAL);
-    compareValues(VALUE, results.get(KEY).value());
+    compareValues(VALUE, results.get(KEY).get());
   }
 
   @Test
   public void testBulkComputeWithReplaceEqual() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet(), REPLACE_EQUAL);
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).value(), entries.iterator().next().getValue());
+      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
       return entries;
     }, REPLACE_EQUAL);
-    compareValues(VALUE, results.get(KEY).value());
+    compareValues(VALUE, results.get(KEY).get());
   }
 
   @Test
@@ -198,8 +196,8 @@ public class OnHeapStoreValueCopierTest {
       fail("There should have been a mapping!");
       return null;
     });
-    compareValues(VALUE, results.get(KEY).value());
-    compareReadValues(results.get(KEY).value(), secondResults.get(KEY).value());
+    compareValues(VALUE, results.get(KEY).get());
+    compareReadValues(results.get(KEY).get(), secondResults.get(KEY).get());
   }
 
   @Test
@@ -209,7 +207,7 @@ public class OnHeapStoreValueCopierTest {
     assertThat(iterator.hasNext(), is(true));
     while (iterator.hasNext()) {
       Cache.Entry<Long, Store.ValueHolder<Value>> entry = iterator.next();
-      compareValues(entry.getValue().value(), VALUE);
+      compareValues(entry.getValue().get(), VALUE);
     }
   }
 

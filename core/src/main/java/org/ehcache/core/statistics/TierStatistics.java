@@ -16,6 +16,8 @@
 
 package org.ehcache.core.statistics;
 
+import org.terracotta.statistics.ValueStatistic;
+
 import java.util.Map;
 
 /**
@@ -28,10 +30,10 @@ public interface TierStatistics {
    *
    * @return a map of statistics per name
    */
-  Map<String, TypedValueStatistic> getKnownStatistics();
+  Map<String, ValueStatistic<?>> getKnownStatistics();
 
   /**
-   * Reset the values for this tier. However, note that {@code mapping, maxMappings, allocatedMemory, occupiedMemory}
+   * Reset the values for this tier. However, note that {@code mapping, allocatedMemory, occupiedMemory}
    * won't be reset since it doesn't make sense.
    * <p>
    * <b>Implementation note:</b> Calling clear doesn't really clear the data. It freezes the actual values and compensate
@@ -87,13 +89,6 @@ public interface TierStatistics {
    * @return number of entries
    */
   long getMappings();
-
-  /**
-   * Maximum number of entries that was contained in this tier
-   *
-   * @return number of entries
-   */
-  long getMaxMappings();
 
   /**
    * How many bytes are currently allocated (occupied or not) for this tier

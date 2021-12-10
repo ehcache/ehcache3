@@ -52,7 +52,7 @@ class Eh107CacheManager implements CacheManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(Eh107CacheManager.class);
 
-  private static MBeanServer MBEAN_SERVER = ManagementFactory.getPlatformMBeanServer();
+  private static final MBeanServer MBEAN_SERVER = ManagementFactory.getPlatformMBeanServer();
 
   private final Object cachesLock = new Object();
   private final ConcurrentMap<String, Eh107Cache<?, ?>> caches = new ConcurrentHashMap<>();
@@ -119,7 +119,7 @@ class Eh107CacheManager implements CacheManager {
     }
     Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);
     configurationMerger.setUpManagementAndStats(cache, config);
-    Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<>(cache.getRuntimeConfiguration().getExpiry());
+    Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<>(cache.getRuntimeConfiguration().getExpiryPolicy());
     CacheResources<K, V> resources = new CacheResources<>(alias, wrapCacheLoaderWriter(cacheLoaderWriter), expiry);
     return new Eh107Cache<>(alias, config, resources, cache, this);
   }
@@ -162,6 +162,7 @@ class Eh107CacheManager implements CacheManager {
     synchronized (cachesLock) {
 
       if (config instanceof Eh107Configuration.Eh107ConfigurationWrapper) {
+        @SuppressWarnings("unchecked")
         Eh107Configuration.Eh107ConfigurationWrapper<K, V> configurationWrapper = (Eh107Configuration.Eh107ConfigurationWrapper<K, V>)config;
         CacheConfiguration<K, V> unwrap = configurationWrapper.getCacheConfiguration();
         final org.ehcache.Cache<K, V> ehcache;
@@ -286,18 +287,7 @@ class Eh107CacheManager implements CacheManager {
       throw new NullPointerException();
     }
 
-    Eh107Cache<K, V> cache = safeCacheRetrieval(cacheName);
-
-    if (cache == null) {
-      return null;
-    }
-
-    if (cache.getConfiguration(Configuration.class).getKeyType() != Object.class
-        || cache.getConfiguration(Configuration.class).getValueType() != Object.class) {
-      throw new IllegalArgumentException("Cache [" + cacheName
-          + "] specifies key/value types. Use getCache(String, Class, Class)");
-    }
-    return cache;
+    return safeCacheRetrieval(cacheName);
   }
 
   @SuppressWarnings("unchecked")
@@ -311,6 +301,7 @@ class Eh107CacheManager implements CacheManager {
 
   @Override
   public Iterable<String> getCacheNames() {
+    checkClosed();
     refreshAllCaches();
     return Collections.unmodifiableList(new ArrayList<>(caches.keySet()));
   }

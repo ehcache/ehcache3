@@ -17,22 +17,18 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  compile("org.terracotta:offheap-resource:$parent.offheapResourceVersion") {
+  compile project(':clustered:common'), "org.slf4j:slf4j-api:$slf4jVersion"
+  compile("org.terracotta:offheap-resource:$terracottaPlatformVersion") {
     transitive = false
   }
-  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  compile group: 'org.slf4j', name: 'slf4j-api', version: parent.slf4jVersion
-  compile("org.terracotta.management:monitoring-service-api:$parent.managementVersion") {
+  compile group: 'org.terracotta', name: 'offheap-store', version: offheapVersion
+  compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
+  compile("org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion") {
     transitive = false
   }
-  compile"org.terracotta.management.dist:mnm-common:$parent.managementVersion"
-  compile("org.terracotta:client-message-tracker:$parent.terracottaPlatformVersion")
-  provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
-  provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
-  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
+  compile"org.terracotta.management.dist:mnm-common:$terracottaPlatformVersion"
+  compile("org.terracotta:client-message-tracker:$terracottaPlatformVersion")
+  provided "org.terracotta:entity-server-api:$terracottaApisVersion"
+  provided "org.terracotta:standard-cluster-services:$terracottaApisVersion"
+  provided "org.terracotta:runnel:$terracottaPlatformVersion"
 }

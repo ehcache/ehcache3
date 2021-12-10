@@ -35,14 +35,7 @@ public class LifeCycleMessageCodec {
 
   private static final String CONFIG_PRESENT_FIELD = "configPresent";
 
-  private final StructBuilder VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
-    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .bool(CONFIG_PRESENT_FIELD, 30);
   private static final int CONFIGURE_MESSAGE_NEXT_INDEX = 40;
-
-  private final StructBuilder VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
-    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .string(SERVER_STORE_NAME_FIELD, 30);
   private static final int VALIDATE_STORE_NEXT_INDEX = 40;
 
   private final Struct PREPARE_FOR_DESTROY_STRUCT = newStructBuilder()
@@ -58,11 +51,20 @@ public class LifeCycleMessageCodec {
   public LifeCycleMessageCodec(ConfigCodec configCodec) {
     this.messageCodecUtils = new MessageCodecUtils();
     this.configCodec = configCodec;
+
+    StructBuilder validateMessageStructBuilderPrefix = newStructBuilder()
+      .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+      .bool(CONFIG_PRESENT_FIELD, 30);
+
     validateMessageStruct = this.configCodec.injectServerSideConfiguration(
-      VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
+      validateMessageStructBuilderPrefix, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
+
+    StructBuilder validateStoreMessageStructBuilderPrefix = newStructBuilder()
+      .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+      .string(SERVER_STORE_NAME_FIELD, 30);
 
     validateStoreMessageStruct = this.configCodec.injectServerStoreConfiguration(
-      VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, VALIDATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
+      validateStoreMessageStructBuilderPrefix, VALIDATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
   }
 
   public byte[] encode(LifecycleMessage message) {
@@ -115,8 +117,9 @@ public class LifeCycleMessageCodec {
         return decodeValidateServerStoreMessage(messageBuffer);
       case PREPARE_FOR_DESTROY:
         return decodePrepareForDestroyMessage();
+      default:
+        throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
     }
-    throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
   }
 
   private LifecycleMessage.PrepareForDestroy decodePrepareForDestroyMessage() {

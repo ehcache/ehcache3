@@ -38,8 +38,8 @@ public class ChainBuilder {
 
   //TODO: optimize this & make this mutable
   public ChainBuilder add(final ByteBuffer payload) {
-    List<ByteBuffer> newList = new ArrayList<>();
-    newList.addAll(this.buffers);
+    List<ByteBuffer> newList = new ArrayList<>(buffers.size() + 1);
+    newList.addAll(buffers);
     newList.add(payload);
     return new ChainBuilder(newList);
   }

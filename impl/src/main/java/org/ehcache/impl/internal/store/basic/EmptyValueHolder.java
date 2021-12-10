@@ -34,7 +34,7 @@ public class EmptyValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return null;
   }
 

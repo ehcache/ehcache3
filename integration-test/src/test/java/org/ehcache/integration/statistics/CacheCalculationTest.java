@@ -110,6 +110,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     changesOf(1, 0, 0, 0);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void getAll() {
     expect(cache.getAll(asSet(1))).containsExactly(MapEntry.entry(1, null));

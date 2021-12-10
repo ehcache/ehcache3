@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-buildscript {
-  repositories {
-    jcenter()
-  }
-
-  dependencies {
-    classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.2'
-  }
+plugins {
+  id 'org.asciidoctor.convert' version '1.5.7'
+  id 'org.kordamp.gradle.livereload' version '0.2.1'
 }
-
-apply plugin: 'org.asciidoctor.convert'
 
 configurations.asciidoctor.dependencies.matching({it.group == 'org.asciidoctor' && it.name == 'asciidoctorj-groovy-dsl'}).all {
   exclude group:'org.asciidoctor', module:'asciidoctorj'
@@ -47,7 +40,7 @@ task copyImages(type: Copy) {
 asciidoctor.dependsOn copyCSS, copyImages
 
 asciidoctor {
-  separateOutputDirs = false;
+  separateOutputDirs = false
   attributes 'skip-front-matter': 'true'
 
   resources {
@@ -57,3 +50,8 @@ asciidoctor {
     }
   }
 }
+
+liveReload {
+  docRoot asciidoctor.outputDir.canonicalPath
+}
+

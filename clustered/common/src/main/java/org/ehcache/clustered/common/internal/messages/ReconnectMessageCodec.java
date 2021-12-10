@@ -24,7 +24,6 @@ import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
@@ -55,12 +54,12 @@ public class ReconnectMessageCodec {
 
     Set<Long> hashes;
     if (arrayDecoder != null) {
-      hashes = new HashSet<Long>(arrayDecoder.length());
+      hashes = new HashSet<>(arrayDecoder.length());
       for (int i = 0; i < arrayDecoder.length(); i++) {
         hashes.add(arrayDecoder.value());
       }
     } else {
-      hashes = new HashSet<Long>(0);
+      hashes = new HashSet<>(0);
     }
     ClusterTierReconnectMessage message = new ClusterTierReconnectMessage(hashes);
 

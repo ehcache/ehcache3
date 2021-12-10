@@ -19,10 +19,10 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,8 +30,6 @@ import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -149,7 +147,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
+    verify(this.resilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -180,7 +178,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -209,11 +207,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -241,11 +239,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -300,20 +298,18 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 

@@ -127,7 +127,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
           nmsAgentEntity = nmsAgentFactory.retrieve();
         } catch (EntityNotFoundException e) {
           // should never occur because entity is permanent
-          throw (AssertionError) new AssertionError("Entity " + NmsAgentEntity.class.getSimpleName() + " not found").initCause(e.getCause());
+          throw new AssertionError("Entity " + NmsAgentEntity.class.getSimpleName() + " not found", e.getCause());
         }
         nmsAgentService = new NmsAgentService(nmsAgentEntity);
         nmsAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);

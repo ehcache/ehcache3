@@ -23,12 +23,12 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
@@ -117,8 +117,8 @@ public class OffHeapDiskStoreProviderTest {
        }
 
        @Override
-       public Expiry<? super Long, ? super String> getExpiry() {
-         return Expirations.noExpiration();
+       public ExpiryPolicy<? super Long, ? super String> getExpiry() {
+         return ExpiryPolicyBuilder.noExpiration();
        }
 
        @Override

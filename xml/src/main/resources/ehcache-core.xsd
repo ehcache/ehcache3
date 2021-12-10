@@ -260,6 +260,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="resilience" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Configures the resilience strategy used when the cache's underlying storage fails.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:element name="listeners" type="ehcache:listeners-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
@@ -413,7 +420,7 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
-            org.ehcache.expiry.Expiry and has a public default no argument constructor.
+            org.ehcache.expiry.ExpiryPolicy and has a public default no argument constructor.
           </xs:documentation>
         </xs:annotation>
       </xs:element>

@@ -33,8 +33,10 @@ import org.terracotta.management.entity.nms.client.DefaultNmsService;
 import org.terracotta.management.entity.nms.client.NmsEntity;
 import org.terracotta.management.entity.nms.client.NmsEntityFactory;
 import org.terracotta.management.entity.nms.client.NmsService;
+import org.terracotta.management.model.cluster.AbstractManageableNode;
 import org.terracotta.management.model.cluster.Client;
 import org.terracotta.management.model.cluster.ClientIdentifier;
+import org.terracotta.management.model.cluster.ServerEntity;
 import org.terracotta.management.model.cluster.ServerEntityIdentifier;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.message.Message;
@@ -52,6 +54,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
@@ -62,6 +65,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public abstract class AbstractClusteringManagementTest extends ClusteredTests {
@@ -100,13 +104,6 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     nmsService = new DefaultNmsService(tmsAgentEntity);
     nmsService.setOperationTimeout(5, TimeUnit.SECONDS);
 
-    tmsServerEntityIdentifier = readTopology()
-      .activeServerEntityStream()
-      .filter(serverEntity -> serverEntity.getType().equals(NmsConfig.ENTITY_TYPE))
-      .findFirst()
-      .get() // throws if not found
-      .getServerEntityIdentifier();
-
     cacheManager = newCacheManagerBuilder()
       // cluster config
       .with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
@@ -144,19 +141,6 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
     // ensure the CM is running and get its client id
     assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
-    ehcacheClientIdentifier = readTopology().getClients().values()
-      .stream()
-      .filter(client -> client.getName().equals("Ehcache:my-server-entity-1"))
-      .findFirst()
-      .map(Client::getClientIdentifier)
-      .get();
-
-    clusterTierManagerEntityIdentifier = readTopology()
-      .activeServerEntityStream()
-      .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1"))
-      .findFirst()
-      .get() // throws if not found
-      .getServerEntityIdentifier();
 
     // test_notifs_sent_at_CM_init
     waitForAllNotifications(
@@ -169,8 +153,38 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED",
       "SERVER_ENTITY_DESTROYED",
       "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
-      "SERVER_ENTITY_UNFETCHED", "SERVER_ENTITY_UNFETCHED"
+      "SERVER_ENTITY_UNFETCHED"
     );
+
+    do {
+      tmsServerEntityIdentifier = readTopology()
+        .activeServerEntityStream()
+        .filter(serverEntity -> serverEntity.getType().equals(NmsConfig.ENTITY_TYPE))
+        .filter(AbstractManageableNode::isManageable)
+        .map(ServerEntity::getServerEntityIdentifier)
+        .findFirst()
+        .orElse(null);
+    } while (tmsServerEntityIdentifier == null && !Thread.currentThread().isInterrupted());
+
+    do {
+      ehcacheClientIdentifier = readTopology().getClients().values()
+        .stream()
+        .filter(client -> client.getName().equals("Ehcache:my-server-entity-1"))
+        .filter(AbstractManageableNode::isManageable)
+        .findFirst()
+        .map(Client::getClientIdentifier)
+        .orElse(null);
+    } while (ehcacheClientIdentifier == null && !Thread.currentThread().isInterrupted());
+
+    do {
+      clusterTierManagerEntityIdentifier = readTopology()
+        .activeServerEntityStream()
+        .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1"))
+        .filter(AbstractManageableNode::isManageable)
+        .map(ServerEntity::getServerEntityIdentifier)
+        .findFirst()
+        .orElse(null);
+    } while (clusterTierManagerEntityIdentifier == null && !Thread.currentThread().isInterrupted());
 
     sendManagementCallOnEntityToCollectStats();
   }
@@ -201,7 +215,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   @Before
   public void init() throws Exception {
     if (nmsService != null) {
-      // this call clear the CURRRENT arrived messages, but be aware that some other messages can arrive just after the drain
+      // this call clear the CURRENT arrived messages, but be aware that some other messages can arrive just after the drain
       nmsService.readMessages();
     }
   }
@@ -211,13 +225,15 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   }
 
   protected static void sendManagementCallOnClientToCollectStats() throws Exception {
-    Context ehcacheClient = readTopology().getClient(ehcacheClientIdentifier).get().getContext()
+    org.terracotta.management.model.cluster.Cluster topology = readTopology();
+    Client manageableClient = topology.getClient(ehcacheClientIdentifier).filter(AbstractManageableNode::isManageable).get();
+    Context cmContext = manageableClient.getContext()
       .with("cacheManagerName", "my-super-cache-manager");
-    nmsService.startStatisticCollector(ehcacheClient, 1, TimeUnit.SECONDS).waitForReturn();
+    nmsService.startStatisticCollector(cmContext, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
   protected static List<ContextualStatistics> waitForNextStats() throws Exception {
-    // uses the monitoring consumre entity to get the content of the stat buffer when some stats are collected
+    // uses the monitoring to get the content of the stat buffer when some stats are collected
     return nmsService.waitForMessage(message -> message.getType().equals("STATISTICS"))
       .stream()
       .filter(message -> message.getType().equals("STATISTICS"))
@@ -234,7 +250,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       .collect(Collectors.toList());
   }
 
-  protected static String read(String path) throws FileNotFoundException {
+  protected static String read(String path) {
     try (Scanner scanner = new Scanner(AbstractClusteringManagementTest.class.getResourceAsStream(path), "UTF-8")) {
       return scanner.useDelimiter("\\A").next();
     }
@@ -245,26 +261,43 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   }
 
   private static void sendManagementCallOnEntityToCollectStats() throws Exception {
-    Context context = readTopology().getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).get().getContext();
+    org.terracotta.management.model.cluster.Cluster topology = readTopology();
+    ServerEntity manageableEntity = topology.getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).filter(AbstractManageableNode::isManageable).get();
+    Context context = manageableEntity.getContext();
     nmsService.startStatisticCollector(context, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
-  protected static List<ContextualNotification> waitForAllNotifications(String... notificationTypes) throws InterruptedException {
+  protected static void waitForAllNotifications(String... notificationTypes) throws InterruptedException, TimeoutException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
+    List<ContextualNotification> missingOnes = new ArrayList<>();
+
     // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
 //    System.out.println("waitForAllNotifications: " + waitingFor);
-    return nmsService.waitForMessage(message -> {
-      if (message.getType().equals("NOTIFICATION")) {
-        for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
-          if (waitingFor.remove(notification.getType())) {
-//            System.out.println(" - " + notification.getType());
+
+    Thread t = new Thread(() -> {
+      try {
+        nmsService.waitForMessage(message -> {
+          if (message.getType().equals("NOTIFICATION")) {
+            for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
+              if (waitingFor.remove(notification.getType())) {
+//                System.out.println("Remove " + notification.getType());
+//                System.out.println("Still waiting for: " + waitingFor);
+              } else {
+                missingOnes.add(notification);
+              }
+            }
           }
-        }
+          return waitingFor.isEmpty();
+        });
+      } catch (InterruptedException e) {
+        // Get out
       }
-      return waitingFor.isEmpty();
-    }).stream()
-      .filter(message -> message.getType().equals("NOTIFICATION"))
-      .flatMap(message -> message.unwrap(ContextualNotification.class).stream())
-      .collect(Collectors.toList());
+    });
+    t.start();
+    t.join(30_000); // should be way enough to receive all messages
+    t.interrupt(); // we interrupt the thread that is waiting on the message queue
+
+    assertTrue("Still waiting for: " + waitingFor, waitingFor.isEmpty());
+    assertTrue("Unexpected notification: " + missingOnes, missingOnes.isEmpty());
   }
 }

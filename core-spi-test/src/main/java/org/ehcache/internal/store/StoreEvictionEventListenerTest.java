@@ -19,16 +19,13 @@ package org.ehcache.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
-
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -48,10 +45,10 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   final K k = factory.createKey(1L);
-  final V v = factory.createValue(1l);
+  final V v = factory.createValue(1L);
   final K k2 = factory.createKey(2L);
-  final V v2 = factory.createValue(2l);
-  final V v3 = factory.createValue(3l);
+  final V v2 = factory.createValue(2L);
+  final V v3 = factory.createValue(3L);
 
   protected Store<K, V> kvStore;
 
@@ -92,7 +89,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k2, v2);
     verifyListenerInteractions(listener);
     kvStore.replace(getOnlyKey(kvStore.iterator()), v3);
-    assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).value(), is(v3));
+    assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).get(), is(v3));
   }
 
   @SPITest

@@ -16,12 +16,14 @@
 
 package org.ehcache.core.spi.store;
 
-import org.ehcache.expiry.Duration;
+import org.ehcache.core.config.ExpiryUtils;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 import static java.lang.String.format;
+import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 
 /**
  * @author Ludovic Orban
@@ -31,7 +33,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;
   private final long creationTime;
+  @SuppressWarnings("CanBeFinal")
   private volatile long lastAccessTime;
+  @SuppressWarnings("CanBeFinal")
   private volatile long expirationTime;
   private volatile long hits;
 
@@ -75,25 +79,16 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
       if (EXPIRATIONTIME_UPDATER.compareAndSet(this, current, update)) {
         break;
       }
-    };
+    }
   }
 
   public void accessed(long now, Duration expiration) {
     final TimeUnit timeUnit = nativeTimeUnit();
     if (expiration != null) {
-      if (expiration.isInfinite()) {
+      if (isExpiryDurationInfinite(expiration)) {
         setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
       } else {
-        long millis = timeUnit.convert(expiration.getLength(), expiration.getTimeUnit());
-        long newExpirationTime ;
-        if (millis == Long.MAX_VALUE) {
-          newExpirationTime = Long.MAX_VALUE;
-        } else {
-          newExpirationTime = now + millis;
-          if (newExpirationTime < 0) {
-            newExpirationTime = Long.MAX_VALUE;
-          }
-        }
+        long newExpirationTime = ExpiryUtils.getExpirationMillis(now, expiration);
         setExpirationTime(newExpirationTime, timeUnit);
       }
     }
@@ -134,7 +129,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
       if (ACCESSTIME_UPDATER.compareAndSet(this, current, update)) {
         break;
       }
-    };
+    }
   }
 
   @Override
@@ -182,6 +177,6 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
 
   @Override
   public String toString() {
-    return format("%s", value());
+    return format("%s", get());
   }
 }

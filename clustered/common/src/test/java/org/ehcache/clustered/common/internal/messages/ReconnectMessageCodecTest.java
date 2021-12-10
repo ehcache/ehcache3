@@ -21,7 +21,6 @@ import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;

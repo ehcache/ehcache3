@@ -37,7 +37,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 import org.terracotta.monitoring.IMonitoringProducer;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
@@ -315,7 +315,7 @@ public class ClusterTierPassiveEntityTest {
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
         return (T) mock(IEntityMessenger.class);
-      } else if(serviceConfiguration instanceof ManagementRegistryConfiguration) {
+      } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof BasicServiceConfiguration && serviceConfiguration.getServiceType() == IMonitoringProducer.class) {
         return null;

@@ -26,7 +26,6 @@ import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
-import org.terracotta.runnel.encoding.StructEncoderFunction;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

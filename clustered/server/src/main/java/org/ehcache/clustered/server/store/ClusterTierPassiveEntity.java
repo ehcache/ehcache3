@@ -179,11 +179,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         LOGGER.error("Unexpected exception raised during operation: " + message, e);
       }
     } else if (message instanceof EhcacheSyncMessage) {
-      try {
-        invokeSyncOperation(context, (EhcacheSyncMessage) message);
-      } catch (ClusterException e) {
-        throw new IllegalStateException("Sync operation failed", e);
-      }
+      invokeSyncOperation(context, (EhcacheSyncMessage) message);
     } else {
       throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
     }
@@ -192,7 +188,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     return success();
   }
 
-  private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) throws ClusterException {
+  private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) {
     switch (message.getMessageType()) {
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;

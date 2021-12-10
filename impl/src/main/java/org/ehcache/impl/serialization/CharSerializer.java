@@ -58,16 +58,15 @@ public class CharSerializer implements Serializer<Character> {
    * {@inheritDoc}
    */
   @Override
-  public Character read(ByteBuffer binary) throws ClassNotFoundException {
-    char c = binary.getChar();
-    return c;
+  public Character read(ByteBuffer binary) {
+    return binary.getChar();
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public boolean equals(Character object, ByteBuffer binary) throws ClassNotFoundException {
+  public boolean equals(Character object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
 }

@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.store.heap;
 
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
@@ -55,7 +54,7 @@ public class OnHeapStoreBulkMethodsTest {
   protected <K, V> Store.Configuration<K, V> mockStoreConfig() {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(CharSequence.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
@@ -74,14 +73,13 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(Number.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
-    Store.Configuration<Number, Number> configuration = config;
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
-        new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher());
+    OnHeapStore<Number, Number> store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
+        new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);
@@ -112,17 +110,17 @@ public class OnHeapStoreBulkMethodsTest {
     check.put(5, 0);
     check.put(6, 0);
 
-    assertThat(result.get(1).value(), Matchers.<Number>is(check.get(1)));
-    assertThat(result.get(2).value(), Matchers.<Number>is(check.get(2)));
-    assertThat(result.get(3).value(), Matchers.<Number>is(check.get(3)));
+    assertThat(result.get(1).get(), Matchers.is(check.get(1)));
+    assertThat(result.get(2).get(), Matchers.is(check.get(2)));
+    assertThat(result.get(3).get(), Matchers.is(check.get(3)));
     assertThat(result.get(4), nullValue());
-    assertThat(result.get(5).value(), Matchers.<Number>is(check.get(5)));
-    assertThat(result.get(6).value(), Matchers.<Number>is(check.get(6)));
+    assertThat(result.get(5).get(), Matchers.is(check.get(5)));
+    assertThat(result.get(6).get(), Matchers.is(check.get(6)));
 
     for (Number key : check.keySet()) {
       final Store.ValueHolder<Number> holder = store.get(key);
       if(holder != null) {
-        check.remove(key, holder.value());
+        check.remove(key, holder.get());
       }
     }
     assertThat(check.size(), is(1));
@@ -148,11 +146,11 @@ public class OnHeapStoreBulkMethodsTest {
     });
 
     assertThat(result.size(), is(2));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("un"));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("deux"));
+    assertThat(result.get(1).get(), Matchers.equalTo("un"));
+    assertThat(result.get(2).get(), Matchers.equalTo("deux"));
 
-    assertThat(store.get(1).value(), Matchers.<CharSequence>equalTo("un"));
-    assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("deux"));
+    assertThat(store.get(1).get(), Matchers.equalTo("un"));
+    assertThat(store.get(2).get(), Matchers.equalTo("deux"));
   }
 
   @Test
@@ -160,7 +158,7 @@ public class OnHeapStoreBulkMethodsTest {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
     @SuppressWarnings("unchecked")
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -177,7 +175,7 @@ public class OnHeapStoreBulkMethodsTest {
 
     assertThat(store.get(1), is(nullValue()));
     assertThat(store.get(2), is(nullValue()));
-    assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    assertThat(store.get(3).get(), Matchers.equalTo("three"));
     assertThat(store.get(5), is(nullValue()));
   }
 
@@ -205,11 +203,11 @@ public class OnHeapStoreBulkMethodsTest {
 
     assertThat(result.size(), is(3));
     assertThat(result.get(1), is(nullValue()));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(result.get(2).get(), Matchers.equalTo("two"));
     assertThat(result.get(3), is(nullValue()));
 
     assertThat(store.get(1),is(nullValue()));
-    assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(store.get(2).get(), Matchers.equalTo("two"));
     assertThat(store.get(3),is(nullValue()));
 
   }
@@ -240,16 +238,16 @@ public class OnHeapStoreBulkMethodsTest {
     });
 
     assertThat(result.size(), is(6));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    assertThat(result.get(1).get(), Matchers.equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.equalTo("two"));
+    assertThat(result.get(3).get(), Matchers.equalTo("three"));
     assertThat(result.get(4), is(nullValue()));
     assertThat(result.get(5), is(nullValue()));
     assertThat(result.get(6), is(nullValue()));
 
-    assertThat(store.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    assertThat(store.get(1).get(), Matchers.equalTo("one"));
+    assertThat(store.get(2).get(), Matchers.equalTo("two"));
+    assertThat(store.get(3).get(), Matchers.equalTo("three"));
     assertThat(store.get(4), is(nullValue()));
     assertThat(store.get(5), is(nullValue()));
     assertThat(store.get(6), is(nullValue()));
@@ -280,19 +278,19 @@ public class OnHeapStoreBulkMethodsTest {
     });
 
     assertThat(result.size(), is(6));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
-    assertThat(result.get(4).value(), Matchers.<CharSequence>equalTo("quatre"));
-    assertThat(result.get(5).value(), Matchers.<CharSequence>equalTo("cinq"));
-    assertThat(result.get(6).value(), Matchers.<CharSequence>equalTo("six"));
+    assertThat(result.get(1).get(), Matchers.equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.equalTo("two"));
+    assertThat(result.get(3).get(), Matchers.equalTo("three"));
+    assertThat(result.get(4).get(), Matchers.equalTo("quatre"));
+    assertThat(result.get(5).get(), Matchers.equalTo("cinq"));
+    assertThat(result.get(6).get(), Matchers.equalTo("six"));
 
-    assertThat(store.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("three"));
-    assertThat(store.get(4).value(), Matchers.<CharSequence>equalTo("quatre"));
-    assertThat(store.get(5).value(), Matchers.<CharSequence>equalTo("cinq"));
-    assertThat(store.get(6).value(), Matchers.<CharSequence>equalTo("six"));
+    assertThat(store.get(1).get(), Matchers.equalTo("one"));
+    assertThat(store.get(2).get(), Matchers.equalTo("two"));
+    assertThat(store.get(3).get(), Matchers.equalTo("three"));
+    assertThat(store.get(4).get(), Matchers.equalTo("quatre"));
+    assertThat(store.get(5).get(), Matchers.equalTo("cinq"));
+    assertThat(store.get(6).get(), Matchers.equalTo("six"));
   }
 
   @Test
@@ -322,13 +320,13 @@ public class OnHeapStoreBulkMethodsTest {
     });
 
     assertThat(result.size(), is(3));
-    assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(1).value(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(result.get(1).get(), Matchers.<CharSequence>equalTo("one"));
     assertThat(result.get(5), is(nullValue()));
 
-    assertThat(store.get(1).value(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(store.get(2).value(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(store.get(3).value(), Matchers.<CharSequence>equalTo("three"));
+    assertThat(store.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(store.get(2).get(), Matchers.<CharSequence>equalTo("two"));
+    assertThat(store.get(3).get(), Matchers.<CharSequence>equalTo("three"));
     assertThat(store.get(5), is(nullValue()));
   }
 

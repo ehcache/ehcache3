@@ -16,16 +16,16 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.docs.plugs.StringCopier;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.basic.NopStore;
@@ -173,7 +173,7 @@ public class TieredStoreMutatorTest {
 
     // Not relevant to the test, just used to instantiate the OnHeapStore
     Store.Configuration<String, String> config = new StoreConfigurationImpl<>(String.class, String.class,
-      null, getClass().getClassLoader(), Expirations.noExpiration(), resourcePools, 0, null, null);
+      null, getClass().getClassLoader(), ExpiryPolicyBuilder.noExpiration(), resourcePools, 0, null, null);
 
     // Here again, all parameters are useless, we only care about the beforeCompletingTheFault implementation
     CachingTier<String, String> cachingTier = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
@@ -212,7 +212,7 @@ public class TieredStoreMutatorTest {
     // 4. Test Thread receives a value from putIfAbsent. We would expect the get to receive the same value right after
     //    a. Test Thread -> TieredStore.putIfAbsent
     //    b. Test Thread -> AuthoritativeTierMock.putIfAbsent - returns VALUE
-    assertThat(putIfAbsentToTieredStore().value(), is(VALUE));
+    assertThat(putIfAbsentToTieredStore().get(), is(VALUE));
 
     // 5. Test Thread -> TieredStore.get()
     //    If Test Thread bugged -> Fault.get() - synchronized - blocked on the fault because thread 2 already locks the fault
@@ -222,7 +222,7 @@ public class TieredStoreMutatorTest {
     // These assertions will in fact work most of the time even if a failure occurred. Because as soon as the latches are
     // released by thread 3, the thread 2 will invalidate the fault
     assertThat(value, notNullValue());
-    assertThat(value.value(), is(VALUE));
+    assertThat(value.get(), is(VALUE));
 
     // If the Test thread was blocked, Thread 3 will eventually flag the failure
     assertThat(failed, is(false));
@@ -251,7 +251,7 @@ public class TieredStoreMutatorTest {
     //    Else Test Thread fixed -> new Fault ... correct value
     Store.ValueHolder<String> value = getFromTieredStore();
     assertThat(value, notNullValue());
-    assertThat(value.value(), is(VALUE));
+    assertThat(value.get(), is(VALUE));
 
     assertThat(failed, is(false));
   }

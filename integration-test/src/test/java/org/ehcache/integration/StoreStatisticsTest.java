@@ -26,7 +26,9 @@ import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
@@ -35,6 +37,7 @@ import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Map;
@@ -57,6 +60,9 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
  * @author Ludovic Orban
  */
 public class StoreStatisticsTest {
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder();
 
   @Test
   public void test1TierStoreStatsAvailableInContextManager() throws Exception {
@@ -149,9 +155,8 @@ public class StoreStatisticsTest {
     return (OperationStatistic<T>) node.getContext().attributes().get("this");
   }
 
-
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return folder.newFolder().getAbsolutePath();
   }
 
 }

@@ -19,7 +19,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import static java.util.Collections.emptyMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,8 +29,9 @@ import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+
+import static java.util.Collections.emptyMap;
 
 /**
  * @author teck
@@ -53,7 +53,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   @Override
-  public V load(K key) throws Exception {
+  public V load(K key) {
     if (readThrough) {
       return cacheLoader.load(key);
     } else {
@@ -62,7 +62,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   @Override
-  public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+  public Map<K, V> loadAll(Iterable<? extends K> keys) {
     if (readThrough) {
       return loadAllAlways(keys);
     } else {
@@ -71,7 +71,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   @Override
-  public Map<K, V> loadAllAlways(Iterable<? extends K> keys) throws BulkCacheLoadingException, Exception {
+  public Map<K, V> loadAllAlways(Iterable<? extends K> keys) {
     if (cacheLoader == null) {
       return emptyMap();
     } else {
@@ -80,21 +80,21 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   @Override
-  public void write(K key, V value) throws Exception {
+  public void write(K key, V value) {
     if (cacheWriter != null) {
       cacheWriter.write(cacheEntryFor(key, value));
     }
   }
 
   @Override
-  public void delete(K key) throws Exception {
+  public void delete(K key) {
     if (cacheWriter != null) {
       cacheWriter.delete(key);
     }
   }
 
   @Override
-  public void deleteAll(Iterable<? extends K> keys) throws Exception {
+  public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException {
     if (cacheWriter != null) {
       Set<K> allKeys = new HashSet<>();
       for (K key : keys) {
@@ -131,7 +131,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   @Override
-  public void writeAll(Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) throws Exception {
+  public void writeAll(Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) {
     if (cacheWriter != null) {
       Collection<Cache.Entry<? extends K, ? extends V>> toWrite = new ArrayList<>();
       for (Map.Entry<? extends K, ? extends V> entry : entries) {

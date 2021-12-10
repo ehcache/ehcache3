@@ -19,10 +19,10 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,8 +31,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.InOrder;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import java.util.AbstractMap;
@@ -180,7 +178,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.spiedResilienceStrategy, never()).putAllFailure(eq(Collections.<String, String>emptyMap()), any(StoreAccessException.class));
+    verify(this.resilienceStrategy, never()).putAllFailure(eq(Collections.<String, String>emptyMap()), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
@@ -209,7 +207,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, contentUpdates)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
@@ -238,11 +236,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -270,11 +268,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
@@ -327,20 +325,18 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 

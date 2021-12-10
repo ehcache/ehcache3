@@ -20,7 +20,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.ListIterator;
 
 import javax.cache.CacheException;
 
@@ -47,9 +46,7 @@ class MultiCacheException extends CacheException {
     }
 
     if (t instanceof MultiCacheException) {
-      for (Throwable t2 : ((MultiCacheException)t).getThrowables()) {
-        throwables.add(t2);
-      }
+      throwables.addAll(((MultiCacheException) t).getThrowables());
     } else {
       throwables.add(t);
     }

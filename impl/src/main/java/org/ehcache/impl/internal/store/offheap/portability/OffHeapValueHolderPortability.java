@@ -49,7 +49,7 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder)valueHolder).isBinaryValueAvailable()) {
       serialized = ((BinaryValueHolder)valueHolder).getBinaryValue();
     } else {
-      serialized = serializer.serialize(valueHolder.value());
+      serialized = serializer.serialize(valueHolder.get());
     }
     ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
     byteBuffer.putLong(valueHolder.getId());

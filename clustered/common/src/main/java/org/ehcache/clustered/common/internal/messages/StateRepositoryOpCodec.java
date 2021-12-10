@@ -22,6 +22,9 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.function.Predicate;
 
 import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
@@ -137,10 +140,10 @@ public class StateRepositoryOpCodec {
     String mapId = decoder.string(MAP_ID_FIELD);
 
     ByteBuffer keyBuffer = decoder.byteBuffer(KEY_FIELD);
-    Object key = Util.unmarshall(keyBuffer);
+    Object key = Util.unmarshall(keyBuffer, WHITELIST_PREDICATE);
 
     ByteBuffer valueBuffer = decoder.byteBuffer(VALUE_FIELD);
-    Object value = Util.unmarshall(valueBuffer);
+    Object value = Util.unmarshall(valueBuffer, WHITELIST_PREDICATE);
 
     return new StateRepositoryOpMessage.PutIfAbsentMessage(storeName, mapId, key, value);
   }
@@ -152,8 +155,25 @@ public class StateRepositoryOpCodec {
     String mapId = decoder.string(MAP_ID_FIELD);
 
     ByteBuffer keyBuffer = decoder.byteBuffer(KEY_FIELD);
-    Object key = Util.unmarshall(keyBuffer);
+    Object key = Util.unmarshall(keyBuffer, WHITELIST_PREDICATE);
 
     return new StateRepositoryOpMessage.GetMessage(storeName, mapId, key);
   }
+
+  public static final Predicate<Class<?>> WHITELIST_PREDICATE = new HashSet<>(Arrays.asList(
+    java.lang.Integer.class,
+    java.lang.Long.class,
+    java.lang.Float.class,
+    java.lang.Double.class,
+    java.lang.Byte.class,
+    java.lang.Character.class,
+    java.lang.String.class,
+    java.lang.Boolean.class,
+    java.lang.Short.class,
+    java.lang.Number.class,
+
+    org.ehcache.clustered.common.internal.store.ValueWrapper.class,
+    byte[].class,
+    java.util.HashSet.class,
+    java.util.AbstractMap.SimpleEntry.class))::contains;
 }

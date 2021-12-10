@@ -66,10 +66,10 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
             System.out.println(" - " + entry.getKey() + " : " + entry.getValue());
           }*/
 
-          cacheHitCount = stat.getStatistic("Cache:HitCount").longValue();
-          clusteredHitCount = stat.getStatistic("Clustered:HitCount").longValue();
-          clusteredMissCount = stat.getStatistic("Clustered:MissCount").longValue();
-          cacheMissCount = stat.getStatistic("Cache:MissCount").longValue();
+          cacheHitCount = stat.<Long>getLatestSampleValue("Cache:HitCount").get();
+          clusteredHitCount = stat.<Long>getLatestSampleValue("Clustered:HitCount").get();
+          clusteredMissCount = stat.<Long>getLatestSampleValue("Clustered:MissCount").get();
+          cacheMissCount = stat.<Long>getLatestSampleValue("Cache:MissCount").get();
         }
       }
     } while(!Thread.currentThread().isInterrupted() &&

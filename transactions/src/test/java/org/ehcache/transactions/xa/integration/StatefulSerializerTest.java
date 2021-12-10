@@ -23,11 +23,13 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -39,6 +41,18 @@ import static org.junit.Assert.assertNotNull;
  */
 public class StatefulSerializerTest {
 
+  @Before
+  public void setUp() throws Exception {
+    TransactionManagerServices.getConfiguration().setJournal("null").setServerId(getClass().getSimpleName());
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    if (TransactionManagerServices.isTransactionManagerRunning()) {
+      TransactionManagerServices.getTransactionManager().shutdown();
+    }
+  }
+
   @Test
   public void testXAWithStatefulSerializer() throws Exception {
     BitronixTransactionManager manager = TransactionManagerServices.getTransactionManager();
@@ -49,7 +63,7 @@ public class StatefulSerializerTest {
             CacheConfigurationBuilder
               .newCacheConfigurationBuilder(Long.class, Person.class,
                 ResourcePoolsBuilder.heap(5))
-              .withExpiry(Expirations.noExpiration()).add(new XAStoreConfiguration("xaCache"))
+              .withExpiry(ExpiryPolicyBuilder.noExpiration()).add(new XAStoreConfiguration("xaCache"))
               .build())
           .build(true)) {
 

@@ -26,9 +26,9 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
@@ -80,15 +80,8 @@ public abstract class EhcacheBasicCrudBase {
   protected Store<String, String> store;
   @Mock
   protected CacheEventDispatcher<String, String> cacheEventDispatcher;
-
-  /**
-   * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the
-   * {@link ResilienceStrategy ResilienceStrategy} used in the
-   * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
-   *
-   * @see #setResilienceStrategySpy(InternalCache)
-   */
-  protected ResilienceStrategy<String, String> spiedResilienceStrategy;
+  @Mock
+  protected ResilienceStrategy<String, String> resilienceStrategy;
 
   @Before
   public void initMocks() {
@@ -208,33 +201,6 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Replaces the {@link ResilienceStrategy ResilienceStrategy} instance in the
-   * {@link InternalCache Ehcache} instance provided with a
-   * {@link org.mockito.Mockito#spy(Object) Mockito <code>spy</code>} wrapping the original
-   * {@code ResilienceStrategy} instance.
-   *
-   * @param ehcache the {@code InternalCache} instance to alter
-   *
-   * @return the <code>spy</code>-wrapped {@code ResilienceStrategy} instance
-   */
-  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final InternalCache<K, V> ehcache) {
-    assert ehcache != null;
-    try {
-      final Field resilienceStrategyField = ehcache.getClass().getDeclaredField("resilienceStrategy");
-      resilienceStrategyField.setAccessible(true);
-      @SuppressWarnings("unchecked")
-      ResilienceStrategy<K, V> resilienceStrategy = (ResilienceStrategy<K, V>)resilienceStrategyField.get(ehcache);
-      if (resilienceStrategy != null) {
-        resilienceStrategy = spy(resilienceStrategy);
-        resilienceStrategyField.set(ehcache, resilienceStrategy);
-      }
-      return resilienceStrategy;
-    } catch (Exception e) {
-      throw new AssertionError(String.format("Unable to wrap ResilienceStrategy in Ehcache instance: %s", e));
-    }
-  }
-
-  /**
    * Provides a basic {@link Store} implementation for testing.
    * The contract implemented by this {@code Store} is not strictly conformant but
    * should be sufficient for {@code Ehcache} implementation testing.
@@ -258,7 +224,7 @@ public abstract class EhcacheBasicCrudBase {
     private final Set<String> failingKeys;
 
     public FakeStore(final Map<String, String> entries) {
-      this(entries, Collections.<String>emptySet());
+      this(entries, Collections.emptySet());
     }
 
     public FakeStore(final Map<String, String> entries, final Set<String> failingKeys) {
@@ -280,10 +246,8 @@ public abstract class EhcacheBasicCrudBase {
      * @return a new, unmodifiable map of the entries in this {@code Store}.
      */
     protected Map<String, String> getEntryMap() {
-      final Map<String, String> result = new HashMap<>();
-      for (final Map.Entry<String, FakeValueHolder> entry : this.entries.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().value());
-      }
+      Map<String, String> result = new HashMap<>(entries.size());
+      entries.forEach((k, v) -> result.put(k, v.get()));
       return Collections.unmodifiableMap(result);
     }
 
@@ -338,7 +302,7 @@ public abstract class EhcacheBasicCrudBase {
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null) {
         return RemoveStatus.KEY_MISSING;
-      } else if (!currentValue.value().equals(value)) {
+      } else if (!currentValue.get().equals(value)) {
         return RemoveStatus.KEY_PRESENT;
       }
       this.entries.remove(key);
@@ -362,7 +326,7 @@ public abstract class EhcacheBasicCrudBase {
       if (currentValue == null) {
         return ReplaceStatus.MISS_NOT_PRESENT;
       }
-      if (!currentValue.value().equals(oldValue)) {
+      if (!currentValue.get().equals(oldValue)) {
         return ReplaceStatus.MISS_PRESENT;
       }
       this.entries.put(key, new FakeValueHolder(newValue));
@@ -457,9 +421,9 @@ public abstract class EhcacheBasicCrudBase {
         final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
         final Supplier<Boolean> replaceEqual) throws StoreAccessException {
 
-      String remappedValue = null;
+      String remappedValue;
       try {
-        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.value()));
+        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.get()));
       } catch (StorePassThroughException cpte) {
         Throwable cause = cpte.getCause();
         if(cause instanceof RuntimeException) {
@@ -508,7 +472,7 @@ public abstract class EhcacheBasicCrudBase {
       this.checkFailingKey(key);
       FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
-        String newValue = null;
+        String newValue;
         try {
           newValue = mappingFunction.apply(key);
         } catch (StorePassThroughException cpte) {
@@ -630,7 +594,7 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
-      public String value() {
+      public String get() {
         return this.value;
       }
 
@@ -752,7 +716,7 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       this.failingKeys = (failingKeys.isEmpty()
-          ? Collections.<String>emptySet()
+          ? Collections.emptySet()
           : Collections.unmodifiableSet(new HashSet<>(failingKeys)));
     }
 

@@ -19,7 +19,6 @@ package org.ehcache.clustered.server.state;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.terracotta.entity.ConfigurationException;

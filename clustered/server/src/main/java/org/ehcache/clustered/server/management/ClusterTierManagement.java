@@ -25,7 +25,7 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.service.monitoring.EntityManagementRegistry;
-import org.terracotta.management.service.monitoring.ManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityManagementRegistryConfiguration;
 
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +46,7 @@ public class ClusterTierManagement implements Closeable {
 
     // create an entity monitoring service that allows this entity to push some management information into voltron monitoring service
     try {
-      managementRegistry = services.getService(new ManagementRegistryConfiguration(services, active));
+      managementRegistry = services.getService(new EntityManagementRegistryConfiguration(services, active));
     } catch (ServiceException e) {
       throw new ConfigurationException("Unable to retrieve service: " + e.getMessage());
     }
@@ -73,7 +73,7 @@ public class ClusterTierManagement implements Closeable {
 
   public void reload() {
     if (managementRegistry != null) {
-      managementRegistry.cleanupPreviousPassiveStates();
+      managementRegistry.entityPromotionCompleted();
       init();
     }
   }

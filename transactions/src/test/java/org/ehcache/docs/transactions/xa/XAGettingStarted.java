@@ -37,11 +37,14 @@ import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
@@ -57,6 +60,9 @@ import static org.junit.Assert.fail;
  * @author Ludovic Orban
  */
 public class XAGettingStarted {
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder();
 
   @Before
   public void setUp() throws Exception {
@@ -209,10 +215,9 @@ public class XAGettingStarted {
     // end::testXACacheWithXMLConfig[]
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return folder.newFolder().getAbsolutePath();
   }
-
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
@@ -226,7 +231,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public V load(K key) throws Exception {
+    public V load(K key) {
       lock.readLock().lock();
       try {
         V v = data.get(key);
@@ -238,12 +243,12 @@ public class XAGettingStarted {
     }
 
     @Override
-    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    public Map<K, V> loadAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void write(K key, V value) throws Exception {
+    public void write(K key, V value) {
       lock.writeLock().lock();
       try {
         data.put(key, value);
@@ -254,7 +259,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       lock.writeLock().lock();
       try {
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
@@ -267,7 +272,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void delete(K key) throws Exception {
+    public void delete(K key) {
       lock.writeLock().lock();
       try {
         data.remove(key);
@@ -278,7 +283,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    public void deleteAll(Iterable<? extends K> keys) {
       lock.writeLock().lock();
       try {
         for (K key : keys) {

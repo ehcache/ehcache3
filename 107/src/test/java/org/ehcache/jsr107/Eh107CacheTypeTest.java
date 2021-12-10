@@ -63,7 +63,7 @@ public class Eh107CacheTypeTest {
 
 
   @Test
-  public void testRunTimeTypeSafety() throws Exception {
+  public void testRunTimeTypeLaxity() throws Exception {
     CachingProvider provider = Caching.getCachingProvider();
     javax.cache.CacheManager cacheManager =
         provider.getCacheManager(this.getClass().getResource("/ehcache-107-types.xml").toURI(), getClass().getClassLoader());
@@ -79,9 +79,6 @@ public class Eh107CacheTypeTest {
 
     try {
       cacheManager.getCache("cache1");
-      fail("Caches with runtime types should throw illegal argument exception when different types are used in getcache");
-    } catch (IllegalArgumentException e) {
-      //Empty block as nothing is required to be tested
     } finally {
       cacheManager.destroyCache("cache1");
       cacheManager.close();

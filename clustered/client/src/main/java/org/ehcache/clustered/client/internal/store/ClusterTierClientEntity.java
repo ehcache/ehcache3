@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.Timeouts;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -51,7 +51,7 @@ public interface ClusterTierClientEntity extends Entity {
 
   <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener);
 
-  void setDisconnectionListener(DisconnectionListener disconnectionListener);
+  void addDisconnectionListener(DisconnectionListener disconnectionListener);
 
   void setReconnectListener(ReconnectListener reconnectListener);
 

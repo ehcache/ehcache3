@@ -17,17 +17,15 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
@@ -55,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.context.ContextManager;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -78,7 +77,6 @@ import javax.transaction.Transaction;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
-import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 
 /**
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
@@ -203,7 +201,7 @@ public class XAStore<K, V> implements Store<K, V> {
       return null;
     }
 
-    SoftLock<V> softLock = softLockValueHolder.value();
+    SoftLock<V> softLock = softLockValueHolder.get();
     if (isInDoubt(softLock)) {
       currentContext.addCommand(key, new StoreEvictCommand<>(softLock.getOldValue()));
       return null;
@@ -219,7 +217,7 @@ public class XAStore<K, V> implements Store<K, V> {
       return getCurrentContext().newValueHolderOf(key) != null;
     }
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
-    return softLockValueHolder != null && softLockValueHolder.value().getTransactionId() == null && softLockValueHolder.value().getOldValue() != null;
+    return softLockValueHolder != null && softLockValueHolder.get().getTransactionId() == null && softLockValueHolder.get().getOldValue() != null;
   }
 
   @Override
@@ -235,7 +233,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder != null) {
-      SoftLock<V> softLock = softLockValueHolder.value();
+      SoftLock<V> softLock = softLockValueHolder.get();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<>(softLock.getOldValue()));
       } else {
@@ -266,7 +264,7 @@ public class XAStore<K, V> implements Store<K, V> {
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     boolean status = false;
     if (softLockValueHolder != null) {
-      SoftLock<V> softLock = softLockValueHolder.value();
+      SoftLock<V> softLock = softLockValueHolder.get();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<>(softLock.getOldValue()));
       } else {
@@ -294,7 +292,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder != null) {
-      SoftLock<V> softLock = softLockValueHolder.value();
+      SoftLock<V> softLock = softLockValueHolder.get();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<>(softLock.getOldValue()));
         return null;
@@ -327,7 +325,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder != null) {
-      SoftLock<V> softLock = softLockValueHolder.value();
+      SoftLock<V> softLock = softLockValueHolder.get();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<>(softLock.getOldValue()));
         return RemoveStatus.KEY_MISSING;
@@ -361,7 +359,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder != null) {
-      SoftLock<V> softLock = softLockValueHolder.value();
+      SoftLock<V> softLock = softLockValueHolder.get();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<>(softLock.getOldValue()));
         return null;
@@ -396,7 +394,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder != null) {
-      SoftLock<V> softLock = softLockValueHolder.value();
+      SoftLock<V> softLock = softLockValueHolder.get();
       V previousValue = softLock.getOldValue();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<>(previousValue));
@@ -476,10 +474,10 @@ public class XAStore<K, V> implements Store<K, V> {
 
         if (!transactionContextFactory.isTouched(transactionId, next.getKey())) {
           ValueHolder<SoftLock<V>> valueHolder = next.getValue();
-          SoftLock<V> softLock = valueHolder.value();
+          SoftLock<V> softLock = valueHolder.get();
           final XAValueHolder<V> xaValueHolder;
           if (softLock.getTransactionId() == transactionId) {
-            xaValueHolder = new XAValueHolder<>(valueHolder, softLock.getNewValueHolder().value());
+            xaValueHolder = new XAValueHolder<>(valueHolder, softLock.getNewValueHolder().get());
           } else if (isInDoubt(softLock)) {
             continue;
           } else {
@@ -537,7 +535,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
 
-    SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.value();
+    SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.get();
     V oldValue = softLock == null ? null : softLock.getOldValue();
     V newValue = mappingFunction.apply(key, oldValue);
     XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<>(newValue, timeSource.getTimeMillis());
@@ -594,14 +592,14 @@ public class XAStore<K, V> implements Store<K, V> {
           xaValueHolder = null;
         }
       }
-    } else if (isInDoubt(softLockValueHolder.value())) {
-      currentContext.addCommand(key, new StoreEvictCommand<>(softLockValueHolder.value().getOldValue()));
-      xaValueHolder = new XAValueHolder<>(softLockValueHolder, softLockValueHolder.value().getNewValueHolder().value());
+    } else if (isInDoubt(softLockValueHolder.get())) {
+      currentContext.addCommand(key, new StoreEvictCommand<>(softLockValueHolder.get().getOldValue()));
+      xaValueHolder = new XAValueHolder<>(softLockValueHolder, softLockValueHolder.get().getNewValueHolder().get());
     } else {
       if (updated) {
         xaValueHolder = currentContext.newValueHolderOf(key);
       } else {
-        xaValueHolder = new XAValueHolder<>(softLockValueHolder, softLockValueHolder.value().getOldValue());
+        xaValueHolder = new XAValueHolder<>(softLockValueHolder, softLockValueHolder.get().getOldValue());
       }
     }
 
@@ -761,12 +759,14 @@ public class XAStore<K, V> implements Store<K, V> {
         throw new IllegalStateException("XAStore.Provider.createStore called without XAStoreConfiguration");
       }
 
-      final Store.Provider underlyingStoreProvider =
-          selectProvider(configuredTypes, Arrays.asList(serviceConfigs), xaServiceConfiguration);
+      List<ServiceConfiguration<?>> serviceConfigList = Arrays.asList(serviceConfigs);
+
+      Store.Provider underlyingStoreProvider =
+          selectProvider(configuredTypes, serviceConfigList, xaServiceConfiguration);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
-      List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<>();
-      underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
+      List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
+      underlyingServiceConfigs.addAll(serviceConfigList);
 
       // eviction advisor
       EvictionAdvisor<? super K, ? super V> realEvictionAdvisor = storeConfig.getEvictionAdvisor();
@@ -778,18 +778,18 @@ public class XAStore<K, V> implements Store<K, V> {
       }
 
       // expiry
-      final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
-      Expiry<? super K, ? super SoftLock<V>> expiry = new Expiry<K, SoftLock<V>>() {
+      final ExpiryPolicy<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
+      ExpiryPolicy<? super K, ? super SoftLock<V>> expiry = new ExpiryPolicy<K, SoftLock<V>>() {
         @Override
         public Duration getExpiryForCreation(K key, SoftLock<V> softLock) {
           if (softLock.getTransactionId() != null) {
             // phase 1 prepare, create -> forever
-            return Duration.INFINITE;
+            return ExpiryPolicy.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, create -> some time
             Duration duration;
             try {
-              duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+              duration = configuredExpiry.getExpiryForCreation(key, softLock.getOldValue());
             } catch (RuntimeException re) {
               LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
               return Duration.ZERO;
@@ -799,15 +799,15 @@ public class XAStore<K, V> implements Store<K, V> {
         }
 
         @Override
-        public Duration getExpiryForAccess(K key, final ValueSupplier<? extends SoftLock<V>> softLock) {
-          if (softLock.value().getTransactionId() != null) {
+        public Duration getExpiryForAccess(K key, Supplier<? extends SoftLock<V>> softLock) {
+          if (softLock.get().getTransactionId() != null) {
             // phase 1 prepare, access -> forever
-            return Duration.INFINITE;
+            return ExpiryPolicy.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, access -> some time
             Duration duration;
             try {
-              duration = configuredExpiry.getExpiryForAccess(key, supplierOf(softLock.value().getOldValue()));
+              duration = configuredExpiry.getExpiryForAccess(key, () -> softLock.get().getOldValue());
             } catch (RuntimeException re) {
               LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
               return Duration.ZERO;
@@ -817,11 +817,11 @@ public class XAStore<K, V> implements Store<K, V> {
         }
 
         @Override
-        public Duration getExpiryForUpdate(K key, ValueSupplier<? extends SoftLock<V>> oldSoftLockSupplier, SoftLock<V> newSoftLock) {
-          SoftLock<V> oldSoftLock = oldSoftLockSupplier.value();
+        public Duration getExpiryForUpdate(K key, Supplier<? extends SoftLock<V>> oldSoftLockSupplier, SoftLock<V> newSoftLock) {
+          SoftLock<V> oldSoftLock = oldSoftLockSupplier.get();
           if (oldSoftLock.getTransactionId() == null) {
             // phase 1 prepare, update -> forever
-            return Duration.INFINITE;
+            return ExpiryPolicy.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime
             if (oldSoftLock.getOldValue() == null) {
@@ -837,10 +837,10 @@ public class XAStore<K, V> implements Store<K, V> {
             } else {
               // there is an old value -> it's an UPDATE, update -> some time
               V value = oldSoftLock.getNewValueHolder() == null ? null : oldSoftLock
-                  .getNewValueHolder().value();
+                  .getNewValueHolder().get();
               Duration duration;
               try {
-                duration = configuredExpiry.getExpiryForUpdate(key, supplierOf(oldSoftLock.getOldValue()), value);
+                duration = configuredExpiry.getExpiryForUpdate(key, oldSoftLock::getOldValue, value);
               } catch (RuntimeException re) {
                 LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                 return Duration.ZERO;
@@ -892,7 +892,8 @@ public class XAStore<K, V> implements Store<K, V> {
       AtomicReference<SoftLockSerializer<V>> softLockSerializerRef = new AtomicReference<>();
       SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer;
       if (storeConfig.getValueSerializer() instanceof StatefulSerializer) {
-        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
+          .getValueSerializer());
       } else {
         softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
         .getValueSerializer());

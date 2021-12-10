@@ -18,7 +18,7 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -67,7 +67,7 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
       // Expected
     }
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -81,7 +81,7 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
 
     assertFalse(ehcache.containsKey("key"));
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -98,7 +98,7 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
 
     ehcache.containsKey("key");
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).containsKeyFailure(eq("key"), any(StoreAccessException.class));
   }
 
   /**
@@ -113,7 +113,7 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
 
     assertTrue(ehcache.containsKey("keyA"));
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -130,7 +130,7 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
 
     ehcache.containsKey("keyA");
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).containsKeyFailure(eq("keyA"), any(StoreAccessException.class));
   }
 
   /**
@@ -145,7 +145,7 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
 
     assertFalse(ehcache.containsKey("missingKey"));
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -162,7 +162,7 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
 
     ehcache.containsKey("missingKey");
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).containsKeyFailure(eq("missingKey"), any(StoreAccessException.class));
   }
 
   private Map<String, String> getTestStoreEntries() {
@@ -182,11 +182,10 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
   private EhcacheWithLoaderWriter<String, String> getEhcache()
       throws Exception {
     final EhcacheWithLoaderWriter<String, String> ehcache =
-      new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
         .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicContainsKeyTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

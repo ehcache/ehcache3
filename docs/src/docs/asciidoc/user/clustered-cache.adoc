@@ -143,6 +143,9 @@ In this example, a dedicated pool of 32MB is allocated for clustered-cache from 
 <7> Configures another cache (`shared-cache-2`) that shares the resource pool (`resource-pool-a`) with `shared-cache-1`.
 <8> Creates fully initialized cache manager with the clustered caches.
 
+NOTE: When a cache is allocated a block of memory from a shared pool, it is retained forever and would never get
+reallocated to another cache sharing the pool.
+
 [[cluster-tier-manager-lifecycle]]
 == Ehcache Cluster Tier Manager Lifecycle
 

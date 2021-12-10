@@ -64,7 +64,6 @@ import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
 import sun.misc.Unsafe;
 
@@ -2557,10 +2556,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         CounterCell[] as = counterCells; CounterCell a;
         long sum = baseCount;
         if (as != null) {
-            for (int i = 0; i < as.length; ++i) {
-                if ((a = as[i]) != null)
-                    sum += a.value;
-            }
+          for (CounterCell a1 : as) {
+            if ((a = a1) != null)
+              sum += a.value;
+          }
         }
         return sum;
     }

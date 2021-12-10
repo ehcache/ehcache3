@@ -78,13 +78,9 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
     }
   }
 
-  private static String attr(Element element, String name, String def) {
-    String s = element.getAttribute(name);
-    return s == null || s.equals("") ? def : s;
-  }
-
   private static String attr(Element element, String name) {
-    return attr(element, name, null);
+    String s = element.getAttribute(name);
+    return s == null || s.equals("") ? null : s;
   }
 
   private static String val(Element element) {

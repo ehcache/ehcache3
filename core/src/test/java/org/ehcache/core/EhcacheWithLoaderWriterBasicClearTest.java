@@ -18,7 +18,7 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -59,7 +59,7 @@ public class EhcacheWithLoaderWriterBasicClearTest extends EhcacheBasicCrudBase 
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
@@ -77,7 +77,7 @@ public class EhcacheWithLoaderWriterBasicClearTest extends EhcacheBasicCrudBase 
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).clearFailure(any(StoreAccessException.class));
+    verify(this.resilienceStrategy).clearFailure(any(StoreAccessException.class));
   }
 
   /**
@@ -92,7 +92,7 @@ public class EhcacheWithLoaderWriterBasicClearTest extends EhcacheBasicCrudBase 
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
@@ -111,7 +111,7 @@ public class EhcacheWithLoaderWriterBasicClearTest extends EhcacheBasicCrudBase 
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).clearFailure(any(StoreAccessException.class));
+    verify(this.resilienceStrategy).clearFailure(any(StoreAccessException.class));
     // Not testing ResilienceStrategy implementation here
   }
 
@@ -132,11 +132,10 @@ public class EhcacheWithLoaderWriterBasicClearTest extends EhcacheBasicCrudBase 
   private EhcacheWithLoaderWriter<String, String> getEhcache()
       throws Exception {
     final EhcacheWithLoaderWriter<String, String> ehcache =
-      new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
         .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicClearTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

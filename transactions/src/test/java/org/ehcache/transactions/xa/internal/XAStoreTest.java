@@ -17,10 +17,10 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -29,9 +29,7 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -62,6 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -73,18 +72,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.transaction.HeuristicMixedException;
 import javax.transaction.HeuristicRollbackException;
-import javax.transaction.InvalidTransactionException;
-import javax.transaction.NotSupportedException;
 import javax.transaction.RollbackException;
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
@@ -94,10 +88,10 @@ import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 
+import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptySet;
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
-import static org.ehcache.expiry.Duration.of;
-import static org.ehcache.expiry.Expirations.timeToLiveExpiration;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -108,7 +102,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 /**
- * Tests for {@link XAStore} and {@link org.ehcache.transactions.xa.internal.XAStore.Provider XAStore.Provider}.
+ * Tests for {@link XAStore} and {@link org.ehcache.transactions.xa.internal.XAStore.Provider}.
  */
 public class XAStoreTest {
 
@@ -126,7 +120,7 @@ public class XAStoreTest {
   private Serializer<Long> keySerializer;
   private Serializer<SoftLock<String>> valueSerializer;
   private StoreEventDispatcher<Long, SoftLock<String>> eventDispatcher;
-  private final Expiry<Object, Object> expiry = timeToLiveExpiration(of(1, TimeUnit.SECONDS));
+  private final ExpiryPolicy<Object, Object> expiry = timeToLiveExpiration(ofSeconds(1));
   private Copier<Long> keyCopier;
   private Copier<SoftLock<String>> valueCopier;
 
@@ -140,7 +134,7 @@ public class XAStoreTest {
     keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
     valueCopier = copyProvider.createValueCopier(valueClass, valueSerializer);
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
-      null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      null, classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .heap(10, EntryUnit.ENTRIES)
       .build(),
       0, keySerializer, valueSerializer);
@@ -183,7 +177,7 @@ public class XAStoreTest {
       assertThat(xaStore.get(1L), is(nullValue()));
       assertThat(xaStore.put(1L, "1"), equalTo(Store.PutStatus.PUT));
       assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
-      assertThat(xaStore.get(1L).value(), equalTo("one"));
+      assertThat(xaStore.get(1L).get(), equalTo("one"));
     }
     testTransactionManager.rollback();
 
@@ -194,7 +188,7 @@ public class XAStoreTest {
       assertThat(xaStore.get(1L), is(nullValue()));
       assertThat(xaStore.put(1L, "1"), equalTo(Store.PutStatus.PUT));
       assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
-      assertThat(xaStore.get(1L).value(), equalTo("one"));
+      assertThat(xaStore.get(1L).get(), equalTo("one"));
     }
     testTransactionManager.commit();
 
@@ -218,7 +212,7 @@ public class XAStoreTest {
       assertThat(xaStore.remove(1L), equalTo(false));
       assertThat(xaStore.get(1L), is(nullValue()));
       assertThat(xaStore.put(1L, "un"), equalTo(Store.PutStatus.PUT));
-      assertThat(xaStore.get(1L).value(), equalTo("un"));
+      assertThat(xaStore.get(1L).get(), equalTo("un"));
     }
     testTransactionManager.commit();
 
@@ -352,7 +346,7 @@ public class XAStoreTest {
       Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = xaStore.iterator();
       while (iterator.hasNext()) {
         Cache.Entry<Long, Store.ValueHolder<String>> next = iterator.next();
-        iterated.put(next.getKey(), next.getValue().value());
+        iterated.put(next.getKey(), next.getValue().get());
       }
       assertThat(iterated.size(), is(3));
       assertThat(iterated.get(0L), equalTo("zero"));
@@ -367,7 +361,7 @@ public class XAStoreTest {
       Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = xaStore.iterator();
       while (iterator.hasNext()) {
         Cache.Entry<Long, Store.ValueHolder<String>> next = iterator.next();
-        iterated.put(next.getKey(), next.getValue().value());
+        iterated.put(next.getKey(), next.getValue().get());
       }
       assertThat(iterated.size(), is(3));
       assertThat(iterated.get(0L), equalTo("zero"));
@@ -425,9 +419,9 @@ public class XAStoreTest {
     testTransactionManager.begin();
     {
       assertThat(xaStore.putIfAbsent(1L, "one"), is(nullValue()));
-      assertThat(xaStore.get(1L).value(), equalTo("one"));
-      assertThat(xaStore.putIfAbsent(1L, "un").value(), equalTo("one"));
-      assertThat(xaStore.get(1L).value(), equalTo("one"));
+      assertThat(xaStore.get(1L).get(), equalTo("one"));
+      assertThat(xaStore.putIfAbsent(1L, "un").get(), equalTo("one"));
+      assertThat(xaStore.get(1L).get(), equalTo("one"));
     }
     testTransactionManager.commit();
 
@@ -435,8 +429,8 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.putIfAbsent(1L, "un").value(), equalTo("one"));
-      assertThat(xaStore.get(1L).value(), equalTo("one"));
+      assertThat(xaStore.putIfAbsent(1L, "un").get(), equalTo("one"));
+      assertThat(xaStore.get(1L).get(), equalTo("one"));
       assertThat(xaStore.remove(1L), equalTo(true));
       assertThat(xaStore.putIfAbsent(1L, "uno"), is(nullValue()));
     }
@@ -549,8 +543,8 @@ public class XAStoreTest {
     {
       assertThat(xaStore.replace(1L, "one"), is(nullValue()));
       assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
-      assertThat(xaStore.replace(1L, "un").value(), equalTo("one"));
-      assertThat(xaStore.replace(1L, "uno").value(), equalTo("un"));
+      assertThat(xaStore.replace(1L, "un").get(), equalTo("one"));
+      assertThat(xaStore.replace(1L, "uno").get(), equalTo("un"));
     }
     testTransactionManager.commit();
 
@@ -558,8 +552,8 @@ public class XAStoreTest {
 
     testTransactionManager.begin();
     {
-      assertThat(xaStore.replace(1L, "een").value(), equalTo("uno"));
-      assertThat(xaStore.replace(1L, "eins").value(), equalTo("een"));
+      assertThat(xaStore.replace(1L, "een").get(), equalTo("uno"));
+      assertThat(xaStore.replace(1L, "eins").get(), equalTo("een"));
     }
     testTransactionManager.commit();
 
@@ -628,10 +622,10 @@ public class XAStoreTest {
       assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
       assertThat(xaStore.replace(1L, "eins", "un"), equalTo(Store.ReplaceStatus.MISS_PRESENT));
       assertThat(xaStore.replace(1L, "one", "un"), equalTo(Store.ReplaceStatus.HIT));
-      assertThat(xaStore.get(1L).value(), equalTo("un"));
+      assertThat(xaStore.get(1L).get(), equalTo("un"));
       assertThat(xaStore.replace(1L, "eins", "een"), equalTo(Store.ReplaceStatus.MISS_PRESENT));
       assertThat(xaStore.replace(1L, "un", "uno"), equalTo(Store.ReplaceStatus.HIT));
-      assertThat(xaStore.get(1L).value(), equalTo("uno"));
+      assertThat(xaStore.get(1L).get(), equalTo("uno"));
     }
     testTransactionManager.commit();
 
@@ -641,7 +635,7 @@ public class XAStoreTest {
     {
       assertThat(xaStore.replace(1L, "one", "uno"), equalTo(Store.ReplaceStatus.MISS_PRESENT));
       assertThat(xaStore.replace(1L, "uno", "un"), equalTo(Store.ReplaceStatus.HIT));
-      assertThat(xaStore.get(1L).value(), equalTo("un"));
+      assertThat(xaStore.get(1L).get(), equalTo("un"));
       assertThat(xaStore.remove(1L), equalTo(true));
       assertThat(xaStore.replace(1L, "un", "eins"), equalTo(Store.ReplaceStatus.MISS_NOT_PRESENT));
     }
@@ -695,7 +689,7 @@ public class XAStoreTest {
   @Test
   public void testCompute() throws Exception {
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
-      null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      null, classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .offheap(10, MemoryUnit.MB)
       .build(),
       0, keySerializer, valueSerializer);
@@ -713,13 +707,13 @@ public class XAStoreTest {
         assertThat(s, is(nullValue()));
         return "one";
       });
-      assertThat(computed1.value(), equalTo("one"));
+      assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
         return "un";
       });
-      assertThat(computed2.value(), equalTo("un"));
+      assertThat(computed2.get(), equalTo("un"));
       Store.ValueHolder<String> computed3 = xaStore.compute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("un"));
@@ -738,7 +732,7 @@ public class XAStoreTest {
         assertThat(s, is(nullValue()));
         return "one";
       }, () -> Boolean.FALSE);
-      assertThat(computed1.value(), equalTo("one"));
+      assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
@@ -757,7 +751,7 @@ public class XAStoreTest {
         assertThat(s, is(nullValue()));
         return "one";
       });
-      assertThat(computed1.value(), equalTo("one"));
+      assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
@@ -776,13 +770,13 @@ public class XAStoreTest {
         assertThat(s, is(nullValue()));
         return "one";
       });
-      assertThat(computed1.value(), equalTo("one"));
+      assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.compute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
         assertThat(s, equalTo("one"));
         return "un";
       });
-      assertThat(computed2.value(), equalTo("un"));
+      assertThat(computed2.get(), equalTo("un"));
     }
     testTransactionManager.commit();
 
@@ -795,7 +789,7 @@ public class XAStoreTest {
         assertThat(s, equalTo("un"));
         return "eins";
       });
-      assertThat(computed.value(), equalTo("eins"));
+      assertThat(computed.get(), equalTo("eins"));
     }
     testTransactionManager.commit();
 
@@ -833,7 +827,7 @@ public class XAStoreTest {
         assertThat(s, is(nullValue()));
         return "uno";
       });
-      assertThat(computed3.value(), equalTo("uno"));
+      assertThat(computed3.get(), equalTo("uno"));
     }
     testTransactionManager.commit();
 
@@ -871,7 +865,7 @@ public class XAStoreTest {
   @Test
   public void testComputeIfAbsent() throws Exception {
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
-      classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .offheap(10, MemoryUnit.MB)
       .build(),
       0, keySerializer, valueSerializer);
@@ -888,12 +882,12 @@ public class XAStoreTest {
         assertThat(aLong, is(1L));
         return "one";
       });
-      assertThat(computed1.value(), equalTo("one"));
+      assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.computeIfAbsent(1L, aLong -> {
         fail("should not be absent");
         throw new AssertionError();
       });
-      assertThat(computed2.value(), equalTo("one"));
+      assertThat(computed2.get(), equalTo("one"));
     }
     testTransactionManager.commit();
 
@@ -905,7 +899,7 @@ public class XAStoreTest {
         fail("should not be absent");
         throw new AssertionError();
       });
-      assertThat(computed1.value(), equalTo("one"));
+      assertThat(computed1.get(), equalTo("one"));
 
       xaStore.remove(1L);
 
@@ -913,7 +907,7 @@ public class XAStoreTest {
         assertThat(aLong, is(1L));
         return "un";
       });
-      assertThat(computed2.value(), equalTo("un"));
+      assertThat(computed2.get(), equalTo("un"));
     }
     testTransactionManager.commit();
 
@@ -955,7 +949,7 @@ public class XAStoreTest {
 
   @Test
   public void testExpiryCreateException() throws Exception {
-    Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
+    ExpiryPolicy<Object, Object> expiry = new ExpiryPolicy<Object, Object>() {
 
       @Override
       public Duration getExpiryForCreation(Object key, Object value) {
@@ -963,12 +957,12 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, ValueSupplier<? extends Object> value) {
+      public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
         throw new AssertionError();
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
         throw new AssertionError();
       }
     };
@@ -995,24 +989,24 @@ public class XAStoreTest {
   @Test
   public void testExpiryAccessException() throws Exception {
     String uniqueXAResourceId = "testExpiryAccessException";
-    Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
+    ExpiryPolicy<Object, Object> expiry = new ExpiryPolicy<Object, Object>() {
 
       @Override
       public Duration getExpiryForCreation(Object key, Object value) {
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, ValueSupplier<? extends Object> value) {
+      public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
         if (testTimeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
-        return Duration.INFINITE;
+      public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
+        return ExpiryPolicy.INFINITE;
       }
     };
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
@@ -1035,7 +1029,7 @@ public class XAStoreTest {
 
     testTimeSource.advanceTime(1000);
     testTransactionManager.begin();
-    assertThat(xaStore.get(1L).value(), is("one"));
+    assertThat(xaStore.get(1L).get(), is("one"));
     testTransactionManager.commit();
 
     testTransactionManager.begin();
@@ -1045,24 +1039,24 @@ public class XAStoreTest {
 
   @Test
   public void testExpiryUpdateException() throws Exception{
-    Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
+    ExpiryPolicy<Object, Object> expiry = new ExpiryPolicy<Object, Object>() {
 
       @Override
       public Duration getExpiryForCreation(Object key, Object value) {
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, ValueSupplier<? extends Object> value) {
-        return Duration.INFINITE;
+      public Duration getExpiryForAccess(Object key, Supplier<? extends Object> value) {
+        return ExpiryPolicy.INFINITE;
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, Supplier<? extends Object> oldValue, Object newValue) {
         if (testTimeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
-        return Duration.INFINITE;
+        return ExpiryPolicy.INFINITE;
       }
     };
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
@@ -1094,7 +1088,7 @@ public class XAStoreTest {
   @Test
   public void testBulkCompute() throws Exception {
     String uniqueXAResourceId = "testBulkCompute";
-    Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1));
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
@@ -1123,9 +1117,9 @@ public class XAStoreTest {
       });
 
       assertThat(computedMap.size(), is(3));
-      assertThat(computedMap.get(1L).value(), equalTo("stuff#1"));
-      assertThat(computedMap.get(2L).value(), equalTo("stuff#2"));
-      assertThat(computedMap.get(3L).value(), equalTo("stuff#3"));
+      assertThat(computedMap.get(1L).get(), equalTo("stuff#1"));
+      assertThat(computedMap.get(2L).get(), equalTo("stuff#2"));
+      assertThat(computedMap.get(3L).get(), equalTo("stuff#3"));
 
 
       computedMap = xaStore.bulkCompute(asSet(0L, 1L, 3L), entries -> {
@@ -1154,8 +1148,8 @@ public class XAStoreTest {
       });
 
       assertThat(computedMap.size(), is(3));
-      assertThat(computedMap.get(0L).value(), equalTo("otherStuff#0"));
-      assertThat(computedMap.get(1L).value(), equalTo("otherStuff#1"));
+      assertThat(computedMap.get(0L).get(), equalTo("otherStuff#0"));
+      assertThat(computedMap.get(1L).get(), equalTo("otherStuff#1"));
       assertThat(computedMap.get(3L), is(nullValue()));
     }
     testTransactionManager.commit();
@@ -1170,7 +1164,7 @@ public class XAStoreTest {
 
   @Test
   public void testBulkComputeIfAbsent() throws Exception {
-    Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS));
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(1));
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
@@ -1196,9 +1190,9 @@ public class XAStoreTest {
       });
 
       assertThat(computedMap.size(), is(3));
-      assertThat(computedMap.get(1L).value(), equalTo("stuff#1"));
-      assertThat(computedMap.get(2L).value(), equalTo("stuff#2"));
-      assertThat(computedMap.get(3L).value(), equalTo("stuff#3"));
+      assertThat(computedMap.get(1L).get(), equalTo("stuff#1"));
+      assertThat(computedMap.get(2L).get(), equalTo("stuff#2"));
+      assertThat(computedMap.get(3L).get(), equalTo("stuff#3"));
 
       computedMap = xaStore.bulkComputeIfAbsent(asSet(0L, 1L, 3L), keys -> {
         Map<Long, String> result = new HashMap<>();
@@ -1217,9 +1211,9 @@ public class XAStoreTest {
       });
 
       assertThat(computedMap.size(), is(3));
-      assertThat(computedMap.get(0L).value(), equalTo("otherStuff#0"));
-      assertThat(computedMap.get(1L).value(), equalTo("stuff#1"));
-      assertThat(computedMap.get(3L).value(), equalTo("stuff#3"));
+      assertThat(computedMap.get(0L).get(), equalTo("otherStuff#0"));
+      assertThat(computedMap.get(1L).get(), equalTo("stuff#1"));
+      assertThat(computedMap.get(3L).get(), equalTo("stuff#3"));
     }
     testTransactionManager.commit();
 
@@ -1241,7 +1235,7 @@ public class XAStoreTest {
       return false;
     };
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
-      evictionAdvisor, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+      evictionAdvisor, classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .heap(10, EntryUnit.ENTRIES)
       .build(),
       0, keySerializer, valueSerializer);
@@ -1335,7 +1329,7 @@ public class XAStoreTest {
 
     Store.ValueHolder<String> valueHolder = xaStore.get(key);
     if (value != null) {
-      assertThat(valueHolder.value(), equalTo(value));
+      assertThat(valueHolder.get(), equalTo(value));
     } else {
       assertThat(valueHolder, is(nullValue()));
     }
@@ -1371,7 +1365,7 @@ public class XAStoreTest {
     }
 
     @Override
-    public void begin() throws NotSupportedException, SystemException {
+    public void begin() {
       currentTransaction = new TestTransaction(gtridGenerator.incrementAndGet());
     }
 
@@ -1382,17 +1376,17 @@ public class XAStoreTest {
     }
 
     @Override
-    public int getStatus() throws SystemException {
+    public int getStatus() {
       return 0;
     }
 
     @Override
-    public Transaction getTransaction() throws SystemException {
+    public Transaction getTransaction() {
       return currentTransaction;
     }
 
     @Override
-    public void resume(Transaction tobj) throws InvalidTransactionException, IllegalStateException, SystemException {
+    public void resume(Transaction tobj) {
 
     }
 
@@ -1403,17 +1397,17 @@ public class XAStoreTest {
     }
 
     @Override
-    public void setRollbackOnly() throws IllegalStateException, SystemException {
+    public void setRollbackOnly() {
 
     }
 
     @Override
-    public void setTransactionTimeout(int seconds) throws SystemException {
+    public void setTransactionTimeout(int seconds) {
 
     }
 
     @Override
-    public Transaction suspend() throws SystemException {
+    public Transaction suspend() {
       return null;
     }
   }

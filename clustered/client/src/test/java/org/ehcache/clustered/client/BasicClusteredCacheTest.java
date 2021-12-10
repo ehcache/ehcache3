@@ -26,6 +26,8 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +36,7 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.Random;
+import java.util.concurrent.atomic.LongAdder;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -207,22 +210,27 @@ public class BasicClusteredCacheTest {
 
   @Test
   public void testLargeValues() throws Exception {
-    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+    DefaultStatisticsService statisticsService = new DefaultStatisticsService();
+    CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
             newCacheManagerBuilder()
+                    .using(statisticsService)
                     .with(cluster(CLUSTER_URI).autoCreate())
-                    .withCache("small-cache", newCacheConfigurationBuilder(Long.class, String.class,
+                    .withCache("small-cache", newCacheConfigurationBuilder(Long.class, BigInteger.class,
                             ResourcePoolsBuilder.newResourcePoolsBuilder()
                                     .with(clusteredDedicated("secondary-server-resource", 4, MemoryUnit.MB))));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
-    final Cache<Long, String> cache = cacheManager.getCache("small-cache", Long.class, String.class);
+    // The idea here is to add big things in the cache, and cause eviction of them to see if something crashes
 
-    Random random = new Random();
-    for (int i = 0 ; i < 100; i++) {
-      cache.put((long) i, new BigInteger(10 * 1024 * 128 * (1 + random.nextInt(10)), random).toString(16));
+    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
+
+      Cache<Long, BigInteger> cache = cacheManager.getCache("small-cache", Long.class, BigInteger.class);
+
+      Random random = new Random();
+      for (long i = 0; i < 100; i++) {
+        BigInteger value = new BigInteger(30 * 1024 * 128 * (1 + random.nextInt(10)), random);
+        cache.put(i, value);
+      }
     }
-
-    cacheManager.close();
   }
 
   public static class Person implements Serializable {

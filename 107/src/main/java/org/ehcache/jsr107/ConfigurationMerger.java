@@ -81,7 +81,7 @@ class ConfigurationMerger {
 
       String templateName = jsr107Service.getTemplateNameForCache(cacheName);
       if (xmlConfiguration != null && templateName != null) {
-        CacheConfigurationBuilder<K, V> templateBuilder = null;
+        CacheConfigurationBuilder<K, V> templateBuilder;
         try {
           templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
               jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
@@ -127,7 +127,7 @@ class ConfigurationMerger {
       setupManagementAndStatsInternal(jsr107Configuration, findSingletonAmongst(Jsr107CacheConfiguration.class, cacheConfiguration.getServiceConfigurations()));
 
       if (hasConfiguredExpiry) {
-        expiryPolicy = new EhcacheExpiryWrapper<>(cacheConfiguration.getExpiry());
+        expiryPolicy = new EhcacheExpiryWrapper<>(cacheConfiguration.getExpiryPolicy());
       }
 
       return new ConfigHolder<>(

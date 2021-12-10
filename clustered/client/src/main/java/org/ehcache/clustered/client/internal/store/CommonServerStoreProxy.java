@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ResponseListener;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
@@ -34,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Objects.requireNonNull;
@@ -53,6 +51,8 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     this.cacheId = requireNonNull(cacheId, "Cache-ID must be non-null");
     this.entity = requireNonNull(entity, "ClusterTierClientEntity must be non-null");
     requireNonNull(invalidation, "ServerCallback must be non-null");
+
+    entity.addDisconnectionListener(invalidation::onInvalidateAll);
 
     entity.addResponseListener(ServerInvalidateHash.class, response -> {
       long key = response.getKey();
@@ -124,7 +124,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void append(long key, ByteBuffer payLoad) throws TimeoutException {
+  public void append(long key, ByteBuffer payLoad) {
     try {
       entity.invokeAndWaitForReceive(new AppendMessage(key, payLoad), true);
     } catch (Exception e) {

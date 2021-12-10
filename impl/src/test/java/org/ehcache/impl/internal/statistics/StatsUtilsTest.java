@@ -16,11 +16,6 @@
 
 package org.ehcache.impl.internal.statistics;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
@@ -39,6 +34,12 @@ import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.StatisticType;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
@@ -52,6 +53,8 @@ import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
+import static org.terracotta.statistics.StatisticsManager.properties;
+import static org.terracotta.statistics.StatisticsManager.tags;
 
 public class StatsUtilsTest {
 
@@ -72,14 +75,14 @@ public class StatsUtilsTest {
 
     cache = cacheManager.getCache("aCache", Long.class, String.class);
 
-    StatisticsManager.createPassThroughStatistic(cache, "test", Collections.<String>emptySet(), Collections.singletonMap("myproperty", "myvalue"), (Callable<Number>) () -> 0);
+    StatisticsManager.createPassThroughStatistic(cache, "test", tags(), properties("myproperty=myvalue"), StatisticType.COUNTER, () -> 0);
 
     cache.get(1L);
   }
 
   @After
   public void after() {
-    if(cacheManager != null) {
+    if (cacheManager != null) {
       cacheManager.close();
     }
   }
@@ -134,7 +137,7 @@ public class StatsUtilsTest {
       .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
         hasAttribute("name", "test"),
         hasProperty(key, value)
-        ))))
+      ))))
       .build();
 
     return statQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));
@@ -143,27 +146,27 @@ public class StatsUtilsTest {
   @SuppressWarnings("unchecked")
   @Test
   public void testFindStatisticOnDescendantsWithDiscriminator() throws Exception {
-    OperationStatistic<TierOperationOutcomes.GetOutcome> stat = findStatisticOnDescendants(cache, "OnHeap", "tier", "get");
-    assertThat(stat.sum()).isEqualTo(1L);
+    Optional<OperationStatistic<TierOperationOutcomes.GetOutcome>> stat = findStatisticOnDescendants(cache, "OnHeap", "tier", "get");
+    assertThat(stat.get().sum()).isEqualTo(1L);
 
     stat = findStatisticOnDescendants(cache, "OnHeap", "tier", "xxx");
-    assertThat(stat).isNull();
+    assertThat(stat.isPresent()).isFalse();
 
     stat = findStatisticOnDescendants(cache, "xxx", "tier", "xxx");
-    assertThat(stat).isNull();
+    assertThat(stat.isPresent()).isFalse();
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void testFindStatisticOnDescendants() throws Exception {
-    OperationStatistic<TierOperationOutcomes.GetOutcome> stat = findStatisticOnDescendants(cache, "OnHeap", "get");
-    assertThat(stat.sum()).isEqualTo(1L);
+    Optional<OperationStatistic<TierOperationOutcomes.GetOutcome>> stat = findStatisticOnDescendants(cache, "OnHeap", "get");
+    assertThat(stat.get().sum()).isEqualTo(1L);
 
     stat = findStatisticOnDescendants(cache, "OnHeap", "xxx");
-    assertThat(stat).isNull();
+    assertThat(stat.isPresent()).isFalse();
 
     stat = findStatisticOnDescendants(cache, "xxx", "xxx");
-    assertThat(stat).isNull();
+    assertThat(stat.isPresent()).isFalse();
   }
 
   @Test
@@ -186,19 +189,19 @@ public class StatsUtilsTest {
 
   @Test
   public void testFindLowerTier_one() {
-    String tier = findLowestTier(new String[] { "OnHeap" });
+    String tier = findLowestTier(new String[]{"OnHeap"});
     assertThat(tier).isEqualTo("OnHeap");
   }
 
   @Test
   public void testFindLowerTier_two() {
-    String tier = findLowestTier(new String[] { "OnHeap", "Offheap" });
+    String tier = findLowestTier(new String[]{"OnHeap", "Offheap"});
     assertThat(tier).isEqualTo("Offheap");
   }
 
   @Test
   public void testFindLowerTier_three() {
-    String tier = findLowestTier(new String[] { "OnHeap", "Offheap", "Disk" });
+    String tier = findLowestTier(new String[]{"OnHeap", "Offheap", "Disk"});
     assertThat(tier).isEqualTo("Disk");
   }
 

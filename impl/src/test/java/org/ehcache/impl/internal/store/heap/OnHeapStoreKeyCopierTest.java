@@ -17,9 +17,9 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -33,10 +33,7 @@ import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.util.Collections.singleton;
@@ -82,7 +79,7 @@ public class OnHeapStoreKeyCopierTest {
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Key.class);
     when(configuration.getValueType()).thenReturn(String.class);
-    when(configuration.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(configuration.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     @SuppressWarnings("unchecked")
     Store.Configuration<Key, String> config = configuration;
 
@@ -104,7 +101,7 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
+    store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
   }
 
   @Test
@@ -117,11 +114,11 @@ public class OnHeapStoreKeyCopierTest {
     Store.ValueHolder<String> firstStoreValue = store.get(KEY);
     Store.ValueHolder<String> secondStoreValue = store.get(copyKey);
     if (copyForWrite) {
-      assertThat(firstStoreValue.value(), is(VALUE));
+      assertThat(firstStoreValue.get(), is(VALUE));
       assertThat(secondStoreValue, nullValue());
     } else {
       assertThat(firstStoreValue, nullValue());
-      assertThat(secondStoreValue.value(), is(VALUE));
+      assertThat(secondStoreValue.get(), is(VALUE));
     }
   }
 
