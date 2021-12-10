@@ -25,31 +25,48 @@ package org.ehcache.impl.internal.concurrent;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import static java.lang.Integer.rotateLeft;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.Spliterator;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountedCompleter;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.DoubleBinaryOperator;
 import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
+import java.util.function.LongBinaryOperator;
+import java.util.function.ToDoubleBiFunction;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntBiFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongBiFunction;
+import java.util.function.ToLongFunction;
 
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
-import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
+import sun.misc.Unsafe;
 
 
 /**
@@ -1170,8 +1187,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
    * @param keyHash the keys' hashcode.
    * @return the removed mappings.
    */
-  public final Map<K, V> removeAllWithHash(int keyHash) {
-      Map<K, V> invalidated = new HashMap<>();
+  public final Collection<Map.Entry<K, V>> removeAllWithHash(int keyHash) {
+      List<Map.Entry<K, V>> invalidated = new ArrayList<>();
 
       int hash = spread(keyHash);
       for (Node<K, V>[] tab = table; ; ) {
@@ -1269,8 +1286,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * <p>The view's iterators and spliterators are
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
-     * <p>The view's {@code spliterator} reports {@link Spliterator#CONCURRENT}
-     * and {@link Spliterator#NONNULL}.
+     * <p>The view's {@code spliterator} reports {@link java.util.Spliterator#CONCURRENT}
+     * and {@link java.util.Spliterator#NONNULL}.
      *
      * @return the collection view
      */
@@ -1291,8 +1308,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * <p>The view's iterators and spliterators are
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
-     * <p>The view's {@code spliterator} reports {@link Spliterator#CONCURRENT},
-     * {@link Spliterator#DISTINCT}, and {@link Spliterator#NONNULL}.
+     * <p>The view's {@code spliterator} reports {@link java.util.Spliterator#CONCURRENT},
+     * {@link java.util.Spliterator#DISTINCT}, and {@link java.util.Spliterator#NONNULL}.
      *
      * @return the set view
      */
@@ -2288,7 +2305,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             CounterCell a; long v; int m;
             boolean uncontended = true;
             if (as == null || (m = as.length - 1) < 0 ||
-                (a = as[ThreadLocalRandom.getProbe() & m]) == null ||
+                (a = as[ThreadLocalRandomUtil.getProbe() & m]) == null ||
                 !(uncontended =
                   U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))) {
                 fullAddCount(x, uncontended);
@@ -2551,9 +2568,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     // See LongAdder version for explanation
     private final void fullAddCount(long x, boolean wasUncontended) {
         int h;
-        if ((h = ThreadLocalRandom.getProbe()) == 0) {
-            ThreadLocalRandom.localInit();      // force initialization
-            h = ThreadLocalRandom.getProbe();
+        if ((h = ThreadLocalRandomUtil.getProbe()) == 0) {
+          ThreadLocalRandomUtil.localInit();      // force initialization
+            h = ThreadLocalRandomUtil.getProbe();
             wasUncontended = true;
         }
         boolean collide = false;                // True if last slot nonempty
@@ -2607,7 +2624,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     collide = false;
                     continue;                   // Retry with expanded table
                 }
-                h = ThreadLocalRandom.advanceProbe(h);
+                h = ThreadLocalRandomUtil.advanceProbe(h);
             }
             else if (cellsBusy == 0 && counterCells == as &&
                      U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
@@ -2678,26 +2695,26 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return hd;
     }
 
-    private static <K,V> int nodesAt(Node<K,V> b, Map<K, V> nodes) {
+    private static <K,V> int nodesAt(Node<K,V> b, Collection<Map.Entry<K, V>> nodes) {
         if (b instanceof TreeBin) {
             return treeNodesAt(((TreeBin<K,V>)b).root, nodes);
         } else {
             int count = 0;
             for (Node<K,V> q = b; q != null; q = q.next) {
-                nodes.put(q.key, q.val);
+                nodes.add(new AbstractMap.SimpleImmutableEntry<>(q.key, q.val));
                 count++;
             }
             return count;
         }
     }
 
-    private static <K,V> int treeNodesAt(TreeNode<K, V> root, Map<K, V> nodes) {
+    private static <K,V> int treeNodesAt(TreeNode<K, V> root, Collection<Map.Entry<K, V>> nodes) {
         if (root == null) {
             return 0;
         }
 
         int count = 1;
-        nodes.put(root.key, root.val);
+        nodes.add(new AbstractMap.SimpleImmutableEntry(root.key, root.val));
         count += treeNodesAt(root.left, nodes);
         count += treeNodesAt(root.right, nodes);
         return count;
@@ -3293,11 +3310,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return true;
         }
 
-        private static final Unsafe U;
+        private static final Unsafe U = ThreadLocalRandomUtil.UNSAFE;
         private static final long LOCKSTATE;
         static {
             try {
-                U = Unsafe.getUnsafe();
                 Class<?> k = TreeBin.class;
                 LOCKSTATE = U.objectFieldOffset
                     (k.getDeclaredField("lockState"));
@@ -4831,7 +4847,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                      (containsAll(c) && c.containsAll(this))));
         }
 
-        public Spliterator<Map.Entry<K,V>> _spliterator() {
+        public Spliterator<Entry<K,V>> spliterator() {
             Node<K,V>[] t;
             ConcurrentHashMap<K,V> m = map;
             long n = m.sumCount();
@@ -6328,7 +6344,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     // Unsafe mechanics
-    private static final Unsafe U;
+    private static final Unsafe U = ThreadLocalRandomUtil.UNSAFE;
     private static final long SIZECTL;
     private static final long TRANSFERINDEX;
     private static final long BASECOUNT;
@@ -6339,7 +6355,6 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     static {
         try {
-            U = Unsafe.getUnsafe();
             Class<?> k = ConcurrentHashMap.class;
             SIZECTL = U.objectFieldOffset
                 (k.getDeclaredField("sizeCtl"));
@@ -6430,4 +6445,5 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             return new MapEntry<>(maxKey, maxVal, this);
         }
     }
+
 }

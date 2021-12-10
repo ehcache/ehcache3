@@ -143,9 +143,7 @@ public class VoltronReadWriteLock {
           //ignore
         }
       }
-    } catch (EntityVersionMismatchException e) {
-      throw new IllegalStateException(e);
-    } catch (EntityNotProvidedException e) {
+    } catch (EntityVersionMismatchException | EntityNotProvidedException e) {
       throw new IllegalStateException(e);
     }
   }

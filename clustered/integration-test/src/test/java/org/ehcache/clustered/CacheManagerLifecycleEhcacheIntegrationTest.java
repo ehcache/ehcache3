@@ -150,35 +150,27 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
   }
 
   private static <T extends Entity> void assertEntityExists(Class<T> entityClazz, String entityName) throws ConnectionException, IOException {
-    Connection connection = getAssertionConnection();
-    try {
+    try (Connection connection = getAssertionConnection()) {
       fetchEntity(connection, entityClazz, entityName);
     } catch (EntityNotFoundException ex) {
       throw new AssertionError(ex);
-    } finally {
-      connection.close();
     }
   }
 
 
   private static <T extends Entity> void assertEntityNotExists(Class<T> entityClazz, String entityName) throws ConnectionException, IOException {
-    Connection connection = getAssertionConnection();
-    try {
+    try (Connection connection = getAssertionConnection()) {
       fetchEntity(connection, entityClazz, entityName);
       throw new AssertionError("Expected EntityNotFoundException");
     } catch (EntityNotFoundException ex) {
       //expected
-    } finally {
-      connection.close();
     }
   }
 
   private static <T extends Entity> void fetchEntity(Connection connection, Class<T> aClass, String myCacheManager) throws EntityNotFoundException, ConnectionException {
     try {
       connection.getEntityRef(aClass, EhcacheEntityVersion.ENTITY_VERSION, myCacheManager).fetchEntity(null).close();
-    } catch (EntityNotProvidedException e) {
-      throw new AssertionError(e);
-    } catch (EntityVersionMismatchException e) {
+    } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
       throw new AssertionError(e);
     }
   }
@@ -204,24 +196,17 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
 
   static URL substitute(URL input, String variable, String substitution) throws IOException {
     File output = File.createTempFile(input.getFile(), ".substituted", new File("build"));
-    BufferedWriter writer = new BufferedWriter(new FileWriter(output));
-    try {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(input.openStream(), "UTF-8"));
-      try {
-        while (true) {
-          String line = reader.readLine();
-          if (line == null) {
-            break;
-          } else {
-            writer.write(line.replace("${" + variable + "}", substitution));
-            writer.newLine();
-          }
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(output));
+         BufferedReader reader = new BufferedReader(new InputStreamReader(input.openStream(), "UTF-8"))) {
+      while (true) {
+        String line = reader.readLine();
+        if (line == null) {
+          break;
+        } else {
+          writer.write(line.replace("${" + variable + "}", substitution));
+          writer.newLine();
         }
-      } finally {
-        reader.close();
       }
-    } finally {
-      writer.close();
     }
     return output.toURI().toURL();
   }

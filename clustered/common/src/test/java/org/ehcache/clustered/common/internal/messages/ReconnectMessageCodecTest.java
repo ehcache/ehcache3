@@ -40,7 +40,7 @@ public class ReconnectMessageCodecTest {
   @Test
   public void testClusterTierReconnectCodec() {
 
-    ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(UUID.randomUUID());
+    ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
 
     Set<Long> setToInvalidate = new HashSet<>();
     setToInvalidate.add(1L);
@@ -52,18 +52,8 @@ public class ReconnectMessageCodecTest {
 
     ClusterTierReconnectMessage decoded = reconnectMessageCodec.decode(reconnectMessageCodec.encode(reconnectMessage));
     assertThat(decoded, notNullValue());
-    assertThat(decoded.getClientId(), is(reconnectMessage.getClientId()));
     assertThat(decoded.getInvalidationsInProgress(), containsInAnyOrder(setToInvalidate.toArray()));
     assertThat(decoded.isClearInProgress(), is(true));
   }
 
-  @Test
-  public void testClusterTierManagerReconnectCodec() {
-    UUID uuid = UUID.randomUUID();
-    ClusterTierManagerReconnectMessage message = new ClusterTierManagerReconnectMessage(uuid);
-
-    ClusterTierManagerReconnectMessage decodedMessage = reconnectMessageCodec.decodeReconnectMessage(reconnectMessageCodec.encode(message));
-
-    assertThat(decodedMessage.getClientId(), is(uuid));
-  }
 }

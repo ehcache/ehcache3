@@ -71,7 +71,7 @@ public class DefaultTierStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount", "OnHeap:UpdateCount",
+    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount",
       "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount", "OnHeap:ExpirationCount", "OnHeap:MappingCount",
       "OnHeap:OccupiedByteSize");
   }
@@ -102,8 +102,8 @@ public class DefaultTierStatisticsTest {
   public void getUpdates() throws Exception {
     cache.put(1L, "a");
     cache.put(1L, "b");
-    assertThat(onHeap.getUpdates()).isEqualTo(1L);
-    assertStat("OnHeap:UpdateCount").isEqualTo(1L);
+    assertThat(onHeap.getPuts()).isEqualTo(2L);
+    assertStat("OnHeap:PutCount").isEqualTo(2L);
   }
 
   @Test

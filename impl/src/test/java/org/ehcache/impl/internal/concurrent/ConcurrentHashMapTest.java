@@ -18,12 +18,10 @@ package org.ehcache.impl.internal.concurrent;
 
 import org.junit.Test;
 
-import java.util.Comparator;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionAdvisor;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.hamcrest.CoreMatchers.is;
@@ -51,13 +49,11 @@ public class ConcurrentHashMapTest {
             map.put(o, "val#" + i);
         }
 
-        Map<Comparable<?>, String> removed = map.removeAllWithHash(lastHash);
+        Collection<Entry<Comparable<?>, String>> removed = map.removeAllWithHash(lastHash);
 
         assertThat(removed.size(), greaterThan(0));
         assertThat(map.size() + removed.size(), is(totalCount));
-        for (Comparable<?> key : map.keySet()) {
-            assertThat(removed.containsKey(key), is(false));
-        }
+        assertRemovedEntriesAreRemoved(map, removed);
     }
 
     @Test
@@ -71,15 +67,18 @@ public class ConcurrentHashMapTest {
             map.put(o, "val#" + i);
         }
 
-        Map<Comparable<?>, String> removed = map.removeAllWithHash(BadHashKey.HASH_CODE);
+        Collection<Map.Entry<Comparable<?>, String>> removed = map.removeAllWithHash(BadHashKey.HASH_CODE);
 
         assertThat(removed.size(), is(totalCount));
         assertThat(map.size(), is(0));
-        for (Comparable<?> removedKey : removed.keySet()) {
-            assertThat(map.containsKey(removedKey), is(false));
-        }
+        assertRemovedEntriesAreRemoved(map, removed);
     }
 
+    private void assertRemovedEntriesAreRemoved(ConcurrentHashMap<Comparable<?>, String> map, Collection<Entry<Comparable<?>, String>> removed) {
+        for (Entry<Comparable<?>, String> entry : map.entrySet()) {
+            assertThat(removed.contains(entry), is(false));
+        }
+    }
     static class BadHashKey implements Comparable<BadHashKey> {
 
         static final int HASH_CODE = 42;

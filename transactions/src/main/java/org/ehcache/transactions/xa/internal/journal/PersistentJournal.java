@@ -91,8 +91,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
   public void open() throws IOException {
     File file = new File(directory, JOURNAL_FILENAME);
     if (file.isFile()) {
-      ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
-      try {
+      try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
         boolean valid = ois.readBoolean();
         states.clear();
         if (valid) {
@@ -108,12 +107,8 @@ public class PersistentJournal<K> extends TransientJournal<K> {
       } catch (ClassNotFoundException cnfe) {
         LOGGER.warn("Cannot deserialize XA journal contents, truncating it", cnfe);
       } finally {
-        ois.close();
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
-        try {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
           oos.writeObject(false);
-        } finally {
-          oos.close();
         }
       }
     }
@@ -121,8 +116,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
 
   @Override
   public void close() throws IOException {
-    ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(directory, JOURNAL_FILENAME)));
-    try {
+    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(directory, JOURNAL_FILENAME)))) {
       oos.writeBoolean(true);
       Map<TransactionId, SerializableEntry<K>> toSerialize = new HashMap<>();
       for (Map.Entry<TransactionId, Entry<K>> entry : states.entrySet()) {
@@ -132,8 +126,6 @@ public class PersistentJournal<K> extends TransientJournal<K> {
       }
       oos.writeObject(toSerialize);
       states.clear();
-    } finally {
-      oos.close();
     }
   }
 }

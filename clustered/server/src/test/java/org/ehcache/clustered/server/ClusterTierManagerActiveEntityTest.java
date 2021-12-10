@@ -62,16 +62,10 @@ import static org.mockito.Mockito.mock;
 public class ClusterTierManagerActiveEntityTest {
 
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private Management management = mock(Management.class);
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfigBuilder().build());
-
-  @Before
-  public void setClientId() {
-    MESSAGE_FACTORY.setClientId(CLIENT_ID);
-  }
 
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
@@ -242,7 +236,6 @@ public class ClusterTierManagerActiveEntityTest {
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 
-    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(activeEntity.invokeActive(context2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
   }
 
@@ -513,7 +506,7 @@ public class ClusterTierManagerActiveEntityTest {
 
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
-    if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
+    if (!EhcacheResponseType.SUCCESS.equals(response.getResponseType())) {
       throw ((Failure) response).getCause();
     }
   }

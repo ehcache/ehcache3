@@ -60,11 +60,11 @@ public class ExpiryEventsTest {
 
   private static final CacheConfigurationBuilder<Long, String> byRefCacheConfigBuilder =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-          .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));;
+          .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
       byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<>(
-        SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));;
+        SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();
 

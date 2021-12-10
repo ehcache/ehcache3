@@ -17,15 +17,12 @@
 package org.ehcache.impl.internal.concurrent.otherPackage;
 
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.concurrent.JSR166Helper;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -125,7 +122,7 @@ public class V8FeaturesTest {
 
         final Map<String, Integer> collector = Collections.synchronizedMap(new HashMap<String, Integer>());
 
-        chm.forEach((JSR166Helper.BiConsumer<String, Integer>) collector::put);
+        chm.forEach(collector::put);
 
         assertThat(chm, equalTo(collector));
     }

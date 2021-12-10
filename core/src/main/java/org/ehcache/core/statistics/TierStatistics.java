@@ -61,13 +61,6 @@ public interface TierStatistics {
   long getPuts();
 
   /**
-   * How many updates occurred on the tier since its creation or the latest {@link #clear()}
-   *
-   * @return update count
-   */
-  long getUpdates();
-
-  /**
    * How many removals occurred on the tier since its creation or the latest {@link #clear()}
    *
    * @return removal count

@@ -43,7 +43,7 @@ public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
   @Test
   public void testApply() throws Exception {
     PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<>(1L, "one", System.currentTimeMillis());
-    Result<String> result = operation.apply(null);
+    Result<Long, String> result = operation.apply(null);
     assertSame(operation, result);
 
     ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<>(1L, "another one", System.currentTimeMillis());

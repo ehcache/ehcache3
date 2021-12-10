@@ -97,81 +97,81 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
   public void clear() {
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0, 0);
+    changesOf(0, 0, 2, 0);
 
     cache.clear();
-    changesOf(0, 0, 0, 0, 0);
+    changesOf(0, 0, 0, 0);
   }
 
   @Test
   public void containsKey() {
     expect(cache.containsKey(1)).isFalse();
-    changesOf(0, 0, 0, 0, 0);
+    changesOf(0, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0, 0);
+    changesOf(0, 0, 1, 0);
 
     expect(cache.containsKey(1)).isTrue();
-    changesOf(0, 0, 0, 0, 0);
+    changesOf(0, 0, 0, 0);
   }
 
   @Test
   public void get() {
     expect(cache.get(1)).isNull();
-    changesOf(0, 1, 0, 0, 0);
+    changesOf(0, 1, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0, 0);
+    changesOf(0, 0, 1, 0);
 
     expect(cache.get(1)).isEqualTo("a");
-    changesOf(1, 0, 0, 0, 0);
+    changesOf(1, 0, 0, 0);
   }
 
   @Test
   public void getAll() {
     expect(cache.getAll(asSet(1))).containsExactly(MapEntry.entry(1, null));
-    changesOf(0, 1, 0, 0, 0);
+    changesOf(0, 1, 0, 0);
 
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0, 0);
+    changesOf(0, 0, 2, 0);
 
     expect(cache.getAll(asSet(1, 2, 3))).containsKeys(1, 2);
-    changesOf(2, 1, 0, 0, 0);
+    changesOf(2, 1, 0, 0);
   }
 
   @Test
   public void iterator() {
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0, 0);
+    changesOf(0, 0, 2, 0);
 
     Iterator<Cache.Entry<Integer, String>> iterator = cache.iterator();
-    changesOf(1, 0, 0, 0, 0); // FIXME Why one?!?
+    changesOf(1, 0, 0, 0); // FIXME Why one?!?
 
     iterator.next().getKey();
-    changesOf(1, 0, 0, 0, 0); // FIXME One hit and on the cache we have two
+    changesOf(1, 0, 0, 0); // FIXME One hit and on the cache we have two
 
     expect(iterator.hasNext()).isTrue();
-    changesOf(0, 0, 0, 0, 0);
+    changesOf(0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(0, 0, 0, 0, 0); // FIXME No hit on a next
+    changesOf(0, 0, 0, 0); // FIXME No hit on a next
 
     expect(iterator.hasNext()).isFalse();
-    changesOf(0, 0, 0, 0, 0);
+    changesOf(0, 0, 0, 0);
 
     iterator.remove();
-    changesOf(1, 0, 0, 1, 0); // FIXME remove does hit
+    changesOf(1, 0, 0, 1); // FIXME remove does hit
   }
 
   @Test
   public void put() {
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0, 0);
+    changesOf(0, 0, 1, 0);
 
     cache.put(1, "b");
-    changesOf(0, 0, 1, 0, 1);
+    changesOf(0, 0, 1, 0);
   }
 
   @Test
@@ -180,86 +180,86 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     vals.put(1, "a");
     vals.put(2, "b");
     cache.putAll(vals);
-    changesOf(0, 0, 2, 0, 0);
+    changesOf(0, 0, 2, 0);
 
     vals.put(1, "c");
     vals.put(2, "d");
     vals.put(3, "e");
     cache.putAll(vals);
-    changesOf(0, 0, 3, 0, 0); // FIXME: No way to track update correctly in OnHeapStore.compute
+    changesOf(0, 0, 3, 0); // FIXME: No way to track update correctly in OnHeapStore.compute
   }
 
   @Test
   public void putIfAbsent() {
     expect(cache.putIfAbsent(1, "a")).isNull();
-    changesOf(0, 1, 1, 0, 0);
+    changesOf(0, 1, 1, 0);
 
     expect(cache.putIfAbsent(1, "b")).isEqualTo("a");
-    changesOf(1, 0, 0, 0, 0);
+    changesOf(1, 0, 0, 0);
   }
 
   @Test
   public void remove() {
     cache.remove(1);
-    changesOf(0, 0, 0, 0, 0);
+    changesOf(0, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0, 0);
+    changesOf(0, 0, 1, 0);
 
     cache.remove(1);
-    changesOf(0, 0, 0, 1, 0);
+    changesOf(0, 0, 0, 1);
   }
 
   @Test
   public void removeKV() {
     expect(cache.remove(1, "a")).isFalse();
-    changesOf(0, 1, 0, 0, 0);
+    changesOf(0, 1, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0, 0);
+    changesOf(0, 0, 1, 0);
 
     expect(cache.remove(1, "xxx")).isFalse();
-    changesOf(0, 1, 0, 0, 0); // FIXME The cache counts a hit here
+    changesOf(0, 1, 0, 0); // FIXME The cache counts a hit here
 
     expect(cache.remove(1, "a")).isTrue();
-    changesOf(1, 0, 0, 1, 0);
+    changesOf(1, 0, 0, 1);
   }
 
   @Test
   public void removeAllKeys() {
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0, 0);
+    changesOf(0, 0, 2, 0);
 
     cache.removeAll(asSet(1, 2, 3));
-    changesOf(0, 0, 0, 2, 0);
+    changesOf(0, 0, 0, 2);
   }
 
   @Test
   public void replaceKV() {
     expect(cache.replace(1, "a")).isNull();
-    changesOf(0, 1, 0, 0, 0);
+    changesOf(0, 1, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0, 0);
+    changesOf(0, 0, 1, 0);
 
     expect(cache.replace(1, "b")).isEqualTo("a");
-    changesOf(1, 0, 1, 0, 1);
+    changesOf(1, 0, 1, 0);
   }
 
   @Test
   public void replaceKON() {
     expect(cache.replace(1, "a", "b")).isFalse();
-    changesOf(0, 1, 0, 0, 0);
+    changesOf(0, 1, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0, 0);
+    changesOf(0, 0, 1, 0);
 
     expect(cache.replace(1, "xxx", "b")).isFalse();
-    changesOf(0, 1, 0, 0, 0); // FIXME: We have a hit on the cache but a miss on the store. Why?
+    changesOf(0, 1, 0, 0); // FIXME: We have a hit on the cache but a miss on the store. Why?
 
     expect(cache.replace(1, "a", "b")).isTrue();
-    changesOf(1, 0, 1, 0, 1);
+    changesOf(1, 0, 1, 0);
   }
 
   @Test
@@ -278,10 +278,10 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     cache.get(1); // one hit
     cache.remove(1); // one remove
     cache.removeAll(asSet(2)); // one remove
-    changesOf(1, 4, 3, 2, 1);
+    changesOf(1, 4, 3, 2);
 
     tierStatistics.clear();
-    changesOf(-1, -4, -3, -2, -1);
+    changesOf(-1, -4, -3, -2);
   }
 
   @Test

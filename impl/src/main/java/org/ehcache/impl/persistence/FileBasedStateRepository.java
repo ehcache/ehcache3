@@ -66,21 +66,14 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   private void loadMaps() throws CachePersistenceException {
     try {
       for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
-        FileInputStream fis = new FileInputStream(file);
-        try {
-          ObjectInputStream oin = new ObjectInputStream(fis);
-          try {
-            String name = (String) oin.readObject();
-            Tuple tuple = (Tuple) oin.readObject();
-            if (nextIndex.get() <= tuple.index) {
-              nextIndex.set(tuple.index + 1);
-            }
-            knownHolders.put(name, tuple);
-          } finally {
-            oin.close();
+        try (FileInputStream fis = new FileInputStream(file);
+             ObjectInputStream oin = new ObjectInputStream(fis)) {
+          String name = (String) oin.readObject();
+          Tuple tuple = (Tuple) oin.readObject();
+          if (nextIndex.get() <= tuple.index) {
+            nextIndex.set(tuple.index + 1);
           }
-        } finally {
-          fis.close();
+          knownHolders.put(name, tuple);
         }
       }
     } catch (Exception e) {
@@ -92,17 +85,10 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   private void saveMaps() throws IOException {
     for (Map.Entry<String, Tuple> entry : knownHolders.entrySet()) {
       File outFile = new File(dataDirectory, createFileName(entry));
-      FileOutputStream fos = new FileOutputStream(outFile);
-      try {
-        ObjectOutputStream oos = new ObjectOutputStream(fos);
-        try {
-          oos.writeObject(entry.getKey());
-          oos.writeObject(entry.getValue());
-        } finally {
-          oos.close();
-        }
-      } finally {
-        fos.close();
+      try (FileOutputStream fos = new FileOutputStream(outFile);
+           ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+        oos.writeObject(entry.getKey());
+        oos.writeObject(entry.getValue());
       }
     }
   }

@@ -16,35 +16,37 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class ChainResolver<K, V> {
+/**
+ * An abstract chain resolver.
+ * <p>
+ * Operation application is performed in subclasses specialized for eternal and non-eternal caches.
+ *
+ * @see EternalChainResolver
+ * @see ExpiryChainResolver
+ *
+ * @param <K> key type
+ * @param <V> value type
+ */
+public abstract class ChainResolver<K, V> {
+  protected static final Logger LOG = LoggerFactory.getLogger(EternalChainResolver.class);
+  protected static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+  protected final OperationsCodec<K, V> codec;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ChainResolver.class);
-  private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
-
-  private final OperationsCodec<K, V> codec;
-  private final Expiry<? super K, ? super V> expiry;
-
-  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
-    if(expiry == null) {
-      throw new NullPointerException("Expiry can not be null");
-    }
+  public ChainResolver(final OperationsCodec<K, V> codec) {
     this.codec = codec;
-    this.expiry = expiry;
   }
 
   /**
@@ -61,74 +63,66 @@ public class ChainResolver<K, V> {
    * @return a resolved chain, result of resolution of chain provided
    */
   public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
-    Result<V> result = null;
-    ChainBuilder chainBuilder = new ChainBuilder();
-    long expirationTime = Long.MAX_VALUE;
-    int keyMatch = 0;
-    boolean compacted = false;
+    PutOperation<K, V> result = null;
+    ChainBuilder newChainBuilder = new ChainBuilder();
+    boolean matched = false;
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       Operation<K, V> operation = codec.decode(payload);
-      final Result<V> previousResult = result;
+
       if(key.equals(operation.getKey())) {
-        keyMatch++;
-        result = operation.apply(result);
-        if(result == null) {
-          continue;
-        }
-        if (expiry != Expirations.noExpiration()) {
-          if(operation.isExpiryAvailable()) {
-            expirationTime = operation.expirationTime();
-            if (now >= expirationTime) {
-              result = null;
-            }
-          } else {
-            Duration duration;
-            try {
-              if(previousResult == null) {
-                duration = expiry.getExpiryForCreation(key, result.getValue());
-                if (duration == null) {
-                  result = null;
-                  continue;
-                }
-              } else {
-                duration = expiry.getExpiryForUpdate(key, previousResult::getValue, result.getValue());
-                if (duration == null) {
-                  continue;
-                }
-              }
-            } catch (Exception ex) {
-              LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
-              duration = Duration.ZERO;
-            }
-            compacted = true;
-            if(duration.isInfinite()) {
-              expirationTime = Long.MAX_VALUE;
-              continue;
-            }
-            long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
-            expirationTime = time + operation.timeStamp();
-            if(now >= expirationTime) {
-              result = null;
-            }
-          }
-        }
+        matched = true;
+        result = applyOperation(key, result, operation, now);
       } else {
         payload.rewind();
-        chainBuilder = chainBuilder.add(payload);
+        newChainBuilder = newChainBuilder.add(payload);
       }
     }
 
-    compacted = (result == null) ? (keyMatch > 0) : (compacted || keyMatch > 1);
-    if(compacted) {
-      if(result != null) {
-        Operation<K, V> resolvedOperation = new PutOperation<>(key, result.getValue(), -expirationTime);
-        ByteBuffer payload = codec.encode(resolvedOperation);
-        chainBuilder = chainBuilder.add(payload);
+    if(result == null) {
+      if (matched) {
+        Chain newChain = newChainBuilder.build();
+        return new ResolvedChain.Impl<>(newChain, key, null, chain.length() - newChain.length(), Long.MAX_VALUE);
+      } else {
+        return new ResolvedChain.Impl<>(chain, key, null, 0, Long.MAX_VALUE);
       }
-      return new ResolvedChain.Impl<>(chainBuilder.build(), key, result, keyMatch, expirationTime);
     } else {
-      return new ResolvedChain.Impl<>(chain, key, result, 0, expirationTime);
+      Chain newChain = newChainBuilder.add(codec.encode(result)).build();
+      return new ResolvedChain.Impl<>(newChain, key, result, chain.length() - newChain.length(), result.expirationTime());
     }
   }
+
+  /**
+   * Compacts the given chain by resolving every key within.
+   *
+   * @param chain a compacted heterogenous {@code Chain}
+   * @param now time when the chain is being resolved
+   * @return a compacted chain
+   */
+  public Chain applyOperation(Chain chain, long now) {
+    //absent hash-collisions this should always be a 1 entry map
+    Map<K, PutOperation<K, V>> compacted = new HashMap<>(2);
+    for (Element element : chain) {
+      ByteBuffer payload = element.getPayload();
+      Operation<K, V> operation = codec.decode(payload);
+      compacted.compute(operation.getKey(), (k, v) -> applyOperation(k, v, operation, now));
+    }
+
+    ChainBuilder builder = new ChainBuilder();
+    for (PutOperation<K, V> operation : compacted.values()) {
+      builder = builder.add(codec.encode(operation));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Applies the given operation to the current state at the time specified.
+   *
+   * @param key cache key
+   * @param existing current state
+   * @param operation operation to apply
+   * @param now current time
+   * @return an equivalent put operation
+   */
+  protected abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now);
 }

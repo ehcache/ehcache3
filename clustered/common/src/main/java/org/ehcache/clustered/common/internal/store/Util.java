@@ -124,6 +124,11 @@ public class Util {
       }
 
       @Override
+      public int length() {
+        return list.size();
+      }
+
+      @Override
       public Iterator<Element> iterator() {
         return list.iterator();
       }
@@ -149,9 +154,7 @@ public class Util {
     try {
       objectInputStream = new ObjectInputStream(new ByteArrayInputStream(payload));
       return objectInputStream.readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
+    } catch (IOException | ClassNotFoundException ex) {
       throw new IllegalArgumentException(ex);
     } finally {
       closeSilently(objectInputStream);
@@ -163,9 +166,7 @@ public class Util {
     try {
       objectInputStream = new ObjectInputStream(new ByteBufferInputStream(payload));
       return objectInputStream.readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
+    } catch (IOException | ClassNotFoundException ex) {
       throw new IllegalArgumentException(ex);
     } finally {
       closeSilently(objectInputStream);

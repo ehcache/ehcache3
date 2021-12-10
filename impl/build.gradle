@@ -23,7 +23,9 @@ dependencies {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
   testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
-  testCompile group: 'net.sf.ehcache', name: 'ehcache', version: parent.ehcache2Version
+  testCompile (group: 'net.sf.ehcache', name: 'ehcache', version: parent.ehcache2Version) {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
 }
 
 jar {

@@ -64,8 +64,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
 
   @Test
   public void testAbsentEntityRetrievalFails() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       try {
@@ -74,28 +73,22 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       } catch (EntityNotFoundException e) {
         //expected
       }
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testAbsentEntityCreationSucceeds() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
       assertThat(ref.fetchEntity(null), not(Matchers.nullValue()));
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testPresentEntityCreationFails() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -117,15 +110,12 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       } finally {
         ref.destroy();
       }
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testAbsentEntityDestroyFails() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       try {
@@ -134,15 +124,12 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       } catch (EntityNotFoundException e) {
         //expected
       }
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testPresentEntityDestroySucceeds() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -154,49 +141,37 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       } catch (EntityNotFoundException e) {
         //expected
       }
-    } finally {
-      client.close();
     }
   }
 
   @Test
   @Ignore
   public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
 
-      ClusterTierManagerClientEntity entity = ref.fetchEntity(null);
-      try {
+      try (ClusterTierManagerClientEntity entity = ref.fetchEntity(null)) {
         ref.destroy();
-      } finally {
-        entity.close();
       }
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
       ref.fetchEntity(null).close();
       ref.destroy();
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testDestroyedEntityAllowsRecreation() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
+    try (Connection client = CLUSTER.newConnection()) {
       EntityRef<InternalClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -204,8 +179,6 @@ public class BasicEntityInteractionTest extends ClusteredTests {
 
       ref.create(blankConfiguration);
       assertThat(ref.fetchEntity(null), not(nullValue()));
-    } finally {
-      client.close();
     }
   }
 

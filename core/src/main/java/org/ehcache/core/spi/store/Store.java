@@ -662,13 +662,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    */
   enum PutStatus {
     /**
-     * New value was put
+     * Value was put
      */
     PUT,
-    /**
-     * New value was put and replace old value
-     */
-    UPDATE,
     /**
      * New value was dropped
      */

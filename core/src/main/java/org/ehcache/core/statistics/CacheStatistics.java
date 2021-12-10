@@ -88,13 +88,6 @@ public interface CacheStatistics {
   long getCachePuts();
 
   /**
-   * How many updates occurred on the cache since its creation or the latest {@link #clear()}
-   *
-   * @return update count
-   */
-  long getCacheUpdates();
-
-  /**
    * How many removals occurred on the cache since its creation or the latest {@link #clear()}
    *
    * @return removal count

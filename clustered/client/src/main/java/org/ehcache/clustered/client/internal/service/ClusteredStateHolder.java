@@ -43,7 +43,7 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
     this.keyClass = keyClass;
     this.keyCodec = getCodecForClass(keyClass);
     this.valueCodec = getCodecForClass(valueClass);
-    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
+    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId);
     this.entity = entity;
   }
 
@@ -62,10 +62,8 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
     try {
       EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message, track);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
-    } catch (ClusterException ce) {
+    } catch (ClusterException | TimeoutException ce) {
       throw new ClusteredMapException(ce);
-    } catch (TimeoutException te) {
-      throw new ClusteredMapException(te);
     }
   }
 

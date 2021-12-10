@@ -353,10 +353,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void diskStoreShrinkingTest() throws Exception {
 
-    CacheManager manager = newCacheManagerBuilder()
-        .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
-        .build(true);
-    try {
+    try (CacheManager manager = newCacheManagerBuilder()
+      .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
+      .build(true)) {
       final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
         heap(1000).offheap(20, MB).disk(30, MB))
         .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
@@ -388,7 +387,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         }));
 
       for (long i = 0; i < 100000; i++) {
-        cache.put(i, new CacheValue((int)i));
+        cache.put(i, new CacheValue((int) i));
       }
 
       Callable<Void> task = () -> {
@@ -448,7 +447,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         .build();
 
       @SuppressWarnings("unchecked")
-      OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAll = (OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome>)invalidateAllQuery
+      OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAll = (OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome>) invalidateAllQuery
         .execute(singleton(nodeFor(cache)))
         .iterator()
         .next()
@@ -457,8 +456,6 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         .get("this");
 
       assertThat(invalidateAll.sum(), is(0L));
-    } finally {
-      manager.close();
     }
   }
 

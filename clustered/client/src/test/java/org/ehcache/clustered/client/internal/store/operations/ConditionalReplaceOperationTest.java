@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import static org.ehcache.clustered.client.internal.store.operations.Operation.BYTE_SIZE_BYTES;
 import static org.ehcache.clustered.client.internal.store.operations.Operation.INT_SIZE_BYTES;
 import static org.ehcache.clustered.client.internal.store.operations.Operation.LONG_SIZE_BYTES;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 public class ConditionalReplaceOperationTest {
@@ -108,12 +109,12 @@ public class ConditionalReplaceOperationTest {
   @Test
   public void testApply() throws Exception {
     ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<>(1L, "one", "two", System.currentTimeMillis());
-    Result<String> result = operation.apply(null);
+    Result<Long, String> result = operation.apply(null);
     assertNull(result);
 
     PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
-    assertSame(operation, result);
+    assertThat(result, is(new PutOperation<>(operation.getKey(), operation.getValue(), operation.timeStamp())));
 
     anotherOperation = new PutOperation<>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);

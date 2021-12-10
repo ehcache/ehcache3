@@ -72,9 +72,9 @@ public class DefaultCacheStatisticsTest {
   @Test
   public void getKnownStatistics() {
     assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys("Cache:HitCount", "Cache:MissCount",
-      "Cache:UpdateCount", "Cache:RemovalCount", "Cache:EvictionCount", "Cache:PutCount",
+      "Cache:RemovalCount", "Cache:EvictionCount", "Cache:PutCount",
       "OnHeap:ExpirationCount", "Cache:ExpirationCount", "OnHeap:HitCount", "OnHeap:MissCount",
-      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:UpdateCount", "OnHeap:EvictionCount",
+      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount",
       "OnHeap:MappingCount", "OnHeap:OccupiedByteSize");
   }
 

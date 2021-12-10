@@ -31,6 +31,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -228,13 +229,11 @@ public class XAStore<K, V> implements Store<K, V> {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
-      V newValue = currentContext.newValueOf(key);
       currentContext.addCommand(key, new StorePutCommand<>(oldValue, new XAValueHolder<>(value, timeSource.getTimeMillis())));
-      return newValue == null ? PutStatus.PUT : PutStatus.UPDATE;
+      return PutStatus.PUT;
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
-    PutStatus status = PutStatus.NOOP;
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
@@ -242,15 +241,15 @@ public class XAStore<K, V> implements Store<K, V> {
       } else {
         if (currentContext.addCommand(key, new StorePutCommand<>(softLock.getOldValue(), new XAValueHolder<>(value, timeSource
           .getTimeMillis())))) {
-          status = PutStatus.UPDATE;
+          return PutStatus.PUT;
         }
       }
     } else {
       if (currentContext.addCommand(key, new StorePutCommand<>(null, new XAValueHolder<>(value, timeSource.getTimeMillis())))) {
-        status = PutStatus.PUT;
+        return PutStatus.PUT;
       }
     }
-    return status;
+    return PutStatus.NOOP;
   }
 
   @Override
@@ -891,8 +890,13 @@ public class XAStore<K, V> implements Store<K, V> {
 
       // create the soft lock serializer
       AtomicReference<SoftLockSerializer<V>> softLockSerializerRef = new AtomicReference<>();
-      SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
+      SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer;
+      if (storeConfig.getValueSerializer() instanceof StatefulSerializer) {
+        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+      } else {
+        softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
         .getValueSerializer());
+      }
 
       // create the underlying store
       @SuppressWarnings("unchecked")

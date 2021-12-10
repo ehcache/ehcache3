@@ -165,10 +165,10 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       "CLIENT_TAGS_UPDATED",
       "EHCACHE_RESOURCE_POOLS_CONFIGURED",
       "EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_CREATED", "EHCACHE_SERVER_STORE_CREATED",
-      "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE",
+      "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE",
       "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED",
       "SERVER_ENTITY_DESTROYED",
-      "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
+      "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
       "SERVER_ENTITY_UNFETCHED", "SERVER_ENTITY_UNFETCHED"
     );
 
@@ -235,11 +235,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   }
 
   protected static String read(String path) throws FileNotFoundException {
-    Scanner scanner = new Scanner(AbstractClusteringManagementTest.class.getResourceAsStream(path), "UTF-8");
-    try {
+    try (Scanner scanner = new Scanner(AbstractClusteringManagementTest.class.getResourceAsStream(path), "UTF-8")) {
       return scanner.useDelimiter("\\A").next();
-    } finally {
-      scanner.close();
     }
   }
 
@@ -255,12 +252,12 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
   protected static List<ContextualNotification> waitForAllNotifications(String... notificationTypes) throws InterruptedException {
     List<String> waitingFor = new ArrayList<>(Arrays.asList(notificationTypes));
     // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
-    //System.out.println("waitForAllNotifications: " + waitingFor);
+//    System.out.println("waitForAllNotifications: " + waitingFor);
     return nmsService.waitForMessage(message -> {
       if (message.getType().equals("NOTIFICATION")) {
         for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
           if (waitingFor.remove(notification.getType())) {
-            //System.out.println(" - " + notification.getType());
+//            System.out.println(" - " + notification.getType());
           }
         }
       }

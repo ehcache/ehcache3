@@ -43,7 +43,7 @@ public class ConditionalRemoveOperationTest extends BaseKeyValueOperationTest {
   @Test
   public void testApply() throws Exception {
     ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<>(1L, "one", System.currentTimeMillis());
-    Result<String> result = operation.apply(null);
+    Result<Long, String> result = operation.apply(null);
     assertNull(result);
 
     PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());

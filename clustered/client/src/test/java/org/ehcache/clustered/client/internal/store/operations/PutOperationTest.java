@@ -43,7 +43,7 @@ public class PutOperationTest extends BaseKeyValueOperationTest {
   @Test
   public void testApply() throws Exception {
     PutOperation<Long, String> putOperation = new PutOperation<>(1L, "one", System.currentTimeMillis());
-    Result<String> result = putOperation.apply(null);
+    Result<Long, String> result = putOperation.apply(null);
     assertSame(putOperation, result);
     PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "two", System.currentTimeMillis());
     result = anotherOperation.apply(putOperation);

@@ -81,7 +81,7 @@ public class RemoveOperationTest {
   @Test
   public void testApply() throws Exception {
     RemoveOperation<Long, String> operation = new RemoveOperation<>(1L, System.currentTimeMillis());
-    Result<String> result = operation.apply(null);
+    Result<Long, String> result = operation.apply(null);
     assertNull(result);
 
     PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "another one", System.currentTimeMillis());

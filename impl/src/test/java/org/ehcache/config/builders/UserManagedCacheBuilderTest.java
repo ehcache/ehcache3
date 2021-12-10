@@ -80,13 +80,10 @@ public class UserManagedCacheBuilderTest {
 
   @Test
   public void testTypedCacheWithExpirationPolicy() {
-    UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
-        .withExpiry(Expirations.timeToIdleExpiration(new Duration(30, TimeUnit.SECONDS)))
-        .build(true);
-    try {
+    try (UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
+      .withExpiry(Expirations.timeToIdleExpiration(new Duration(30, TimeUnit.SECONDS)))
+      .build(true)) {
       assertThat(cache, notNullValue());
-    } finally {
-      cache.close();
     }
   }
 

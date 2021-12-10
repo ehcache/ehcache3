@@ -17,26 +17,15 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.terracotta.connection.Connection;
 
-import java.net.URI;
-import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -54,77 +43,30 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
-public class StrongServerStoreProxyTest {
+public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
-  private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
-
-  private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
-
-  private static SimpleClusterTierClientEntity clientEntity1;
-  private static ClusterTierClientEntity clientEntity2;
-  private static StrongServerStoreProxy serverStoreProxy1;
-  private static StrongServerStoreProxy serverStoreProxy2;
-
-  @BeforeClass
-  public static void setUp() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-        new PassthroughServerBuilder()
-            .resource("defaultResource", 128, MemoryUnit.MB)
-            .build());
-    UnitTestConnectionService unitTestConnectionService = new UnitTestConnectionService();
-    Connection connection1 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
-    Connection connection2 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
-
-    ClusterTierManagerClientEntityFactory entityFactory1 = new ClusterTierManagerClientEntityFactory(connection1);
-    ClusterTierManagerClientEntityFactory entityFactory2 = new ClusterTierManagerClientEntityFactory(connection2);
-
-    entityFactory1.create("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    entityFactory2.retrieve("TestCacheManager", null);
-
+  private static SimpleClusterTierClientEntity createClientEntity(String name, boolean create) throws Exception {
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
-        Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.STRONG);
+      Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
+      .getName(), Consistency.STRONG);
 
-    clientEntity1 = (SimpleClusterTierClientEntity) entityFactory1.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
-    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
-    // required to attach the store to the client
-    clientEntity1.validate(serverStoreConfiguration);
-    clientEntity2.validate(serverStoreConfiguration);
-
-    serverStoreProxy1 = new StrongServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity1.getClientId()), clientEntity1);
-    serverStoreProxy2 = new StrongServerStoreProxy(CACHE_IDENTIFIER, new ServerStoreMessageFactory(clientEntity2.getClientId()), clientEntity2);
-  }
-
-  @AfterClass
-  public static void tearDown() throws Exception {
-    serverStoreProxy1 = null;
-    if (clientEntity1 != null) {
-      clientEntity1.close();
-      clientEntity1 = null;
-    }
-
-    serverStoreProxy2 = null;
-    if (clientEntity2 != null) {
-      clientEntity2.close();
-      clientEntity2 = null;
-    }
-
-    UnitTestConnectionService.remove(CLUSTER_URI);
-    EXECUTOR_SERVICE.shutdown();
+    return createClientEntity(name, serverStoreConfiguration, create);
   }
 
   @Test
   public void testServerSideEvictionFiresInvalidations() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testServerSideEvictionFiresInvalidations", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", false);
+
     final List<Long> store1EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2AppendInvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
 
-    ServerStoreProxy.InvalidationListener listener1 = new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         fail("should not be called");
@@ -139,8 +81,13 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         fail("should not be called");
       }
-    };
-    ServerStoreProxy.InvalidationListener listener2 = new ServerStoreProxy.InvalidationListener() {
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
+    });
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         store2AppendInvalidatedHashes.add(hash);
@@ -155,9 +102,12 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         fail("should not be called");
       }
-    };
-    serverStoreProxy1.addInvalidationListener(listener1);
-    serverStoreProxy2.addInvalidationListener(listener2);
+
+      @Override
+      public Chain compact(Chain chain) {
+        return chain;
+      }
+    });
 
     final int ITERATIONS = 40;
     for (int i = 0; i < ITERATIONS; i++) {
@@ -181,16 +131,17 @@ public class StrongServerStoreProxyTest {
     assertThat(store2EvictInvalidatedHashes.size(), is(evictionCount));
     // test that each time the client mutated, the other client got notified
     assertThat(store2AppendInvalidatedHashes.size(), is(ITERATIONS));
-
-    serverStoreProxy1.removeInvalidationListener(listener1);
-    serverStoreProxy2.removeInvalidationListener(listener2);
   }
 
   @Test
   public void testHashInvalidationListenerWithAppend() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithAppend", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithAppend", false);
+
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
-    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, mock(ServerCallback.class));
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -205,21 +156,27 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         throw new AssertionError("Should not be called");
       }
-    };
-    serverStoreProxy2.addInvalidationListener(listener);
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
+    });
 
     serverStoreProxy1.append(1L, createPayload(1L));
 
     assertThat(invalidatedHash.get(), is(1L));
-    serverStoreProxy2.removeInvalidationListener(listener);
   }
 
   @Test
   public void testConcurrentHashInvalidationListenerWithAppend() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testConcurrentHashInvalidationListenerWithAppend", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testConcurrentHashInvalidationListenerWithAppend", false);
+
     final AtomicBoolean invalidating = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(2);
-
-    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity1, mock(ServerCallback.class));
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         if (!invalidating.compareAndSet(false, true)) {
@@ -243,29 +200,41 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         throw new AssertionError("Should not be called");
       }
-    };
-    serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(() -> {
-      serverStoreProxy1.append(1L, createPayload(1L));
-      return null;
-    });
-    EXECUTOR_SERVICE.submit(() -> {
-      serverStoreProxy1.append(1L, createPayload(1L));
-      return null;
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
     });
 
-    if (!latch.await(5, TimeUnit.SECONDS)) {
-      fail("Both listeners were not called");
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      executor.submit(() -> {
+        serverStoreProxy1.append(1L, createPayload(1L));
+        return null;
+      });
+      executor.submit(() -> {
+        serverStoreProxy1.append(1L, createPayload(1L));
+        return null;
+      });
+
+      if (!latch.await(5, TimeUnit.SECONDS)) {
+        fail("Both listeners were not called");
+      }
+    } finally {
+      executor.shutdown();
     }
-    serverStoreProxy2.removeInvalidationListener(listener);
   }
 
   @Test
   public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", false);
+
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
-    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, mock(ServerCallback.class));
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         invalidatedHash.set(hash);
@@ -280,19 +249,27 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         throw new AssertionError("Should not be called");
       }
-    };
-    serverStoreProxy2.addInvalidationListener(listener);
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
+    });
 
     serverStoreProxy1.getAndAppend(1L, createPayload(1L));
 
-    serverStoreProxy2.removeInvalidationListener(listener);
+    assertThat(invalidatedHash.get(), is(1L));
   }
 
   @Test
   public void testAllInvalidationListener() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAllInvalidationListener", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAllInvalidationListener", false);
+
     final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
-    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAllInvalidationListener", clientEntity1, mock(ServerCallback.class));
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAllInvalidationListener", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
@@ -307,21 +284,28 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         invalidatedAll.set(true);
       }
-    };
-    serverStoreProxy2.addInvalidationListener(listener);
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
+    });
 
     serverStoreProxy1.clear();
 
     assertThat(invalidatedAll.get(), is(true));
-    serverStoreProxy2.removeInvalidationListener(listener);
   }
 
   @Test
   public void testConcurrentAllInvalidationListener() throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testConcurrentAllInvalidationListener", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testConcurrentAllInvalidationListener", false);
+
     final AtomicBoolean invalidating = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(2);
 
-    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", clientEntity1, mock(ServerCallback.class));
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
@@ -345,28 +329,39 @@ public class StrongServerStoreProxyTest {
         invalidating.set(false);
         latch.countDown();
       }
-    };
-    serverStoreProxy2.addInvalidationListener(listener);
 
-    EXECUTOR_SERVICE.submit(() -> {
-      serverStoreProxy1.clear();
-      return null;
-    });
-    EXECUTOR_SERVICE.submit(() -> {
-      serverStoreProxy1.clear();
-      return null;
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
     });
 
-    if (!latch.await(5, TimeUnit.SECONDS)) {
-      fail("Both listeners were not called");
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      executor.submit(() -> {
+        serverStoreProxy1.clear();
+        return null;
+      });
+      executor.submit(() -> {
+        serverStoreProxy1.clear();
+        return null;
+      });
+
+      if (!latch.await(5, TimeUnit.SECONDS)) {
+        fail("Both listeners were not called");
+      }
+    } finally {
+      executor.shutdown();
     }
-
-    serverStoreProxy2.removeInvalidationListener(listener);
   }
 
   @Test
   public void testAppendInvalidationUnblockedByDisconnection() throws Exception {
-    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", false);
+
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity1, mock(ServerCallback.class));
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         clientEntity1.fireDisconnectionEvent();
@@ -381,8 +376,12 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         throw new AssertionError("Should not be called");
       }
-    };
-    serverStoreProxy2.addInvalidationListener(listener);
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
+    });
 
     try {
       serverStoreProxy1.append(1L, createPayload(1L));
@@ -390,14 +389,15 @@ public class StrongServerStoreProxyTest {
     } catch (RuntimeException re) {
       assertThat(re.getCause(), instanceOf(IllegalStateException.class));
     }
-
-    serverStoreProxy2.removeInvalidationListener(listener);
-    clientEntity1.setConnected(true);
   }
 
   @Test
   public void testClearInvalidationUnblockedByDisconnection() throws Exception {
-    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testClearInvalidationUnblockedByDisconnection", true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testClearInvalidationUnblockedByDisconnection", false);
+
+    StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity1, mock(ServerCallback.class));
+    StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity2, new ServerCallback() {
       @Override
       public void onAppendInvalidateHash(long hash) {
         throw new AssertionError("Should not be called");
@@ -412,8 +412,12 @@ public class StrongServerStoreProxyTest {
       public void onInvalidateAll() {
         clientEntity1.fireDisconnectionEvent();
       }
-    };
-    serverStoreProxy2.addInvalidationListener(listener);
+
+      @Override
+      public Chain compact(Chain chain) {
+        throw new AssertionError();
+      }
+    });
 
     try {
       serverStoreProxy1.clear();
@@ -421,8 +425,5 @@ public class StrongServerStoreProxyTest {
     } catch (RuntimeException re) {
       assertThat(re.getCause(), instanceOf(IllegalStateException.class));
     }
-
-    serverStoreProxy2.removeInvalidationListener(listener);
-    clientEntity1.setConnected(true);
   }
 }

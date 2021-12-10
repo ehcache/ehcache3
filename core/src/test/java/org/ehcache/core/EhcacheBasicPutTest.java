@@ -137,7 +137,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verify(this.store).put(eq("key"), eq("value"));
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }
 
   /**

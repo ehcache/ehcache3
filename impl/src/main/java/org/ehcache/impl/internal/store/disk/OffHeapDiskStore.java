@@ -176,12 +176,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
 
-    FileInputStream fis = new FileInputStream(metadataFile);
     Properties properties = new Properties();
-    try {
+    try (FileInputStream fis = new FileInputStream(metadataFile)) {
       properties.load(fis);
-    } finally {
-      fis.close();
     }
     try {
       Class<?> persistedKeyType = Class.forName(properties.getProperty(KEY_TYPE_PROPERTY_NAME), false, classLoader);
@@ -200,22 +197,21 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       throw new IllegalStateException("Persisted value type class not found", cnfe);
     }
 
-    FileInputStream fin = new FileInputStream(indexFile);
-    try {
+    try (FileInputStream fin = new FileInputStream(indexFile)) {
       ObjectInputStream input = new ObjectInputStream(fin);
       long dataTimestampFromIndex = input.readLong();
       long dataTimestampFromFile = dataFile.lastModified();
       long delta = dataTimestampFromFile - dataTimestampFromIndex;
       if (delta < 0) {
         LOGGER.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
-                    dataFile.getName(), -delta);
+          dataFile.getName(), -delta);
       } else if (delta > TimeUnit.SECONDS.toMillis(1)) {
         LOGGER.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
-                    dataFile.getName(), delta);
+          dataFile.getName(), delta);
         return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } else if (delta > 0) {
         LOGGER.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
-                    dataFile.getName(), delta);
+          dataFile.getName(), delta);
       }
 
       MappedPageSource source = new MappedPageSource(dataFile, false, size);
@@ -225,7 +221,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-                max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
+          max((size / diskSegments) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<>(
           source,
@@ -245,21 +241,16 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
       LOGGER.debug("Exception during recovery", e);
       return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
-    } finally {
-      fin.close();
     }
   }
 
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File metadataFile = getMetadataFile();
-    FileOutputStream fos = new FileOutputStream(metadataFile);
-    try {
+    try (FileOutputStream fos = new FileOutputStream(metadataFile)) {
       Properties properties = new Properties();
       properties.put(KEY_TYPE_PROPERTY_NAME, keyType.getName());
       properties.put(VALUE_TYPE_PROPERTY_NAME, valueType.getName());
       properties.store(fos, "Key and value types");
-    } finally {
-      fos.close();
     }
 
     MappedPageSource source = new MappedPageSource(getDataFile(), size);
@@ -413,12 +404,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (localMap != null) {
         resource.map = null;
         localMap.flush();
-        ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.getIndexFile()));
-        try {
+        try (ObjectOutputStream output = new ObjectOutputStream(new FileOutputStream(resource.getIndexFile()))) {
           output.writeLong(System.currentTimeMillis());
           localMap.persist(output);
-        } finally {
-          output.close();
         }
         localMap.close();
       }

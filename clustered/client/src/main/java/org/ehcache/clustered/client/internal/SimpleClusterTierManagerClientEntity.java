@@ -19,19 +19,15 @@ package org.ehcache.clustered.client.internal;
 import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
-import org.ehcache.clustered.common.internal.messages.ClusterTierManagerReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
-import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
@@ -39,10 +35,8 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -53,53 +47,19 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierManagerClientEntity.class);
 
-  private final AtomicLong sequenceGenerator = new AtomicLong(0L);
-
-  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
-  private volatile UUID clientId;
 
   private Timeouts timeouts = Timeouts.builder().build();
 
   public SimpleClusterTierManagerClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
-    endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
-      @Override
-      public void handleMessage(EhcacheEntityResponse messageFromServer) {
-        // Nothing to do
-      }
-
-      @Override
-      public byte[] createExtendedReconnectData() {
-        ClusterTierManagerReconnectMessage reconnectMessage = new ClusterTierManagerReconnectMessage(clientId);
-        return reconnectMessageCodec.encode(reconnectMessage);
-      }
-
-      @Override
-      public void didDisconnectUnexpectedly() {
-        // Nothing to do
-      }
-    });
   }
 
   @Override
   public void setTimeouts(Timeouts timeouts) {
     this.timeouts = timeouts;
-  }
-
-  @Override
-  public UUID getClientId() {
-    if (clientId == null) {
-      throw new IllegalStateException("Client Id cannot be null");
-    }
-    return this.clientId;
-  }
-
-  @Override
-  public void setClientId(UUID clientId) {
-    this.clientId = clientId;
   }
 
   @Override
@@ -109,22 +69,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
   @Override
   public void validate(ServerSideConfiguration config) throws ClusterException, TimeoutException {
-    boolean clientIdGenerated = false;
-    while (true) {
-      try {
-        if (clientIdGenerated || clientId == null) {
-          clientId = UUID.randomUUID();
-          clientIdGenerated = true;
-        }
-        this.messageFactory.setClientId(clientId);
-        invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
-        return;
-      } catch (InvalidClientIdException e) {
-        if (!clientIdGenerated) {
-          throw new AssertionError("Injected ClientID refused by server - " + clientId);
-        }
-      }
-    }
+    invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
   }
 
   @Override
@@ -133,9 +78,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
       PrepareForDestroy response = (PrepareForDestroy) invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory
         .prepareForDestroy(), true);
       return response.getStores();
-    } catch (ClusterException e) {
-      // TODO handle this
-    } catch (TimeoutException e) {
+    } catch (ClusterException | TimeoutException e) {
       // TODO handle this
     }
     return null;
@@ -151,9 +94,7 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
       } else {
         return response;
       }
-    } catch (EntityException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
-    } catch (MessageCodecException e) {
+    } catch (EntityException | MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
     } catch (TimeoutException e) {
       String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
@@ -166,14 +107,10 @@ public class SimpleClusterTierManagerClientEntity implements InternalClusterTier
 
   private InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
       throws MessageCodecException {
-    getClientId();
-    if (replicate) {
-      message.setId(sequenceGenerator.getAndIncrement());
-    }
     return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
   }
 
-  private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
+  private static <T extends EntityResponse> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
       throws EntityException, TimeoutException {
     boolean interrupted = false;
     long deadlineTimeout = System.nanoTime() + timeLimit.toNanos();

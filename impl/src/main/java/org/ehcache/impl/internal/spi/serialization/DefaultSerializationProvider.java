@@ -141,14 +141,10 @@ public class DefaultSerializationProvider implements SerializationProvider {
       Serializer<T> serializer = constructor.newInstance(args);
       LOG.debug("Serializer for <{}> : {}", clazz.getName(), serializer);
       return serializer;
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
       throw new RuntimeException(e);
     } catch (IllegalArgumentException e) {
       throw new AssertionError(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
     }
   }
 

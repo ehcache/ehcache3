@@ -243,6 +243,11 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
 
     @Override
+    public int length() {
+      return 0;
+    }
+
+    @Override
     public Iterator<Element> iterator() {
       return Collections.<Element>emptyList().iterator();
     }
@@ -271,6 +276,11 @@ public class OffHeapChainMap<K> implements MapInternals {
       @Override
       public boolean isEmpty() {
         return elements.isEmpty();
+      }
+
+      @Override
+      public int length() {
+        return elements.size();
       }
     };
   }

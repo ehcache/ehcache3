@@ -85,11 +85,8 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   @Override
   public void freeMapping(long encoding, int hash, boolean removal) {
-    AttachedInternalChain chain = new AttachedInternalChain(encoding);
-    try {
+    try (AttachedInternalChain chain = new AttachedInternalChain(encoding)) {
       chain.free();
-    } finally {
-      chain.close();
     }
   }
 
@@ -100,11 +97,8 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   @Override
   public boolean equalsValue(Object value, long encoding) {
-    AttachedInternalChain chain = new AttachedInternalChain(encoding);
-    try {
+    try (AttachedInternalChain chain = new AttachedInternalChain(encoding)) {
       return chain.equals(value);
-    } finally {
-      chain.close();
     }
   }
 
@@ -194,6 +188,11 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     @Override
     public boolean isEmpty() {
       return elements.isEmpty();
+    }
+
+    @Override
+    public int length() {
+      return elements.size();
     }
 
     @Override
@@ -314,8 +313,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
         if (newChainAddress == null) {
           return false;
         } else {
-          AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress);
-          try {
+          try (AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress)) {
             //copy remaining elements from old chain (by reference)
             long next = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
             long tail = storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET);
@@ -331,8 +329,6 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
               newChain.free();
               throw new AssertionError("Encoding update failure - impossible!");
             }
-          } finally {
-            newChain.close();
           }
         }
       }
@@ -356,8 +352,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       if (newChainAddress == null) {
         return false;
       } else {
-        AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress);
-        try {
+        try (AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress)) {
           //copy remaining elements from old chain (by reference)
           if (suffixHead != chain) {
             newChain.append(suffixHead, storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET));
@@ -371,8 +366,6 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
             newChain.free();
             throw new AssertionError("Encoding update failure - impossible!");
           }
-        } finally {
-          newChain.close();
         }
       }
     }
@@ -488,16 +481,13 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       return null;
     }
 
-    AttachedInternalChain chain = new AttachedInternalChain(address);
-    try {
+    try (AttachedInternalChain chain = new AttachedInternalChain(address)) {
       while (iterator.hasNext()) {
         if (!chain.append(iterator.next().getPayload())) {
           chain.free();
           return null;
         }
       }
-    } finally {
-      chain.close();
     }
     return address;
   }

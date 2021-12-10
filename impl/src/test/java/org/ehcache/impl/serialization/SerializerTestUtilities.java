@@ -131,8 +131,7 @@ public final class SerializerTestUtilities {
         if (name.equals(mapping.getValue())) {
           String path = mapping.getKey().replace('.', '/').concat(".class");
           try {
-            InputStream resource = getResourceAsStream(path);
-            try {
+            try (InputStream resource = getResourceAsStream(path)) {
               ClassReader reader = new ClassReader(resource);
 
               ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
@@ -153,8 +152,6 @@ public final class SerializerTestUtilities {
               byte[] classBytes = writer.toByteArray();
 
               return defineClass(name, classBytes, 0, classBytes.length);
-            } finally {
-              resource.close();
             }
           } catch (IOException e) {
             throw new ClassNotFoundException("IOException while loading", e);

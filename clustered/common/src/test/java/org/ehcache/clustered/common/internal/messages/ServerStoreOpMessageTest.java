@@ -20,7 +20,6 @@ import org.ehcache.clustered.common.internal.store.Element;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
@@ -30,13 +29,11 @@ import static org.hamcrest.core.IsNot.not;
 
 public class ServerStoreOpMessageTest {
 
-  private static final UUID CLIENT_ID = UUID.randomUUID();
-
   @Test
   public void testConcurrencyKeysEqualForSameCacheAndKey() throws Exception {
-    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.ReplaceAtHeadMessage(1L, getChain(Collections.<Element>emptyList()), getChain(Collections.<Element>emptyList()), CLIENT_ID);
+    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
+    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L));
+    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.ReplaceAtHeadMessage(1L, getChain(Collections.<Element>emptyList()), getChain(Collections.<Element>emptyList()));
 
     assertThat(m1.concurrencyKey(), is(m2.concurrencyKey()));
     assertThat(m2.concurrencyKey(), is(m3.concurrencyKey()));
@@ -44,17 +41,17 @@ public class ServerStoreOpMessageTest {
 
   @Test
   public void testConcurrencyKeysEqualForDifferentCachesSameKey() throws Exception {
-    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
+    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L));
 
     assertThat(m1.concurrencyKey(), is(m2.concurrencyKey()));
   }
 
   @Test
   public void testConcurrencyKeysNotEqualForDifferentCachesAndKeys() throws Exception {
-    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(2L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.AppendMessage(3L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
+    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(2L, createPayload(1L));
+    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.AppendMessage(3L, createPayload(1L));
 
     assertThat(m1.concurrencyKey(), not(m2.concurrencyKey()));
     assertThat(m1.concurrencyKey(), not(m3.concurrencyKey()));

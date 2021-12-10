@@ -120,12 +120,6 @@ class DefaultCacheStatistics implements CacheStatistics {
         return getCachePuts();
       }
     });
-    knownStatistics.put("Cache:UpdateCount", new TypedValueStatistic(StatisticType.COUNTER) {
-      @Override
-      public Number value() {
-        return getCacheUpdates();
-      }
-    });
     knownStatistics.put("Cache:RemovalCount", new TypedValueStatistic(StatisticType.COUNTER) {
       @Override
       public Number value() {
@@ -196,17 +190,9 @@ class DefaultCacheStatistics implements CacheStatistics {
   public long getCachePuts() {
     return normalize(getBulkCount(BulkOps.PUT_ALL) +
                      put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT)) +
-                     put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED)) +
                      putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
                      replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT)) -
                      compensatingCounters.cachePuts);
-  }
-
-  public long getCacheUpdates() {
-    return normalize(getBulkCount(BulkOps.UPDATE_ALL) +
-                     put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED)) +
-                     replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT)) -
-                     compensatingCounters.cacheUpdates);
   }
 
   public long getCacheRemovals() {
@@ -273,19 +259,17 @@ class DefaultCacheStatistics implements CacheStatistics {
     final long cacheGets;
     final long cachePuts;
     final long cacheRemovals;
-    final long cacheUpdates;
 
-    private CompensatingCounters(long cacheHits, long cacheMisses, long cacheGets, long cachePuts, long cacheRemovals, long cacheUpdates) {
+    private CompensatingCounters(long cacheHits, long cacheMisses, long cacheGets, long cachePuts, long cacheRemovals) {
       this.cacheHits = cacheHits;
       this.cacheMisses = cacheMisses;
       this.cacheGets = cacheGets;
       this.cachePuts = cachePuts;
       this.cacheRemovals = cacheRemovals;
-      this.cacheUpdates = cacheUpdates;
     }
 
     static CompensatingCounters empty() {
-      return new CompensatingCounters(0, 0, 0, 0, 0, 0);
+      return new CompensatingCounters(0, 0, 0, 0, 0);
     }
 
     CompensatingCounters snapshot(DefaultCacheStatistics statistics) {
@@ -294,8 +278,7 @@ class DefaultCacheStatistics implements CacheStatistics {
         cacheMisses + statistics.getMisses(),
         cacheGets + statistics.getCacheGets(),
         cachePuts + statistics.getCachePuts(),
-        cacheRemovals + statistics.getCacheRemovals(),
-        cacheUpdates + statistics.getCacheUpdates());
+        cacheRemovals + statistics.getCacheRemovals());
     }
   }
 

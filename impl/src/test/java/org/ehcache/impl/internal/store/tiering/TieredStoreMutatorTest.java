@@ -76,7 +76,7 @@ public class TieredStoreMutatorTest {
 
     @Override
     public PutStatus put(String key, String value) throws StoreAccessException {
-      String oldValue = map.put(key, value);
+      map.put(key, value);
 
       try {
         progressLatch.countDown();
@@ -85,13 +85,7 @@ public class TieredStoreMutatorTest {
         // ignore
       }
 
-      if(oldValue == null) {
-        return PutStatus.PUT;
-      }
-      if(oldValue.equals(value)) {
-        return PutStatus.NOOP;
-      }
-      return PutStatus.UPDATE;
+      return PutStatus.PUT;
     }
 
     @Override

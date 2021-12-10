@@ -158,7 +158,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void testFunctionReturnsNull() throws Exception {
     kvStore = factory.newStore();
 
-    final K key = factory.createKey(1L);;
+    final K key = factory.createKey(1L);
 
     // return null, no effect
     assertThat(kvStore.get(key), nullValue());
@@ -179,7 +179,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   public void testException() throws Exception {
     kvStore = factory.newStore();
 
-    final K key = factory.createKey(1L);;
+    final K key = factory.createKey(1L);
 
     assertThat(kvStore.get(key), nullValue());
 

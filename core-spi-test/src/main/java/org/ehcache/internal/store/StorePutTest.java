@@ -172,7 +172,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
       Store.PutStatus putStatus = kvStore.put(key, newValue);
-      assertThat(putStatus, is(Store.PutStatus.UPDATE));
+      assertThat(putStatus, is(Store.PutStatus.PUT));
       assertThat(kvStore.get(key), notNullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -192,7 +192,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
       Store.PutStatus putStatus = kvStore.put(key, newValue);
-      assertThat(putStatus, is(Store.PutStatus.UPDATE));
+      assertThat(putStatus, is(Store.PutStatus.PUT));
       assertThat(kvStore.get(key), nullValue());
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");

@@ -114,13 +114,7 @@ final class ExceptionCodec {
       try {
         Constructor declaredConstructor = clazz.getDeclaredConstructor(String.class);
         exception = (ClusterException)declaredConstructor.newInstance(message);
-      } catch (NoSuchMethodException e) {
-        LOGGER.error("Failed to instantiate exception object.", e);
-      } catch (IllegalAccessException e) {
-        LOGGER.error("Failed to instantiate exception object.", e);
-      } catch (InstantiationException e) {
-        LOGGER.error("Failed to instantiate exception object.", e);
-      } catch (InvocationTargetException e) {
+      } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
         LOGGER.error("Failed to instantiate exception object.", e);
       }
     }

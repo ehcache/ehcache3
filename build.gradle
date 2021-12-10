@@ -60,21 +60,21 @@ ext {
   baseVersion = findProperty('overrideVersion') ?: '3.5.0-SNAPSHOT'
 
   // Third parties
-  offheapVersion = '2.3.2'
+  offheapVersion = '2.4.0'
   statisticVersion = '1.4.3'
   jcacheVersion = '1.0.0'
-  slf4jVersion = '1.7.7'
+  slf4jVersion = '1.7.25'
   sizeofVersion = '0.3.0'
   ehcache2Version = '2.10.3'
 
   // Clustered
-  terracottaPlatformVersion = '5.3.4'
+  terracottaPlatformVersion = '5.4.0-pre3'
   managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.3.1'
-  terracottaCoreVersion = '5.3.4'
+  terracottaApisVersion = '1.4.0-pre6'
+  terracottaCoreVersion = '5.4.0-pre7'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.3.2'
+  terracottaPassthroughTestingVersion = '1.4.0-pre5'
   entityTestLibVersion = terracottaPassthroughTestingVersion
 
   // Tools

@@ -30,6 +30,7 @@ import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServic
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -38,7 +39,6 @@ import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
@@ -149,10 +149,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       } else {
         try {
           entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
-        } catch (DestroyInProgressException e) {
-          throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
-              + " Please review your configuration.", e);
-        } catch (EntityNotFoundException e) {
+        } catch (DestroyInProgressException | EntityNotFoundException e) {
           throw new IllegalStateException("The cluster tier manager '" + entityIdentifier + "' does not exist."
               + " Please review your configuration.", e);
         } catch (TimeoutException e) {
@@ -203,10 +200,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
       } catch (ClusterTierManagerCreationException e) {
         throw new IllegalStateException("Could not create the cluster tier manager '" + entityIdentifier + "'.", e);
-      } catch (EntityAlreadyExistsException e) {
+      } catch (EntityAlreadyExistsException | EntityBusyException e) {
         //ignore - entity already exists - try to retrieve
-      } catch (EntityBusyException e) {
-        //ignore - entity in transition - try to retrieve
       } catch (TimeoutException e) {
         throw new RuntimeException("Could not create the cluster tier manager '" + entityIdentifier
             + "'; create operation timed out", e);
@@ -372,7 +367,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
-                                                     Consistency configuredConsistency) throws CachePersistenceException {
+                                                     Consistency configuredConsistency,
+                                                     ServerCallback invalidation) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
 
     if (configuredConsistency == null) {
@@ -407,7 +403,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     ClusterTierClientEntity storeClientEntity;
     try {
-      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entity.getClientId(), entityIdentifier, cacheId,
+      storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
         clientStoreConfiguration, configuration.isAutoCreate());
       clusterTierEntities.put(cacheId, storeClientEntity);
     } catch (EntityNotFoundException e) {
@@ -416,13 +412,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
 
     ServerStoreProxy serverStoreProxy;
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(cacheId, messageFactory, storeClientEntity);
+        serverStoreProxy =  new StrongServerStoreProxy(cacheId, storeClientEntity, invalidation);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(cacheId, messageFactory, storeClientEntity);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, storeClientEntity, invalidation);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);

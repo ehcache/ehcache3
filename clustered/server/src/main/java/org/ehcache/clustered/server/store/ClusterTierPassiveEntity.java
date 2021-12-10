@@ -22,7 +22,6 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
@@ -45,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.entity.ClientSourceId;
-import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityUserException;
 import org.terracotta.entity.InvokeContext;
@@ -56,6 +54,8 @@ import org.terracotta.entity.StateDumpCollector;
 
 import java.util.concurrent.TimeoutException;
 
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.getResponse;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
@@ -122,17 +122,18 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   public void invokePassive(InvokeContext context, EhcacheEntityMessage message) throws EntityUserException {
     InvokeContext realContext = context;
     // For ChainReplicationMessage, we need to recreate the real client context from the one stored in the message. Because the current
-    // context comes from the active message. That's not what we want.
+    // context comes from the active message. That's not what we want. So instead we recreate a new context using the original client
+    // id and transaction id stored in the message
     if (message instanceof ChainReplicationMessage) {
       realContext = new InvokeContext() {
         @Override
         public ClientSourceId getClientSource() {
-          return context.makeClientSourceId(message.getClientId().getLeastSignificantBits());
+          return context.makeClientSourceId(((ChainReplicationMessage) message).getClientId());
         }
 
         @Override
         public long getCurrentTransactionId() {
-          return message.getId();
+          return ((ChainReplicationMessage) message).getTransactionId();
         }
 
         @Override
@@ -188,7 +189,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     }
 
     // Default response for messages not returning anything specific
-    return EhcacheEntityResponse.Success.INSTANCE;
+    return success();
   }
 
   private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) throws ClusterException {
@@ -204,14 +205,8 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         break;
       case MESSAGE_TRACKER:
         EhcacheMessageTrackerMessage messageTrackerMessage = (EhcacheMessageTrackerMessage) message;
-        if (messageTrackerMessage.getSegmentId() != EhcacheMessageTrackerMessage.UNKNOWN_SEGMENT) {
-          messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
-            messageHandler.loadTrackedResponsesForSegment(messageTrackerMessage.getSegmentId(), context.makeClientSourceId(key), value));
-        } else {
-          // This happens when a 3.4.0 server is the one sending the message
-          messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
-            messageHandler.loadOnSync(context.makeClientSourceId(key), value));
-        }
+        messageTrackerMessage.getTrackedMessages().forEach((key, value) ->
+          messageHandler.loadTrackedResponsesForSegment(messageTrackerMessage.getSegmentId(), context.makeClientSourceId(key), value));
         break;
       default:
         throw new AssertionError("Unsupported Sync operation " + message.getMessageType());
@@ -222,8 +217,8 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
 
     switch (message.getMessageType()) {
       case CHAIN_REPLICATION_OP:
-        LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ChainReplicationMessage retirementMessage = (ChainReplicationMessage) message;
+        LOGGER.debug("Chain Replication message for transactionId {} & clientId {}", retirementMessage.getTransactionId(), retirementMessage.getClientId());
         ServerSideServerStore cacheStore = stateService.getStore(storeIdentifier);
         if (cacheStore == null) {
           // An operation on a non-existent store should never get out of the client
@@ -235,7 +230,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         // Returns the real original result of the operation. We consider that it's always a GET_AND_APPEND since APPEND
         // is unused right now. Other types of messages are not tracked so we don't care that they return the right result
-        return new EhcacheEntityResponseFactory().response(retirementMessage.getResult());
+        return getResponse(retirementMessage.getResult());
       case INVALIDATION_COMPLETE:
         if (isEventual()) {
           InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage) message;
