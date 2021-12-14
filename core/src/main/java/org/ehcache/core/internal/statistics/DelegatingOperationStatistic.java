@@ -13,34 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.statistics;
+package org.ehcache.core.internal.statistics;
 
-import org.terracotta.statistics.MappedOperationStatistic;
+import org.ehcache.core.statistics.ChainedOperationObserver;
+import org.ehcache.core.statistics.OperationStatistic;
 
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class DelegatedMappedOperationStatistics<S extends Enum<S>, D extends Enum<D>> implements OperationStatistic<D> {
+public class DelegatingOperationStatistic<T extends Enum<T>> implements OperationStatistic<T> {
 
-  private final MappedOperationStatistic<S, D> delegate;
+  private final org.terracotta.statistics.OperationStatistic<T> delegate;
 
-  public DelegatedMappedOperationStatistics(MappedOperationStatistic<S, D> operationStatistic) {
-    this.delegate = operationStatistic;
+  public DelegatingOperationStatistic(org.terracotta.statistics.OperationStatistic<T> statistic) {
+    this.delegate = statistic;
   }
 
   @Override
-  public Class<D> type() {
+  public Class<T> type() {
     return delegate.type();
   }
 
   @Override
-  public long count(D type) {
+  public long count(T type) {
     return delegate.count(type);
   }
 
   @Override
-  public long sum(Set<D> types) {
+  public long sum(Set<T> types) {
     return delegate.sum(types);
   }
 
@@ -55,53 +56,51 @@ public class DelegatedMappedOperationStatistics<S extends Enum<S>, D extends Enu
   }
 
   @Override
-  public void end(D result) {
+  public void end(T result) {
     delegate.end(result);
   }
 
   @Override
-  public void addDerivedStatistic(ChainedOperationObserver<? super D> derived) {
+  public void addDerivedStatistic(ChainedOperationObserver<? super T> derived) {
     delegate.addDerivedStatistic(convert(derived));
   }
 
   @Override
-  public void removeDerivedStatistic(ChainedOperationObserver<? super D> derived) {
+  public void removeDerivedStatistic(ChainedOperationObserver<? super T> derived) {
     delegate.removeDerivedStatistic(convert(derived));
   }
 
   @Override
-  public Collection<ChainedOperationObserver<? super D>> getDerivedStatistics() {
-    Collection<org.terracotta.statistics.observer.ChainedOperationObserver<? super D>> derivedStatistics = delegate.getDerivedStatistics();
+  public Collection<ChainedOperationObserver<? super T>> getDerivedStatistics() {
+    Collection<org.terracotta.statistics.observer.ChainedOperationObserver<? super T>> derivedStatistics = delegate.getDerivedStatistics();
     return derivedStatistics.stream().map(this::revert).collect(Collectors.toSet());
   }
 
-  private ChainedOperationObserver<? super D> revert(org.terracotta.statistics.observer.ChainedOperationObserver<? super D> observer) {
-    return new ChainedOperationObserver<D>() {
+  private ChainedOperationObserver<? super T> revert(org.terracotta.statistics.observer.ChainedOperationObserver<? super T> observer) {
+    return new ChainedOperationObserver<T>() {
       @Override
       public void begin(long time) {
         observer.begin(time);
       }
 
       @Override
-      public void end(long time, long latency, D result) {
+      public void end(long time, long latency, T result) {
         observer.end(time, latency, result);
       }
     };
   }
 
-  private org.terracotta.statistics.observer.ChainedOperationObserver<D> convert(ChainedOperationObserver<? super D> observer) {
-    return new org.terracotta.statistics.observer.ChainedOperationObserver<D>() {
+  private org.terracotta.statistics.observer.ChainedOperationObserver<T> convert(ChainedOperationObserver<? super T> observer) {
+    return new org.terracotta.statistics.observer.ChainedOperationObserver<T>() {
       @Override
       public void begin(long time) {
         observer.begin(time);
       }
 
       @Override
-      public void end(long time, long latency, D result) {
+      public void end(long time, long latency, T result) {
         observer.end(time, latency, result);
       }
     };
   }
-
-
 }

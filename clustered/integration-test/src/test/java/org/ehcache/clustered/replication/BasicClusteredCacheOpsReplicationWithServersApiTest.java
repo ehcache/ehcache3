@@ -18,7 +18,6 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
@@ -39,12 +38,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicClusteredCacheOpsReplicationWithServersApiTest extends ClusteredTests {
+
+public class BasicClusteredCacheOpsReplicationWithServersApiTest {
 
   private static PersistentCacheManager CACHE_MANAGER;
   private static Cache<Long, String> CACHE1;

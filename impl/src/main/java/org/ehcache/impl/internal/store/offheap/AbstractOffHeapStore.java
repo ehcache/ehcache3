@@ -38,6 +38,7 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.StatisticType;
 import org.ehcache.core.statistics.OperationObserver;
 import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.resilience.StoreAccessException;
@@ -58,12 +59,11 @@ import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.management.model.stats.StatisticType;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
-import static org.terracotta.management.model.stats.StatisticType.GAUGE;
+import static org.ehcache.core.statistics.StatisticType.GAUGE;
 
 public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
 

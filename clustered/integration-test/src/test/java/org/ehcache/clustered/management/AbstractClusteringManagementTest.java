@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.util.BeforeAll;
 import org.ehcache.clustered.util.BeforeAllRule;
 import org.ehcache.config.units.EntryUnit;
@@ -60,14 +59,17 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResources;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 @SuppressWarnings("rawtypes") // Need to suppress because of a Javac bug giving a rawtype on AbstractManageableNode::isManageable.
-public abstract class AbstractClusteringManagementTest extends ClusteredTests {
+public abstract class AbstractClusteringManagementTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClusteringManagementTest.class);
 
@@ -151,6 +153,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       "CLIENT_CONNECTED",
       "CLIENT_PROPERTY_ADDED",
       "CLIENT_PROPERTY_ADDED",
+      "CLIENT_PROPERTY_ADDED",
       "CLIENT_REGISTRY_AVAILABLE",
       "CLIENT_TAGS_UPDATED",
       "EHCACHE_RESOURCE_POOLS_CONFIGURED",
@@ -158,7 +161,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
       "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_AVAILABLE",
       "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_CREATED",
       "SERVER_ENTITY_DESTROYED",
-      "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
+      "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_FETCHED",
       "SERVER_ENTITY_UNFETCHED",
       "EHCACHE_RESOURCE_POOLS_CONFIGURED",
 

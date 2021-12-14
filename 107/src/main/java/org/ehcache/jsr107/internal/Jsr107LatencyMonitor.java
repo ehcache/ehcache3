@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.statistics;
+package org.ehcache.jsr107.internal;
+
+import org.ehcache.core.statistics.ChainedOperationObserver;
 
 import java.util.EnumSet;
 

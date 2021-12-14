@@ -139,7 +139,7 @@ subprojects {
   }
 
   jar {
-    utils.fillManifest(manifest,"ehcache-${project.name}")
+    utils.fillManifest(manifest,"${project.group}","ehcache-${project.name}")
     from "$rootDir/LICENSE"
   }
 
@@ -221,7 +221,7 @@ subprojects {
   tasks.withType(Test) {
     executable = testJava.javaExecutable
     maxHeapSize = "256m"
-    maxParallelForks 64
+    maxParallelForks 16
     systemProperty 'java.awt.headless', 'true'
   }
   tasks.withType(Javadoc) {

@@ -16,21 +16,12 @@
 
 package org.ehcache.core.statistics;
 
-import org.terracotta.statistics.ValueStatistic;
-
 import java.util.Map;
 
 /**
  * All statistics relative to a tier
  */
 public interface TierStatistics {
-
-  /**
-   * List of statistics tracked on this cache
-   *
-   * @return a map of statistics per name
-   */
-  Map<String, ValueStatistic<?>> getKnownStatistics();
 
   /**
    * Reset the values for this tier. However, note that {@code mapping, allocatedMemory, occupiedMemory}

@@ -20,8 +20,6 @@ import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,9 +27,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Implements {@link ServerStore}
@@ -100,8 +95,8 @@ public class ReferenceStoreImpl implements ServerStore  {
   }
 
   @Override
-  public Iterator<Chain> iterator() {
-    return map.values().iterator();
+  public Iterator<Map.Entry<Long, Chain>> iterator() {
+    return map.entrySet().iterator();
   }
 
   private HeapChainImpl cast(Chain chain) {

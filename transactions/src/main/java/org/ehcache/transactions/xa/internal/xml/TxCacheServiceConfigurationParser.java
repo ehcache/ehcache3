@@ -21,6 +21,7 @@ import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
+import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Document;
@@ -59,7 +60,7 @@ public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreC
   public ServiceConfiguration<XAStore.Provider, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("xa-store".equals(localName)) {
-      String uniqueXAResourceId = fragment.getAttribute("unique-XAResource-id");
+      String uniqueXAResourceId = JaxbParsers.parsePropertyOrString(fragment.getAttribute("unique-XAResource-id"));
       return new XAStoreConfiguration(uniqueXAResourceId);
     } else {
       throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",

@@ -29,7 +29,7 @@ public class TestProvidedServiceFactory implements ServiceFactory<TestProvidedSe
   }
 
   @Override
-  public Class<TestProvidedService> getServiceType() {
+  public Class<? extends TestProvidedService> getServiceType() {
     return TestProvidedService.class;
   }
 }

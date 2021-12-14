@@ -85,6 +85,7 @@ import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -105,7 +106,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -148,9 +148,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   static final String CHAIN_COMPACTION_THRESHOLD_PROP = "ehcache.server.chain.compaction.threshold";
   private static final int DEFAULT_CHAIN_COMPACTION_THRESHOLD = 8;
 
-  private static final int MAX_SYNC_CONCURRENCY = 1;
-  private static final Executor SYNC_GETS_EXECUTOR = new ThreadPoolExecutor(0, MAX_SYNC_CONCURRENCY,
-    20, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+  private final Executor syncGetsExecutor;
 
   private final String storeIdentifier;
   private final ServerStoreConfiguration configuration;
@@ -159,17 +157,14 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private final OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> messageHandler;
   private final IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger;
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
-  private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final ClusterTierManagement management;
   private final String managerIdentifier;
-  private final Object inflightInvalidationsMutex = new Object();
-  private volatile List<InvalidationTuple> inflightInvalidations;
   private final Set<ClientDescriptor> eventListeners = new CopyOnWriteArraySet<>(); // mutations are synchronized on eventListeners itself
   private final Map<ClientDescriptor, Boolean> connectedClients = new ConcurrentHashMap<>();
-  private final Map<ClientDescriptor, Map<UUID, Iterator<Chain>>> liveIterators = new ConcurrentHashMap<>();
+  private final Map<ClientDescriptor, Map<UUID, Iterator<Map.Entry<Long, Chain>>>> liveIterators = new ConcurrentHashMap<>();
   private final int chainCompactionLimit;
   private final ServerLockManager lockManager;
 
@@ -178,7 +173,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
   private volatile Integer dataMapInitialCapacity = null;
 
   @SuppressWarnings("unchecked")
-  public ClusterTierActiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper) throws ConfigurationException {
+  public ClusterTierActiveEntity(ServiceRegistry registry, ClusterTierEntityConfiguration entityConfiguration, KeySegmentMapper defaultMapper, Executor getSyncExecutor) throws ConfigurationException {
     if (entityConfiguration == null) {
       throw new ConfigurationException("ClusteredStoreEntityConfiguration cannot be null");
     }
@@ -204,6 +199,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     } else {
       lockManager = new NoopLockManager();
     }
+    syncGetsExecutor = getSyncExecutor;
   }
 
   static boolean isTrackedMessage(EhcacheEntityMessage msg) {
@@ -236,19 +232,9 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     management.entityCreated();
   }
 
-  List<InvalidationTuple> getInflightInvalidations() {
-    return this.inflightInvalidations;
-  }
-
   @Override
   public void loadExisting() {
-    inflightInvalidations = new ArrayList<>();
-    if (!isStrong()) {
-      LOGGER.debug("Preparing for handling inflight invalidations");
-      addInflightInvalidationsForEventualCaches();
-    }
     stateService.loadStore(storeIdentifier, configuration).setEventListener(new Listener());
-    reconnectComplete.set(false);
     management.entityPromotionCompleted();
   }
 
@@ -392,25 +378,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       throw new LifecycleException("cluster tier does not exist : '" + storeIdentifier + "'");
     }
 
-    if (inflightInvalidations != null) {
-      synchronized (inflightInvalidationsMutex) {
-        // This logic totally counts on the fact that invokes will only happen
-        // after all handleReconnects are done, else this is flawed.
-        if (inflightInvalidations != null) {
-          List<InvalidationTuple> tmpInflightInvalidations = this.inflightInvalidations;
-          this.inflightInvalidations = null;
-          LOGGER.debug("Stalling all operations for cluster tier {} for firing inflight invalidations again.", storeIdentifier);
-          tmpInflightInvalidations.forEach(invalidationState -> {
-            if (invalidationState.isClearInProgress()) {
-              invalidateAll(invalidationState.getClientDescriptor());
-            }
-            invalidationState.getInvalidationsInProgress()
-                .forEach(hashInvalidationToBeResent -> invalidateHashForClient(invalidationState.getClientDescriptor(), hashInvalidationToBeResent));
-          });
-        }
-      }
-    }
-
     switch (message.getMessageType()) {
       case GET_STORE: {
         GetMessage getMessage = (GetMessage) message;
@@ -523,11 +490,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       case ITERATOR_OPEN: {
         IteratorOpenMessage iteratorOpenMessage = (IteratorOpenMessage) message;
         try {
-          Iterator<Chain> iterator = cacheStore.iterator();
-          List<Chain> batch = iteratorBatch(iterator, iteratorOpenMessage.getBatchSize());
+          Iterator<Map.Entry<Long, Chain>> iterator = cacheStore.iterator();
+          List<Map.Entry<Long, Chain>> batch = iteratorBatch(iterator, iteratorOpenMessage.getBatchSize());
 
           if (iterator.hasNext()) {
-            Map<UUID, Iterator<Chain>> liveIterators = this.liveIterators.computeIfAbsent(clientDescriptor, client -> new ConcurrentHashMap<>());
+            Map<UUID, Iterator<Map.Entry<Long, Chain>>> liveIterators = this.liveIterators.computeIfAbsent(clientDescriptor, client -> new ConcurrentHashMap<>());
             UUID id;
             do {
               id = UUID.randomUUID();
@@ -556,11 +523,11 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         IteratorAdvanceMessage iteratorAdvanceMessage = (IteratorAdvanceMessage) message;
         UUID id = iteratorAdvanceMessage.getIdentity();
 
-        Iterator<Chain> iterator = liveIterators.getOrDefault(clientDescriptor, emptyMap()).get(id);
+        Iterator<Map.Entry<Long, Chain>> iterator = liveIterators.getOrDefault(clientDescriptor, emptyMap()).get(id);
         if (iterator == null) {
           return failure(new InvalidOperationException("Referenced iterator is already closed (or never existed)"));
         } else {
-          List<Chain> batch = iteratorBatch(iterator, iteratorAdvanceMessage.getBatchSize());
+          List<Map.Entry<Long, Chain>> batch = iteratorBatch(iterator, iteratorAdvanceMessage.getBatchSize());
           if (iterator.hasNext()) {
             return iteratorBatchResponse(id, batch, false);
           } else {
@@ -615,13 +582,13 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     return new HashSet<>(eventListeners);
   }
 
-  private List<Chain> iteratorBatch(Iterator<Chain> iterator, int batchSize) {
-    List<Chain> chains = new ArrayList<>();
+  private List<Map.Entry<Long, Chain>> iteratorBatch(Iterator<Map.Entry<Long, Chain>> iterator, int batchSize) {
+    List<Map.Entry<Long, Chain>> chains = new ArrayList<>();
     int size = 0;
     while (iterator.hasNext() && size < batchSize && size >= 0) {
-      Chain nextChain = iterator.next();
-      chains.add(nextChain);
-      for (Element e: nextChain) {
+      Map.Entry<Long, Chain> nextChain = iterator.next();
+      chains.add(new AbstractMap.SimpleImmutableEntry<>(nextChain.getKey(), nextChain.getValue()));
+      for (Element e: nextChain.getValue()) {
         size += e.getPayload().remaining();
       }
     }
@@ -753,14 +720,6 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     }
   }
 
-  private void addInflightInvalidationsForEventualCaches() {
-    InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
-    if (invalidationTracker != null) {
-      inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
-      invalidationTracker.clear();
-    }
-  }
-
   @Override
   public void notifyDestroyed(ClientSourceId sourceId) {
     messageHandler.untrackClient(sourceId);
@@ -773,32 +732,53 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
     } catch (MessageCodecException mce) {
       throw new AssertionError("Codec error", mce);
     }
-    return (clientDescriptor, bytes) -> {
-      if (inflightInvalidations == null) {
-        throw new AssertionError("Load existing was not invoked before handleReconnect");
-      }
 
-      ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(bytes);
-      ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
-      addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
-      lockManager.createLockStateAfterFailover(clientDescriptor, reconnectMessage.getLocksHeld());
-      if (reconnectMessage.isEventsEnabled()) {
-        addEventListener(clientDescriptor, serverStore);
-      }
+    List<InvalidationTuple> inflightInvalidations = new ArrayList<>();
 
-      LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
-
-      connectedClients.put(clientDescriptor, Boolean.TRUE);
-    };
-  }
-
-  private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
-    if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
-      Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress();
-      LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", clientDescriptor.getSourceId().toLong(), storeIdentifier, invalidationsInProgress
-          .size());
-      inflightInvalidations.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress()));
+    InvalidationTracker invalidationTracker = stateService.getInvalidationTracker(storeIdentifier);
+    if (invalidationTracker != null) {
+      inflightInvalidations.add(new InvalidationTuple(null, invalidationTracker.getTrackedKeys(), invalidationTracker.isClearInProgress()));
+      invalidationTracker.clear();
     }
+
+    return new ReconnectHandler() {
+
+      @Override
+      public void handleReconnect(ClientDescriptor clientDescriptor, byte[] bytes) {
+        ClusterTierReconnectMessage reconnectMessage = reconnectMessageCodec.decode(bytes);
+        ServerSideServerStore serverStore = stateService.getStore(storeIdentifier);
+        addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, serverStore);
+        lockManager.createLockStateAfterFailover(clientDescriptor, reconnectMessage.getLocksHeld());
+        if (reconnectMessage.isEventsEnabled()) {
+          addEventListener(clientDescriptor, serverStore);
+        }
+
+        LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
+
+        connectedClients.put(clientDescriptor, Boolean.TRUE);
+      }
+
+      private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ClusterTierReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
+        if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
+          Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress();
+          LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", clientDescriptor.getSourceId().toLong(), storeIdentifier, invalidationsInProgress
+            .size());
+          inflightInvalidations.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress()));
+        }
+      }
+
+      @Override
+      public void close() {
+        LOGGER.debug("Stalling all operations for cluster tier {} for firing inflight invalidations again.", storeIdentifier);
+        inflightInvalidations.forEach(invalidationState -> {
+          if (invalidationState.isClearInProgress()) {
+            invalidateAll(invalidationState.getClientDescriptor());
+          }
+          invalidationState.getInvalidationsInProgress()
+            .forEach(hashInvalidationToBeResent -> invalidateHashForClient(invalidationState.getClientDescriptor(), hashInvalidationToBeResent));
+        });
+      }
+    };
   }
 
   @Override
@@ -814,7 +794,7 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
       int segmentId = concurrencyKey - DEFAULT_KEY - 1;
       Thread thisThread = Thread.currentThread();
       CompletableFuture<Void> asyncGet = CompletableFuture.runAsync(
-        () -> doGetsForSync(segmentId, messageQ, syncChannel, thisThread), SYNC_GETS_EXECUTOR);
+        () -> doGetsForSync(segmentId, messageQ, syncChannel, thisThread), syncGetsExecutor);
       try {
         try {
           while (messageQ.take().execute()) ;

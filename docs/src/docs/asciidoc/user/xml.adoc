@@ -84,12 +84,8 @@ WARNING: Processing of cache template configurations can be triggered lazily by 
 
 == Property replacement in XML configuration files
 
-Java system properties can be referenced inside XML configuration files.
-The property value will replace the property reference during the configuration parsing.
-
-This is done by using the `${prop.name}` syntax.
-It is supported in all attributes and elements values that accept the `${}` characters as legal characters.
-This currently rules out all numbers, mostly used in sizing things, and identifiers, such as cache and template names.
+Certain elements inside XML configuration files can use `${property-name}` syntax. The value of the given
+system-property will replace the property reference during the configuration parsing.
 
 WARNING: If the system property does not exist, this will make the configuration parsing fail.
 
@@ -100,6 +96,15 @@ A classical use case for this feature is for disk files location inside the `dir
 <persistence directory="${user.home}/cache-data"/> <!--1-->
 ----
 <1> Here `user.home` will be replaced by the value of the system property, something like `/home/user`
+
+Attributes within the core configuration that can use system properties are:
+
+ * Local persistence directory (supports substitution within a string).
+ * Thread pool minimum and maximum size attributes.
+ * Write-behind queue size, concurrency, batch size and maximum batch delay.
+ * Cache TTI and TTL
+ * Core resource sizes (heap, offheap and disk)
+ * Disk store writer concurrency and segment count
 
 == XML programmatic parsing
 

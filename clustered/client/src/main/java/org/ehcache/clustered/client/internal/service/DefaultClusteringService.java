@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
@@ -60,7 +61,7 @@ import java.util.stream.Stream;
 /**
  * Provides support for accessing server-based cluster services.
  */
-class DefaultClusteringService implements ClusteringService, EntityService {
+public class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 
@@ -118,9 +119,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    asyncExecutor = createAsyncWorker();
-    connectionState.initClusterConnection(asyncExecutor);
-    connectionState.initializeState();
+    try {
+      asyncExecutor = createAsyncWorker();
+      connectionState.initClusterConnection(asyncExecutor);
+      connectionState.initializeState();
+    } catch (ClusterTierManagerValidationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -361,8 +366,19 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   private static ExecutorService createAsyncWorker() {
+    SecurityManager s = System.getSecurityManager();
+    ThreadGroup initialGroup = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
     return Executors.newSingleThreadExecutor(r -> {
-      Thread t = new Thread(r, "Async DefaultClusteringService Worker");
+      ThreadGroup group = initialGroup;
+      while (group != null && group.isDestroyed()) {
+        ThreadGroup parent = group.getParent();
+        if (parent == null) {
+          break;
+        } else {
+          group = parent;
+        }
+      }
+      Thread t = new Thread(group, r, "Async DefaultClusteringService Worker");
       t.setDaemon(true);
       return t;
     });

@@ -26,8 +26,9 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.ehcache.xml.model.TimeType;
+import org.ehcache.xml.model.TimeTypeWithPropSubst;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -53,6 +54,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
@@ -117,7 +119,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   @Override
   public ServiceCreationConfiguration<ClusteringService, ?> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
 
-    if ("cluster".equals(fragment.getLocalName())) {
+    if (CLUSTER_ELEMENT_NAME.equals(fragment.getLocalName())) {
 
       ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig serverConfig = null;
       URI connectionUri = null;
@@ -129,12 +131,12 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
         final Node item = childNodes.item(i);
         if (Node.ELEMENT_NODE == item.getNodeType()) {
           switch (item.getLocalName()) {
-            case "connection":
+            case CONNECTION_ELEMENT_NAME:
               /*
                * <connection> is a required element in the XSD
                */
-              final Attr urlAttribute = ((Element)item).getAttributeNode("url");
-              final String urlValue = urlAttribute.getValue();
+              final Attr urlAttribute = ((Element)item).getAttributeNode(URL_ATTRIBUTE_NAME);
+              final String urlValue = JaxbParsers.parseStringWithProperties(urlAttribute.getValue());
               try {
                 connectionUri = new URI(urlValue);
               } catch (URISyntaxException e) {
@@ -144,46 +146,46 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
               }
 
               break;
-            case "cluster-connection":
-              clusterTierManager = ((Element)item).getAttribute("cluster-tier-manager");
+            case CLUSTER_CONNECTION_ELEMENT_NAME:
+              clusterTierManager = JaxbParsers.parsePropertyOrString(((Element)item).getAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME));
               final NodeList serverNodes = item.getChildNodes();
               for (int j = 0; j < serverNodes.getLength(); j++) {
                 final Node serverNode = serverNodes.item(j);
-                final String host = ((Element)serverNode).getAttributeNode("host").getValue();
-                final Attr port = ((Element)serverNode).getAttributeNode("port");
+                final String host = JaxbParsers.parsePropertyOrString(((Element)serverNode).getAttributeNode(HOST_ATTRIBUTE_NAME).getValue().trim());
+                final Attr port = ((Element)serverNode).getAttributeNode(PORT_ATTRIBUTE_NAME);
                 InetSocketAddress address;
                 if (port == null) {
                   address = InetSocketAddress.createUnresolved(host, 0);
                 } else {
-                  String portString = port.getValue();
+                  String portString = JaxbParsers.parsePropertyOrString(port.getValue());
                   address = InetSocketAddress.createUnresolved(host, Integer.parseInt(portString));
                 }
                 serverAddresses.add(address);
               }
 
               break;
-            case "read-timeout":
+            case READ_TIMEOUT_ELEMENT_NAME:
               /*
                * <read-timeout> is an optional element
                */
               getTimeout = processTimeout(fragment, item);
 
               break;
-            case "write-timeout":
+            case WRITE_TIMEOUT_ELEMENT_NAME:
               /*
                * <write-timeout> is an optional element
                */
               putTimeout = processTimeout(fragment, item);
 
               break;
-            case "connection-timeout":
+            case CONNECTION_TIMEOUT_ELEMENT_NAME:
               /*
                * <connection-timeout> is an optional element
                */
               connectionTimeout = processTimeout(fragment, item);
 
               break;
-            case "server-side-config":
+            case SERVER_SIDE_CONFIG:
               /*
                * <server-side-config> is an optional element
                */
@@ -399,6 +401,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
         serverSideConfig.clientMode = Boolean.parseBoolean(autoCreateAttr) ? ClientMode.AUTO_CREATE : ClientMode.EXPECTING;
       }
     } else if (autoCreateAttr.isEmpty()) {
+      clientModeAttr = JaxbParsers.parsePropertyOrString(clientModeAttr);
       serverSideConfig.clientMode = ClientMode.valueOf(clientModeAttr.toUpperCase(Locale.ROOT).replace('-', '_'));
     } else {
       throw new XmlConfigurationException("Cannot define both '" + AUTO_CREATE_ATTRIBUTE_NAME + "' and '" + CLIENT_MODE_ATTRIBUTE_NAME + "' attributes");
@@ -409,22 +412,22 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
       final Node item = serverSideNodes.item(i);
       if (Node.ELEMENT_NODE == item.getNodeType()) {
         String nodeLocalName = item.getLocalName();
-        if ("default-resource".equals(nodeLocalName)) {
-          serverSideConfig.defaultServerResource = ((Element)item).getAttribute("from");
+        if (DEFAULT_RESOURCE_ELEMENT_NAME.equals(nodeLocalName)) {
+          serverSideConfig.defaultServerResource = JaxbParsers.parsePropertyOrString(((Element)item).getAttribute(FROM_ATTRIBUTE_NAME));
 
-        } else if ("shared-pool".equals(nodeLocalName)) {
+        } else if (SHARED_POOL_ELEMENT_NAME.equals(nodeLocalName)) {
           Element sharedPoolElement = (Element)item;
-          String poolName = sharedPoolElement.getAttribute("name");     // required
-          Attr fromAttr = sharedPoolElement.getAttributeNode("from");   // optional
+          String poolName = sharedPoolElement.getAttribute(NAME_ATTRIBUTE_NAME);     // required
+          Attr fromAttr = sharedPoolElement.getAttributeNode(FROM_ATTRIBUTE_NAME);   // optional
           String fromResource = (fromAttr == null ? null : fromAttr.getValue());
-          Attr unitAttr = sharedPoolElement.getAttributeNode("unit");   // optional - default 'B'
+          Attr unitAttr = sharedPoolElement.getAttributeNode(UNIT_ATTRIBUTE_NAME);   // optional - default 'B'
           String unit = (unitAttr == null ? "B" : unitAttr.getValue());
           MemoryUnit memoryUnit = MemoryUnit.valueOf(unit.toUpperCase(Locale.ENGLISH));
 
           String quantityValue = sharedPoolElement.getFirstChild().getNodeValue();
           long quantity;
           try {
-            quantity = Long.parseLong(quantityValue);
+            quantity = JaxbParsers.parsePropertyOrPositiveInteger(quantityValue).longValueExact();
           } catch (NumberFormatException e) {
             throw new XmlConfigurationException("Magnitude of value specified for <shared-pool name=\""
                                                 + poolName + "\"> is too large");
@@ -434,7 +437,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
           if (fromResource == null) {
             poolDefinition = new ServerSideConfiguration.Pool(memoryUnit.toBytes(quantity));
           } else {
-            poolDefinition = new ServerSideConfiguration.Pool(memoryUnit.toBytes(quantity), fromResource);
+            poolDefinition = new ServerSideConfiguration.Pool(memoryUnit.toBytes(quantity), JaxbParsers.parsePropertyOrString(fromResource));
           }
 
           if (serverSideConfig.pools.put(poolName, poolDefinition) != null) {
@@ -449,11 +452,12 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   private Duration processTimeout(Element parentElement, Node timeoutNode) {
     try {
       // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
-      JAXBContext context = JAXBContext.newInstance(TimeType.class);
+      JAXBContext context = JAXBContext.newInstance(TimeTypeWithPropSubst.class);
       Unmarshaller unmarshaller = context.createUnmarshaller();
-      JAXBElement<TimeType> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeType.class);
+      unmarshaller.setEventHandler(new DefaultValidationEventHandler());
+      JAXBElement<TimeTypeWithPropSubst> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeTypeWithPropSubst.class);
 
-      TimeType timeType = jaxbElement.getValue();
+      TimeTypeWithPropSubst timeType = jaxbElement.getValue();
       BigInteger amount = timeType.getValue();
       if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
         throw new XmlConfigurationException(

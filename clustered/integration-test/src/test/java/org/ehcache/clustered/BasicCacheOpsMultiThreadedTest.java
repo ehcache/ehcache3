@@ -44,18 +44,21 @@ import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeo
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 /**
  * Simulate multiple clients starting up the same cache manager simultaneously and ensure that puts and gets works just
  * fine and nothing get lost or hung, just because multiple cache manager instances of the same cache manager are coming up
  * simultaneously.
  */
-public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
+public class BasicCacheOpsMultiThreadedTest {
 
   @ClassRule
   public static Cluster CLUSTER =

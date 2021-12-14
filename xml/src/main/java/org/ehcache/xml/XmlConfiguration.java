@@ -368,7 +368,8 @@ public class XmlConfiguration implements Configuration {
   }
 
   public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {
-    return PRETTY_FORMATS.stream().filter(p -> p.applies().test(name)).findFirst().map(PrettyClassFormat::lookup).orElseThrow(AssertionError::new).lookup(name, classLoader);
+    String klazz = name.trim();
+    return PRETTY_FORMATS.stream().filter(p -> p.applies().test(klazz)).findFirst().map(PrettyClassFormat::lookup).orElseThrow(AssertionError::new).lookup(klazz, classLoader);
   }
 
   private static final List<PrettyClassFormat> PRETTY_FORMATS = asList(

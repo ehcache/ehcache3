@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.service;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.client.internal.MockConnectionService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -62,7 +63,13 @@ public class ReconnectTest {
 
     connectionState.initClusterConnection(Runnable::run);
 
-    CompletableFuture<Void> future = CompletableFuture.runAsync(() -> connectionState.initializeState());
+    CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+      try {
+        connectionState.initializeState();
+      } catch (ClusterTierManagerValidationException e) {
+        throw new AssertionError(e);
+      }
+    });
 
     MockConnectionService.mockConnection = null;
 

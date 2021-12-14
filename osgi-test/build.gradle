@@ -16,10 +16,25 @@
 
 configurations {
   osgiModule
+  lowerBoundOsgiModule.extendsFrom osgiModule
   testCompileOnly.extendsFrom osgiModule
 }
 
 dependencies {
+  api ('org.ops4j.pax.exam:pax-exam-junit4:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  implementation 'org.apache.felix:org.apache.felix.framework:6.0.3'
+  runtimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  runtimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.1") {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  runtimeOnly ('org.ops4j.pax.exam:pax-exam-container-native:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+
   osgiModule project(':api')
   osgiModule project(':core')
   osgiModule project(':impl')
@@ -39,38 +54,15 @@ dependencies {
 
   osgiModule 'com.sun.activation:javax.activation:1.2.0'
   osgiModule 'org.glassfish.hk2:osgi-resource-locator:1.0.2'
-
-  testImplementation 'org.apache.felix:org.apache.felix.framework:6.0.3'
-  testImplementation ('org.ops4j.pax.exam:pax-exam-junit4:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-
-  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-container-native:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.1") {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-}
-
-configurations.all {
-   resolutionStrategy {
-     force 'org.ops4j.base:ops4j-base-lang:1.5.0'
-     force 'org.ops4j.base:ops4j-base-net:1.5.0'
-     force 'org.ops4j.base:ops4j-base-util-property:1.5.0'
-     force 'org.ops4j.pax.url:pax-url-commons:2.6.1'
-   }
 }
 
 configurations.all {
   resolutionStrategy {
     dependencySubstitution {
       substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
-              .because('https://ops4j1.jira.com/browse/PAXURL-341')
-              .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+        .because('https://github.com/codehaus-plexus/plexus-utils/issues/3' +
+          ' and https://github.com/codehaus-plexus/plexus-utils/issues/4')
+        .with(module('org.ops4j.pax.url:pax-url-aether:2.6.3'))
       substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
               .because('https://ops4j1.jira.com/browse/PAXURL-341')
               .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
@@ -78,6 +70,9 @@ configurations.all {
               .because('https://ops4j1.jira.com/browse/PAXURL-341')
               .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
 
+      substitute(module('biz.aQute.bnd:bndlib:2.4.0'))
+        .because('Java 9 Stuff')
+        .with(module('biz.aQute.bnd:biz.aQute.bndlib:5.2.0'))
       substitute(module('junit:junit:4.12'))
         .because('CVE-2020-15250')
         .with(module('junit:junit:4.13.1'))
@@ -92,17 +87,43 @@ sourceSets {
   }
 }
 
-configurations.osgiModule.dependencies.withType(ProjectDependency).forEach {
-  test.dependsOn it.dependencyProject.tasks.jar
+if (testJava.javaVersion.isJava9Compatible()) {
+  tasks.withType(Test) {
+    //https://issues.apache.org/jira/browse/FELIX-5727 - framework extensions in Java 9 are ugly
+    jvmArgs += '--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED'
+  }
 }
 
 test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    //https://issues.apache.org/jira/browse/FELIX-5727 - framework extensions in Java 9 are ugly
-    jvmArgs += ['--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED']
+  dependsOn configurations.osgiModule
+  doFirst {
+    configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
+      systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+    })
   }
-}.doFirst {
-  configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
-    systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
-  })
+}
+
+configurations {
+  lowerBoundOsgiModule {
+    resolutionStrategy.dependencySubstitution {
+      substitute module('org.glassfish.jaxb:jaxb-runtime') with module('com.sun.xml.bind:jaxb-osgi:2.2.8-b01')
+    }
+  }
+}
+dependencies {
+  lowerBoundOsgiModule 'javax.xml.bind:jaxb-api:2.2.9'
+}
+
+tasks.register('lowerBoundTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  dependsOn configurations.lowerBoundOsgiModule
+  doFirst {
+    configurations.lowerBoundOsgiModule.resolvedConfiguration.resolvedArtifacts.forEach {
+      systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+    }
+  }
+}
+
+tasks.named('check') {
+  dependsOn tasks.lowerBoundTest
 }

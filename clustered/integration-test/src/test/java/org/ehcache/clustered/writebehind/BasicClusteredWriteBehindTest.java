@@ -32,9 +32,11 @@ import java.lang.management.ThreadMXBean;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
 

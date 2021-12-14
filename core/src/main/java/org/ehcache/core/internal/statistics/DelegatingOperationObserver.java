@@ -13,21 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered;
+package org.ehcache.core.internal.statistics;
 
-import org.junit.Test;
+import org.ehcache.core.statistics.OperationObserver;
 
-import java.io.File;
+public class DelegatingOperationObserver<T extends Enum<T>> implements OperationObserver<T> {
 
-import static org.assertj.core.api.Assertions.assertThat;
+  private final org.terracotta.statistics.observer.OperationObserver<T> observer;
 
-public class ClusteredTestsTest extends ClusteredTests {
+  public DelegatingOperationObserver(org.terracotta.statistics.observer.OperationObserver<T> operationObserver) {
+    this.observer = operationObserver;
+  }
 
-  @Test
-  public void test() {
-    String value = System.getProperty("kitInstallationPath");
-    assertThat(new File(value)).exists();
-    assertThat(new File(value)).isAbsolute();
-    assertThat(new File(value).toString()).doesNotContain("..");
+  @Override
+  public void begin() {
+    this.observer.begin();
+  }
+
+  @Override
+  public void end(T result) {
+    this.observer.end(result);
   }
 }

@@ -59,6 +59,8 @@ task copyServerLibs(type: Copy) {
 }
 
 test {
+  maxHeapSize = '512m'
+  maxParallelForks = 8
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
   //If this directory does not exist, tests will fail with a cryptic assert failure

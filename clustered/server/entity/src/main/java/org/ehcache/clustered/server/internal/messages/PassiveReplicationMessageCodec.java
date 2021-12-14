@@ -89,7 +89,7 @@ public class PassiveReplicationMessageCodec {
       .int64(CLIENT_ID_FIELD, message.getClientId())
       .int64(OLDEST_TRANSACTION_ID_FIELD, message.getOldestTransactionId())
       .int64(KEY_FIELD, message.getKey())
-      .struct(CHAIN_FIELD, message.getChain(), ChainCodec::encode)
+      .struct(CHAIN_FIELD, message.getChain(), ChainCodec::encodeChain)
       .encode().array();
   }
 
@@ -128,7 +128,7 @@ public class PassiveReplicationMessageCodec {
     Long oldestTransactionId = decoder.int64(OLDEST_TRANSACTION_ID_FIELD);
     Long key = decoder.int64(KEY_FIELD);
 
-    Chain chain = ChainCodec.decode(decoder.struct(CHAIN_FIELD));
+    Chain chain = ChainCodec.decodeChain(decoder.struct(CHAIN_FIELD));
 
     return new PassiveReplicationMessage.ChainReplicationMessage(key, chain, currentTransactionId, oldestTransactionId, clientId);
   }

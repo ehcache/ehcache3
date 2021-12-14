@@ -97,6 +97,10 @@ class ConnectionState {
     return entityFactory;
   }
 
+  public ClusterTierManagerClientEntity getEntity() {
+    return entity;
+  }
+
   public ClusterTierClientEntity createClusterTierClientEntity(String cacheId,
                                                                ServerStoreConfiguration clientStoreConfiguration, boolean isReconnect)
           throws CachePersistenceException {
@@ -111,7 +115,7 @@ class ConnectionState {
         throw new PerpetualCachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
-        handleConnectionClosedException();
+        handleConnectionClosedException(true);
       }
     }
 
@@ -126,7 +130,7 @@ class ConnectionState {
     this.asyncWorker = requireNonNull(asyncWorker);
     try {
       connect();
-    } catch (ConnectionException ex) {
+    } catch (ConnectionClosedException | ConnectionException ex) {
       LOGGER.error("Initial connection failed due to", ex);
       throw new RuntimeException(ex);
     }
@@ -135,13 +139,16 @@ class ConnectionState {
   private void reconnect() {
     while (true) {
       try {
-        connect();
-        if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
-          autoCreateEntity();
+        try {
+          //Ensure full closure of existing connection
+          clusterConnection.close();
+        } catch (IOException | ConnectionClosedException | IllegalStateException e) {
+          LOGGER.debug("Exception closing previous cluster connection", e);
         }
+        connect();
         LOGGER.info("New connection to server is established, reconnect count is {}", reconnectCounter.incrementAndGet());
         break;
-      } catch (ConnectionException e) {
+      } catch (ConnectionClosedException | ConnectionException e) {
         LOGGER.error("Re-connection to server failed, trying again", e);
       }
     }
@@ -199,7 +206,7 @@ class ConnectionState {
     }
   }
 
-  public void initializeState() {
+  public void initializeState() throws ClusterTierManagerValidationException {
     try {
       switch (serviceConfiguration.getClientMode()) {
         case CONNECT:
@@ -213,14 +220,14 @@ class ConnectionState {
         default:
           throw new AssertionError(serviceConfiguration.getClientMode());
       }
-    } catch (RuntimeException e) {
+    } catch (Throwable t) {
       entityFactory = null;
       closeConnection();
-      throw e;
+      throw t;
     }
   }
 
-  private void retrieveEntity() {
+  private void retrieveEntity() throws ClusterTierManagerValidationException {
     try {
       entity = entityFactory.retrieve(entityIdentifier, serviceConfiguration.getServerConfiguration());
     } catch (DestroyInProgressException | EntityNotFoundException e) {
@@ -253,7 +260,7 @@ class ConnectionState {
       } catch (EntityBusyException e) {
         throw new CachePersistenceException("Cannot delete cluster tiers on " + connectionSource, e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        handleConnectionClosedException();
+        handleConnectionClosedException(false);
       }
     }
   }
@@ -290,7 +297,7 @@ class ConnectionState {
         LOGGER.debug("Destruction of cluster tier {} failed as it does not exist", name);
         break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        handleConnectionClosedException();
+        handleConnectionClosedException(false);
       }
     }
   }
@@ -327,11 +334,18 @@ class ConnectionState {
 
   }
 
-  private void handleConnectionClosedException() {
+  private void handleConnectionClosedException(boolean retrieve) throws ClusterTierManagerValidationException {
     while (true) {
       try {
         destroyState(false);
         reconnect();
+        if (retrieve) {
+          if (serviceConfiguration.getClientMode().equals(ClientMode.AUTO_CREATE_ON_RECONNECT)) {
+            autoCreateEntity();
+          } else {
+            retrieveEntity();
+          }
+        }
         connectionRecoveryListener.run();
         break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {

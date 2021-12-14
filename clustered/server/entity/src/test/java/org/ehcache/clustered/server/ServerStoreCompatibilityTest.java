@@ -176,7 +176,7 @@ public class ServerStoreCompatibilityTest {
   }
 
   @Test
-  public void testDedicatedPoolResourceTooBig() {
+  public void testDedicatedPoolResourceTooBig() throws InvalidServerStoreConfigurationException {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
@@ -193,16 +193,11 @@ public class ServerStoreCompatibilityTest {
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
   }
 
   @Test
-  public void testDedicatedPoolResourceTooSmall() {
+  public void testDedicatedPoolResourceTooSmall() throws InvalidServerStoreConfigurationException {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
@@ -219,12 +214,7 @@ public class ServerStoreCompatibilityTest {
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
   }
 
   @Test

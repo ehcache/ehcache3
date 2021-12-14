@@ -54,6 +54,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static java.util.stream.LongStream.range;
 import static org.ehcache.clustered.client.config.builders.TimeoutsBuilder.timeouts;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.ehcache.event.EventType.CREATED;
 import static org.ehcache.event.EventType.EVICTED;
@@ -67,7 +70,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.nullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 /*
  * Eventing behavior is broken across a failover due to actives and passives
@@ -76,7 +79,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
  */
 @Ignore("Eventing is broken across failover")
 @RunWith(Parallel.class)
-public class EventsFailureBehaviorTest extends ClusteredTests {
+public class EventsFailureBehaviorTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EventsFailureBehaviorTest.class);
 

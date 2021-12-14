@@ -32,7 +32,7 @@ public class OffHeapStoreProviderFactory implements ServiceFactory<OffHeapStore.
   }
 
   @Override
-  public Class<OffHeapStore.Provider> getServiceType() {
+  public Class<? extends OffHeapStore.Provider> getServiceType() {
     return OffHeapStore.Provider.class;
   }
 }

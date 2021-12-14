@@ -61,9 +61,9 @@ public interface ServiceFactory<T extends Service> {
   T create(ServiceCreationConfiguration<T, ?> configuration);
 
   /**
-   * Queries a {@code ServiceFactory} to know which {@link Service} type it produces.
+   * Queries a {@code ServiceFactory} to know which concrete {@link Service} type it produces.
    *
-   * @return the class of the produced service.
+   * @return the concrete class of the produced service.
    */
   Class<? extends T> getServiceType();
 

@@ -21,9 +21,9 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.management.ExtendedStatisticsService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.cluster.Clustering;
@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-@ServiceDependencies({CacheManagerProviderService.class, StatisticsService.class, TimeSourceService.class, ExecutionService.class})
+@ServiceDependencies({CacheManagerProviderService.class, ExtendedStatisticsService.class, TimeSourceService.class, ExecutionService.class})
 @OptionalServiceDependencies({
   "org.ehcache.clustered.client.service.EntityService",
   "org.ehcache.clustered.client.service.ClusteringService"})
@@ -55,7 +55,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   private volatile InternalCacheManager cacheManager;
   private volatile ClusteringManagementService clusteringManagementService;
   private volatile boolean clusteringManagementServiceAutoStarted;
-  private volatile StatisticsService statisticsService;
+  private volatile ExtendedStatisticsService statisticsService;
 
   public DefaultManagementRegistryService() {
     this(new DefaultManagementRegistryConfiguration());
@@ -70,7 +70,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
   public void start(final ServiceProvider<Service> serviceProvider) {
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
-    this.statisticsService = serviceProvider.getService(StatisticsService.class);
+    this.statisticsService = serviceProvider.getService(ExtendedStatisticsService.class);
     TimeSourceService timeSourceService = serviceProvider.getService(TimeSourceService.class);
 
     // initialize management capabilities (stats, action calls, etc)

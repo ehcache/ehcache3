@@ -21,7 +21,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
-import java.util.concurrent.TimeoutException;
+import java.util.Map;
 
 public class FailedReconnectStoreProxy implements LockingServerStoreProxy {
   private final Throwable failure;
@@ -63,7 +63,7 @@ public class FailedReconnectStoreProxy implements LockingServerStoreProxy {
   }
 
   @Override
-  public Iterator<Chain> iterator() {
+  public Iterator<Map.Entry<Long, Chain>> iterator() {
     throw new RuntimeException("Cache " + getCacheId() + " failed reconnecting to cluster", failure);
   }
 

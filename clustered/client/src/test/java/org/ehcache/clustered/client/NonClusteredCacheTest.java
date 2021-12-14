@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client;
 
 import org.ehcache.CacheManager;
+import org.ehcache.clustered.client.internal.service.DefaultClusteringService;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.CacheConfiguration;
@@ -49,7 +50,7 @@ public class NonClusteredCacheTest {
      * Ensure the cluster provider classes are loadable through the ServiceLoader mechanism.
      */
     assertThat(stream(spliterator(ClassLoading.servicesOfType(ServiceFactory.class).iterator(), Long.MAX_VALUE, 0), false).map(f -> f.getServiceType()).collect(Collectors.toList()),
-      hasItems(ClusteredStore.Provider.class, ClusteringService.class));
+      hasItems(ClusteredStore.Provider.class, DefaultClusteringService.class));
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class,

@@ -18,7 +18,6 @@ package org.ehcache.clustered.sync;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.config.CacheConfiguration;
@@ -35,13 +34,16 @@ import org.terracotta.testing.rules.Cluster;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class PassiveSyncTest extends ClusteredTests {
+
+public class PassiveSyncTest {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster(2).in(clusterPath())

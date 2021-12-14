@@ -28,11 +28,11 @@
   <xs:element name="jta-tm" type="tx:jta-tm-type" substitutionGroup="eh:service-creation-configuration"/>
 
   <xs:complexType name="xa-store-config-type">
-    <xs:attribute name="unique-XAResource-id" type="xs:string" use="required"/>
+    <xs:attribute name="unique-XAResource-id" type="eh:propertyOrString" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="jta-tm-type">
-    <xs:attribute name="transaction-manager-lookup-class" type="xs:string" use="required"/>
+    <xs:attribute name="transaction-manager-lookup-class" type="eh:fqcn-type" use="required"/>
   </xs:complexType>
 
 </xs:schema>

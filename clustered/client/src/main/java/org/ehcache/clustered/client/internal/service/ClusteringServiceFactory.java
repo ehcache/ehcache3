@@ -37,7 +37,7 @@ public class ClusteringServiceFactory implements ServiceFactory<ClusteringServic
   }
 
   @Override
-  public Class<ClusteringService> getServiceType() {
-    return ClusteringService.class;
+  public Class<? extends ClusteringService> getServiceType() {
+    return DefaultClusteringService.class;
   }
 }

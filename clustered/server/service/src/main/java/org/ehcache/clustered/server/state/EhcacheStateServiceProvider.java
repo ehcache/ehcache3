@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -62,6 +63,8 @@ public class EhcacheStateServiceProvider implements ServiceProvider, Closeable {
   @Override
   public boolean initialize(ServiceProviderConfiguration configuration, PlatformConfiguration platformConfiguration) {
     Collection<OffHeapResources> extendedConfiguration = platformConfiguration.getExtendedConfiguration(OffHeapResources.class);
+    // When a server is activated, there will ALWAYS be one OffHeapResources, that will hold the mapping configured by the user with the "offheap-resources" setting.
+    // In diagnostic mode, no extended configuration is loaded, so there won't be any OffHeapResources. In that case, we ask this service to be discarded (by returning false).
     if (extendedConfiguration.size() > 1) {
       throw new UnsupportedOperationException("There are " + extendedConfiguration.size() + " OffHeapResourcesProvider, this is not supported. " +
         "There must be only one!");
@@ -73,7 +76,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider, Closeable {
         LOGGER.warn("No offheap-resource defined - this will prevent provider from offering any EhcacheStateService.");
       }
     } else {
-      throw new UnsupportedOperationException("There are no offheap-resource defined, this is not supported");
+      return false;
     }
     return true;
   }

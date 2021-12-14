@@ -25,7 +25,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.loaderWriter.TestCacheLoaderWriter;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;

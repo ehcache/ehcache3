@@ -16,8 +16,6 @@
 
 package org.ehcache.core.statistics;
 
-import org.terracotta.management.model.stats.StatisticType;
-
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -51,6 +49,10 @@ public class SuppliedValueStatistic<T extends Serializable> implements ValueStat
 
   public static <T extends Number> ValueStatistic<T> counter(Supplier<T> supplier) {
     return supply(StatisticType.COUNTER, supplier);
+  }
+
+  public static <T extends Number> ValueStatistic<T> gauge(Supplier<T> supplier) {
+    return supply(StatisticType.GAUGE, supplier);
   }
 
   public static <T extends Serializable> ValueStatistic<T> supply(StatisticType type, Supplier<T> supplier) {

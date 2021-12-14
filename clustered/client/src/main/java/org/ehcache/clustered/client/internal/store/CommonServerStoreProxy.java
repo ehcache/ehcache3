@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -197,16 +198,16 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Iterator<Chain> iterator() throws TimeoutException {
+  public Iterator<Map.Entry<Long, Chain>> iterator() throws TimeoutException {
     EhcacheEntityResponse.IteratorBatch iteratorBatch = openIterator();
     if (iteratorBatch.isLast()) {
       return iteratorBatch.getChains().iterator();
     } else {
       UUID iteratorId = iteratorBatch.getIdentity();
-      return new Iterator<Chain>() {
+      return new Iterator<Map.Entry<Long, Chain>>() {
 
         private boolean lastBatch = false;
-        private Iterator<Chain> batch = iteratorBatch.getChains().iterator();
+        private Iterator<Map.Entry<Long, Chain>> batch = iteratorBatch.getChains().iterator();
 
         @Override
         public boolean hasNext() {
@@ -214,7 +215,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
 
         @Override
-        public Chain next() {
+        public Map.Entry<Long, Chain> next() {
           if (lastBatch || batch.hasNext()) {
             return batch.next();
           } else {

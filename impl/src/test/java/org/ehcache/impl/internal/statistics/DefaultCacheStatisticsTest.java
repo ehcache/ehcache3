@@ -27,7 +27,7 @@ import org.ehcache.core.InternalCache;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.ChainedOperationObserver;
-import org.ehcache.core.statistics.DefaultCacheStatistics;
+import org.ehcache.core.internal.statistics.DefaultCacheStatistics;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;

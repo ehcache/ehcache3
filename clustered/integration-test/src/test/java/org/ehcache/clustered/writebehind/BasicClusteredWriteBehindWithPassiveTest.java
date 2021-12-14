@@ -27,7 +27,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+
 
 @RunWith(Parallel.class)
 public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBase {

@@ -25,6 +25,7 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -219,7 +220,7 @@ public abstract class ServerStoreTest {
   public void testEmptyIterator() throws TimeoutException {
     ServerStore store = newStore();
 
-    Iterator<Chain> chainIterator = store.iterator();
+    Iterator<Map.Entry<Long, Chain>> chainIterator = store.iterator();
 
     assertThat(chainIterator.hasNext(), Is.is(false));
     try {
@@ -235,10 +236,12 @@ public abstract class ServerStoreTest {
     ServerStore store = newStore();
 
     store.append(1L, createPayload(42L));
-    Iterator<Chain> chainIterator = store.iterator();
+    Iterator<Map.Entry<Long, Chain>> chainIterator = store.iterator();
 
     assertThat(chainIterator.hasNext(), is(true));
-    assertThat(chainIterator.next(), hasPayloads(42L));
+    Map.Entry<Long, Chain> next = chainIterator.next();
+    assertThat(next.getKey(), is(1L));
+    assertThat(next.getValue(), hasPayloads(42L));
     assertThat(chainIterator.hasNext(), is(false));
     try {
       chainIterator.next();
@@ -260,12 +263,12 @@ public abstract class ServerStoreTest {
       }
     });
 
-    Iterator<Chain> chainIterator = store.iterator();
+    Iterator<Map.Entry<Long, Chain>> chainIterator = store.iterator();
 
     Set<Long> longs = new HashSet<>();
     while (chainIterator.hasNext()) {
-      Chain chain = chainIterator.next();
-      for (Element e: chain) {
+      Map.Entry<Long, Chain> chain = chainIterator.next();
+      for (Element e: chain.getValue()) {
         long l = readPayload(e.getPayload());
         assertThat(longs, not(hasItem(l)));
         longs.add(l);

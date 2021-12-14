@@ -23,6 +23,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheResourceConfigurationParser;
+import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
@@ -74,16 +75,16 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
   protected ResourcePool parseResourceConfig(final Element fragment) {
     final String elementName = fragment.getLocalName();
     switch (elementName) {
-      case "clustered-shared":
-        final String sharing = fragment.getAttribute("sharing");
+      case SHARED_ELEMENT_NAME:
+        final String sharing = JaxbParsers.parsePropertyOrString(fragment.getAttribute(SHARING_ELEMENT_NAME));
         return new SharedClusteredResourcePoolImpl(sharing);
 
-      case "clustered-dedicated":
+      case DEDICATED_ELEMENT_NAME:
         // 'from' attribute is optional on 'clustered-dedicated' element
-        final Attr fromAttr = fragment.getAttributeNode("from");
-        final String from = (fromAttr == null ? null : fromAttr.getValue());
+        final Attr fromAttr = fragment.getAttributeNode(FROM_ELEMENT_NAME);
+        final String from = (fromAttr == null ? null : JaxbParsers.parsePropertyOrString(fromAttr.getValue()));
 
-        final String unitValue = fragment.getAttribute("unit").toUpperCase();
+        final String unitValue = fragment.getAttribute(UNIT_ELEMENT_NAME).toUpperCase();
         final MemoryUnit sizeUnits;
         try {
           sizeUnits = MemoryUnit.valueOf(unitValue);
@@ -93,19 +94,19 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
 
         final String sizeValue;
         try {
-          sizeValue = fragment.getFirstChild().getNodeValue();
+          sizeValue = fragment.getFirstChild().getNodeValue().trim();
         } catch (DOMException e) {
           throw new XmlConfigurationException(String.format("XML configuration element <%s> value is not valid", elementName), e);
         }
         final long size;
         try {
-          size = Long.parseLong(sizeValue);
+          size = JaxbParsers.parsePropertyOrPositiveInteger(sizeValue).longValueExact();
         } catch (NumberFormatException e) {
           throw new XmlConfigurationException(String.format("XML configuration element <%s> value '%s' is not valid", elementName, sizeValue), e);
         }
 
         return new DedicatedClusteredResourcePoolImpl(from, size, sizeUnits);
-      case "clustered":
+      case CLUSTERED_ELEMENT_NAME:
         return new ClusteredResourcePoolImpl();
     }
     return null;
