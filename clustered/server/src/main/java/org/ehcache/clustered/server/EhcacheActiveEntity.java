@@ -288,10 +288,10 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    if (trackedClients.contains(message.getClientId())) {
-      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active paired with Client : " + clientDescriptor);
-    } else if (clientIdMap.get(clientDescriptor) != null) {
+    if (clientIdMap.get(clientDescriptor) != null) {
       throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientIdMap.get(clientDescriptor));
+    } else if (trackedClients.contains(message.getClientId())) {
+      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active paired with Client : " + clientDescriptor);
     }
 
     addClientId(clientDescriptor, message.getClientId());

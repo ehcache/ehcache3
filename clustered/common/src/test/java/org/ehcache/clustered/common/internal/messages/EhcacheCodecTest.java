@@ -61,7 +61,7 @@ public class EhcacheCodecTest {
     verify(serverStoreOpCodec, never()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
 
-    ServerStoreOpMessage.ClearMessage serverStoreOpMessage = new ServerStoreOpMessage.ClearMessage("foo", CLIENT_ID);
+    ServerStoreOpMessage.ClearMessage serverStoreOpMessage = new ServerStoreOpMessage.ClearMessage(CLIENT_ID);
     codec.encodeMessage(serverStoreOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));

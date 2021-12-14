@@ -57,21 +57,15 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
   public static class ChainReplicationMessage extends ClientIDTrackerMessage implements ConcurrentEntityMessage {
 
-    private final String cacheId;
     private final long key;
     private final Chain chain;
     private final long msgId;
 
-    public ChainReplicationMessage(String cacheId, long key, Chain chain, long msgId, UUID clientId) {
+    public ChainReplicationMessage(long key, Chain chain, long msgId, UUID clientId) {
       super(clientId);
       this.msgId = msgId;
-      this.cacheId = cacheId;
       this.key = key;
       this.chain = chain;
-    }
-
-    public String getCacheId() {
-      return this.cacheId;
     }
 
     public long getKey() {
@@ -97,16 +91,9 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     }
   }
 
-  public static class ClearInvalidationCompleteMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
-    private final String cacheId;
+  public static class ClearInvalidationCompleteMessage extends PassiveReplicationMessage {
 
-    public ClearInvalidationCompleteMessage(String cacheId) {
-      this.cacheId = cacheId;
-    }
-
-    @Override
-    public long concurrencyKey() {
-      return this.cacheId.hashCode();
+    public ClearInvalidationCompleteMessage() {
     }
 
     @Override
@@ -123,24 +110,19 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.CLEAR_INVALIDATION_COMPLETE;
     }
-
-    public String getCacheId() {
-      return cacheId;
-    }
   }
 
-  public static class InvalidationCompleteMessage extends ClearInvalidationCompleteMessage {
+  public static class InvalidationCompleteMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
 
     private final long key;
 
-    public InvalidationCompleteMessage(String cacheId, long key) {
-      super(cacheId);
+    public InvalidationCompleteMessage(long key) {
       this.key = key;
     }
 
     @Override
     public long concurrencyKey() {
-      return (getCacheId().hashCode() + key);
+      return key;
     }
 
     @Override
@@ -150,6 +132,16 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
     public long getKey() {
       return key;
+    }
+
+    @Override
+    public long getId() {
+      throw new UnsupportedOperationException("Not supported for InvalidationCompleteMessage");
+    }
+
+    @Override
+    public UUID getClientId() {
+      throw new UnsupportedOperationException("Not supported for InvalidationCompleteMessage");
     }
   }
 }

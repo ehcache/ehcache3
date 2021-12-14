@@ -86,12 +86,12 @@ public class ClusteredTierServerEntityService implements EntityServerService<Ehc
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
     EhcacheCodec ehcacheCodec = new EhcacheCodec(new ServerStoreOpCodec(),
       new LifeCycleMessageCodec(CONFIG_CODEC), new StateRepositoryOpCodec(), new ResponseCodec());
-    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec(CONFIG_CODEC));
+    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec());
   }
 
   @Override
   public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
-    return new EhcacheSyncMessageCodec(CONFIG_CODEC);
+    return new EhcacheSyncMessageCodec();
   }
 
   @Override

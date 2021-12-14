@@ -51,8 +51,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -60,8 +58,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 String.class.getName(),
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -81,8 +77,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -90,8 +84,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 Long.class.getName(),
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -107,72 +99,10 @@ public class ServerStoreCompatibilityTest {
   }
 
   @Test
-  public void testStoredActualKeyTypeMismatch() {
-    ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL);
-
-    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                String.class.getName(),
-                                                                                ACTUAL_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL);
-
-    ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
-
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "actualKeyType existing: " + serverConfiguration.getActualKeyType() + ", desired: " + clientConfiguration.getActualKeyType()),is(true));
-    }
-  }
-
-  @Test
-  public void testStoredActualValueTypeMismatch() {
-    ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL);
-
-    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                Long.class.getName(),
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL);
-
-    ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
-
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "actualValueType existing: " + serverConfiguration.getActualValueType() + ", desired: " + clientConfiguration.getActualValueType()),is(true));
-    }
-  }
-
-  @Test
   public void testKeySerializerTypeMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -180,8 +110,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 Double.class.getName(),
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -201,8 +129,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -210,8 +136,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 Double.class.getName(),
                                                                                 Consistency.EVENTUAL);
@@ -231,8 +155,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -240,8 +162,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -261,8 +181,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -270,8 +188,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primary",8),
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -291,8 +207,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -300,8 +214,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primary",2),
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -321,8 +233,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -330,8 +240,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primaryBad",4),
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -351,8 +259,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(SHARED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -360,8 +266,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Shared("sharedPoolBad"),
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -382,8 +286,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -391,8 +293,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.EVENTUAL);
@@ -407,8 +307,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -416,8 +314,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(SHARED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -437,8 +333,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -446,8 +340,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(UNKNOWN_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -463,8 +355,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
                                                                                 STORED_KEY_TYPE,
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);
@@ -472,8 +362,6 @@ public class ServerStoreCompatibilityTest {
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(UNKNOWN_POOL_ALLOCATION,
                                                                                 String.class.getName(),
                                                                                 STORED_VALUE_TYPE,
-                                                                                ACTUAL_KEY_TYPE,
-                                                                                ACTUAL_VALUE_TYPE,
                                                                                 KEY_SERIALIZER_TYPE,
                                                                                 VALUE_SERIALIZER_TYPE,
                                                                                 Consistency.STRONG);

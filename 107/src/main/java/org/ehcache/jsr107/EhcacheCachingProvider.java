@@ -19,9 +19,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
@@ -144,10 +142,6 @@ public class EhcacheCachingProvider implements CachingProvider {
     Collection<Service> services = new ArrayList<Service>(4);
     services.add(cacheLoaderWriterFactory);
     services.add(jsr107Service);
-
-    if(ServiceLocator.findSingletonAmongst(StatisticsService.class, serviceCreationConfigurations) == null) {
-      services.add(new DefaultStatisticsService());
-    }
 
     if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, serviceCreationConfigurations) == null) {
       services.add(new DefaultJsr107SerializationProvider());

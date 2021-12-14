@@ -34,9 +34,9 @@ public class ServerStoreOpMessageTest {
 
   @Test
   public void testConcurrencyKeysEqualForSameCacheAndKey() throws Exception {
-    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage("cache1", 1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage("cache1", 1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.ReplaceAtHeadMessage("cache1", 1L, getChain(Collections.<Element>emptyList()), getChain(Collections.<Element>emptyList()), CLIENT_ID);
+    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.ReplaceAtHeadMessage(1L, getChain(Collections.<Element>emptyList()), getChain(Collections.<Element>emptyList()), CLIENT_ID);
 
     assertThat(m1.concurrencyKey(), is(m2.concurrencyKey()));
     assertThat(m2.concurrencyKey(), is(m3.concurrencyKey()));
@@ -44,17 +44,17 @@ public class ServerStoreOpMessageTest {
 
   @Test
   public void testConcurrencyKeysEqualForDifferentCachesSameKey() throws Exception {
-    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage("cache1", 1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage("cache2", 1L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L), CLIENT_ID);
 
     assertThat(m1.concurrencyKey(), is(m2.concurrencyKey()));
   }
 
   @Test
   public void testConcurrencyKeysNotEqualForDifferentCachesAndKeys() throws Exception {
-    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage("cache1", 1L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage("cache2", 2L, createPayload(1L), CLIENT_ID);
-    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.AppendMessage("cache1", 3L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(2L, createPayload(1L), CLIENT_ID);
+    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.AppendMessage(3L, createPayload(1L), CLIENT_ID);
 
     assertThat(m1.concurrencyKey(), not(m2.concurrencyKey()));
     assertThat(m1.concurrencyKey(), not(m3.concurrencyKey()));

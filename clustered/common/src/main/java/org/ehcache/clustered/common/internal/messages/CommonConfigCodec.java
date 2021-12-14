@@ -147,7 +147,7 @@ public class CommonConfigCodec implements ConfigCodec {
     } else if (poolResource != null) {
       poolAllocation = new PoolAllocation.Shared(poolResource);
     }
-    return new ServerStoreConfiguration(poolAllocation, keyType, valueType, null, null, keySerializer, valueSerializer, consistency);
+    return new ServerStoreConfiguration(poolAllocation, keyType, valueType, keySerializer, valueSerializer, consistency);
   }
 
   @Override

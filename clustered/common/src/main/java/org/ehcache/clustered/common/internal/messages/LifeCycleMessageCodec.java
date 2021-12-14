@@ -95,10 +95,7 @@ public class LifeCycleMessageCodec {
   }
 
   private byte[] encodeValidateStoreMessage(LifecycleMessage.ValidateServerStore message) {
-    return encodeBaseServerStoreMessage(message, validateStoreMessageStruct.encoder());
-  }
-
-  private byte[] encodeBaseServerStoreMessage(LifecycleMessage.BaseServerStore message, StructEncoder<Void> encoder) {
+    StructEncoder<Void> encoder = validateStoreMessageStruct.encoder();
     messageCodecUtils.encodeMandatoryFields(encoder, message);
 
     encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
@@ -107,10 +104,8 @@ public class LifeCycleMessageCodec {
   }
 
   private byte[] encodeTierManagerValidateMessage(LifecycleMessage.ValidateStoreManager message) {
-    return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), validateMessageStruct.encoder());
-  }
-
-  private byte[] encodeTierManagerCreateOrValidate(LifecycleMessage message, ServerSideConfiguration config, StructEncoder<Void> encoder) {
+    StructEncoder<Void> encoder = validateMessageStruct.encoder();
+    ServerSideConfiguration config = message.getConfiguration();
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     if (config == null) {
       encoder.bool(CONFIG_PRESENT_FIELD, false);

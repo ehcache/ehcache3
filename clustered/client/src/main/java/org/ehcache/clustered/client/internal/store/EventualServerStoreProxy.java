@@ -25,8 +25,8 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
 
   private final ServerStoreProxy delegate;
 
-  public EventualServerStoreProxy(final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
-    this.delegate = new CommonServerStoreProxy(messageFactory, entity);
+  public EventualServerStoreProxy(String cacheId, final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
+    this.delegate = new CommonServerStoreProxy(cacheId, messageFactory, entity);
   }
 
   @Override

@@ -39,6 +39,7 @@ public enum EhcacheMessageType {
   APPEND,
   REPLACE,
   CLIENT_INVALIDATION_ACK,
+  CLIENT_INVALIDATION_ALL_ACK,
   CLEAR,
   GET_STORE,
 
@@ -64,8 +65,9 @@ public enum EhcacheMessageType {
     .mapping(APPEND, 22)
     .mapping(REPLACE, 23)
     .mapping(CLIENT_INVALIDATION_ACK, 24)
-    .mapping(CLEAR, 25)
-    .mapping(GET_STORE, 26)
+    .mapping(CLIENT_INVALIDATION_ALL_ACK, 25)
+    .mapping(CLEAR, 26)
+    .mapping(GET_STORE, 27)
 
     .mapping(GET_STATE_REPO, 41)
     .mapping(PUT_IF_ABSENT, 42)
@@ -82,7 +84,7 @@ public enum EhcacheMessageType {
     return LIFECYCLE_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> STORE_OPERATION_MESSAGES = of(GET_AND_APPEND, APPEND, REPLACE, CLIENT_INVALIDATION_ACK, CLEAR, GET_STORE);
+  public static final EnumSet<EhcacheMessageType> STORE_OPERATION_MESSAGES = of(GET_AND_APPEND, APPEND, REPLACE, CLIENT_INVALIDATION_ACK, CLIENT_INVALIDATION_ALL_ACK, CLEAR, GET_STORE);
   public static boolean isStoreOperationMessage(EhcacheMessageType value) {
     return STORE_OPERATION_MESSAGES.contains(value);
   }

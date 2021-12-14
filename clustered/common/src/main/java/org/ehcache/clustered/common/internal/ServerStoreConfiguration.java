@@ -34,8 +34,6 @@ public class ServerStoreConfiguration implements Serializable {
 
   private final String storedKeyType;
   private final String storedValueType;
-  private final String actualKeyType;
-  private final String actualValueType;
   private final String keySerializerType;
   private final String valueSerializerType;
   private final Consistency consistency;
@@ -44,16 +42,12 @@ public class ServerStoreConfiguration implements Serializable {
   public ServerStoreConfiguration(PoolAllocation poolAllocation,
                                   String storedKeyType,
                                   String storedValueType,
-                                  String actualKeyType,
-                                  String actualValueType,
                                   String keySerializerType,
                                   String valueSerializerType,
                                   Consistency consistency) {
     this.poolAllocation = poolAllocation;
     this.storedKeyType = storedKeyType;
     this.storedValueType = storedValueType;
-    this.actualKeyType = actualKeyType;
-    this.actualValueType = actualValueType;
     this.keySerializerType = keySerializerType;
     this.valueSerializerType = valueSerializerType;
     this.consistency = consistency;
@@ -69,14 +63,6 @@ public class ServerStoreConfiguration implements Serializable {
 
   public String getStoredValueType() {
     return storedValueType;
-  }
-
-  public String getActualKeyType() {
-    return actualKeyType;
-  }
-
-  public String getActualValueType() {
-    return actualValueType;
   }
 
   public String getKeySerializerType() {
@@ -121,8 +107,6 @@ public class ServerStoreConfiguration implements Serializable {
     }
     isCompatible &= compareField(sb, "storedKeyType", storedKeyType, otherConfiguration.getStoredKeyType());
     isCompatible &= compareField(sb, "storedValueType", storedValueType, otherConfiguration.getStoredValueType());
-    isCompatible &= compareField(sb, "actualKeyType", actualKeyType, otherConfiguration.getActualKeyType());
-    isCompatible &= compareField(sb, "actualValueType", actualValueType, otherConfiguration.getActualValueType());
     isCompatible &= compareField(sb, "keySerializerType", keySerializerType, otherConfiguration.getKeySerializerType());
     isCompatible &= compareField(sb, "valueSerializerType", valueSerializerType, otherConfiguration.getValueSerializerType());
     isCompatible &= compareConsistencyField(sb, consistency, otherConfiguration.getConsistency());

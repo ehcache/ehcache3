@@ -21,7 +21,6 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,7 +35,6 @@ public class ResponseCodecTest {
 
   private static final EhcacheEntityResponseFactory RESPONSE_FACTORY = new EhcacheEntityResponseFactory();
   private static final ResponseCodec RESPONSE_CODEC = new ResponseCodec();
-  private static final String STORE_ID = "storeId";
   private static final long KEY = 42L;
   private static final int INVALIDATION_ID = 134;
 
@@ -78,59 +76,54 @@ public class ResponseCodecTest {
 
   @Test
   public void testHashInvalidationDone() throws Exception {
-    EhcacheEntityResponse.HashInvalidationDone response = new EhcacheEntityResponse.HashInvalidationDone(STORE_ID, KEY);
+    EhcacheEntityResponse.HashInvalidationDone response = new EhcacheEntityResponse.HashInvalidationDone(KEY);
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.HashInvalidationDone decodedResponse = (EhcacheEntityResponse.HashInvalidationDone) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.HASH_INVALIDATION_DONE));
-    assertThat(decodedResponse.getCacheId(), is(STORE_ID));
     assertThat(decodedResponse.getKey(), is(KEY));
   }
 
   @Test
   public void testAllInvalidationDone() throws Exception {
-    EhcacheEntityResponse.AllInvalidationDone response = new EhcacheEntityResponse.AllInvalidationDone(STORE_ID);
+    EhcacheEntityResponse.AllInvalidationDone response = new EhcacheEntityResponse.AllInvalidationDone();
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.AllInvalidationDone decodedResponse = (EhcacheEntityResponse.AllInvalidationDone) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.ALL_INVALIDATION_DONE));
-    assertThat(decodedResponse.getCacheId(), is(STORE_ID));
   }
 
   @Test
   public void testClientInvalidateHash() throws Exception {
-    EhcacheEntityResponse.ClientInvalidateHash response = new EhcacheEntityResponse.ClientInvalidateHash(STORE_ID, KEY, INVALIDATION_ID);
+    EhcacheEntityResponse.ClientInvalidateHash response = new EhcacheEntityResponse.ClientInvalidateHash(KEY, INVALIDATION_ID);
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.ClientInvalidateHash decodedResponse = (EhcacheEntityResponse.ClientInvalidateHash) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.CLIENT_INVALIDATE_HASH));
-    assertThat(decodedResponse.getCacheId(), is(STORE_ID));
     assertThat(decodedResponse.getKey(), is(KEY));
     assertThat(decodedResponse.getInvalidationId(), is(INVALIDATION_ID));
   }
 
   @Test
   public void testClientInvalidateAll() throws Exception {
-    EhcacheEntityResponse.ClientInvalidateAll response = new EhcacheEntityResponse.ClientInvalidateAll(STORE_ID, INVALIDATION_ID);
+    EhcacheEntityResponse.ClientInvalidateAll response = new EhcacheEntityResponse.ClientInvalidateAll(INVALIDATION_ID);
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.ClientInvalidateAll decodedResponse = (EhcacheEntityResponse.ClientInvalidateAll) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.CLIENT_INVALIDATE_ALL));
-    assertThat(decodedResponse.getCacheId(), is(STORE_ID));
     assertThat(decodedResponse.getInvalidationId(), is(INVALIDATION_ID));
   }
 
   @Test
   public void testServerInvalidateHash() throws Exception {
-    EhcacheEntityResponse.ServerInvalidateHash response = new EhcacheEntityResponse.ServerInvalidateHash(STORE_ID, KEY);
+    EhcacheEntityResponse.ServerInvalidateHash response = new EhcacheEntityResponse.ServerInvalidateHash(KEY);
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.ServerInvalidateHash decodedResponse = (EhcacheEntityResponse.ServerInvalidateHash) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.SERVER_INVALIDATE_HASH));
-    assertThat(decodedResponse.getCacheId(), is(STORE_ID));
     assertThat(decodedResponse.getKey(), is(KEY));
   }
 

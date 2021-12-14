@@ -69,28 +69,23 @@ public class ResponseCodec {
     .build();
   private static final Struct HASH_INVALIDATION_DONE_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
-    .string(SERVER_STORE_NAME_FIELD, 20)
-    .int64(KEY_FIELD, 30)
+    .int64(KEY_FIELD, 20)
     .build();
   private static final Struct ALL_INVALIDATION_DONE_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
-    .string(SERVER_STORE_NAME_FIELD, 20)
     .build();
   private static final Struct CLIENT_INVALIDATE_HASH_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
-    .string(SERVER_STORE_NAME_FIELD, 20)
-    .int64(KEY_FIELD, 30)
-    .int32(INVALIDATION_ID_FIELD, 40)
+    .int64(KEY_FIELD, 20)
+    .int32(INVALIDATION_ID_FIELD, 30)
     .build();
   private static final Struct CLIENT_INVALIDATE_ALL_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
-    .string(SERVER_STORE_NAME_FIELD, 20)
-    .int32(INVALIDATION_ID_FIELD, 30)
+    .int32(INVALIDATION_ID_FIELD, 20)
     .build();
   private static final Struct SERVER_INVALIDATE_HASH_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
-    .string(SERVER_STORE_NAME_FIELD, 20)
-    .int64(KEY_FIELD, 30)
+    .int64(KEY_FIELD, 20)
     .build();
   private static final Struct MAP_VALUE_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
@@ -123,7 +118,6 @@ public class ResponseCodec {
         HashInvalidationDone hashInvalidationDone = (HashInvalidationDone) response;
         return HASH_INVALIDATION_DONE_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, hashInvalidationDone.getResponseType())
-          .string(SERVER_STORE_NAME_FIELD, hashInvalidationDone.getCacheId())
           .int64(KEY_FIELD, hashInvalidationDone.getKey())
           .encode().array();
       }
@@ -131,14 +125,12 @@ public class ResponseCodec {
         AllInvalidationDone allInvalidationDone = (AllInvalidationDone) response;
         return ALL_INVALIDATION_DONE_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, allInvalidationDone.getResponseType())
-          .string(SERVER_STORE_NAME_FIELD, allInvalidationDone.getCacheId())
           .encode().array();
       }
       case CLIENT_INVALIDATE_HASH: {
         ClientInvalidateHash clientInvalidateHash = (ClientInvalidateHash) response;
         return CLIENT_INVALIDATE_HASH_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, clientInvalidateHash.getResponseType())
-          .string(SERVER_STORE_NAME_FIELD, clientInvalidateHash.getCacheId())
           .int64(KEY_FIELD, clientInvalidateHash.getKey())
           .int32(INVALIDATION_ID_FIELD, clientInvalidateHash.getInvalidationId())
           .encode().array();
@@ -147,7 +139,6 @@ public class ResponseCodec {
         ClientInvalidateAll clientInvalidateAll = (ClientInvalidateAll) response;
         return CLIENT_INVALIDATE_ALL_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, clientInvalidateAll.getResponseType())
-          .string(SERVER_STORE_NAME_FIELD, clientInvalidateAll.getCacheId())
           .int32(INVALIDATION_ID_FIELD, clientInvalidateAll.getInvalidationId())
           .encode().array();
       }
@@ -155,7 +146,6 @@ public class ResponseCodec {
         ServerInvalidateHash serverInvalidateHash = (ServerInvalidateHash) response;
         return SERVER_INVALIDATE_HASH_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, serverInvalidateHash.getResponseType())
-          .string(SERVER_STORE_NAME_FIELD, serverInvalidateHash.getCacheId())
           .int64(KEY_FIELD, serverInvalidateHash.getKey())
           .encode().array();
       }
@@ -210,33 +200,27 @@ public class ResponseCodec {
         return new EhcacheEntityResponse.GetResponse(ChainCodec.decode(decoder.struct(CHAIN_FIELD)));
       case HASH_INVALIDATION_DONE: {
         decoder = HASH_INVALIDATION_DONE_RESPONSE_STRUCT.decoder(buffer);
-        String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
         long key = decoder.int64(KEY_FIELD);
-        return EhcacheEntityResponse.hashInvalidationDone(cacheId, key);
+        return EhcacheEntityResponse.hashInvalidationDone(key);
       }
       case ALL_INVALIDATION_DONE: {
-        decoder = ALL_INVALIDATION_DONE_RESPONSE_STRUCT.decoder(buffer);
-        String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
-        return EhcacheEntityResponse.allInvalidationDone(cacheId);
+        return EhcacheEntityResponse.allInvalidationDone();
       }
       case CLIENT_INVALIDATE_HASH: {
         decoder = CLIENT_INVALIDATE_HASH_RESPONSE_STRUCT.decoder(buffer);
-        String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
         long key = decoder.int64(KEY_FIELD);
         int invalidationId = decoder.int32(INVALIDATION_ID_FIELD);
-        return EhcacheEntityResponse.clientInvalidateHash(cacheId, key, invalidationId);
+        return EhcacheEntityResponse.clientInvalidateHash(key, invalidationId);
       }
       case CLIENT_INVALIDATE_ALL: {
         decoder = CLIENT_INVALIDATE_ALL_RESPONSE_STRUCT.decoder(buffer);
-        String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
         int invalidationId = decoder.int32(INVALIDATION_ID_FIELD);
-        return EhcacheEntityResponse.clientInvalidateAll(cacheId, invalidationId);
+        return EhcacheEntityResponse.clientInvalidateAll(invalidationId);
       }
       case SERVER_INVALIDATE_HASH: {
         decoder = SERVER_INVALIDATE_HASH_RESPONSE_STRUCT.decoder(buffer);
-        String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
         long key = decoder.int64(KEY_FIELD);
-        return EhcacheEntityResponse.serverInvalidateHash(cacheId, key);
+        return EhcacheEntityResponse.serverInvalidateHash(key);
       }
       case MAP_VALUE: {
         decoder = MAP_VALUE_RESPONSE_STRUCT.decoder(buffer);

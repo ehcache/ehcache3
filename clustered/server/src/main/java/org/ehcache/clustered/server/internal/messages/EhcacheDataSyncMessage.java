@@ -27,21 +27,15 @@ import java.util.Map;
 @CommonComponent
 public class EhcacheDataSyncMessage extends EhcacheSyncMessage {
 
-  private final String cacheId;
   private final Map<Long, Chain> chainMap;
 
-  public EhcacheDataSyncMessage(final String cacheId, final Map<Long, Chain> chainMap) {
-    this.cacheId = cacheId;
+  public EhcacheDataSyncMessage(final Map<Long, Chain> chainMap) {
     this.chainMap = Collections.unmodifiableMap(chainMap);
   }
 
   @Override
   public SyncMessageType getMessageType() {
     return SyncMessageType.DATA;
-  }
-
-  public String getCacheId() {
-    return cacheId;
   }
 
   public Map<Long, Chain> getChainMap() {
