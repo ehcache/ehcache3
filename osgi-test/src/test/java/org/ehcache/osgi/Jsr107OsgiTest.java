@@ -56,6 +56,7 @@ public class Jsr107OsgiTest {
 
   @Test
   @Ignore("Needs https://github.com/jsr107/jsr107spec/issues/326 to be fixed and so will wait on javax.cache:cache-api:1.0.1 only")
+  @SuppressWarnings("unchecked")
   public void testJsr107EhcacheOsgi() throws Exception {
     CachingProvider cachingProvider = Caching.getCachingProvider("org.ehcache.jsr107.EhcacheCachingProvider", getClass().getClassLoader());
     CacheManager cacheManager = cachingProvider.getCacheManager(getClass().getResource("/org/ehcache/osgi/ehcache-107-osgi.xml").toURI(), getClass().getClassLoader());

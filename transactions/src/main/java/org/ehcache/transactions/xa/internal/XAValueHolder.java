@@ -107,7 +107,8 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializ
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;
 
-    XAValueHolder<V> that = (XAValueHolder) other;
+    @SuppressWarnings("unchecked")
+    XAValueHolder<V> that = (XAValueHolder<V>) other;
 
     if (!super.equals(that)) return false;
     return value.equals(that.value);

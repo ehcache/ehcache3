@@ -37,9 +37,6 @@ import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
 
-import com.tc.classloader.CommonComponent;
-
-@CommonComponent
 public class OffHeapChainMap<K> implements MapInternals {
 
   interface ChainMapEvictionListener<K> {
@@ -48,10 +45,10 @@ public class OffHeapChainMap<K> implements MapInternals {
 
   private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
   private final OffHeapChainStorageEngine<K> chainStorage;
-  private volatile ChainMapEvictionListener<K> evictionListener;;
+  private volatile ChainMapEvictionListener<K> evictionListener;
 
   public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
-    this.chainStorage = new OffHeapChainStorageEngine<K>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
+    this.chainStorage = new OffHeapChainStorageEngine<>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
     EvictionListener<K, InternalChain> listener = new EvictionListener<K, InternalChain>() {
       @Override
       public void evicting(Callable<Map.Entry<K, InternalChain>> callable) {
@@ -72,7 +69,13 @@ public class OffHeapChainMap<K> implements MapInternals {
 
     //TODO: EvictionListeningReadWriteLockedOffHeapClockCache lacks ctor that takes shareByThieving
     // this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, shareByThieving, chainStorage);
-    this.heads = new EvictionListeningReadWriteLockedOffHeapClockCache<K, InternalChain>(listener, source, chainStorage);
+    this.heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(listener, source, chainStorage);
+  }
+
+  //For tests
+  OffHeapChainMap(ReadWriteLockedOffHeapClockCache<K, InternalChain> heads, OffHeapChainStorageEngine<K> chainStorage) {
+    this.chainStorage = chainStorage;
+    this.heads = heads;
   }
 
   void setEvictionListener(ChainMapEvictionListener<K> listener) {
@@ -187,7 +190,11 @@ public class OffHeapChainMap<K> implements MapInternals {
     try {
       InternalChain current = heads.get(key);
       if (current != null) {
-        replaceAtHead(key, current.detach(), chain);
+        try {
+          replaceAtHead(key, current.detach(), chain);
+        } finally {
+          current.close();
+        }
       } else {
         for (Element x : chain) {
           append(key, x.getPayload());

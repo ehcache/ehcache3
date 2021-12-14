@@ -73,14 +73,14 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   private static final int NUM_OF_THREADS = 10;
   private static final int JOB_SIZE = 100;
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
       + "</ohr:offheap-resources>" +
-      "</service>\n";
+      "</config>\n";
 
-  private static CacheManager CACHE_MANAGER1;
-  private static CacheManager CACHE_MANAGER2;
+  private static PersistentCacheManager CACHE_MANAGER1;
+  private static PersistentCacheManager CACHE_MANAGER2;
   private static Cache<Long, BlobValue> CACHE1;
   private static Cache<Long, BlobValue> CACHE2;
 
@@ -98,6 +98,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   @Before
   public void startServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
@@ -122,8 +123,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   public void tearDown() throws Exception {
     CACHE_MANAGER1.close();
     CACHE_MANAGER2.close();
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().startAllServers();
+    CACHE_MANAGER2.destroy();
   }
 
   @Test(timeout=180000)

@@ -81,10 +81,9 @@ import static org.junit.Assume.assumeNoException;
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
  * <p>
- *   Tests in this class using the {@link TimeLimitedTask} class can be terminated by {@link Thread#interrupt()}
- *   and {@link Thread#stop()} (resulting in fielding a {@link ThreadDeath} exception).  Code in these tests
- *   <b>must not</b> intercept {@code ThreadDeath} and prevent thread termination.
- * </p>
+ * Tests in this class using the {@link TimeLimitedTask} class can be terminated by {@link Thread#interrupt()}
+ * and {@link Thread#stop()} (resulting in fielding a {@link ThreadDeath} exception).  Code in these tests
+ * <b>must not</b> intercept {@code ThreadDeath} and prevent thread termination.
  */
 // =============================================================================================
 // The tests in this class are run **in parallel** to avoid long run times caused by starting
@@ -124,11 +123,11 @@ public class TerminatedServerTest {
   }
 
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
           + "<ohr:offheap-resources>"
           + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
           + "</ohr:offheap-resources>" +
-          "</service>\n";
+          "</config>\n";
 
   private static Map<String, String> OLD_PROPERTIES;
 
@@ -218,6 +217,7 @@ public class TerminatedServerTest {
   }
 
   @Test
+  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheManagerCloseWithCaches() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -285,6 +285,7 @@ public class TerminatedServerTest {
   }
 
   @Test
+  @Ignore("In multi entity, destroy cache is a blocking operation")
   public void testTerminationBeforeCacheManagerDestroyCache() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -324,6 +325,7 @@ public class TerminatedServerTest {
   }
 
   @Test
+  @Ignore("Multi entity means this is now a blocking operation")
   public void testTerminationBeforeCacheCreate() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -354,6 +356,7 @@ public class TerminatedServerTest {
   }
 
   @Test
+  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheRemove() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -515,7 +518,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
 
@@ -551,7 +554,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
 
@@ -588,7 +591,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
 
@@ -625,7 +628,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#CLEAR"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for CLEAR"));
     }
   }
 

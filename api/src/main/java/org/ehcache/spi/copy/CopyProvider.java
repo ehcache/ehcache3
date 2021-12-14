@@ -22,14 +22,13 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * A {@link Service} providing {@link Copier} instances.
- * <P>
+ * <p>
  * The {@code CacheManager} {@link org.ehcache.spi.service.ServiceProvider obtains} an instance of this
  * {@code Service} prior to creating any {@code Cache} instances.  Before creating each {@code Cache}
  * instance, the {@code CacheManager} calls the
  * {@link #createKeyCopier(Class, Serializer, ServiceConfiguration[])} and
  * {@link #createValueCopier(Class, Serializer, ServiceConfiguration[])} methods to obtain
  * {@code Copier} instances supplied to the {@code Cache}.
- * </P>
  */
 public interface CopyProvider extends Service {
 

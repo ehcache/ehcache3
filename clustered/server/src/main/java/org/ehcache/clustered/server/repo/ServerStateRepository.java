@@ -42,8 +42,8 @@ class ServerStateRepository {
     }
 
     Object result;
-    switch (message.operation()) {
-      case GET:
+    switch (message.getMessageType()) {
+      case GET_STATE_REPO:
         StateRepositoryOpMessage.GetMessage getMessage = (StateRepositoryOpMessage.GetMessage) message;
         result = map.get(getMessage.getKey());
         break;
@@ -58,7 +58,7 @@ class ServerStateRepository {
           .collect(Collectors.toSet());
         break;
       default:
-        throw new IllegalMessageException("Invalid operation: " + message.operation());
+        throw new AssertionError("Unsupported operation: " + message.getMessageType());
     }
     return EhcacheEntityResponse.mapValue(result);
   }

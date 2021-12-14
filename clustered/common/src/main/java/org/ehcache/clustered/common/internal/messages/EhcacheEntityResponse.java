@@ -21,57 +21,11 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
+import java.util.Set;
+
 public abstract class EhcacheEntityResponse implements EntityResponse {
 
-  public enum Type {
-    SUCCESS((byte) 0),
-    FAILURE((byte) 1),
-    GET_RESPONSE((byte) 2),
-    HASH_INVALIDATION_DONE((byte) 3),
-    ALL_INVALIDATION_DONE((byte) 4),
-    CLIENT_INVALIDATE_HASH((byte) 5),
-    CLIENT_INVALIDATE_ALL((byte) 6),
-    SERVER_INVALIDATE_HASH((byte) 7),
-    MAP_VALUE((byte) 8),
-    ;
-
-    private final byte opCode;
-
-    Type(byte opCode) {
-      this.opCode = opCode;
-    }
-
-    public byte getOpCode() {
-      return this.opCode;
-    }
-
-    public static Type responseType(byte opCode) {
-      switch (opCode) {
-        case 0:
-          return SUCCESS;
-        case 1:
-          return FAILURE;
-        case 2:
-          return GET_RESPONSE;
-        case 3:
-          return HASH_INVALIDATION_DONE;
-        case 4:
-          return ALL_INVALIDATION_DONE;
-        case 5:
-          return CLIENT_INVALIDATE_HASH;
-        case 6:
-          return CLIENT_INVALIDATE_ALL;
-        case 7:
-          return SERVER_INVALIDATE_HASH;
-        case 8:
-          return MAP_VALUE;
-        default:
-          throw new IllegalArgumentException("Store operation not defined for : " + opCode);
-      }
-    }
-  }
-
-  public abstract Type getType();
+  public abstract EhcacheResponseType getResponseType();
 
   public static class Success extends EhcacheEntityResponse {
 
@@ -82,10 +36,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
 
     @Override
-    public Type getType() {
-      return Type.SUCCESS;
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.SUCCESS;
     }
-
   }
 
   public static class Failure extends EhcacheEntityResponse {
@@ -96,15 +49,14 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       this.cause = cause;
     }
 
-    @Override
-    public Type getType() {
-      return Type.FAILURE;
-    }
-
     public ClusterException getCause() {
       return cause;
     }
 
+    @Override
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.FAILURE;
+    }
   }
 
   public static class GetResponse extends EhcacheEntityResponse {
@@ -115,15 +67,14 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       this.chain = chain;
     }
 
-    @Override
-    public Type getType() {
-      return Type.GET_RESPONSE;
-    }
-
     public Chain getChain() {
       return chain;
     }
 
+    @Override
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.GET_RESPONSE;
+    }
   }
 
   public static HashInvalidationDone hashInvalidationDone(String cacheId, long key) {
@@ -148,10 +99,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
 
     @Override
-    public Type getType() {
-      return Type.HASH_INVALIDATION_DONE;
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.HASH_INVALIDATION_DONE;
     }
-
   }
 
   public static AllInvalidationDone allInvalidationDone(String cacheId) {
@@ -170,10 +120,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
 
     @Override
-    public Type getType() {
-      return Type.ALL_INVALIDATION_DONE;
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.ALL_INVALIDATION_DONE;
     }
-
   }
 
   public static ServerInvalidateHash serverInvalidateHash(String cacheId, long key) {
@@ -198,8 +147,8 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
 
     @Override
-    public Type getType() {
-      return Type.SERVER_INVALIDATE_HASH;
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.SERVER_INVALIDATE_HASH;
     }
   }
 
@@ -231,8 +180,8 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
 
     @Override
-    public Type getType() {
-      return Type.CLIENT_INVALIDATE_HASH;
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.CLIENT_INVALIDATE_HASH;
     }
   }
 
@@ -258,8 +207,8 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
 
     @Override
-    public Type getType() {
-      return Type.CLIENT_INVALIDATE_ALL;
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.CLIENT_INVALIDATE_ALL;
     }
   }
 
@@ -275,13 +224,31 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       this.value = value;
     }
 
-    @Override
-    public Type getType() {
-      return Type.MAP_VALUE;
-    }
-
     public Object getValue() {
       return this.value;
+    }
+
+    @Override
+    public final EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.MAP_VALUE;
+    }
+  }
+
+  public static class PrepareForDestroy extends EhcacheEntityResponse {
+
+    private final Set<String> stores;
+
+    public PrepareForDestroy(Set<String> stores) {
+      this.stores = stores;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.PREPARE_FOR_DESTROY;
+    }
+
+    public Set<String> getStores() {
+      return stores;
     }
   }
 

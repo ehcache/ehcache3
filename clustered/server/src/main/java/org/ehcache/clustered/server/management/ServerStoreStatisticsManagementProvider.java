@@ -16,54 +16,49 @@
 package org.ehcache.clustered.server.management;
 
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
+import org.terracotta.management.registry.collect.StatisticProvider;
+import org.terracotta.management.registry.collect.StatisticRegistry;
+import org.terracotta.management.service.monitoring.registry.provider.AbstractExposedStatistics;
+import org.terracotta.management.service.monitoring.registry.provider.AbstractStatisticsManagementProvider;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
 
 import static java.util.Arrays.asList;
 import static org.terracotta.context.extended.ValueStatisticDescriptor.descriptor;
 
 @Named("ServerStoreStatistics")
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
+@StatisticProvider
 class ServerStoreStatisticsManagementProvider extends AbstractStatisticsManagementProvider<ServerStoreBinding> {
 
-  private final ScheduledExecutorService executor;
-
-  ServerStoreStatisticsManagementProvider(StatisticConfiguration statisticConfiguration, ScheduledExecutorService executor) {
-    super(ServerStoreBinding.class, statisticConfiguration);
-    this.executor = executor;
+  ServerStoreStatisticsManagementProvider() {
+    super(ServerStoreBinding.class);
   }
 
   @Override
-  protected AbstractExposedStatistics<ServerStoreBinding> internalWrap(ServerStoreBinding managedObject) {
-    return new ServerStoreExposedStatistics(getConsumerId(), managedObject, getStatisticConfiguration(), executor);
+  protected AbstractExposedStatistics<ServerStoreBinding> internalWrap(Context context, ServerStoreBinding managedObject, StatisticRegistry statisticRegistry) {
+    return new ServerStoreExposedStatistics(context, managedObject, statisticRegistry);
   }
 
   private static class ServerStoreExposedStatistics extends AbstractExposedStatistics<ServerStoreBinding> {
 
-    ServerStoreExposedStatistics(long consumerId, ServerStoreBinding binding, StatisticConfiguration statisticConfiguration, ScheduledExecutorService executor) {
-      super(consumerId, binding, statisticConfiguration, executor, binding.getValue());
+    ServerStoreExposedStatistics(Context context, ServerStoreBinding binding, StatisticRegistry statisticRegistry) {
+      super(context.with("type", "ServerStore"), binding, statisticRegistry);
 
-      statisticsRegistry.registerSize("AllocatedMemory", descriptor("allocatedMemory", tags("tier", "Store")));
-      statisticsRegistry.registerSize("DataAllocatedMemory", descriptor("dataAllocatedMemory", tags("tier", "Store")));
-      statisticsRegistry.registerSize("OccupiedMemory", descriptor("occupiedMemory", tags("tier", "Store")));
-      statisticsRegistry.registerSize("DataOccupiedMemory", descriptor("dataOccupiedMemory", tags("tier", "Store")));
-      statisticsRegistry.registerCounter("Entries", descriptor("entries", tags("tier", "Store")));
-      statisticsRegistry.registerCounter("UsedSlotCount", descriptor("usedSlotCount", tags("tier", "Store")));
-      statisticsRegistry.registerSize("DataVitalMemory", descriptor("dataVitalMemory", tags("tier", "Store")));
-      statisticsRegistry.registerSize("VitalMemory", descriptor("vitalMemory", tags("tier", "Store")));
-      statisticsRegistry.registerSize("ReprobeLength", descriptor("reprobeLength", tags("tier", "Store")));
-      statisticsRegistry.registerCounter("RemovedSlotCount", descriptor("removedSlotCount", tags("tier", "Store")));
-      statisticsRegistry.registerSize("DataSize", descriptor("dataSize", tags("tier", "Store")));
-      statisticsRegistry.registerSize("TableCapacity", descriptor("tableCapacity", tags("tier", "Store")));
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ServerStore");
+      getRegistry().registerSize("AllocatedMemory", descriptor("allocatedMemory", tags("tier", "Store")));
+      getRegistry().registerSize("DataAllocatedMemory", descriptor("dataAllocatedMemory", tags("tier", "Store")));
+      getRegistry().registerSize("OccupiedMemory", descriptor("occupiedMemory", tags("tier", "Store")));
+      getRegistry().registerSize("DataOccupiedMemory", descriptor("dataOccupiedMemory", tags("tier", "Store")));
+      getRegistry().registerCounter("Entries", descriptor("entries", tags("tier", "Store")));
+      getRegistry().registerCounter("UsedSlotCount", descriptor("usedSlotCount", tags("tier", "Store")));
+      getRegistry().registerSize("DataVitalMemory", descriptor("dataVitalMemory", tags("tier", "Store")));
+      getRegistry().registerSize("VitalMemory", descriptor("vitalMemory", tags("tier", "Store")));
+      getRegistry().registerCounter("RemovedSlotCount", descriptor("removedSlotCount", tags("tier", "Store")));
+      getRegistry().registerSize("DataSize", descriptor("dataSize", tags("tier", "Store")));
+      getRegistry().registerSize("TableCapacity", descriptor("tableCapacity", tags("tier", "Store")));
     }
 
   }

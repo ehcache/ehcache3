@@ -28,7 +28,7 @@ import java.net.URI;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
-import static org.ehcache.clustered.client.internal.EhcacheClientEntity.Timeouts.DEFAULT_READ_OPERATION_TIMEOUT;
+import static org.ehcache.clustered.client.internal.Timeouts.DEFAULT_READ_OPERATION_TIMEOUT;
 
 /**
  * Specifies the configuration for a {@link ClusteringService}.

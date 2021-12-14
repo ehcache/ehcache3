@@ -68,7 +68,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).get(eq("key"));
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS));
   }
 
   /**
@@ -110,7 +110,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
     verify(this.store).get(eq("key"));
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
 
   /**

@@ -86,14 +86,12 @@ import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguratio
 
 /**
  * The {@code UserManagedCacheBuilder} enables building {@link UserManagedCache}s using a fluent style.
- * <P>
+ * <p>
  * {@link UserManagedCache}s are {@link Cache}s that are not linked to a {@link org.ehcache.CacheManager}.
- * </P>
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
- * </P>
  *
  * @param <K>  the cache key type
  * @param <V>  the cache value type
@@ -420,9 +418,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   /**
    * Adds an identifier to the returned builder.
-   * <P>
-   *   The identifier will be used in services and logging the way a cache alias would be inside a {@code CacheManager}
-   * </P>
+   * <p>
+   * The identifier will be used in services and logging the way a cache alias would be inside a {@code CacheManager}
    * @param identifier the identifier
    * @return a new builder with the added identifier
    */
@@ -464,9 +461,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   /**
    * Adds an {@link CacheEventDispatcher} to the returned builder.
-   * <P>
-   *   This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
-   * </P>
+   * <p>
+   * This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
    *
    * @param eventDispatcher the event dispatcher to use
    * @return a new builder with the configured event dispatcher
@@ -485,9 +481,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   /**
    * Adds the default {@link CacheEventDispatcher} using the provided {@link ExecutorService} to the returned builder.
-   * <P>
-   *   This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
-   * </P>
+   * <p>
+   * This is one way of providing a mandatory part of supporting event listeners in {@link UserManagedCache}
    *
    * @param orderedExecutor the ordered event executor service
    * @param unOrderedExecutor the unordered event executor service
@@ -703,7 +698,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   /**
    * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified object graph maximum size to the configured
    * builder.
-   * </P>
+   * <p>
    * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum graph size
@@ -720,7 +715,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   /**
    * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified maximum mapping size to the configured
    * builder.
-   * </P>
+   * <p>
    * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum mapping size
@@ -751,11 +746,10 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   /**
    * Adds a {@link Service} to be made available to the returned builder.
-   * <P>
-   *   Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
-   *   operations will be performed on them. It is the responsibility of the developer to properly stop
-   *   {@code Service}s once they are no longer required.
-   * </P>
+   * <p>
+   * Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
+   * operations will be performed on them. It is the responsibility of the developer to properly stop
+   * {@code Service}s once they are no longer required.
    *
    * @param service the service to add
    * @return a new builder with the added service
@@ -774,12 +768,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   /**
    * Adds a {@link ServiceCreationConfiguration}, to trigger a service loading and its configuration, to the returned
    * builder.
-   * <P>
-   *   Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
-   *   operations will be performed on them. It is the responsibility of the developer to properly stop
-   *   {@code Service}s once they are no longer required. Which means that this method should not be used to get
-   *   services that require a stop.
-   * </P>
+   * <p>
+   * Note that while {@link Service}s will be started upon {@link UserManagedCache} construction, no other lifecycle
+   * operations will be performed on them. It is the responsibility of the developer to properly stop
+   * {@code Service}s once they are no longer required. Which means that this method should not be used to get
+   * services that require a stop.
    *
    * @param serviceConfiguration the service creation configuration to add
    * @return a new builder with the added service creation configuration

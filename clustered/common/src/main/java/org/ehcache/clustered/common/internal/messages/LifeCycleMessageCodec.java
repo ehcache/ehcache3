@@ -16,37 +16,159 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.internal.store.Util;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.terracotta.runnel.Struct;
+import org.terracotta.runnel.StructBuilder;
+import org.terracotta.runnel.decoding.StructDecoder;
+import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
-class LifeCycleMessageCodec {
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
-  private static final byte OPCODE_SIZE = 1;
+public class LifeCycleMessageCodec {
+
+  private static final String CONFIG_PRESENT_FIELD = "configPresent";
+
+  private final StructBuilder VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int64(MSG_ID_FIELD, 15)
+    .int64(MSB_UUID_FIELD, 20)
+    .int64(LSB_UUID_FIELD, 21)
+    .bool(CONFIG_PRESENT_FIELD, 30);
+  private static final int CONFIGURE_MESSAGE_NEXT_INDEX = 40;
+
+  private final StructBuilder VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int64(MSG_ID_FIELD, 15)
+    .int64(MSB_UUID_FIELD, 20)
+    .int64(LSB_UUID_FIELD, 21)
+    .string(SERVER_STORE_NAME_FIELD, 30);
+  private static final int VALIDATE_STORE_NEXT_INDEX = 40;
+
+  private final Struct PREPARE_FOR_DESTROY_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .build();
+
+  private final Struct validateMessageStruct;
+  private final Struct validateStoreMessageStruct;
+
+  private final MessageCodecUtils messageCodecUtils;
+  private final ConfigCodec configCodec;
+
+  public LifeCycleMessageCodec(ConfigCodec configCodec) {
+    this.messageCodecUtils = new MessageCodecUtils();
+    this.configCodec = configCodec;
+    validateMessageStruct = this.configCodec.injectServerSideConfiguration(
+      VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
+
+    validateStoreMessageStruct = this.configCodec.injectServerStoreConfiguration(
+      VALIDATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, VALIDATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
+  }
 
   public byte[] encode(LifecycleMessage message) {
-    //For configure message id serves as message creation timestamp
-    if (message instanceof LifecycleMessage.ConfigureStoreManager) {
-      message.setId(System.nanoTime());
+    switch (message.getMessageType()) {
+      case VALIDATE:
+        return encodeTierManagerValidateMessage((LifecycleMessage.ValidateStoreManager) message);
+      case VALIDATE_SERVER_STORE:
+        return encodeValidateStoreMessage((LifecycleMessage.ValidateServerStore) message);
+      case PREPARE_FOR_DESTROY:
+        return encodePrepareForDestroyMessage(message);
+      default:
+        throw new IllegalArgumentException("Unknown lifecycle message: " + message.getClass());
     }
-    byte[] encodedMsg = Util.marshall(message);
-    ByteBuffer buffer = ByteBuffer.allocate(OPCODE_SIZE + encodedMsg.length);
-    buffer.put(message.getOpCode());
-    buffer.put(encodedMsg);
-    return buffer.array();
   }
 
-  public EhcacheEntityMessage decode(byte[] payload) {
-    ByteBuffer message = ByteBuffer.wrap(payload);
-    byte[] encodedMsg = new byte[message.capacity() - OPCODE_SIZE];
-    byte opCode = message.get();
-    if (opCode == EhcacheEntityMessage.Type.LIFECYCLE_OP.getCode()) {
-      message.get(encodedMsg, 0, encodedMsg.length);
-      EhcacheEntityMessage entityMessage = (EhcacheEntityMessage) Util.unmarshall(encodedMsg);
-      return entityMessage;
+  private byte[] encodePrepareForDestroyMessage(LifecycleMessage message) {
+    return PREPARE_FOR_DESTROY_STRUCT.encoder()
+      .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+      .encode().array();
+  }
+
+  private byte[] encodeValidateStoreMessage(LifecycleMessage.ValidateServerStore message) {
+    return encodeBaseServerStoreMessage(message, validateStoreMessageStruct.encoder());
+  }
+
+  private byte[] encodeBaseServerStoreMessage(LifecycleMessage.BaseServerStore message, StructEncoder<Void> encoder) {
+    messageCodecUtils.encodeMandatoryFields(encoder, message);
+
+    encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
+    configCodec.encodeServerStoreConfiguration(encoder, message.getStoreConfiguration());
+    return encoder.encode().array();
+  }
+
+  private byte[] encodeTierManagerValidateMessage(LifecycleMessage.ValidateStoreManager message) {
+    return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), validateMessageStruct.encoder());
+  }
+
+  private byte[] encodeTierManagerCreateOrValidate(LifecycleMessage message, ServerSideConfiguration config, StructEncoder<Void> encoder) {
+    messageCodecUtils.encodeMandatoryFields(encoder, message);
+    if (config == null) {
+      encoder.bool(CONFIG_PRESENT_FIELD, false);
     } else {
-      throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + opCode);
+      encoder.bool(CONFIG_PRESENT_FIELD, true);
+      configCodec.encodeServerSideConfiguration(encoder, config);
     }
+    return encoder.encode().array();
   }
 
+  public EhcacheEntityMessage decode(EhcacheMessageType messageType, ByteBuffer messageBuffer) {
+
+    switch (messageType) {
+      case VALIDATE:
+        return decodeValidateMessage(messageBuffer);
+      case VALIDATE_SERVER_STORE:
+        return decodeValidateServerStoreMessage(messageBuffer);
+      case PREPARE_FOR_DESTROY:
+        return decodePrepareForDestroyMessage();
+    }
+    throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
+  }
+
+  private LifecycleMessage.PrepareForDestroy decodePrepareForDestroyMessage() {
+    return new LifecycleMessage.PrepareForDestroy();
+  }
+
+  private LifecycleMessage.ValidateServerStore decodeValidateServerStoreMessage(ByteBuffer messageBuffer) {
+    StructDecoder<Void> decoder = validateStoreMessageStruct.decoder(messageBuffer);
+
+    Long msgId = decoder.int64(MSG_ID_FIELD);
+    UUID cliendId = messageCodecUtils.decodeUUID(decoder);
+
+    String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
+    ServerStoreConfiguration config = configCodec.decodeServerStoreConfiguration(decoder);
+
+    LifecycleMessage.ValidateServerStore message = new LifecycleMessage.ValidateServerStore(storeName, config, cliendId);
+    message.setId(msgId);
+    return message;
+  }
+
+  private LifecycleMessage.ValidateStoreManager decodeValidateMessage(ByteBuffer messageBuffer) {
+    StructDecoder<Void> decoder = validateMessageStruct.decoder(messageBuffer);
+
+    Long msgId = decoder.int64(MSG_ID_FIELD);
+    UUID cliendId = messageCodecUtils.decodeUUID(decoder);
+    boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
+
+    ServerSideConfiguration config = null;
+    if (configPresent) {
+      config = configCodec.decodeServerSideConfiguration(decoder);
+    }
+
+
+    LifecycleMessage.ValidateStoreManager message = new LifecycleMessage.ValidateStoreManager(config, cliendId);
+    if (msgId != null) {
+      message.setId(msgId);
+    }
+    return message;
+  }
 }

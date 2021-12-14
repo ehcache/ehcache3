@@ -33,7 +33,7 @@ public interface WriteBehind<K, V> extends CacheLoaderWriter<K, V> {
 
   /**
    * Stop the coordinator and all the internal data structures.
-   * <p/>
+   * <p>
    * This stops as quickly as possible without losing any previously added items. However, no guarantees are made
    * towards the processing of these items. It's highly likely that items are still inside the internal data structures
    * and not processed.

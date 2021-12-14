@@ -21,9 +21,8 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 /**
  * Interface used by the {@link LookupTransactionManagerProvider} to lookup transaction managers to be used in XA
  * transactional caches.
- * <P>
- *   Implementation are epxected to offer a no-arg constructor that will be used by Ehcache.
- * </P>
+ * <p>
+ * Implementation are epxected to offer a no-arg constructor that will be used by Ehcache.
  */
 public interface TransactionManagerLookup {
 

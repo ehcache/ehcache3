@@ -48,7 +48,7 @@ import static org.mockito.Matchers.any;
 
 /**
  * Provides testing of basic ITERATOR operations on an {@code Ehcache}.
- * <p/>
+ * <p>
  * The {@link Ehcache#iterator()} tests require the use of a {@link Store Store}
  * implementation which returns an {@link java.util.Iterator} from the
  * {@link Store#iterator() Store.iterator} method that does <b>not</b>

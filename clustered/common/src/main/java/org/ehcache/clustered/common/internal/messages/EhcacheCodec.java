@@ -16,68 +16,87 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
+import org.terracotta.runnel.Struct;
+import org.terracotta.runnel.decoding.Enm;
 
-import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.LIFECYCLE_OP;
-import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.REPLICATION_OP;
-import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.SERVER_STORE_OP;
-import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.STATE_REPO_OP;
-import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.SYNC_OP;
+import java.nio.ByteBuffer;
+
+import static java.nio.ByteBuffer.wrap;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
+import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE =
-      new EhcacheCodec(new ServerStoreOpCodec(), new LifeCycleMessageCodec(), new StateRepositoryOpCodec(), new ResponseCodec(), new PassiveReplicationMessageCodec());
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheCodec.class);
+
+  public static final Struct OP_CODE_DECODER = newStructBuilder().enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING).build();
 
   private final ServerStoreOpCodec serverStoreOpCodec;
   private final LifeCycleMessageCodec lifeCycleMessageCodec;
   private final StateRepositoryOpCodec stateRepositoryOpCodec;
   private final ResponseCodec responseCodec;
-  private final PassiveReplicationMessageCodec passiveReplicationMessageCodec;
 
-  public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> messageCodec() {
-    return SERVER_INSTANCE;
-  }
-
-  EhcacheCodec(ServerStoreOpCodec serverStoreOpCodec, LifeCycleMessageCodec lifeCycleMessageCodec,
-               StateRepositoryOpCodec stateRepositoryOpCodec, ResponseCodec responseCodec, PassiveReplicationMessageCodec passiveReplicationMessageCodec) {
+  public EhcacheCodec(ServerStoreOpCodec serverStoreOpCodec, LifeCycleMessageCodec lifeCycleMessageCodec,
+               StateRepositoryOpCodec stateRepositoryOpCodec, ResponseCodec responseCodec) {
     this.serverStoreOpCodec = serverStoreOpCodec;
     this.lifeCycleMessageCodec = lifeCycleMessageCodec;
     this.stateRepositoryOpCodec = stateRepositoryOpCodec;
     this.responseCodec = responseCodec;
-    this.passiveReplicationMessageCodec = passiveReplicationMessageCodec;
   }
 
   @Override
   public byte[] encodeMessage(EhcacheEntityMessage message) {
-    switch (message.getType()) {
-      case LIFECYCLE_OP:
-        return lifeCycleMessageCodec.encode((LifecycleMessage)message);
-      case SERVER_STORE_OP:
-        return serverStoreOpCodec.encode((ServerStoreOpMessage) message);
-      case STATE_REPO_OP:
-        return stateRepositoryOpCodec.encode((StateRepositoryOpMessage) message);
-      case REPLICATION_OP:
-        return passiveReplicationMessageCodec.encode((PassiveReplicationMessage)message);
-      default:
-        throw new IllegalArgumentException("Undefined message type: " + message.getType());
+    if (!(message instanceof EhcacheOperationMessage)) {
+      throw new AssertionError("Unexpected message type " + message.getClass());
     }
+    EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+    if (isLifecycleMessage(operationMessage.getMessageType())) {
+      return lifeCycleMessageCodec.encode((LifecycleMessage) operationMessage);
+    } else if (isStoreOperationMessage(operationMessage.getMessageType())) {
+      return serverStoreOpCodec.encode((ServerStoreOpMessage) operationMessage);
+    } else if (isStateRepoOperationMessage(operationMessage.getMessageType())) {
+      return stateRepositoryOpCodec.encode((StateRepositoryOpMessage) operationMessage);
+    }
+    throw new AssertionError("Unknown message type: " + operationMessage.getMessageType());
   }
 
   @Override
   public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
-    byte opCode = payload[0];
-    if (opCode <= LIFECYCLE_OP.getCode()) {
-        return lifeCycleMessageCodec.decode(payload);
-    } else if (opCode <= SERVER_STORE_OP.getCode()) {
-        return serverStoreOpCodec.decode(payload);
-    } else if (opCode <= STATE_REPO_OP.getCode()) {
-        return stateRepositoryOpCodec.decode(payload);
-    } else if (opCode > SYNC_OP.getCode() && opCode <= REPLICATION_OP.getCode()) {
-        return passiveReplicationMessageCodec.decode(payload);
+    ByteBuffer byteBuffer = wrap(payload);
+    Enm<EhcacheMessageType> opCodeEnm = OP_CODE_DECODER.decoder(byteBuffer).enm("opCode");
+
+    if (!opCodeEnm.isFound()) {
+      throw new AssertionError("Got a message without an opCode");
+    }
+    if (!opCodeEnm.isValid()) {
+      LOGGER.warn("Received message with unknown operation code - more recent version at the other end?");
+      return null;
+    }
+
+    byteBuffer.rewind();
+
+    EhcacheMessageType opCode = opCodeEnm.get();
+    return decodeMessage(byteBuffer, opCode);
+  }
+
+  public EhcacheEntityMessage decodeMessage(ByteBuffer byteBuffer, EhcacheMessageType opCode) {
+    if (isLifecycleMessage(opCode)) {
+        return lifeCycleMessageCodec.decode(opCode, byteBuffer);
+    } else if (isStoreOperationMessage(opCode)) {
+        return serverStoreOpCodec.decode(opCode, byteBuffer);
+    } else if (isStateRepoOperationMessage(opCode)) {
+        return stateRepositoryOpCodec.decode(opCode, byteBuffer);
     } else {
-      throw new UnsupportedOperationException("Undefined message code: " + opCode);
+      throw new UnsupportedOperationException("Unsupported message code: " + opCode);
     }
   }
 

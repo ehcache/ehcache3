@@ -38,31 +38,33 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.internal.resilience.RecoveryCache;
+import org.ehcache.core.internal.resilience.ResilienceStrategy;
+import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.core.spi.store.Store.PutStatus;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.Store.ValueHolder;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
+import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
-import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.core.statistics.BulkOps;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.jsr166e.LongAdder;
@@ -70,16 +72,13 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Implementation of the {@link Cache} interface when no {@link CacheLoaderWriter} is involved.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  *
  * @see EhcacheWithLoaderWriter
  */
@@ -171,10 +170,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
         return null;
       } else {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
@@ -220,28 +219,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
-    if (newValue == null) {
-      return false;
-    }
-
-    final Duration duration;
-    if (oldValue == null) {
-      try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForCreation(key, newValue);
-      } catch (RuntimeException re) {
-        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-        return true;
-      }
-    } else {
-      try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, supplierOf(oldValue), newValue);
-      } catch (RuntimeException re) {
-        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-        return true;
-      }
-    }
-
-    return Duration.ZERO.equals(duration);
+    return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiry(), key, oldValue, newValue);
   }
 
   /**
@@ -397,6 +375,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       PutAllFunction<K, V> putAllFunction = new PutAllFunction<K, V>(logger, entriesToRemap, runtimeConfiguration.getExpiry());
       store.bulkCompute(entries.keySet(), putAllFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
+      addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
       putAllObserver.end(PutAllOutcome.SUCCESS);
     } catch (StoreAccessException e) {
       try {
@@ -741,9 +720,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           @Override
           public V apply(K mappedKey, V mappedValue) {
             if (mappedValue == null) {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
+              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
             } else {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
             }
 
             V newValue = computeFunction.apply(mappedKey, mappedValue);
@@ -762,7 +741,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
               } else {
-                putObserver.end(PutOutcome.PUT);
+                putObserver.end(mappedValue == null ? PutOutcome.PUT : PutOutcome.UPDATED);
               }
             }
 
@@ -799,10 +778,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
       }
       return returnValue;
     }
@@ -834,10 +813,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         putObserver.end(PutOutcome.UPDATED);
       } else {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
         putObserver.end(PutOutcome.PUT);
       }
       return returnValue;
@@ -908,7 +887,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       if (!quiet) getObserver.begin();
       if (nextException == null) {
-        if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+        if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         current = next;
         advance();
         return new ValueHolderBasedEntry<K, V>(current);
@@ -931,7 +910,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
-
   private static <K> RecoveryCache<K> recoveryCache(final Store<K, ?> store) {
     return new RecoveryCache<K>() {
 
@@ -952,6 +930,26 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         }
       }
     };
+  }
+
+  private static <K, V> boolean newValueAlreadyExpired(Logger logger, Expiry<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
+    if (newValue == null) {
+      return false;
+    }
+
+    Duration duration;
+    try {
+      if (oldValue == null) {
+          duration = expiry.getExpiryForCreation(key, newValue);
+      } else {
+          duration = expiry.getExpiryForUpdate(key, supplierOf(oldValue), newValue);
+      }
+    } catch (RuntimeException re) {
+      logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+      return true;
+    }
+
+    return Duration.ZERO.equals(duration);
   }
 
   private static class ValueHolderBasedEntry<K, V> implements Cache.Entry<K, V> {
@@ -981,6 +979,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     private final Map<K, V> entriesToRemap;
     private final Expiry<? super K, ? super V> expiry;
     private final AtomicInteger actualPutCount = new AtomicInteger();
+    private final AtomicInteger actualUpdateCount = new AtomicInteger();
 
     public PutAllFunction(Logger logger, Map<K, V> entriesToRemap, Expiry<? super K, ? super V> expiry) {
       this.logger = logger;
@@ -1002,6 +1001,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           mutations.put(key, null);
         } else {
           actualPutCount.incrementAndGet();
+          if(existingValue != null) {
+            actualUpdateCount.incrementAndGet();
+          }
           mutations.put(key, newValue);
         }
       }
@@ -1015,32 +1017,15 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
-      if (newValue == null) {
-        return false;
-      }
-
-      final Duration duration;
-      if (oldValue == null) {
-        try {
-          duration = expiry.getExpiryForCreation(key, newValue);
-        } catch (RuntimeException re) {
-          logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-          return true;
-        }
-      } else {
-        try {
-          duration = expiry.getExpiryForUpdate(key, supplierOf(oldValue), newValue);
-        } catch (RuntimeException re) {
-          logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-          return true;
-        }
-      }
-
-      return Duration.ZERO.equals(duration);
+      return Ehcache.newValueAlreadyExpired(logger, expiry, key, oldValue, newValue);
     }
 
     public AtomicInteger getActualPutCount() {
       return actualPutCount;
+    }
+
+    public AtomicInteger getActualUpdateCount() {
+      return actualUpdateCount;
     }
   }
 

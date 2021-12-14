@@ -15,67 +15,80 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.CacheBindingManagementProvider;
 import org.ehcache.management.providers.ExposedCacheBinding;
-import org.terracotta.management.model.capabilities.Capability;
-import org.terracotta.management.model.capabilities.StatisticsCapability;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.model.stats.Statistic;
+import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.registry.action.Named;
+import org.terracotta.management.registry.collect.StatisticProvider;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.TreeMap;
 
 @Named("StatisticsCapability")
+@StatisticProvider
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private final StatisticsProviderConfiguration statisticsProviderConfiguration;
-  private final ScheduledExecutorService executor;
+  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = new Comparator<StatisticDescriptor>() {
+    @Override
+    public int compare(StatisticDescriptor o1, StatisticDescriptor o2) {
+      return o1.getName().compareTo(o2.getName());
+    }
+  };
 
-  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, ScheduledExecutorService executor) {
+  private final StatisticsService statisticsService;
+
+  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, StatisticsService statisticsService) {
     super(configuration);
-    this.statisticsProviderConfiguration = configuration.getConfigurationFor(EhcacheStatisticsProvider.class);
-    this.executor = executor;
+    this.statisticsService = statisticsService;
   }
 
   @Override
   protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsProviderConfiguration, executor);
+    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsService);
   }
 
   @Override
-  protected void dispose(ExposedObject<CacheBinding> exposedObject) {
-    ((StandardEhcacheStatistics) exposedObject).dispose();
+  public final Collection<? extends Descriptor> getDescriptors() {
+    Collection<StatisticDescriptor> capabilities = new HashSet<StatisticDescriptor>();
+    for (ExposedObject o : getExposedObjects()) {
+      capabilities.addAll(((StandardEhcacheStatistics) o).getDescriptors());
+    }
+    List<StatisticDescriptor> list = new ArrayList<StatisticDescriptor>(capabilities);
+    Collections.sort(list, STATISTIC_DESCRIPTOR_COMPARATOR);
+    return list;
   }
 
   @Override
-  public Capability getCapability() {
-    StatisticsCapability.Properties properties = new StatisticsCapability.Properties(statisticsProviderConfiguration.averageWindowDuration(),
-        statisticsProviderConfiguration.averageWindowUnit(), statisticsProviderConfiguration.historySize(), statisticsProviderConfiguration.historyInterval(),
-        statisticsProviderConfiguration.historyIntervalUnit(), statisticsProviderConfiguration.timeToDisable(), statisticsProviderConfiguration.timeToDisableUnit());
-    return new StatisticsCapability(getCapabilityName(), properties, getDescriptors(), getCapabilityContext());
-  }
-
-  @Override
-  public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
-    Map<String, Statistic<?, ?>> statistics = new HashMap<String, Statistic<?, ?>>(statisticNames.size());
+  public Map<String, Number> collectStatistics(Context context, Collection<String> statisticNames) {
     StandardEhcacheStatistics ehcacheStatistics = (StandardEhcacheStatistics) findExposedObject(context);
     if (ehcacheStatistics != null) {
-      for (String statisticName : statisticNames) {
-        try {
-           statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName, since));
-         } catch (IllegalArgumentException ignored) {
-           // ignore when statisticName does not exist and throws an exception
-         }
+      if (statisticNames == null || statisticNames.isEmpty()) {
+        return ehcacheStatistics.queryStatistics();
+      } else {
+        Map<String, Number> statistics = new TreeMap<String, Number>();
+        for (String statisticName : statisticNames) {
+          try {
+            statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName));
+          } catch (IllegalArgumentException ignored) {
+            // ignore when statisticName does not exist and throws an exception
+          }
+        }
+        return statistics;
       }
     }
-    return statistics;
+    return Collections.emptyMap();
   }
 
 }

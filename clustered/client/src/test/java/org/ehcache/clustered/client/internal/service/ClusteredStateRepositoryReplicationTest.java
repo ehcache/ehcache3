@@ -18,28 +18,36 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.SimpleClusteredTierClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
+import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
-import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.lang.reflect.Field;
 import java.net.URI;
 
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
+import static org.ehcache.config.Eviction.noAdvice;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -52,19 +60,17 @@ public class ClusteredStateRepositoryReplicationTest {
   @Before
   public void setUp() throws Exception {
     this.clusterControl = PassthroughTestHelpers.createActivePassive(STRIPENAME,
-        new PassthroughTestHelpers.ServerInitializer() {
-          @Override
-          public void registerServicesForServer(PassthroughServer server) {
-            server.registerServerEntityService(new EhcacheServerEntityService());
-            server.registerClientEntityService(new EhcacheClientEntityService());
-            server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
-            server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-            server.registerServiceProvider(new OffHeapResourcesProvider(),
-                new OffHeapResourcesConfiguration(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+      server -> {
+        server.registerServerEntityService(new EhcacheServerEntityService());
+        server.registerClientEntityService(new EhcacheClientEntityService());
+        server.registerServerEntityService(new ClusteredTierServerEntityService());
+        server.registerClientEntityService(new ClusteredTierClientEntityService());
+        server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
+        server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
+        server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
 
-            UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
-          }
-        }
+        UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
+      }
     );
 
     clusterControl.waitForActive();
@@ -88,19 +94,16 @@ public class ClusteredStateRepositoryReplicationTest {
 
     service.start(null);
 
-    EhcacheClientEntity clientEntity = getEntity(service);
+    BaseCacheConfiguration<Long, String> config = new BaseCacheConfiguration<>(Long.class, String.class, noAdvice(), null, noExpiration(),
+      newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB)).build());
+    ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
+      config);
 
-    ClusteredStateRepository stateRepository = new ClusteredStateRepository(new ClusteringService.ClusteredCacheIdentifier() {
-      @Override
-      public String getId() {
-        return "testStateRepo";
-      }
+    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier, new StoreConfigurationImpl<>(config, 1, null, null), Consistency.STRONG);
 
-      @Override
-      public Class<ClusteringService> getServiceType() {
-        return ClusteringService.class;
-      }
-    }, "test", clientEntity);
+    SimpleClusteredTierClientEntity clientEntity = getEntity(serverStoreProxy);
+
+    ClusteredStateRepository stateRepository = new ClusteredStateRepository(spaceIdentifier, "test", clientEntity);
 
     StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class);
     testHolder.putIfAbsent("One", "One");
@@ -115,10 +118,10 @@ public class ClusteredStateRepositoryReplicationTest {
     service.stop();
   }
 
-  private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
+  private static SimpleClusteredTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
-    return (EhcacheClientEntity)entity.get(clusteringService);
+    return (SimpleClusteredTierClientEntity)entity.get(clusteringService);
   }
 
 }

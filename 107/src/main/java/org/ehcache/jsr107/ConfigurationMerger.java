@@ -187,6 +187,7 @@ class ConfigurationMerger {
     return builder;
   }
 
+  @SuppressWarnings("unchecked")
   private static <K, V> CacheConfigurationBuilder<K, V> addDefaultCopiers(CacheConfigurationBuilder<K, V> builder, Class keyType, Class valueType ) {
     Set<Class> immutableTypes = new HashSet<Class>();
     immutableTypes.add(String.class);
@@ -218,7 +219,8 @@ class ConfigurationMerger {
     addIdentityCopierIfNoneRegistered(defaults, Character.class);
   }
 
-  private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class clazz) {
+  @SuppressWarnings("unchecked")
+  private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class<?> clazz) {
     if (!defaults.containsKey(clazz)) {
       defaults.put(clazz, new DefaultCopierConfiguration(Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
     }

@@ -30,7 +30,10 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -63,6 +66,16 @@ import static org.mockito.Mockito.when;
  * @author Ludovic Orban
  */
 public class XATransactionContextTest {
+
+  @Mock
+  private Store<Long, SoftLock<String>> underlyingStore;
+  @Mock
+  private Journal<Long> journal;
+
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
+  }
 
   @Test
   public void testSimpleCommands() throws Exception {
@@ -196,8 +209,6 @@ public class XATransactionContextTest {
 
   @Test
   public void testPrepareReadOnly() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -210,9 +221,8 @@ public class XATransactionContextTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testPrepare() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -256,8 +266,6 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitNotPreparedInFlightThrows() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -265,6 +273,7 @@ public class XATransactionContextTest {
     xaTransactionContext.addCommand(1L, new StorePutCommand<String>("one", new XAValueHolder<String>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StorePutCommand<String>("two", new XAValueHolder<String>("deux", timeSource.getTimeMillis())));
 
+    @SuppressWarnings("unchecked")
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
     when(mockValueHolder.value()).thenReturn(new SoftLock<String>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
@@ -278,9 +287,8 @@ public class XATransactionContextTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testCommit() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -320,8 +328,6 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitInOnePhasePreparedThrows() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -337,9 +343,8 @@ public class XATransactionContextTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testCommitInOnePhase() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -452,8 +457,6 @@ public class XATransactionContextTest {
 
   @Test
   public void testRollbackPhase1() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -467,9 +470,8 @@ public class XATransactionContextTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testRollbackPhase2() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     final TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -512,8 +514,6 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitInOnePhaseTimeout() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     final TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -533,8 +533,6 @@ public class XATransactionContextTest {
 
   @Test
   public void testPrepareTimeout() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     final TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -553,9 +551,8 @@ public class XATransactionContextTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testCommitConflictsEvicts() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     final TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -595,9 +592,8 @@ public class XATransactionContextTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testPrepareConflictsEvicts() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     final TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);
@@ -616,9 +612,8 @@ public class XATransactionContextTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testRollbackConflictsEvicts() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
     final TestTimeSource timeSource = new TestTimeSource();
 
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<Long, String>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource.getTimeMillis() + 30000);

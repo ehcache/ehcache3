@@ -28,9 +28,8 @@ import java.util.Collection;
 
 /**
  * Authoritative tier, that is the lower most tier of a multi tiered store.
- * <P>
- *   By design this tier will always hold all the mappings contained in the {@link org.ehcache.Cache}
- * </P>
+ * <p>
+ * By design this tier will always hold all the mappings contained in the {@link org.ehcache.Cache}
  *
  * @param <K> the key type
  * @param <V> the value type
@@ -68,10 +67,9 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
 
   /**
    * Sets the {@link InvalidationValve} to be used by this {@code AuthoritativeTier}.
-   * <P>
-   *   The invalidation valve provides a way for the {@code AuthoritativeTier} to force invalidation of
-   *   {@link CachingTier} entries when that is required.
-   * </P>
+   * <p>
+   * The invalidation valve provides a way for the {@code AuthoritativeTier} to force invalidation of
+   * {@link CachingTier} entries when that is required.
    *
    * @param valve the valve to use for triggering invalidations
    */
@@ -100,10 +98,8 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
 
   /**
    * {@link Service} interface for providing {@link AuthoritativeTier} instances.
-   *
-   * <P>
-   *   Multiple providers may exist in a given {@link org.ehcache.CacheManager}.
-   * </P>
+   * <p>
+   * Multiple providers may exist in a given {@link org.ehcache.CacheManager}.
    */
   @PluralService
   interface Provider extends Service {
@@ -139,9 +135,8 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
     /**
      * Gets the internal ranking for the {@link AuthoritativeTier} instances provided by this {@code Provider} of the
      * authority's ability to handle the specified resource.
-     * <P>
-     *   A higher rank value indicates a more capable {@code AuthoritativeTier}.
-     * </P>
+     * <p>
+     * A higher rank value indicates a more capable {@code AuthoritativeTier}.
      *
      * @param authorityResource the {@code ResourceType} for the authority to handle
      * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute

@@ -27,10 +27,9 @@ import org.ehcache.core.spi.function.NullaryFunction;
 
 /**
  * Bridge interface for enabling specific JSR-107 methods not available on {@link org.ehcache.Cache}.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code javax.cache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code javax.cache}.
  *
  * @param <K> the key type
  * @param <V> the value type

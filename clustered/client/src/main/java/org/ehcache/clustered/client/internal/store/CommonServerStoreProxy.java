@@ -16,8 +16,8 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
@@ -38,16 +38,16 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   private static final Logger LOGGER = LoggerFactory.getLogger(CommonServerStoreProxy.class);
 
   private final ServerStoreMessageFactory messageFactory;
-  private final EhcacheClientEntity entity;
+  private final ClusteredTierClientEntity entity;
 
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
-  private final Map<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
-      = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
+  private final Map<Class<? extends EhcacheEntityResponse>, SimpleClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
+      = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, SimpleClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
 
-  CommonServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+  CommonServerStoreProxy(final ServerStoreMessageFactory messageFactory, final ClusteredTierClientEntity entity) {
     this.messageFactory = messageFactory;
     this.entity = entity;
-    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
+    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -61,7 +61,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
         final String cacheId = response.getCacheId();
@@ -86,7 +86,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new SimpleClusteredTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
         final String cacheId = response.getCacheId();
@@ -116,9 +116,9 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
   @SuppressWarnings("unchecked")
   private void addResponseListenersToEntity() {
-    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
+    for (Map.Entry<Class<? extends EhcacheEntityResponse>, SimpleClusteredTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
         this.responseListeners.entrySet()) {
-      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener)classResponseListenerEntry.getValue());
+      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (SimpleClusteredTierClientEntity.ResponseListener)classResponseListenerEntry.getValue());
     }
   }
 
@@ -137,7 +137,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     return invalidationListeners.remove(listener);
   }
 
-  <T extends EhcacheEntityResponse> void addResponseListeners(Class<T> listenerClass, EhcacheClientEntity.ResponseListener<T> listener) {
+  <T extends EhcacheEntityResponse> void addResponseListeners(Class<T> listenerClass, SimpleClusteredTierClientEntity.ResponseListener<T> listener) {
     this.responseListeners.put(listenerClass, listener);
     this.entity.addResponseListener(listenerClass, listener);
   }
@@ -145,10 +145,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @SuppressWarnings("unchecked")
   @Override
   public void close() {
-    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
-        this.responseListeners.entrySet()) {
-      this.entity.removeResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener) classResponseListenerEntry.getValue());
-    }
+    entity.close();
   }
 
   @Override
@@ -161,11 +158,11 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
-    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
+    if (response != null && response.getResponseType() == EhcacheResponseType.GET_RESPONSE) {
       return ((EhcacheEntityResponse.GetResponse)response).getChain();
     } else {
       throw new ServerStoreProxyException("Response for get operation was invalid : " +
-                                          (response != null ? response.getType().toString() : "null message"));
+                                          (response != null ? response.getResponseType() : "null message"));
     }
   }
 
@@ -190,11 +187,11 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
-    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
+    if (response != null && response.getResponseType() == EhcacheResponseType.GET_RESPONSE) {
       return ((EhcacheEntityResponse.GetResponse)response).getChain();
     } else {
       throw new ServerStoreProxyException("Response for getAndAppend operation was invalid : " +
-                                          (response != null ? response.getType().toString() : "null message"));
+                                          (response != null ? response.getResponseType() : "null message"));
     }
   }
 

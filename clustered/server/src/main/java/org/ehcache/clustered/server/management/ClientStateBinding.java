@@ -17,7 +17,7 @@ package org.ehcache.clustered.server.management;
 
 import org.ehcache.clustered.server.ClientState;
 import org.terracotta.entity.ClientDescriptor;
-import org.terracotta.management.service.registry.provider.ClientBinding;
+import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
 
 final class ClientStateBinding extends ClientBinding {
 

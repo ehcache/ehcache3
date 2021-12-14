@@ -15,18 +15,18 @@
  */
 package org.ehcache.clustered.server.management;
 
-import org.ehcache.clustered.server.ServerStoreImpl;
-import org.terracotta.management.service.registry.provider.AliasBinding;
+import org.ehcache.clustered.server.ServerSideServerStore;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBinding;
 
 class ServerStoreBinding extends AliasBinding {
 
-  ServerStoreBinding(String identifier, ServerStoreImpl serverStore) {
+  ServerStoreBinding(String identifier, ServerSideServerStore serverStore) {
     super(identifier, serverStore);
   }
 
   @Override
-  public ServerStoreImpl getValue() {
-    return (ServerStoreImpl) super.getValue();
+  public ServerSideServerStore getValue() {
+    return (ServerSideServerStore) super.getValue();
   }
 
 }

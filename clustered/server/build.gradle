@@ -22,24 +22,19 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-  compile ("org.terracotta:statistics:$parent.statisticVersion") {
-    exclude group:'org.slf4j', module:'slf4j-api'
+  compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  compile("org.terracotta:offheap-resource:$parent.offheapResourceVersion") {
+    transitive = false
   }
-  compile project(':clustered:common')
-  compile group: 'org.terracotta', name: 'offheap-resource', version: parent.offheapResourceVersion
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
   compile group: 'org.slf4j', name: 'slf4j-api', version: parent.slf4jVersion
-  compile("org.terracotta.management:management-registry-service-api:$parent.managementVersion") {
-    // provided in management-server jar, but necessary so that ehcache can work without depending on management
-    exclude group: 'org.terracotta.management', module: 'management-registry'
-    exclude group: 'org.terracotta.management', module: 'management-model'
-  }
-  compile ("org.terracotta:statistics:$parent.statisticVersion") {
-    exclude group:'org.slf4j', module:'slf4j-api'
+  compile("org.terracotta.management:monitoring-service-api:$parent.managementVersion") {
+    transitive = false
   }
   compile"org.terracotta.management.dist:management-common:$parent.managementVersion"
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
+  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
 compileJava {

@@ -50,8 +50,7 @@ public class ClusteredResourceConfigurationParser implements CacheResourceConfig
     return NAMESPACE;
   }
 
-  @Override
-  public ResourcePool parseResourceConfiguration(final Element fragment) {
+  protected ResourcePool parseResourceConfig(final Element fragment) {
     final String elementName = fragment.getLocalName();
     if ("clustered-shared".equals(elementName)) {
       final String sharing = fragment.getAttribute("sharing");
@@ -87,7 +86,15 @@ public class ClusteredResourceConfigurationParser implements CacheResourceConfig
     } else if("clustered".equals(elementName)) {
       return new ClusteredResourcePoolImpl();
     }
+    return null;
+  }
 
+  @Override
+  public ResourcePool parseResourceConfiguration(final Element fragment) {
+    ResourcePool resourcePool = parseResourceConfig(fragment);
+    if (resourcePool != null) {
+      return resourcePool;
+    }
     throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
   }

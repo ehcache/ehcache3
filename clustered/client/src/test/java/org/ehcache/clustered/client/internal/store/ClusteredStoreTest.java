@@ -19,7 +19,6 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
@@ -53,6 +52,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
@@ -87,10 +87,9 @@ public class ClusteredStoreTest {
     EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
 
     ServerSideConfiguration serverConfig =
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
+        new ServerSideConfiguration("defaultResource", Collections.emptyMap());
     entityFactory.create("TestCacheManager", serverConfig);
 
-    EhcacheClientEntity clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration =
         new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
@@ -99,7 +98,8 @@ public class ClusteredStoreTest {
             LongSerializer.class.getName(), StringSerializer.class.getName(),
             null
     );
-    clientEntity.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+    ClusteredTierClientEntity clientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    clientEntity.validate(serverStoreConfiguration);
     ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId());
     ServerStoreProxy serverStoreProxy = new CommonServerStoreProxy(factory, clientEntity);
 
@@ -107,7 +107,7 @@ public class ClusteredStoreTest {
 
     OperationsCodec<Long, String> codec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
-    store = new ClusteredStore<Long, String>(codec, resolver, serverStoreProxy, testTimeSource);
+    store = new ClusteredStore<>(codec, resolver, serverStoreProxy, testTimeSource);
   }
 
   @After

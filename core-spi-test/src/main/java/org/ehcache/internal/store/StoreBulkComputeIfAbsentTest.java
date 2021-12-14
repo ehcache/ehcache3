@@ -36,7 +36,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store#bulkComputeIfAbsent(java.util.Set, Function)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Gaurav Mangalick
  */

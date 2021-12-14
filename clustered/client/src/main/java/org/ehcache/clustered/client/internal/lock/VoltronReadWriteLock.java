@@ -19,14 +19,20 @@ package org.ehcache.clustered.client.internal.lock;
 import java.io.Closeable;
 
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 public class VoltronReadWriteLock {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(VoltronReadWriteLock.class);
 
   private final EntityRef<VoltronReadWriteLockClient, Void> reference;
 
@@ -71,13 +77,19 @@ public class VoltronReadWriteLock {
     }
   }
 
-  private boolean tryDestroy() {
+  private void tryDestroy() {
     try {
-      return reference.destroy();
+      boolean destroyed = reference.destroy();
+      if (destroyed) {
+        LOGGER.debug("Destroyed lock entity " + reference.getName());
+      }
     } catch (EntityNotProvidedException e) {
       throw new AssertionError(e);
     } catch (EntityNotFoundException e) {
-      return false;
+      // Nothing to do
+    } catch (PermanentEntityException e) {
+      LOGGER.error("Failed to destroy lock entity - server says it is permanent", e);
+      throw new AssertionError(e);
     }
   }
 
@@ -118,8 +130,12 @@ public class VoltronReadWriteLock {
       while (true) {
         try {
           reference.create(null);
+          LOGGER.debug("Created lock entity " + reference.getName());
         } catch (EntityAlreadyExistsException f) {
           //ignore
+        } catch (EntityConfigurationException e) {
+          LOGGER.error("Error creating lock entity - configuration exception", e);
+          throw new AssertionError(e);
         }
         try {
           return reference.fetchEntity();

@@ -22,11 +22,10 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
 
 /**
  * Configuration class for write-behind batching.
- * <P>
- *   Enables configuring write-behind batching, first by specifying the batch size.
- *   Then a write delay must be configured. It will indicate how long an incomplete batch will wait for extra operations.
- *   Finally coalescing can be configure which will make the batch forget all but the last operation on a per key basis.
- * </P>
+ * <p>
+ * Enables configuring write-behind batching, first by specifying the batch size.
+ * Then a write delay must be configured. It will indicate how long an incomplete batch will wait for extra operations.
+ * Finally coalescing can be configure which will make the batch forget all but the last operation on a per key basis.
  */
 public class DefaultBatchingConfiguration implements BatchingConfiguration {
 

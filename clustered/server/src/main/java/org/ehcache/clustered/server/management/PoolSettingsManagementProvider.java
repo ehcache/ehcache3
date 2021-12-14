@@ -19,11 +19,12 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
 import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.AliasBindingManagementProvider;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -32,20 +33,8 @@ import java.util.stream.Collectors;
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
 class PoolSettingsManagementProvider extends AliasBindingManagementProvider<PoolBinding> {
 
-  private final EhcacheStateService ehcacheStateService;
-
-  PoolSettingsManagementProvider(EhcacheStateService ehcacheStateService) {
+  PoolSettingsManagementProvider() {
     super(PoolBinding.class);
-    this.ehcacheStateService = ehcacheStateService;
-  }
-
-  @Override
-  public Collection<Descriptor> getDescriptors() {
-    Collection<Descriptor> descriptors = super.getDescriptors();
-    descriptors.add(new Settings()
-      .set("type", "PoolSettingsManagementProvider")
-      .set("defaultServerResource", ehcacheStateService.getDefaultServerResource()));
-    return descriptors;
   }
 
   @Override
@@ -54,19 +43,14 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
   }
 
   @Override
-  protected ExposedPoolBinding wrap(PoolBinding managedObject) {
-    return new ExposedPoolBinding(managedObject, getConsumerId());
+  protected ExposedPoolBinding internalWrap(Context context, PoolBinding managedObject) {
+    return new ExposedPoolBinding(context, managedObject);
   }
 
   private static class ExposedPoolBinding extends ExposedAliasBinding<PoolBinding> {
 
-    ExposedPoolBinding(PoolBinding binding, long consumerId) {
-      super(binding, consumerId);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "PoolBinding");
+    ExposedPoolBinding(Context context, PoolBinding binding) {
+      super(context.with("type", "Pool"), binding);
     }
 
     @Override

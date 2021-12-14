@@ -28,11 +28,14 @@ import static org.ehcache.config.builders.UserManagedCacheBuilder.newUserManaged
  */
 public class DataCache {
 
-    private UserManagedCache<String, List> cache;
+    private UserManagedCache<String, List<String>> cache;
     private static final Logger logger = LoggerFactory.getLogger(DataCache.class);
 
+    @SuppressWarnings("unchecked")
     public void setupCache() {
-        cache = newUserManagedCacheBuilder(String.class, List.class).identifier("data-cache").build(true);
+        cache = (UserManagedCache<String, List<String>>) (UserManagedCache<?, ?>) newUserManagedCacheBuilder(String.class, List.class)
+          .identifier("data-cache")
+          .build(true);
         logger.info("Cache setup is done");
     }
 

@@ -27,10 +27,9 @@ public interface SizeOfEngineProvider extends Service {
 
   /**
    * Creates a {@link SizeOfEngine} which will size objects.
-   * <P>
-   *   Implementations may have configuration options that will be expressed as {@link ServiceConfiguration} and used
-   *   to specify behavior of the returned engine.
-   * </P>
+   * <p>
+   * Implementations may have configuration options that will be expressed as {@link ServiceConfiguration} and used
+   * to specify behavior of the returned engine.
    *
    * @param resourceUnit type of the unit used to size the store
    * @param serviceConfigs Array of {@link ServiceConfiguration}s

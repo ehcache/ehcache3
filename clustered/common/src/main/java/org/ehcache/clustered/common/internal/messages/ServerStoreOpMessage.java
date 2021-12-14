@@ -21,47 +21,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
-  public enum ServerStoreOp {
-
-    GET_AND_APPEND((byte) 11),
-    APPEND((byte) 12),
-    REPLACE((byte) 13),
-    CLIENT_INVALIDATION_ACK((byte) 14),
-    CLEAR((byte) 15),
-    GET((byte) 16),
-    ;
-
-    private final byte storeOpCode;
-
-    ServerStoreOp(byte storeOpCode) {
-      this.storeOpCode = storeOpCode;
-    }
-
-    public byte getStoreOpCode() {
-      return this.storeOpCode;
-    }
-
-    public static ServerStoreOp getServerStoreOp(byte storeOpCode) {
-      switch (storeOpCode) {
-        case 11:
-          return GET_AND_APPEND;
-        case 12:
-          return APPEND;
-        case 13:
-          return REPLACE;
-        case 14:
-          return CLIENT_INVALIDATION_ACK;
-        case 15:
-          return CLEAR;
-        case 16:
-          return GET;
-        default:
-          throw new IllegalArgumentException("Store operation not defined for : " + storeOpCode);
-      }
-    }
-
-  }
+public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   protected UUID clientId;
   protected long id = NOT_REPLICATED;
@@ -69,7 +29,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   @Override
   public UUID getClientId() {
     if (clientId == null) {
-      throw new AssertionError("Client Id is not supported for message type " + this.operation() );
+      throw new AssertionError("Client Id is not supported for message type " + this.getMessageType() );
     }
     return this.clientId;
   }
@@ -92,23 +52,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
   public String getCacheId() {
     return cacheId;
-  }
-
-  @Override
-  public Type getType() {
-    return Type.SERVER_STORE_OP;
-  }
-
-  public abstract ServerStoreOp operation();
-
-  @Override
-  public byte getOpCode() {
-    return operation().getStoreOpCode();
-  }
-
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
   }
 
   public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage  implements ConcurrentEntityMessage {
@@ -137,8 +80,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
 
     @Override
-    public ServerStoreOp operation() {
-      return ServerStoreOp.GET;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.GET_STORE;
     }
   }
 
@@ -153,8 +96,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
 
     @Override
-    public ServerStoreOp operation() {
-      return ServerStoreOp.GET_AND_APPEND;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.GET_AND_APPEND;
     }
 
     public ByteBuffer getPayload() {
@@ -174,8 +117,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
 
     @Override
-    public ServerStoreOp operation() {
-      return ServerStoreOp.APPEND;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.APPEND;
     }
 
     public ByteBuffer getPayload() {
@@ -197,8 +140,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
 
     @Override
-    public ServerStoreOp operation() {
-      return ServerStoreOp.REPLACE;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.REPLACE;
     }
 
     public Chain getExpect() {
@@ -224,8 +167,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
 
     @Override
-    public ServerStoreOp operation() {
-      return ServerStoreOp.CLIENT_INVALIDATION_ACK;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CLIENT_INVALIDATION_ACK;
     }
   }
 
@@ -237,8 +180,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
 
     @Override
-    public ServerStoreOp operation() {
-      return ServerStoreOp.CLEAR;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CLEAR;
     }
   }
 

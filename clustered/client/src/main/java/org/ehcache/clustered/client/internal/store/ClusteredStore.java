@@ -127,27 +127,25 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.getAndFaultObserver = operation(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class).of(this).named("getAndFault").tag(STATISTICS_TAG).build();
 
     Set<String> tags = new HashSet<String>(Arrays.asList(STATISTICS_TAG, "tier"));
-    Map<String, Object> properties = new HashMap<String, Object>();
-    properties.put("discriminator", STATISTICS_TAG);
-    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "maxMappings", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "maxMappings", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, properties, new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return -1L;

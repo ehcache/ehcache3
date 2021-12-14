@@ -25,49 +25,7 @@ import java.util.UUID;
  */
 public abstract class EhcacheEntityMessage implements EntityMessage {
 
-  public static final long NOT_REPLICATED = -1;
-
-  /**
-   * These types represent the top level Ehcache entity message types.
-   * Each of these top level types can have subtypes of messages.
-   * The byte code values represents the upper bound of the subtypes messages' byte values if there are any.
-   */
-  public enum Type {
-    LIFECYCLE_OP((byte) 10),
-    SERVER_STORE_OP((byte) 20),
-    STATE_REPO_OP((byte) 30),
-    SYNC_OP((byte) 40),
-    REPLICATION_OP((byte) 50)
-    ;
-
-    private final byte code;
-
-    Type(byte code) {
-      this.code = code;
-    }
-
-    public byte getCode() {
-      return this.code;
-    }
-
-    public static Type toType(byte code) {
-      for (Type type: Type.values()) {
-        if(type.getCode() == code) {
-          return type;
-        }
-      }
-      throw new IllegalArgumentException("Invalid message type code: " + code);
-    }
-  }
-
-  public abstract Type getType();
-
-  public abstract byte getOpCode();
-
-  @Override
-  public String toString() {
-    return getType().toString();
-  }
+  static final long NOT_REPLICATED = -1;
 
   public abstract void setId(long id);
 

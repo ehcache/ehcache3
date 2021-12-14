@@ -23,9 +23,11 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 abstract class AbstractClientEntityFactory<E extends Entity, C> implements ClientEntityFactory<E, C> {
 
@@ -86,6 +88,9 @@ abstract class AbstractClientEntityFactory<E extends Entity, C> implements Clien
     } catch (EntityVersionMismatchException e) {
       LOGGER.error("Unable to create entity {} for id {}", entityType.getName(), entityIdentifier, e);
       throw new AssertionError(e);
+    } catch (EntityConfigurationException e) {
+      LOGGER.error("Unable to create entity - configuration exception", e);
+      throw new AssertionError(e);
     }
   }
 
@@ -108,6 +113,9 @@ abstract class AbstractClientEntityFactory<E extends Entity, C> implements Clien
       }
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to destroy entity {} for id {}", entityType.getName(), entityIdentifier, e);
+      throw new AssertionError(e);
+    } catch (PermanentEntityException e) {
+      LOGGER.error("Unable to destroy entity - server says it is permanent", e);
       throw new AssertionError(e);
     }
   }

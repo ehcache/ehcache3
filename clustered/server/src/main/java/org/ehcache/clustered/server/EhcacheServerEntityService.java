@@ -15,60 +15,87 @@
  */
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.EhcacheEntityVersion;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
+import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EntityConfigurationCodec;
+import org.ehcache.clustered.common.internal.messages.LifeCycleMessageCodec;
+import org.ehcache.clustered.common.internal.messages.ResponseCodec;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpCodec;
+import org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec;
+import org.ehcache.clustered.server.internal.messages.EhcacheServerCodec;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessageCodec;
+import org.ehcache.clustered.server.management.Management;
+import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.terracotta.entity.CommonServerEntity;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
-import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
-
-import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 import org.terracotta.entity.SyncMessageCodec;
+
+import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierManagerConcurrency;
 
 public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final long ENTITY_VERSION = 1L;
   private static final int DEFAULT_CONCURRENCY = 16;
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
+  private static final ConfigCodec CONFIG_CODEC = new CommonConfigCodec();
+
+  private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(CONFIG_CODEC);
 
   @Override
   public long getVersion() {
-    return ENTITY_VERSION;
+    return EhcacheEntityVersion.ENTITY_VERSION;
   }
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.client.internal.EhcacheClientEntity".equals(typeName);
+    return "org.ehcache.clustered.client.internal.InternalEhcacheClientEntity".equals(typeName);
   }
 
   @Override
-  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration =
+      configCodec.decodeClusteredTierManagerConfiguration(configuration);
+    EhcacheStateService ehcacheStateService =
+      registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    Management management = new Management(registry, ehcacheStateService, true);
+    return new EhcacheActiveEntity(registry, clusteredTierManagerConfiguration, ehcacheStateService, management);
   }
 
   @Override
-  public PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
+  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration = configCodec.decodeClusteredTierManagerConfiguration(configuration);
+    EhcacheStateService ehcacheStateService =
+      registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
+    Management management = new Management(registry, ehcacheStateService, false);
+    return new EhcachePassiveEntity(clusteredTierManagerConfiguration, ehcacheStateService, management);
   }
 
   @Override
   public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
-    return defaultConcurrency(DEFAULT_MAPPER);
+    return clusterTierManagerConcurrency();
   }
 
   @Override
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
-    return EhcacheCodec.messageCodec();
+    EhcacheCodec ehcacheCodec = new EhcacheCodec(new ServerStoreOpCodec(),
+      new LifeCycleMessageCodec(CONFIG_CODEC), new StateRepositoryOpCodec(), new ResponseCodec());
+    return new EhcacheServerCodec(ehcacheCodec, new PassiveReplicationMessageCodec(CONFIG_CODEC));
   }
 
   @Override
   public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
-    return new EhcacheSyncMessageCodec();
+    return new EhcacheSyncMessageCodec(CONFIG_CODEC);
   }
 
   @Override

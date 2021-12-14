@@ -92,6 +92,7 @@ public class Eh107XmlIntegrationTest {
       }
     });
 
+    @SuppressWarnings("unchecked")
     CompleteConfiguration<Long, String> configuration = cache.getConfiguration(CompleteConfiguration.class);
     assertThat(configuration, notNullValue());
     assertThat(configuration.isStoreByValue(), is(true));

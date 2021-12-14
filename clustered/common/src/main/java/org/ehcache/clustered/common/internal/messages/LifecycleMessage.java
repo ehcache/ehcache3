@@ -22,16 +22,7 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import java.io.Serializable;
 import java.util.UUID;
 
-public abstract class LifecycleMessage extends EhcacheEntityMessage implements Serializable {
-
-  public enum LifeCycleOp {
-    CONFIGURE,
-    VALIDATE,
-    CREATE_SERVER_STORE,
-    VALIDATE_SERVER_STORE,
-    RELEASE_SERVER_STORE,
-    DESTROY_SERVER_STORE,
-  }
+public abstract class LifecycleMessage extends EhcacheOperationMessage implements Serializable {
 
   protected UUID clientId;
   protected long id = NOT_REPLICATED;
@@ -54,23 +45,6 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     this.id = id;
   }
 
-  @Override
-  public byte getOpCode() {
-    return getType().getCode();
-  }
-
-  @Override
-  public Type getType() {
-    return Type.LIFECYCLE_OP;
-  }
-
-  public abstract LifeCycleOp operation();
-
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
-  }
-
   public static class ValidateStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;
 
@@ -82,28 +56,8 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     }
 
     @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.VALIDATE;
-    }
-
-    public ServerSideConfiguration getConfiguration() {
-      return configuration;
-    }
-  }
-
-  public static class ConfigureStoreManager extends LifecycleMessage {
-    private static final long serialVersionUID = 730771302294202898L;
-
-    private final ServerSideConfiguration configuration;
-
-    ConfigureStoreManager(ServerSideConfiguration config, UUID clientId) {
-      this.configuration = config;
-      this.clientId = clientId;
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.CONFIGURE;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.VALIDATE;
     }
 
     public ServerSideConfiguration getConfiguration() {
@@ -134,22 +88,6 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
   }
 
   /**
-   * Message directing the <i>creation</i> of a new {@code ServerStore}.
-   */
-  public static class CreateServerStore extends BaseServerStore {
-    private static final long serialVersionUID = -5832725455629624613L;
-
-    CreateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
-      super(name, storeConfiguration, clientId);
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.CREATE_SERVER_STORE;
-    }
-  }
-
-  /**
    * Message directing the <i>lookup</i> of a previously created {@code ServerStore}.
    */
   public static class ValidateServerStore extends BaseServerStore {
@@ -160,54 +98,15 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     }
 
     @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.VALIDATE_SERVER_STORE;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.VALIDATE_SERVER_STORE;
     }
   }
 
-  /**
-   * Message disconnecting a client from a {@code ServerStore}.
-   */
-  public static class ReleaseServerStore extends LifecycleMessage {
-    private static final long serialVersionUID = 6486779694089287953L;
-
-    private final String name;
-
-    ReleaseServerStore(String name, UUID clientId) {
-      this.name = name;
-      this.clientId = clientId;
-    }
-
+  public static class PrepareForDestroy extends LifecycleMessage {
     @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.RELEASE_SERVER_STORE;
-    }
-
-    public String getName() {
-      return name;
-    }
-  }
-
-  /**
-   * Message directing the <i>destruction</i> of a {@code ServerStore}.
-   */
-  public static class DestroyServerStore extends LifecycleMessage {
-    private static final long serialVersionUID = -1772028546913171535L;
-
-    private final String name;
-
-    DestroyServerStore(String name, UUID clientId) {
-      this.name = name;
-      this.clientId = clientId;
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.DESTROY_SERVER_STORE;
-    }
-
-    public String getName() {
-      return name;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.PREPARE_FOR_DESTROY;
     }
   }
 }

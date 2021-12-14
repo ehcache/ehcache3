@@ -33,13 +33,12 @@ public class BulkCacheWritingException extends CacheWritingException {
 
   /**
    * Constructs a {@code BulkCacheWritingException} instance with the given map and set.
-   * <P>
-   *   The given arguments are:
-   *   <UL>
-   *     <LI>a map from keys to exception thrown while writing,</LI>
-   *     <LI>a set of keys for which writing succeeded</LI>
-   *   </UL>
-   * </P>
+   * <p>
+   * The given arguments are:
+   * <ul>
+   *   <li>a map from keys to exception thrown while writing,</li>
+   *   <li>a set of keys for which writing succeeded</li>
+   * </ul>
    *
    * @param failures the map of keys to failure encountered while loading
    * @param successes the map of keys successfully loaded and their associated value

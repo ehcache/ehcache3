@@ -16,42 +16,51 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
+import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
+import org.ehcache.clustered.client.internal.store.InternalClusterTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
+import org.terracotta.exception.EntityException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
+
+import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 
 public class EhcacheClientEntityFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntityFactory.class);
 
-  private static final long ENTITY_VERSION = 1L;
-
   private final Connection connection;
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
 
-  private final EhcacheClientEntity.Timeouts entityTimeouts;
+  private final Timeouts entityTimeouts;
 
   public EhcacheClientEntityFactory(Connection connection) {
-    this(connection, EhcacheClientEntity.Timeouts.builder().build());
+    this(connection, Timeouts.builder().build());
   }
 
-  public EhcacheClientEntityFactory(Connection connection, EhcacheClientEntity.Timeouts entityTimeouts) {
+  public EhcacheClientEntityFactory(Connection connection, Timeouts entityTimeouts) {
     this.connection = connection;
     this.entityTimeouts = entityTimeouts;
   }
@@ -91,7 +100,7 @@ public class EhcacheClientEntityFactory {
    *        lifecycle operation timeout
    */
   public void create(final String identifier, final ServerSideConfiguration config)
-      throws EntityAlreadyExistsException, EhcacheEntityCreationException, EntityBusyException, TimeoutException {
+    throws EntityAlreadyExistsException, EhcacheEntityCreationException, EntityBusyException, TimeoutException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
     if (existingMaintenance == null) {
@@ -99,43 +108,48 @@ public class EhcacheClientEntityFactory {
     }
     if (existingMaintenance == null && localMaintenance == null) {
       throw new EntityBusyException("Unable to create clustered tier manager for id "
-              + identifier + ": another client owns the maintenance lease");
-    } else {
+                                    + identifier + ": another client owns the maintenance lease");
+    }
+
+    boolean finished = false;
+
+    try {
+      EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
-        EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
-        try {
-          while (true) {
-            ref.create(UUID.randomUUID());
+        while (true) {
+          ref.create(new ClusteredTierManagerConfiguration(identifier, config));
+          try {
+            InternalEhcacheClientEntity entity = ref.fetchEntity();
             try {
-              EhcacheClientEntity entity = ref.fetchEntity();
-              try {
-                entity.setTimeouts(entityTimeouts);
-                entity.configure(config);
-                return;
-              } finally {
+              entity.setTimeouts(entityTimeouts);
+              finished = true;
+              return;
+            } finally {
+              if  (finished) {
                 entity.close();
+              } else {
+                silentlyClose(entity, identifier);
               }
-            } catch (ClusteredTierManagerConfigurationException e) {
-              try {
-                ref.destroy();
-              } catch (EntityNotFoundException f) {
-                //ignore
-              }
-              throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
-            } catch (EntityNotFoundException e) {
-              //continue;
             }
+          } catch (EntityNotFoundException e) {
+            //continue;
           }
-        } catch (EntityNotProvidedException e) {
-          LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
-          throw new AssertionError(e);
-        } catch (EntityVersionMismatchException e) {
-          LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
-          throw new AssertionError(e);
         }
-      } finally {
-        if (localMaintenance != null) {
+      } catch (EntityConfigurationException e) {
+        throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
+      } catch (EntityNotProvidedException e) {
+        LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
+        throw new AssertionError(e);
+      } catch (EntityVersionMismatchException e) {
+        LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
+        throw new AssertionError(e);
+      }
+    } finally {
+      if (localMaintenance != null) {
+        if (finished) {
           localMaintenance.unlock();
+        } else {
+          silentlyUnlock(localMaintenance, identifier);
         }
       }
     }
@@ -156,61 +170,124 @@ public class EhcacheClientEntityFactory {
    *        lifecycle operation timeout
    */
   public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config)
-      throws EntityNotFoundException, EhcacheEntityValidationException, TimeoutException {
+    throws EntityNotFoundException, EhcacheEntityValidationException, TimeoutException {
+
+    Hold fetchHold = createAccessLockFor(identifier).readLock();
+
+    InternalEhcacheClientEntity entity;
     try {
-      Hold fetchHold = createAccessLockFor(identifier).readLock();
-      EhcacheClientEntity entity = getEntityRef(identifier).fetchEntity();
-      /*
-       * Currently entities are never closed as doing so can stall the client
-       * when the server is dead.  Instead the connection is forcibly closed,
-       * which suits our purposes since that will unlock the fetchHold too.
-       */
-      boolean validated = false;
-      try {
-        entity.setTimeouts(entityTimeouts);
-        entity.validate(config);
-        validated = true;
-        return entity;
-      } catch (ClusteredTierManagerValidationException e) {
-        throw new EhcacheEntityValidationException("Unable to validate clustered tier manager for id " + identifier, e);
-      } finally {
-        if (!validated) {
-          entity.close();
-          fetchHold.unlock();
-        }
-      }
+      entity = getEntityRef(identifier).fetchEntity();
     } catch (EntityVersionMismatchException e) {
       LOGGER.error("Unable to retrieve clustered tier manager for id {}", identifier, e);
+      silentlyUnlock(fetchHold, identifier);
       throw new AssertionError(e);
+    }
+
+    /*
+     * Currently entities are never closed as doing so can stall the client
+     * when the server is dead.  Instead the connection is forcibly closed,
+     * which suits our purposes since that will unlock the fetchHold too.
+     */
+    boolean validated = false;
+    try {
+      entity.setTimeouts(entityTimeouts);
+      entity.validate(config);
+      validated = true;
+      return entity;
+    } catch (ClusteredTierManagerValidationException e) {
+      throw new EhcacheEntityValidationException("Unable to validate clustered tier manager for id " + identifier, e);
+    } finally {
+      if (!validated) {
+        silentlyClose(entity, identifier);
+        silentlyUnlock(fetchHold, identifier);
+      }
     }
   }
 
-  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EntityBusyException {
+  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EntityBusyException, CachePersistenceException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
+
     if (existingMaintenance == null) {
       localMaintenance = createAccessLockFor(identifier).tryWriteLock();
     }
+
     if (existingMaintenance == null && localMaintenance == null) {
       throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier's maintenance lease held");
-    } else {
+    }
+
+    boolean finished = false;
+
+    try {
+      EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
+      destroyAllClusteredTiers(ref, identifier);
       try {
-        EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
-        try {
-          if (!ref.destroy()) {
-            throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
-          }
-        } catch (EntityNotProvidedException e) {
-          LOGGER.error("Unable to delete clustered tier manager for id {}", identifier, e);
-          throw new AssertionError(e);
-        } catch (EntityNotFoundException e) {
-          throw new EhcacheEntityNotFoundException(e);
+        if (!ref.destroy()) {
+          throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
         }
-      } finally {
-        if (localMaintenance != null) {
+        finished = true;
+      } catch (EntityNotProvidedException e) {
+        LOGGER.error("Unable to delete clustered tier manager for id {}", identifier, e);
+        throw new AssertionError(e);
+      } catch (EntityNotFoundException e) {
+        throw new EhcacheEntityNotFoundException(e);
+      } catch (PermanentEntityException e) {
+        LOGGER.error("Unable to destroy entity - server says it is permanent", e);
+        throw new AssertionError(e);
+      }
+    } finally {
+      if (localMaintenance != null) {
+        if (finished) {
           localMaintenance.unlock();
+        } else {
+          silentlyUnlock(localMaintenance, identifier);
         }
       }
+    }
+  }
+
+  private void destroyAllClusteredTiers(EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> ref, String identifier) throws EhcacheEntityNotFoundException, CachePersistenceException {
+    EhcacheClientEntity entity;
+    try {
+      entity = ref.fetchEntity();
+      try {
+        entity.validate(null);
+      } catch (ClusteredTierManagerValidationException e) {
+        throw new EhcacheEntityNotFoundException("Existing entity configuration does not match provided one", e);
+      } catch (TimeoutException e) {
+        // TODO handle this
+      }
+    } catch (EntityNotFoundException e) {
+      // Ignore - means entity does not exist
+      return;
+    } catch (EntityVersionMismatchException e) {
+      throw new AssertionError(e);
+    }
+    Set<String> storeIdentifiers = entity.prepareForDestroy();
+    LOGGER.warn("Preparing to destroy stores {}", storeIdentifiers);
+    for (String storeIdentifier : storeIdentifiers) {
+      try {
+        destroyClusteredStoreEntity(identifier, storeIdentifier);
+      } catch (EntityNotFoundException e) {
+        // Ignore - assume it was deleted already
+      }
+    }
+    entity.close();
+  }
+
+  private void silentlyClose(EhcacheClientEntity entity, String identifier) {
+    try {
+      entity.close();
+    } catch (Exception e) {
+      LOGGER.error("Failed to close entity {}", identifier, e);
+    }
+  }
+
+  private void silentlyUnlock(Hold localMaintenance, String identifier) {
+    try {
+      localMaintenance.unlock();
+    } catch(Exception e) {
+      LOGGER.error("Failed to unlock for id {}", identifier, e);
     }
   }
 
@@ -218,13 +295,74 @@ public class EhcacheClientEntityFactory {
     return new VoltronReadWriteLock(connection, "EhcacheClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<EhcacheClientEntity, UUID> getEntityRef(String identifier) {
+  private EntityRef<InternalEhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
     try {
-      return connection.getEntityRef(EhcacheClientEntity.class, ENTITY_VERSION, identifier);
+      return connection.getEntityRef(InternalEhcacheClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to get clustered tier manager for id {}", identifier, e);
       throw new AssertionError(e);
     }
   }
 
+  public ClusteredTierClientEntity fetchOrCreateClusteredStoreEntity(UUID clientId, String clusterTierManagerIdentifier,
+                                                                           String storeIdentifier, ServerStoreConfiguration clientStoreConfiguration,
+                                                                           boolean autoCreate) throws EntityNotFoundException, CachePersistenceException {
+    EntityRef<InternalClusterTierClientEntity, ClusteredTierEntityConfiguration> entityRef;
+    try {
+      entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, clusterTierManagerIdentifier + storeIdentifier);
+    } catch (EntityNotProvidedException e) {
+      throw new AssertionError(e);
+    }
+
+    if (autoCreate) {
+      while (true) {
+        try {
+          entityRef.create(new ClusteredTierEntityConfiguration(clusterTierManagerIdentifier, storeIdentifier, clientStoreConfiguration));
+        } catch (EntityAlreadyExistsException e) {
+          // Ignore - entity exists
+        } catch (EntityConfigurationException e) {
+          throw new CachePersistenceException("Unable to create clustered tier", e);
+        } catch (EntityException e) {
+          throw new AssertionError(e);
+        }
+        try {
+          InternalClusterTierClientEntity entity = entityRef.fetchEntity();
+          entity.setClientId(clientId);
+          entity.setStoreIdentifier(storeIdentifier);
+          entity.setTimeouts(entityTimeouts);
+          return entity;
+        } catch (EntityNotFoundException e) {
+          // Ignore - will try to create again
+        } catch (EntityException e) {
+          throw new AssertionError(e);
+        }
+      }
+    } else {
+      try {
+        InternalClusterTierClientEntity entity = entityRef.fetchEntity();
+        entity.setClientId(clientId);
+        entity.setStoreIdentifier(storeIdentifier);
+        entity.setTimeouts(entityTimeouts);
+        return entity;
+      } catch (EntityNotFoundException e) {
+        throw e;
+      } catch (EntityException e) {
+        throw new AssertionError(e);
+      }
+    }
+  }
+
+  public void destroyClusteredStoreEntity(String clusterTierManagerIdentifier, String storeIdentifier) throws EntityNotFoundException, CachePersistenceException {
+    EntityRef<InternalClusterTierClientEntity, ClusteredTierEntityConfiguration> entityRef;
+    try {
+      entityRef = connection.getEntityRef(InternalClusterTierClientEntity.class, ENTITY_VERSION, clusterTierManagerIdentifier + storeIdentifier);
+      if (!entityRef.destroy()) {
+        throw new CachePersistenceException("Cannot destroy clustered tier '" + storeIdentifier + "': in use by other client(s)");
+      }
+    } catch (EntityNotProvidedException e) {
+      throw new AssertionError(e);
+    } catch (PermanentEntityException e) {
+      throw new AssertionError(e);
+    }
+  }
 }

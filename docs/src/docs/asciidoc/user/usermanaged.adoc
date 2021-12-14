@@ -25,16 +25,30 @@ Of course, if you find yourself requiring plenty of services, maybe the cache ma
 
 === API extensions
 
-While a `UserManagedCache` extends `Cache`, it offers additional methods:
+If you use a `UserManagedCache`, you need to configure all required services by hand.
+The `UserManagedCache` class extends the `Cache` class by offering additional methods:
+
+* `init()` - initializes the cache
+* `close()` - releases the cache resources
+* `getStatus()` - returns a status
+
+The `init` and `close` methods deal with the lifecycle of the cache and need to be called explicitly, whereas these methods are hidden when the cache is inside a `CacheManager`.
+
+The interface definition is shown in this code:
 
 [source,java,indent=0]
 ----
 include::{sourcedir32}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
 ----
 
-As can be seen, these methods deal with the lifecycle of the cache and need to be called explicitly.
+=== User Managed Persistent Cache
 
-There is also the following interface which comes into play when a user managed persistent cache is created:
+A user managed persistent cache holds cached data in a persistent store such as disk, so that the stored data can outlive the JVM in which your caching application runs.
+If you want to create a user managed persistent cache, there is an additional interface `PersistentUserManagedCache` that extends `UserManagedCache` and adds the `destroy` method.
+The `destroy` method deletes all data structures, including data stored persistently on disk, for a `PersistentUserManagedCache`.
+The `destroy` method deals with the lifecycle of the cache and needs to be called explicitly.
+
+The interface definition is shown in this code:
 
 [source,java,indent=0]
 ----
@@ -42,19 +56,21 @@ include::{sourcedir32}/api/src/main/java/org/ehcache/PersistentUserManagedCache.
 ----
 
 
-== Getting started with user managed caches
+== Code examples for User Managed Caches
 
-=== Starting example with lifecycle
+=== Example of a basic cache lifecycle
+
+Here is a simple example showing a basic lifecycle of a user managed cache:
 
 [source,java,indent=0]
 ----
 include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
 ----
-<1> Create a `UserManagedCache` instance, again you can either have the builder `init()` it for you, passing true, or
-<2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
+<1> Create a `UserManagedCache` instance. You can either pass "true" to have the builder `init()` it for you, or you can pass "false" and it is up to you to `init()` it prior to using it.
+<2> Since "false" was passed in step 1, you have to `init()` the `UserManagedCache` prior to using it.
 <3> You can use the cache exactly as a managed cache
-<4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you also use
-    managed caches simultaneously, the `CacheManager.close()` operation does not impact the user managed cache(s).
+<4> In the same vein, a `UserManagedCache` requires you to close it explicitly using `UserManagedCache.close()`. 
+If you are also using managed caches simultaneously, the `CacheManager.close()` operation does not impact the user managed cache(s).
 
 From this basic example, explore the API of `UserManagedCacheBuilder` to find all the directly available features.
 
@@ -76,17 +92,17 @@ If you want to use a disk persistent cache, you will need to create and lifecycl
 include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
 ----
 <1> Create the persistence service to be used by the cache for storing data on disk
-<2> Pass the persistence service to the builder as well as an id for the cache - note that this will make the builder produce a more specific type: `PersistentUserManagedCache`
+<2> Pass the persistence service to the builder as well as a name for the cache. Note that this will make the builder produce a more specific type: `PersistentUserManagedCache`
 <3> As usual, indicate here if the data should outlive the cache
-<4> Closing the cache will not delete the data it saved on disk when marked as persistent.
-<5> To delete the data, after closing the cache, destroy has to be explicitly invoked.
-<6> It is also your responsibility to stop the persistence service once you are done with the cache.
+<4> Closing the cache will not delete the data it saved on disk, since the cache is marked as persistent.
+<5> To delete the data on disk after closing the cache, you need to invoke the `destroy` method explicitly.
+<6> You need to stop the persistence service once you have finished using the cache.
 
 === Example with cache event listeners
 
 Cache event listeners require executor services to work.
 You will have to provide either a `CacheEventDispatcher` implementation
-or make use of the default one by providing two executor services: one for ordered events and one for un-ordered ones.
+or make use of the default one by providing two executor services: one for ordered events and one for unordered ones.
 
 NOTE: The ordered events executor must be single threaded to guarantee ordering.
 
@@ -96,5 +112,5 @@ For more information on cache event listeners, see <<cache-event-listeners.adoc#
 ----
 include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
 ----
-<1> Provide ExecutorService for ordered and unordered events delivery.
-<2> Provide listener configuration using CacheEventListenerConfigurationBuilder.
+<1> Provide the `ExecutorService` for ordered and unordered event delivery.
+<2> Provide listener configuration using `CacheEventListenerConfigurationBuilder`.

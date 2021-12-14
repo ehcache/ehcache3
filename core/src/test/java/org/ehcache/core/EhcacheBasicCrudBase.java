@@ -391,7 +391,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * The {@code Iterator} returned by this method <b>does not</b> have a {@code remove}
      * method.  The {@code Iterator} returned by {@code FakeStore.this.entries.entrySet().iterator()}
      * must not throw {@link java.util.ConcurrentModificationException ConcurrentModification}.
@@ -435,7 +435,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This method is implemented as
      * <code>this.{@link #compute(String, BiFunction, NullaryFunction) compute}(keys, mappingFunction, () -> { returns true; })</code>
      */
@@ -544,7 +544,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This method is implemented as
      * <code>this.{@link #bulkCompute(Set, Function, NullaryFunction)
      *    bulkCompute}(keys, remappingFunction, () -> { returns true; })</code>
@@ -559,7 +559,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This implementation calls {@link #compute(String, BiFunction, NullaryFunction)
      *    compute(key, BiFunction, replaceEqual)} for each key presented in {@code keys}.
      */
@@ -592,7 +592,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This implementation is based, in part, on the implementation found in
      * {@code org.ehcache.internal.store.OnHeapStore}.  This implementation calls
      * {@code mappingFunction} for each key through an internal function supplied
@@ -785,7 +785,7 @@ public abstract class EhcacheBasicCrudBase {
      * Sets the key causing the {@link #writeAll(Iterable)} and {@link #deleteAll(Iterable)}
      * methods to throw an exception <i>other</i> that a
      * {@link BulkCacheWritingException BulkCacheWritingException}.
-     * <p/>
+     * <p>
      * If a complete failure is recognized, the cache image maintained by this instance
      * is in an inconsistent state.
      *
@@ -804,7 +804,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * If this method throws an exception <i>other</i> than a
      * {@link BulkCacheWritingException BulkCacheWritingException}, the
      * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.
@@ -843,7 +843,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * If this method throws an exception <i>other</i> than a
      * {@link BulkCacheWritingException BulkCacheWritingException}, the
      * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.

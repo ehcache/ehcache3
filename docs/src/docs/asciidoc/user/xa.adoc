@@ -32,7 +32,7 @@ endif::notBuildingForSite[]
  * The isolation level is guaranteed by the use of the `Copier` mechanism. When no copiers are configured for either the
    key or the value, default ones are automatically used instead. You cannot disable the `Copier` mechanism for a
    transactional cache.
- * Accessing a cache access outside of a JTA transaction context is forbidden.
+ * Accessing a cache outside of a JTA transaction context is forbidden.
  * There is no protection against the ABA problem.
  * Everything else works orthogonally.
 

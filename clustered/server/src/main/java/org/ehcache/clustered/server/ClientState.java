@@ -15,10 +15,6 @@
  */
 package org.ehcache.clustered.server;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * Represents a client's state against an {@link EhcacheActiveEntity}.
  */
@@ -28,11 +24,6 @@ public class ClientState {
    */
   private boolean attached = false;
 
-  /**
-   * The set of stores to which the client has attached.
-   */
-  private final Set<String> attachedStores = new HashSet<String>();
-
   public boolean isAttached() {
     return attached;
   }
@@ -41,15 +32,4 @@ public class ClientState {
     this.attached = true;
   }
 
-  boolean addStore(String storeName) {
-    return this.attachedStores.add(storeName);
-  }
-
-  boolean removeStore(String storeName) {
-    return this.attachedStores.remove(storeName);
-  }
-
-  public Set<String> getAttachedStores() {
-    return Collections.unmodifiableSet(new HashSet<String>(this.attachedStores));
-  }
 }

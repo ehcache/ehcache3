@@ -150,7 +150,6 @@ public class ClusteredCacheDestroyTest {
       fail();
     } catch (CachePersistenceException e) {
       assertThat(e.getMessage(), containsString("Cannot destroy clustered tier"));
-      assertThat(getRootCause(e), instanceOf(ResourceBusyException.class));
     }
 
     try {
@@ -190,7 +189,7 @@ public class ClusteredCacheDestroyTest {
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
 
     expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Cannot destroy clustered tier 'clustered-cache': in use by 1 other client(s) (on terracotta://example.com:9540)");
+    expectedException.expectMessage("Cannot destroy clustered tier 'clustered-cache': in use by other client(s)");
     persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
   }
 

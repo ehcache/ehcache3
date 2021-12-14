@@ -13,6 +13,7 @@ User documentation::
 - link:./writers{outfilesuffix}[Cache Writers]
 - link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
 - link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
+- link:./class-loading{outfilesuffix}[Class loading in Ehcache]
 - link:./clustered-cache{outfilesuffix}[Clustering with Terracotta]
 
 General topics:

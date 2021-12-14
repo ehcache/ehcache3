@@ -27,9 +27,8 @@ public interface StoreEventSource<K, V> {
 
   /**
    * Adds an event filter.
-   * <P>
-   *   When multiple event filters are added, an event must be accepted by all to be valid.
-   * </P>
+   * <p>
+   * When multiple event filters are added, an event must be accepted by all to be valid.
    *
    * @param eventFilter the event filter
    */
@@ -37,9 +36,8 @@ public interface StoreEventSource<K, V> {
 
   /**
    * Toggles event ordering.
-   * <P>
-   *   If {@code true} it means events will respect ordering of operations on a key basis.
-   * </P>
+   * <p>
+   * If {@code true} it means events will respect ordering of operations on a key basis.
    *
    * @param ordering {@code true} if ordering is desired, {@code false} for no ordering
    */

@@ -17,9 +17,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityHelper;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.common.Consistency;
@@ -38,6 +36,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -63,8 +62,8 @@ public class StrongServerStoreProxyTest {
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
-  private static EhcacheClientEntity clientEntity1;
-  private static EhcacheClientEntity clientEntity2;
+  private static SimpleClusteredTierClientEntity clientEntity1;
+  private static ClusteredTierClientEntity clientEntity2;
   private static StrongServerStoreProxy serverStoreProxy1;
   private static StrongServerStoreProxy serverStoreProxy2;
 
@@ -83,21 +82,19 @@ public class StrongServerStoreProxyTest {
 
     entityFactory1.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity1 = entityFactory1.retrieve("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity2 = entityFactory2.retrieve("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
+    entityFactory2.retrieve("TestCacheManager", null);
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), Consistency.STRONG);
-    clientEntity1.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
+    clientEntity1 = (SimpleClusteredTierClientEntity) entityFactory1.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, true);
+    clientEntity2 = entityFactory2.fetchOrCreateClusteredStoreEntity(UUID.randomUUID(), "TestCacheManager", CACHE_IDENTIFIER, serverStoreConfiguration, false);
     // required to attach the store to the client
-    clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
-    clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+    clientEntity1.validate(serverStoreConfiguration);
+    clientEntity2.validate(serverStoreConfiguration);
 
     serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity1.getClientId()), clientEntity1);
     serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity2.getClientId()), clientEntity2);
@@ -384,7 +381,7 @@ public class StrongServerStoreProxyTest {
     ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
       public void onAppendInvalidateHash(long hash) {
-        EhcacheClientEntityHelper.fireDisconnectionEvent(clientEntity1);
+        clientEntity1.fireDisconnectionEvent();
       }
 
       @Override
@@ -407,7 +404,7 @@ public class StrongServerStoreProxyTest {
     }
 
     serverStoreProxy2.removeInvalidationListener(listener);
-    EhcacheClientEntityHelper.setConnected(clientEntity1, true);
+    clientEntity1.setConnected(true);
   }
 
   @Test
@@ -425,7 +422,7 @@ public class StrongServerStoreProxyTest {
 
       @Override
       public void onInvalidateAll() {
-        EhcacheClientEntityHelper.fireDisconnectionEvent(clientEntity1);
+        clientEntity1.fireDisconnectionEvent();
       }
     };
     serverStoreProxy2.addInvalidationListener(listener);
@@ -438,6 +435,6 @@ public class StrongServerStoreProxyTest {
     }
 
     serverStoreProxy2.removeInvalidationListener(listener);
-    EhcacheClientEntityHelper.setConnected(clientEntity1, true);
+    clientEntity1.setConnected(true);
   }
 }

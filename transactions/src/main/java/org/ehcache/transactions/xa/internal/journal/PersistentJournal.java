@@ -96,6 +96,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
         boolean valid = ois.readBoolean();
         states.clear();
         if (valid) {
+          @SuppressWarnings("unchecked")
           Map<TransactionId, SerializableEntry<K>> readStates = (Map<TransactionId, SerializableEntry<K>>) ois.readObject();
           for (Map.Entry<TransactionId, SerializableEntry<K>> entry : readStates.entrySet()) {
             SerializableEntry<K> value = entry.getValue();

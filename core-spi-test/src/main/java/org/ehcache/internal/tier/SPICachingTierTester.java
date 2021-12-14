@@ -19,7 +19,6 @@ package org.ehcache.internal.tier;
 /**
  * Parent class for all CachingTier tester classes.
  * It contains all common utility methods
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

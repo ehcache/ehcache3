@@ -113,7 +113,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
       Collection<ServiceConfiguration<?>> serviceConfigurations = ehcacheConfig.getServiceConfigurations();
       for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
         if (serviceConfiguration instanceof DefaultCopierConfiguration) {
-          DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+          DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
           if(copierConfig.getType().equals(DefaultCopierConfiguration.Type.VALUE)) {
             if(copierConfig.getClazz().isAssignableFrom(IdentityCopier.class)) {
               return false;

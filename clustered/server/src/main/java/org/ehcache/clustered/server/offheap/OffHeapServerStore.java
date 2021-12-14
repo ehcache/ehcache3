@@ -224,10 +224,10 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     writeLockAll();
     try {
       clear();
-      segments.clear();
     } finally {
       writeUnlockAll();
     }
+    segments.clear();
   }
 
   // stats

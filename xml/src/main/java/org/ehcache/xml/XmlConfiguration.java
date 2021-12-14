@@ -325,6 +325,7 @@ public class XmlConfiguration implements Configuration {
     templates.putAll(configurationParser.getTemplates());
   }
 
+  @SuppressWarnings("unchecked")
   private Expiry<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException {
     final Expiry<? super Object, ? super Object> expiry;
@@ -363,10 +364,9 @@ public class XmlConfiguration implements Configuration {
   /**
    * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
    * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}.
-   * <P>
-   *   Note that this version does not specify resources, which are mandatory to create a
-   *   {@link CacheConfigurationBuilder}. So if the template does not define resources, this will throw.
-   * </P>
+   * <p>
+   * Note that this version does not specify resources, which are mandatory to create a
+   * {@link CacheConfigurationBuilder}. So if the template does not define resources, this will throw.
    *
    * @param name the unique name identifying the cache-template element in the XML
    * @param keyType the type of keys for the {@link CacheConfigurationBuilder} to use, must
@@ -459,6 +459,7 @@ public class XmlConfiguration implements Configuration {
     return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
+  @SuppressWarnings("unchecked")
   private <K, V> CacheConfigurationBuilder<K, V> internalCacheConfigurationBuilderFromTemplate(final String name,
                                                                                                final Class<K> keyType,
                                                                                                final Class<V> valueType,
@@ -554,6 +555,7 @@ public class XmlConfiguration implements Configuration {
       }
       if (listenersConfig.listeners() != null) {
         for (ConfigurationParser.Listener listener : listenersConfig.listeners()) {
+          @SuppressWarnings("unchecked")
           final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
           final List<EventType> eventListToFireOn = listener.fireOn();
           Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();

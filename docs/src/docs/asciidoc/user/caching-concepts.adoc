@@ -37,26 +37,30 @@ and technical decision based upon the requirements and assumptions of your appli
 [[storage-tiers]]
 == Storage Tiers
 
-You can configure Ehcache to use various data storage areas.  When a cache is configured to use more than one data
-store, these stores are referred to as tiers.
+You can configure Ehcache to use various data storage areas. 
+When a cache is configured to use more than one storage area, those areas are arranged and managed as `tiers`. 
+They are organized in a hierarchy, with the lowest tier being called the `authority` tier and the others being part of the `caching` tier. 
+The caching tier can itself be composed of more than one storage area. 
+The _hottest_ data is kept in the caching tier, which is typically less abundant but faster than the authority tier. 
+All the data is kept in the authority tier, which is slower but more abundant.
 
 Data stores supported by Ehcache include:
 
-* On-Heap Store – Utilizes Java's on-heap RAM memory to store cache entries. This tier utilizes the same heap memory as
+* On-Heap Store - Utilizes Java's on-heap RAM memory to store cache entries. This tier utilizes the same heap memory as
 your Java application, all of which must be scanned by the JVM's garbage collector.  The more heap space your JVM
 utilizes, the more your application's performance will be impacted by garbage collection pauses.  This store is
 extremely fast, but is typically your most limited storage resource.
-* Off-Heap Store – Limited in size only by available RAM (tested to as much as 6TB on a single machine!). Not subject
-to Java garbage collection (GC). Is quite fast, yet slower than the On-Heap Store because data must be moved off and
-on the JVM's heap as it is stored and re-accessed.
-* Disk Store – Utilizes a disk (file system) to store cache entries.  This type of storage resource is typically very
-abundant but much slower than the RAM-based stores.
+* Off-Heap Store - Limited in size only by available RAM. 
+Not subject to Java garbage collection (GC). 
+Is quite fast, yet slower than the On-Heap Store because data must be moved to and from the JVM's heap as it is stored and re-accessed.
+* Disk Store - Utilizes a disk (file system) to store cache entries.  
+This type of storage resource is typically very abundant but much slower than the RAM-based stores.
+* Clustered Store - This data store is a cache on a remote server. 
+The remote server may optionally have a failover server providing improved high availability. 
+Since clustered storage comes with performance penalties due to such factors as network latency as well as for establishing client/server consistency, 
+this tier, by nature, is slower than local off-heap storage.
 
 image::EhcacheTerminology.png[]
-
-When a cache is configured to use more than one storage area, those areas are arranged and managed as tiers - where
-the _hottest_ (most recently accessed) data is kept in the faster (and typically less abundant) tiers, and data that
-is less hot remains in the slower (and more abundant) tiers.
 
 == Topology Types
 
@@ -71,7 +75,7 @@ same application, then their caches are completely independent.
 The data is held in a remote server (or array of servers) with a subset of hot data held in each application node.
 This topology offers offers a selection of consistency options.
 A distributed topology is the recommended approach in a clustered or scaled-out application environment.
-It provides the highest level of performance, availability, and scalability.
+It provides the best combination of performance, availability, and scalability.
 
 image::ClusteredEhcacheTopology.png[]
 

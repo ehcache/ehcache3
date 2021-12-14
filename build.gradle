@@ -16,27 +16,48 @@
 import scripts.*
 import org.gradle.internal.jvm.Jvm
 
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+  }
+}
+
+// This adds tasks to auto close or release nexus staging repos
+// see https://github.com/Codearte/gradle-nexus-staging-plugin/
+project.plugins.apply 'io.codearte.nexus-staging'
+project.nexusStaging {
+  username = project.sonatypeUser
+  password = project.sonatypePwd
+  packageGroup = 'org.ehcache'
+}
+
+// Disable automatic promotion for added safety
+closeAndPromoteRepository.enabled = false
+
+
 ext {
 
-  baseVersion = findProperty('overrideVersion') ?: '3.2.0-SNAPSHOT'
+  baseVersion = findProperty('overrideVersion') ?: '3.3.0-SNAPSHOT'
 
   // Third parties
-  offheapVersion = '2.3.1'
-  statisticVersion = '1.4.0'
+  offheapVersion = '2.3.2'
+  statisticVersion = '1.4.3'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
   sizeofVersion = '0.3.0'
 
   // Clustered
-  terracottaPlatformVersion = '5.0.9.beta'
+  terracottaPlatformVersion = '5.2.0-pre10'
   managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.0.9.beta'
-  terracottaCoreVersion = '5.0.9-beta2'
+  terracottaApisVersion = '1.2.0-pre9'
+  terracottaCoreVersion = '5.2.0-pre10'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.0.9.beta2'
+  terracottaPassthroughTestingVersion = '1.2.0-pre10'
   entityTestLibVersion = terracottaPassthroughTestingVersion
-  galvanVersion = '1.0.9-beta2'
 
   // Tools
   findbugsVersion = '3.0.1'
@@ -97,6 +118,9 @@ subprojects {
   targetCompatibility = 1.6
 
   repositories {
+    if (project.hasProperty('mvnlocal')) {
+      mavenLocal()
+    }
     mavenCentral()
     maven { url "http://repo.terracotta.org/maven2" }
   }

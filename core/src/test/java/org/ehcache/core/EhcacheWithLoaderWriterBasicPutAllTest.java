@@ -78,14 +78,14 @@ import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyStringSet;
 
 /**
  * Provides testing of basic PUT_ALL operations on an {@code EhcacheWithLoaderWriter}.
- * <p/>
+ * <p>
  * In an effort compromise, this class intentionally omits test cases in which
  * the {@code Store} is pre-populated with no entries, pre-populated only with
  * entries having keys not in the {@code putAll} request map, and pre-populated
  * with entries for all keys in the {@code putAll} request map.  This reduces
  * the potential test cases by about 70% without, hopefully, compromising code
  * coverage.
- * <p/>
+ * <p>
  * Since the processing in {@link EhcacheWithLoaderWriter#putAll} relies on non-deterministically ordered Maps in several stages
  * of processing, the result of {@code putAll} when handling failures is *not* deterministic -- changes in
  * iteration order of the {@code putAll} request map can change the results of the {@code putAll} operation under

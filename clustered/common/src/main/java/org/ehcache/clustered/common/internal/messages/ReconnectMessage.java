@@ -30,6 +30,10 @@ public class ReconnectMessage {
   private final ConcurrentMap<String, Set<Long>> hashInvalidationsInProgressPerCache = new ConcurrentHashMap<String, Set<Long>>();
   private final Set<String> cachesWithClearInProgress = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
+  public ReconnectMessage(UUID clientId) {
+    this(clientId, Collections.<String>emptySet());
+  }
+
   public ReconnectMessage(UUID clientId, Set<String> caches) {
     if (clientId == null) {
       throw new IllegalStateException("ClientID cannot be null");

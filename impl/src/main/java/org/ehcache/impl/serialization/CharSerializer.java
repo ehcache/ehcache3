@@ -34,9 +34,8 @@ public class CharSerializer implements Serializer<Character> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link Character} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link Character} is a base java type.
    *
    * @param classLoader the classloader to use
    *

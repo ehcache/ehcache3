@@ -18,45 +18,39 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
-import org.ehcache.clustered.server.internal.messages.EntitySyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessage;
 import org.terracotta.entity.ExecutionStrategy;
 
 /**
  * EhcacheExecutionStrategy
  */
-class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage> {
+public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage> {
   @Override
   public Location getExecutionLocation(EhcacheEntityMessage message) {
     if (message instanceof ServerStoreOpMessage.ReplaceAtHeadMessage || message instanceof ServerStoreOpMessage.ClearMessage) {
-      // ServerStoreOp needing replication
+      // Server store operation needing replication
       return Location.BOTH;
     } else if (message instanceof ServerStoreOpMessage) {
-      // ServerStoreOp not needing replication
+      // Server store operation not needing replication
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.ConfigureStoreManager) {
-      return Location.BOTH;
     } else if (message instanceof LifecycleMessage.ValidateStoreManager) {
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.CreateServerStore) {
-      return Location.BOTH;
     } else if (message instanceof LifecycleMessage.ValidateServerStore) {
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.ReleaseServerStore) {
-      return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.DestroyServerStore) {
+    } else if (message instanceof LifecycleMessage.PrepareForDestroy) {
       return Location.BOTH;
     } else if (message instanceof StateRepositoryOpMessage.PutIfAbsentMessage) {
-      // StateRepositoryOp needing replication
+      // State repository operation needing replication
       return Location.BOTH;
     } else if (message instanceof StateRepositoryOpMessage) {
-      // StateRepositoryOp not needing replication
+      // State repository operation not needing replication
       return Location.ACTIVE;
     } else if (message instanceof PassiveReplicationMessage) {
       return Location.PASSIVE;
-    } else if (message instanceof EntitySyncMessage) {
+    } else if (message instanceof EhcacheSyncMessage) {
       throw new AssertionError("Unexpected use of ExecutionStrategy for sync messages");
     }
     throw new AssertionError("Unknown message type: " + message.getClass());

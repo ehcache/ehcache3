@@ -15,8 +15,8 @@
  */
 package org.ehcache.management.providers.actions;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
@@ -52,13 +52,14 @@ public class EhcacheActionProviderTest {
   ManagementRegistryServiceConfiguration cmConfig_0 = new DefaultManagementRegistryConfiguration().setContext(cmContext_0);
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testDescriptions() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig);
 
     ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(EhcacheWithLoaderWriter.class)));
     ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(EhcacheWithLoaderWriter.class)));
 
-    Collection<Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
+    Collection<? extends Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
     assertThat(descriptions.size(), is(4));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new CallDescriptor("remove", "void", Collections.singletonList(new CallDescriptor.Parameter("key", "java.lang.Object"))),
@@ -93,7 +94,7 @@ public class EhcacheActionProviderTest {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig);
 
     try {
-      ehcacheActionProvider.collectStatistics(null, null, System.currentTimeMillis());
+      ehcacheActionProvider.collectStatistics(null, null);
       fail("expected UnsupportedOperationException");
     } catch (UnsupportedOperationException uoe) {
       // expected
@@ -122,8 +123,10 @@ public class EhcacheActionProviderTest {
   public void testCallAction_happyPathWithParams() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
-    CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
+    @SuppressWarnings("unchecked")
+    EhcacheWithLoaderWriter<Long, String> ehcache = mock(EhcacheWithLoaderWriter.class);
+    @SuppressWarnings("unchecked")
+    CacheRuntimeConfiguration<Long, String> cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(cacheRuntimeConfiguration.getKeyType()).thenReturn(Long.class);
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
@@ -201,8 +204,10 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchMethod() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
-    CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
+    @SuppressWarnings("unchecked")
+    EhcacheWithLoaderWriter<Long, String> ehcache = mock(EhcacheWithLoaderWriter.class);
+    @SuppressWarnings("unchecked")
+    CacheRuntimeConfiguration<Long, String> cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));

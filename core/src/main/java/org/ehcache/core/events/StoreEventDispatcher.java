@@ -21,11 +21,10 @@ import org.ehcache.core.spi.store.events.StoreEventSource;
 
 /**
  * Part of the events subsystem at the {@link Store} level.
- * <P/>
+ * <p>
  * This interface controls the lifecycle of {@link StoreEventSink}s, enabling implementations to decouple the event
  * raising inside the {@link Store} from the firing to outside collaborators.
- * <P/>
- *
+ * <p>
  * {@link Store} implementations are expected to get a {@link StoreEventSink} per
  * operation and release it once the operation completes.
  */

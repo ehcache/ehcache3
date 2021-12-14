@@ -24,15 +24,11 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.junit.Test;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.registry.CapabilityManagement;
-import org.terracotta.management.registry.StatisticQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,41 +39,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.asList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class DefaultCollectorServiceTest {
-
-
-  @Test
-  public void updateCollectedStatisticsTest__should_not_add_stats_when_selection_empty() throws Exception {
-    DefaultCollectorService defaultCollectorService = new DefaultCollectorService();
-    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<String>());
-    assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(0));
-  }
-
-  @Test
-  public void updateCollectedStatisticsTest__add_stats_and_then_clear_them() throws Exception {
-    DefaultCollectorService defaultCollectorService = new DefaultCollectorService();
-    ManagementRegistryService managementRegistryService = mock(ManagementRegistryService.class);
-    CapabilityManagement capability =  mock(CapabilityManagement.class);
-    StatisticQuery.Builder builder = mock(StatisticQuery.Builder.class);
-    when(capability.queryStatistics(new ArrayList<String>(){{add("SuperStat");}})).thenReturn(builder);
-    when(managementRegistryService.withCapability("PifCapability")).thenReturn(capability);
-    defaultCollectorService.setManagementRegistry(managementRegistryService);
-    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<String>(){{add("SuperStat");}});
-    assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(1));
-
-
-    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<String>());
-    assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(0));
-
-  }
-
 
   @Test(timeout = 6000)
   public void test_collector() throws Exception {
@@ -91,13 +57,7 @@ public class DefaultCollectorServiceTest {
             .offheap(1, MemoryUnit.MB))
         .build();
 
-    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(
-        1, TimeUnit.MINUTES,
-        100, 1, TimeUnit.SECONDS,
-        2, TimeUnit.SECONDS);
-
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration()
-        .addConfiguration(statisticsProviderConfiguration)
         .setCacheManagerAlias("my-cm-1"));
 
     CollectorService collectorService = new DefaultCollectorService(new CollectorService.Collector() {
@@ -132,9 +92,9 @@ public class DefaultCollectorServiceTest {
     cacheManager.init();
 
     managementRegistry.withCapability("StatisticCollectorCapability")
-        .call("updateCollectedStatistics",
-            new Parameter("StatisticsCapability"),
-            new Parameter(asList("Cache:HitCount", "Cache:MissCount"), Collection.class.getName()))
+        .call("startStatisticCollector",
+          new Parameter(1L, long.class.getName()),
+          new Parameter(TimeUnit.SECONDS, TimeUnit.class.getName()))
         .on(Context.create("cacheManagerName", "my-cm-1"))
         .build()
         .execute()

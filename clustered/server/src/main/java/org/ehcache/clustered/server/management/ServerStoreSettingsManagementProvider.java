@@ -19,10 +19,11 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.AliasBindingManagementProvider;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -36,27 +37,22 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
 
   @Override
   public Collection<Descriptor> getDescriptors() {
-    Collection<Descriptor> descriptors = super.getDescriptors();
+    Collection<Descriptor> descriptors = new ArrayList<>(super.getDescriptors());
     descriptors.add(new Settings()
-      .set("type", "ServerStoreSettingsManagementProvider")
+      .set("type", getCapabilityName())
       .set("time", System.currentTimeMillis()));
     return descriptors;
   }
 
   @Override
-  protected ExposedServerStoreBinding wrap(ServerStoreBinding managedObject) {
-    return new ExposedServerStoreBinding(managedObject, getConsumerId());
+  protected ExposedServerStoreBinding internalWrap(Context context, ServerStoreBinding managedObject) {
+    return new ExposedServerStoreBinding(context, managedObject);
   }
 
   private static class ExposedServerStoreBinding extends ExposedAliasBinding<ServerStoreBinding> {
 
-    ExposedServerStoreBinding(ServerStoreBinding binding, long consumerId) {
-      super(binding, consumerId);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ServerStore");
+    ExposedServerStoreBinding(Context context, ServerStoreBinding binding) {
+      super(context.with("type", "ServerStore"), binding);
     }
 
     @Override

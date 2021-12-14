@@ -21,9 +21,9 @@ apply plugin: EhDeploy
 dependencies {
   compileOnly project(':api')
   compileOnly project(':xml')
-  compile project(':clustered:common')
+  compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
   provided "org.terracotta:entity-client-api:$parent.entityApiVersion"
-  provided "org.terracotta.management:management-registry-service-api:$parent.managementVersion" // provided in management-server jar
+  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 
   testCompile project(':api')
   testCompile project(':xml')

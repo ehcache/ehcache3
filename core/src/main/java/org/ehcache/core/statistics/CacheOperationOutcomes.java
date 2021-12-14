@@ -39,14 +39,10 @@ public interface CacheOperationOutcomes {
    * Outcomes for cache Get operations.
    */
   enum GetOutcome implements CacheOperationOutcomes {
-    /** hit, no loader */
-    HIT_NO_LOADER,
-    /** miss, no loader */
-    MISS_NO_LOADER,
-    /** hit */
-    HIT_WITH_LOADER,
-    /** miss */
-    MISS_WITH_LOADER,
+    /** hit, loader or not is Cache impl specific */
+    HIT,
+    /** miss, loader or not is Cache impl specific*/
+    MISS,
     /** failure */
     FAILURE
   };

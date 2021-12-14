@@ -13,8 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.gradle.internal.jvm.Jvm
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 dependencies {
-    compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    testCompile project(':impl'), project(':transactions')
+  compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion", "javax.cache:cache-api:$parent.jcacheVersion"
+  testCompile project(':107'), project(':impl'), project(':transactions')
+}
+
+compileTestJava {
+  options.forkOptions.executable = Jvm.current().javacExecutable
+}
+
+test {
+  executable = Jvm.current().javaExecutable
 }

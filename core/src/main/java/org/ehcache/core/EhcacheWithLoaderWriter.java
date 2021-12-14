@@ -79,10 +79,9 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Implementation of the {@link Cache} interface when a {@link CacheLoaderWriter} is involved.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  *
  * @see Ehcache
  */
@@ -190,10 +189,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
         return null;
       } else {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
@@ -235,10 +234,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS_WITH_LOADER);
+        getObserver.end(GetOutcome.MISS);
         return null;
       } else {
-        getObserver.end(GetOutcome.HIT_WITH_LOADER);
+        getObserver.end(GetOutcome.HIT);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
@@ -1234,9 +1233,9 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
           @Override
           public V apply(K mappedKey, V mappedValue) {
             if (mappedValue == null) {
-              getObserver.end(GetOutcome.MISS_NO_LOADER);
+              getObserver.end(GetOutcome.MISS);
             } else {
-              getObserver.end(GetOutcome.HIT_NO_LOADER);
+              getObserver.end(GetOutcome.HIT);
             }
 
             V newValue = computeFunction.apply(mappedKey, mappedValue);
@@ -1309,10 +1308,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
       }
       return returnValue;
     }
@@ -1350,10 +1349,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         putObserver.end(PutOutcome.UPDATED);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
         putObserver.end(PutOutcome.PUT);
       }
       return returnValue;
@@ -1424,7 +1423,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       if (!quiet) getObserver.begin();
       if (nextException == null) {
-        if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
+        if (!quiet) getObserver.end(GetOutcome.HIT);
         current = next;
         advance();
         return new ValueHolderBasedEntry<K, V>(current);

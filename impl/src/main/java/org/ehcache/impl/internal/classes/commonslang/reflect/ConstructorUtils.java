@@ -31,20 +31,20 @@ import java.lang.reflect.Modifier;
 
 /**
  * <p> Utility reflection methods focused on constructors, modeled after
- * {@link MethodUtils}. </p>
+ * {@link MethodUtils}. </li>
  *
  * <h3>Known Limitations</h3> <h4>Accessing Public Constructors In A Default
  * Access Superclass</h4> <p>There is an issue when invoking {@code public} constructors
  * contained in a default access superclass. Reflection correctly locates these
  * constructors and assigns them as {@code public}. However, an
  * {@link IllegalAccessException} is thrown if the constructor is
- * invoked.</p>
+ * invoked.</li>
  *
  * <p>{@link ConstructorUtils} contains a workaround for this situation: it
  * will attempt to call {@link java.lang.reflect.AccessibleObject#setAccessible(boolean)} on this constructor. If this
  * call succeeds, then the method can be invoked as normal. This call will only
  * succeed when the application has sufficient security privileges. If this call
- * fails then a warning will be logged and the method may fail.</p>
+ * fails then a warning will be logged and the method may fail.</li>
  *
  * @since 2.5
  */
@@ -53,10 +53,10 @@ public class ConstructorUtils {
     /**
      * <p>ConstructorUtils instances should NOT be constructed in standard
      * programming. Instead, the class should be used as
-     * {@code ConstructorUtils.invokeConstructor(cls, args)}.</p>
+     * {@code ConstructorUtils.invokeConstructor(cls, args)}.</li>
      *
      * <p>This constructor is {@code public} to permit tools that require a JavaBean
-     * instance to operate.</p>
+     * instance to operate.</li>
      */
     public ConstructorUtils() {
         super();
@@ -64,10 +64,10 @@ public class ConstructorUtils {
 
     /**
      * <p>Returns a new instance of the specified class inferring the right constructor
-     * from the types of the arguments.</p>
+     * from the types of the arguments.</li>
      *
      * <p>This locates and calls a constructor.
-     * The constructor signature must match the argument types by assignment compatibility.</p>
+     * The constructor signature must match the argument types by assignment compatibility.</li>
      *
      * @param <T> the type to be constructed
      * @param cls  the class to be constructed, not {@code null}
@@ -91,10 +91,10 @@ public class ConstructorUtils {
 
     /**
      * <p>Returns a new instance of the specified class choosing the right constructor
-     * from the list of parameter types.</p>
+     * from the list of parameter types.</li>
      *
      * <p>This locates and calls a constructor.
-     * The constructor signature must match the parameter types by assignment compatibility.</p>
+     * The constructor signature must match the parameter types by assignment compatibility.</li>
      *
      * @param <T> the type to be constructed
      * @param cls  the class to be constructed, not {@code null}
@@ -123,9 +123,9 @@ public class ConstructorUtils {
     }
 
     /**
-     * <p>Checks if the specified constructor is accessible.</p>
+     * <p>Checks if the specified constructor is accessible.</li>
      *
-     * <p>This simply ensures that the constructor is accessible.</p>
+     * <p>This simply ensures that the constructor is accessible.</li>
      *
      * @param <T> the constructor type
      * @param ctor  the prototype constructor object, not {@code null}
@@ -140,16 +140,16 @@ public class ConstructorUtils {
     }
 
     /**
-     * <p>Finds an accessible constructor with compatible parameters.</p>
+     * <p>Finds an accessible constructor with compatible parameters.</li>
      *
      * <p>This checks all the constructor and finds one with compatible parameters
      * This requires that every parameter is assignable from the given parameter types.
-     * This is a more flexible search than the normal exact matching algorithm.</p>
+     * This is a more flexible search than the normal exact matching algorithm.</li>
      *
      * <p>First it checks if there is a constructor matching the exact signature.
      * If not then all the constructors of the class are checked to see if their
      * signatures are assignment-compatible with the parameter types.
-     * The first assignment-compatible matching constructor is returned.</p>
+     * The first assignment-compatible matching constructor is returned.</li>
      *
      * @param <T> the constructor type
      * @param cls  the class to find a constructor for, not {@code null}

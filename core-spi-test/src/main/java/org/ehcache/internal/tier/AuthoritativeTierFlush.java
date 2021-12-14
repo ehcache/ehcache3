@@ -36,7 +36,6 @@ import static org.mockito.Mockito.when;
 /**
  * Test the {@link AuthoritativeTier#flush(Object, Store.ValueHolder)} contract of the
  * {@link AuthoritativeTier AuthoritativeTier} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

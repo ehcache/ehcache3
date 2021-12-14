@@ -16,6 +16,7 @@
 package org.ehcache.management.cluster;
 
 import org.ehcache.Cache;
+import org.ehcache.StateTransitionException;
 import org.ehcache.Status;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -31,6 +32,7 @@ import org.ehcache.management.registry.DefaultCollectorService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
@@ -51,6 +53,8 @@ import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class, ClusteringService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringManagementService.class);
 
   private final ClusteringManagementServiceConfiguration configuration;
 
@@ -140,14 +144,22 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
         }
         managementAgentService = new ManagementAgentService(managementAgentEntity);
         managementAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);
+        managementAgentService.setManagementRegistry(managementRegistryService);
         // setup the executor that will handle the management call requests received from the server. We log failures.
         managementAgentService.setManagementCallExecutor(new LoggingExecutor(
             managementCallExecutor,
             LoggerFactory.getLogger(getClass().getName() + ".managementCallExecutor")));
-        managementAgentService.bridge(managementRegistryService);
 
-        // expose tags
-        managementAgentService.setTags(managementRegistryService.getConfiguration().getTags());
+        try {
+          managementAgentService.init();
+          // expose tags
+          managementAgentService.setTags(managementRegistryService.getConfiguration().getTags());
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new StateTransitionException(e);
+        }  catch (Exception e) {
+          e.printStackTrace();
+        }
 
         break;
       }
@@ -171,7 +183,14 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   public void onNotification(ContextualNotification notification) {
     ManagementAgentService service = managementAgentService;
     if (service != null && clusteringService.isConnected()) {
-      service.pushNotification(notification);
+      try {
+        service.pushNotification(notification);
+      } catch (InterruptedException e) {
+        LOGGER.error("Failed to push notification " + notification + ": " + e.getMessage(), e);
+        Thread.currentThread().interrupt();
+      } catch (Exception e) {
+        LOGGER.error("Failed to push notification " + notification + ": " + e.getMessage(), e);
+      }
     }
   }
 
@@ -179,7 +198,14 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   public void onStatistics(Collection<ContextualStatistics> statistics) {
     ManagementAgentService service = managementAgentService;
     if (service != null && clusteringService.isConnected()) {
-      service.pushStatistics(statistics);
+      try {
+        service.pushStatistics(statistics);
+      } catch (InterruptedException e) {
+        LOGGER.error("Failed to push statistics " + statistics + ": " + e.getMessage(), e);
+        Thread.currentThread().interrupt();
+      } catch (Exception e) {
+        LOGGER.error("Failed to push statistics " + statistics + ": " + e.getMessage(), e);
+      }
     }
   }
 

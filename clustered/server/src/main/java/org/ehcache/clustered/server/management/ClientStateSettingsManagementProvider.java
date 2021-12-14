@@ -18,11 +18,10 @@ package org.ehcache.clustered.server.management;
 import org.ehcache.clustered.server.ClientState;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
-import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.ClientBindingManagementProvider;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
+import org.terracotta.management.service.monitoring.registry.provider.ClientBindingManagementProvider;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +29,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 @Named("ClientStateSettings")
-@RequiredContext({@Named("consumerId"), @Named("clientId"), @Named("type")})
+@RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
 class ClientStateSettingsManagementProvider extends ClientBindingManagementProvider<ClientStateBinding> {
 
   ClientStateSettingsManagementProvider() {
@@ -38,28 +37,21 @@ class ClientStateSettingsManagementProvider extends ClientBindingManagementProvi
   }
 
   @Override
-  protected ExposedClientStateBinding internalWrap(ClientStateBinding managedObject, long consumerId, ClientIdentifier clientIdentifier) {
-    return new ExposedClientStateBinding(managedObject, consumerId, clientIdentifier);
+  protected ExposedClientStateBinding internalWrap(Context context, ClientStateBinding managedObject) {
+    return new ExposedClientStateBinding(context, managedObject);
   }
 
   private static class ExposedClientStateBinding extends ExposedClientBinding<ClientStateBinding> {
 
-    ExposedClientStateBinding(ClientStateBinding clientBinding, long consumerId, ClientIdentifier clientIdentifier) {
-      super(clientBinding, consumerId, clientIdentifier);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "ClientState");
+    ExposedClientStateBinding(Context context, ClientStateBinding clientBinding) {
+      super(context.with("type", "ClientState"), clientBinding);
     }
 
     @Override
     public Collection<? extends Descriptor> getDescriptors() {
       ClientState clientState = getClientBinding().getValue();
-      Set<String> attachedStores = clientState.getAttachedStores();
       return Collections.singleton(new Settings(getContext())
         .set("attached", clientState.isAttached())
-        .set("attachedStores", new TreeSet<>(attachedStores).toArray(new String[attachedStores.size()]))
       );
     }
   }

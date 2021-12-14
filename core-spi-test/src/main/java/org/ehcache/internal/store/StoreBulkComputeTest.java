@@ -38,7 +38,6 @@ import static org.hamcrest.Matchers.nullValue;
 /**
  * Test the {@link Store#bulkCompute(java.util.Set, Function)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Gaurav Mangalick
  */

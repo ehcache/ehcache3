@@ -26,7 +26,7 @@ public interface StoreEventFilter<K, V> {
 
   /**
    * Checks if an event is accepted.
-   * <P/>
+   * <p>
    * Depending on the event type, oldValue or newValue may be null. {@link EventType#CREATED} events do not have an
    * old value, {@link EventType#UPDATED} events have both while all other events only have an old value.
    *

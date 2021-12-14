@@ -35,10 +35,9 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   /**
    * Either return the {@link org.ehcache.core.spi.store.Store.ValueHolder} currently in the caching tier
    * or installs and returns the result of the passed in function.
-   * <P>
-   *   Note that in case of expired {@link org.ehcache.core.spi.store.Store.ValueHolder} {@code null} will be returned
-   *   and the mapping will be invalidated.
-   * </P>
+   * <p>
+   * Note that in case of expired {@link org.ehcache.core.spi.store.Store.ValueHolder} {@code null} will be returned
+   * and the mapping will be invalidated.
    *
    * @param key the key
    * @param source the function that computes the value

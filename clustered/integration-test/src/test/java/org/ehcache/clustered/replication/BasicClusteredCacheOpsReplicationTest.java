@@ -58,13 +58,13 @@ import static org.junit.Assert.assertThat;
 public class BasicClusteredCacheOpsReplicationTest {
 
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
       + "</ohr:offheap-resources>" +
-      "</service>\n";
+      "</config>\n";
 
-  private static CacheManager CACHE_MANAGER;
+  private static PersistentCacheManager CACHE_MANAGER;
   private static Cache<Long, String> CACHE1;
   private static Cache<Long, String> CACHE2;
 
@@ -82,6 +82,7 @@ public class BasicClusteredCacheOpsReplicationTest {
 
   @Before
   public void startServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
@@ -103,8 +104,7 @@ public class BasicClusteredCacheOpsReplicationTest {
   @After
   public void tearDown() throws Exception {
     CACHE_MANAGER.close();
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().startAllServers();
+    CACHE_MANAGER.destroy();
   }
 
   @Test

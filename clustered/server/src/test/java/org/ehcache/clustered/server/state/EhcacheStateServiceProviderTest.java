@@ -16,46 +16,94 @@
 
 package org.ehcache.clustered.server.state;
 
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
+import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.entity.PlatformConfiguration;
 import org.terracotta.entity.ServiceProviderCleanupException;
 import org.terracotta.entity.ServiceProviderConfiguration;
+import org.terracotta.offheapresource.OffHeapResources;
+import org.terracotta.offheapresource.OffHeapResourcesProvider;
+import org.terracotta.offheapresource.config.MemoryUnit;
+import org.terracotta.offheapresource.config.OffheapResourcesType;
+import org.terracotta.offheapresource.config.ResourceType;
 
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
+
+import static java.util.Collections.emptyMap;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class EhcacheStateServiceProviderTest {
 
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
+  private PlatformConfiguration platformConfiguration;
+  private ServiceProviderConfiguration serviceProviderConfiguration;
+  private ClusteredTierManagerConfiguration tierManagerConfiguration;
+
+  @Before
+  public void setUp() {
+    ResourceType resource = new ResourceType();
+    resource.setName("primary");
+    resource.setUnit(MemoryUnit.MB);
+    resource.setValue(BigInteger.valueOf(4L));
+    OffheapResourcesType configuration = new OffheapResourcesType();
+    configuration.getResource().add(resource);
+    OffHeapResources offheapResources = new OffHeapResourcesProvider(configuration);
+
+    platformConfiguration = new PlatformConfiguration() {
+      @Override
+      public String getServerName() {
+        return "Server1";
+      }
+
+      @Override
+      public <T> Collection<T> getExtendedConfiguration(Class<T> type) {
+        if (OffHeapResources.class.isAssignableFrom(type)) {
+          return Collections.singletonList(type.cast(offheapResources));
+        }
+        throw new UnsupportedOperationException("TODO Implement me!");
+      }
+    };
+
+    serviceProviderConfiguration = mock(ServiceProviderConfiguration.class);
+
+    tierManagerConfiguration = new ClusteredTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
+  }
+
   @Test
   public void testInitialize() {
     EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
-
-    ServiceProviderConfiguration serviceProviderConfiguration = mock(ServiceProviderConfiguration.class);
-
-    assertTrue(serviceProvider.initialize(serviceProviderConfiguration, null));
+    assertTrue(serviceProvider.initialize(serviceProviderConfiguration, platformConfiguration));
   }
 
   @Test
   public void testGetService() {
     EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
+    serviceProvider.initialize(serviceProviderConfiguration, platformConfiguration);
 
-    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
+    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(tierManagerConfiguration, null, DEFAULT_MAPPER));
 
     assertNotNull(ehcacheStateService);
 
-    EhcacheStateService sameStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
+    EhcacheStateService sameStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(tierManagerConfiguration, null, DEFAULT_MAPPER));
 
     assertSame(ehcacheStateService, sameStateService);
 
-    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
+    ClusteredTierManagerConfiguration otherConfiguration = new ClusteredTierManagerConfiguration("otherIdentifier", new ServerSideConfiguration(emptyMap()));
+    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(otherConfiguration, null, DEFAULT_MAPPER));
 
     assertNotNull(anotherStateService);
     assertNotSame(ehcacheStateService, anotherStateService);
@@ -63,16 +111,32 @@ public class EhcacheStateServiceProviderTest {
   }
 
   @Test
-  public void testClear() throws ServiceProviderCleanupException {
+  public void testDestroyService() throws Exception {
     EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
+    serviceProvider.initialize(serviceProviderConfiguration, platformConfiguration);
 
-    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
-    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
+    EhcacheStateServiceConfig configuration = new EhcacheStateServiceConfig(tierManagerConfiguration, null, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, configuration);
 
-    serviceProvider.clear();
+    ehcacheStateService.destroy();
 
-    EhcacheStateService ehcacheStateServiceAfterClear = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
-    EhcacheStateService anotherStateServiceAfterClear = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
+    assertThat(serviceProvider.getService(1L, configuration), not(sameInstance(ehcacheStateService)));
+  }
+
+  @Test
+  public void testPrepareForSynchronization() throws ServiceProviderCleanupException {
+    EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
+    serviceProvider.initialize(serviceProviderConfiguration, platformConfiguration);
+
+    ClusteredTierManagerConfiguration otherConfiguration = new ClusteredTierManagerConfiguration("otherIdentifier", new ServerSideConfiguration(emptyMap()));
+
+    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(tierManagerConfiguration, null, DEFAULT_MAPPER));
+    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(otherConfiguration, null, DEFAULT_MAPPER));
+
+    serviceProvider.prepareForSynchronization();
+
+    EhcacheStateService ehcacheStateServiceAfterClear = serviceProvider.getService(1L, new EhcacheStateServiceConfig(tierManagerConfiguration, null, DEFAULT_MAPPER));
+    EhcacheStateService anotherStateServiceAfterClear = serviceProvider.getService(2L, new EhcacheStateServiceConfig(otherConfiguration, null, DEFAULT_MAPPER));
 
     assertNotSame(ehcacheStateService, ehcacheStateServiceAfterClear);
     assertNotSame(anotherStateService, anotherStateServiceAfterClear);

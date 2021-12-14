@@ -36,9 +36,11 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
 
+import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -55,14 +57,17 @@ import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
+import org.terracotta.exception.PermanentEntityException;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
 import org.terracotta.offheapresource.config.ResourceType;
+import org.terracotta.passthrough.IAsynchronousServerCrasher;
 import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
+
+import static org.mockito.Mockito.mock;
 
 
 /**
@@ -102,20 +107,18 @@ import org.terracotta.passthrough.PassthroughServerRegistry;
  * public void removePassthroughServer() throws Exception {
  *   UnitTestConnectionService.remove(<i>CLUSTER_URI</i>);
  * }
- *   </code></pre>
+ * </code></pre>
  *
- *   If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
- *   can also add Voltron server & client services and service providers.
- * </p>
+ * If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
+ * can also add Voltron server & client services and service providers.
  * <p>
- *   Tests needing direct access to a {@link Connection} can obtain a connection using the following:
- *   <pre><code>
+ * Tests needing direct access to a {@link Connection} can obtain a connection using the following:
+ * <pre><code>
  * Connection connection = new UnitTestConnectionService().connect(<i>CLUSTER_URI</i>, new Properties());
- *   </code></pre>
- *   after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
- *   be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
- *   through {@link #connect(URI, Properties)}.
- * </p>
+ * </code></pre>
+ * after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
+ * be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
+ * through {@link #connect(URI, Properties)}.
  *
  * @see PassthroughServerBuilder
  */
@@ -143,6 +146,8 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     SERVERS.put(keyURI, new ServerDescriptor(server));
+    // TODO rework that better
+    server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
@@ -238,9 +243,11 @@ public class UnitTestConnectionService implements ConnectionService {
           EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
-          LOGGER.error("Entity destroy failed: ", ex);
+          LOGGER.error("Entity destroy failed (not provided???): ", ex);
         } catch (EntityNotFoundException ex) {
           LOGGER.error("Entity destroy failed: ", ex);
+        } catch (PermanentEntityException ex) {
+          LOGGER.error("Entity destroy failed (permanent???): ", ex);
         }
       }
 
@@ -345,6 +352,8 @@ public class UnitTestConnectionService implements ConnectionService {
       if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
         newServer.registerServerEntityService(new EhcacheServerEntityService());
         newServer.registerClientEntityService(new EhcacheClientEntityService());
+        newServer.registerServerEntityService(new ClusteredTierServerEntityService());
+        newServer.registerClientEntityService(new ClusteredTierClientEntityService());
         newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
       }
@@ -358,7 +367,7 @@ public class UnitTestConnectionService implements ConnectionService {
       }
 
       if (!this.resources.getResource().isEmpty()) {
-        newServer.registerServiceProvider(new OffHeapResourcesProvider(), new OffHeapResourcesConfiguration(this.resources));
+        newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
       }
 
       for (Map.Entry<ServiceProvider, ServiceProviderConfiguration> entry : serviceProviders.entrySet()) {

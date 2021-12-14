@@ -48,7 +48,7 @@ final class EhcacheBasicBulkUtil {
    * unit tests.  The entries used are generally subset using the key sets
    * {@link #KEY_SET_A}, {@link #KEY_SET_B}, {@link #KEY_SET_C}, and/or
    * {@link #KEY_SET_F}.
-   * <p/>
+   * <p>
    * Some tests are dependent on the order of the keys/entries.  In general,
    * for each key set ('xxxXn'), the keys/entries must be ordered by 'n'.
    */

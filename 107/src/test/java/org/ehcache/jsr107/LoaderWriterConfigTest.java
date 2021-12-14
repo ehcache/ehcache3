@@ -19,6 +19,8 @@ package org.ehcache.jsr107;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Set;
 
@@ -42,10 +44,15 @@ import static org.mockito.Mockito.verifyZeroInteractions;
  */
 public class LoaderWriterConfigTest {
 
+  @Mock
+  private CacheLoader<Long, String> cacheLoader;
+  @Mock
+  private CacheWriter<Long, String> cacheWriter;
   private CachingProvider cachingProvider;
 
   @Before
   public void setUp() {
+    MockitoAnnotations.initMocks(this);
     cachingProvider = Caching.getCachingProvider();
   }
 
@@ -55,10 +62,8 @@ public class LoaderWriterConfigTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void enablingWriteThroughDoesNotForceReadThrough() throws Exception {
-    final CacheLoader<Long, String> cacheLoader = mock(CacheLoader.class);
-    final CacheWriter<Long, String> cacheWriter = mock(CacheWriter.class);
-
     MutableConfiguration<Long, String> config = getConfiguration(false, cacheLoader, true, cacheWriter);
 
     Cache<Long, String> cache = cachingProvider.getCacheManager().createCache("writingCache", config);
@@ -75,9 +80,6 @@ public class LoaderWriterConfigTest {
 
   @Test
   public void enablingReadThroughDoesNotForceWriteThrough() throws Exception {
-    final CacheLoader<Long, String> cacheLoader = mock(CacheLoader.class);
-    final CacheWriter<Long, String> cacheWriter = mock(CacheWriter.class);
-
     MutableConfiguration<Long, String> config = getConfiguration(true, cacheLoader, false, cacheWriter);
 
     Cache<Long, String> cache = cachingProvider.getCacheManager().createCache("writingCache", config);

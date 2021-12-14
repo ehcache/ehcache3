@@ -25,10 +25,9 @@ import java.util.Set;
 
 /**
  * Represents the configuration currently used by a {@link org.ehcache.Cache Cache}.
- * <P>
+ * <p>
  * It only exposes mutative operations for attributes that can be changed on an
  * {@link org.ehcache.Status#AVAILABLE AVAILABLE} {@code Cache} instance.
- * </P>
  *
  * @param <K> the key type for the cache
  * @param <V> the value type for the cache
@@ -37,13 +36,11 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
 
   /**
    * Registers a {@link CacheEventListener} on the cache.
-   * <P>
-   *   The registered listener will be configured according to the provided {@link EventOrdering}, {@link EventFiring}
-   *   and {@link EventType} set.
-   * </P>
-   * <P>
-   *   Registering a listener will cause the eventing subsystem to start.
-   * </P>
+   * <p>
+   * The registered listener will be configured according to the provided {@link EventOrdering}, {@link EventFiring}
+   * and {@link EventType} set.
+   * <p>
+   * Registering a listener will cause the eventing subsystem to start.
    *
    * @param listener the listener instance to register
    * @param ordering the {@code EventOrdering} required by this listener
@@ -57,13 +54,11 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
 
   /**
    * Registers a {@link CacheEventListener} on the cache.
-   * <P>
-   *   The registered listener will be configured according to the provided {@link EventOrdering}, {@link EventFiring}
-   *   and {@link EventType}s.
-   * </P>
-   * <P>
-   *   Registering a listener will cause the eventing subsystem to start.
-   * </P>
+   * <p>
+   * The registered listener will be configured according to the provided {@link EventOrdering}, {@link EventFiring}
+   * and {@link EventType}s.
+   * <p>
+   * Registering a listener will cause the eventing subsystem to start.
    *
    * @param listener the listener instance to register
    * @param ordering the {@code EventOrdering} required by this listener
@@ -78,9 +73,8 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
 
   /**
    * Deregisters a previously registered {@link org.ehcache.event.CacheEventListener CacheEventListener} instance.
-   * <P>
-   *   Deregistering all listeners will cause the eventing subsystem to stop.
-   * </P>
+   * <p>
+   * Deregistering all listeners will cause the eventing subsystem to stop.
    *
    * @param listener the listener to deregister
    *

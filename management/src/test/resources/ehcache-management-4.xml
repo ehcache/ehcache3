@@ -12,13 +12,6 @@
         <mnm:tag>jboss-1</mnm:tag>
         <mnm:tag>server-node-1</mnm:tag>
       </mnm:tags>
-      <mnm:statistics-configurations>
-        <mnm:statistics-configuration>
-          <mnm:average-window>2</mnm:average-window>
-          <mnm:history-interval>2</mnm:history-interval>
-          <mnm:time-to-disable>1</mnm:time-to-disable>
-        </mnm:statistics-configuration>
-      </mnm:statistics-configurations>
     </mnm:management>
   </service>
 

@@ -34,7 +34,6 @@ import static org.mockito.Mockito.when;
 /**
  * Test the {@link CachingTier#invalidate(Object)} contract of the
  * {@link CachingTier CachingTier} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

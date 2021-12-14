@@ -28,7 +28,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test contract of closing a
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

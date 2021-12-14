@@ -60,7 +60,7 @@ import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
  * <code>entrySet()</code> RETURNED OBJECTS. USE THE
  * <code>_spliterator()</code> ONE INSTEAD.
  * </b>
- * <p/>
+ * <p>
  * A hash table supporting full concurrency of retrievals and
  * high expected concurrency for updates. This class obeys the
  * same functional specification as {@link java.util.Hashtable}, and

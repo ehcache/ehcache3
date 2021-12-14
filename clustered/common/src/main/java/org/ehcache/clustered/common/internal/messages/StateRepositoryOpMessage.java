@@ -19,13 +19,7 @@ package org.ehcache.clustered.common.internal.messages;
 import java.io.Serializable;
 import java.util.UUID;
 
-public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage implements Serializable {
-
-  public enum StateRepositoryOp {
-    GET,
-    PUT_IF_ABSENT,
-    ENTRY_SET,
-  }
+public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage implements Serializable {
 
   private final String cacheId;
   private final String mapId;
@@ -65,23 +59,6 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
     return mapId;
   }
 
-  @Override
-  public Type getType() {
-    return Type.STATE_REPO_OP;
-  }
-
-  public abstract StateRepositoryOp operation();
-
-  @Override
-  public byte getOpCode() {
-    return getType().getCode();
-  }
-
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
-  }
-
   private static abstract class KeyBasedMessage extends StateRepositoryOpMessage {
 
     private final Object key;
@@ -104,8 +81,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.GET;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.GET_STATE_REPO;
     }
   }
 
@@ -123,8 +100,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.PUT_IF_ABSENT;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.PUT_IF_ABSENT;
     }
   }
 
@@ -135,8 +112,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.ENTRY_SET;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.ENTRY_SET;
     }
   }
 

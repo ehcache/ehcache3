@@ -40,8 +40,13 @@ dependencies {
   }
 }
 
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}
+
 javadoc {
   exclude '**/tck/**'
+  classpath = sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + configurations.provided
 }
 
 task unpackTckTests(type: Copy) {
