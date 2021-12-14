@@ -80,7 +80,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
-  private EhcacheClientEntity entity;
+  EhcacheClientEntity entity;
 
   private volatile boolean inMaintenance = false;
 
@@ -366,6 +366,19 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
+    ServerStoreProxy serverStoreProxy;
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
+    switch (configuredConsistency) {
+      case STRONG:
+        serverStoreProxy =  new StrongServerStoreProxy(messageFactory, entity);
+        break;
+      case EVENTUAL:
+        serverStoreProxy = new EventualServerStoreProxy(messageFactory, entity);
+        break;
+      default:
+        throw new AssertionError("Unknown consistency : " + configuredConsistency);
+    }
+
     final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
         clusteredResourcePool.getPoolAllocation(),
         storeConfig.getKeyType().getName(),
@@ -392,22 +405,16 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         entity.validateCache(cacheId, clientStoreConfiguration);
       }
     } catch (ClusteredTierException e) {
+      serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
     } catch (TimeoutException e) {
+      serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create clustered tier proxy '"
           + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
           + "'; validate operation timed out", e);
     }
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
-    switch (configuredConsistency) {
-      case STRONG:
-        return new StrongServerStoreProxy(messageFactory, entity);
-      case EVENTUAL:
-        return new EventualServerStoreProxy(messageFactory, entity);
-      default:
-        throw new AssertionError("Unknown consistency : " + configuredConsistency);
-    }
+    return serverStoreProxy;
   }
 
   @Override

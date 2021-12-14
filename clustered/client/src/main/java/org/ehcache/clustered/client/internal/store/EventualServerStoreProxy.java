@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 
@@ -36,10 +38,15 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
 
   private final ServerStoreProxy delegate;
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
+  private final EhcacheClientEntity entity;
+  private final Map<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
+    = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
 
+  @SuppressWarnings("unchecked")
   public EventualServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+    this.entity = entity;
     this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
-    entity.addResponseListener(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
+    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -53,39 +60,45 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
-        final String cacheId = response.getCacheId();
-        final long key = response.getKey();
-        final int invalidationId = response.getInvalidationId();
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
+        @Override
+        public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
+          final String cacheId = response.getCacheId();
+          final long key = response.getKey();
+          final int invalidationId = response.getInvalidationId();
 
-        if (cacheId.equals(messageFactory.getCacheId())) {
-          LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-          for (InvalidationListener listener : invalidationListeners) {
-            listener.onAppendInvalidateHash(key);
+          if (cacheId.equals(messageFactory.getCacheId())) {
+            LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+            for (InvalidationListener listener : invalidationListeners) {
+              listener.onAppendInvalidateHash(key);
+            }
+          } else {
+            LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
           }
-        } else {
-          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
         }
-      }
     });
-    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
-        final String cacheId = response.getCacheId();
-        final int invalidationId = response.getInvalidationId();
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
+        @Override
+        public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
+          final String cacheId = response.getCacheId();
+          final int invalidationId = response.getInvalidationId();
 
-        if (cacheId.equals(messageFactory.getCacheId())) {
-          LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
-          for (InvalidationListener listener : invalidationListeners) {
-            listener.onInvalidateAll();
-          }
-        } else {
+          if (cacheId.equals(messageFactory.getCacheId())) {
+            LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
+            for (InvalidationListener listener : invalidationListeners) {
+              listener.onInvalidateAll();
+            }
+          } else {
           LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
+          }
         }
-      }
     });
+
+    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
+      this.responseListeners.entrySet()) {
+      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener) classResponseListenerEntry.getValue());
+    }
+
   }
 
   @Override
@@ -101,6 +114,15 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   @Override
   public boolean removeInvalidationListener(InvalidationListener listener) {
     return invalidationListeners.remove(listener);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void close() {
+    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
+      this.responseListeners.entrySet()) {
+      this.entity.removeResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener) classResponseListenerEntry.getValue());
+    }
   }
 
   @Override

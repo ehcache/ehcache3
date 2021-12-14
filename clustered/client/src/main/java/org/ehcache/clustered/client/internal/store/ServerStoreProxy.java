@@ -67,4 +67,9 @@ public interface ServerStoreProxy extends ServerStore {
    */
   boolean removeInvalidationListener(InvalidationListener listener);
 
+  /**
+   * Closes this proxy.
+   */
+  void close();
+
 }

@@ -53,6 +53,11 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public void close() {
+    // No-op
+  }
+
+  @Override
   public Chain get(long key) throws TimeoutException {
     EhcacheEntityResponse response;
     try {

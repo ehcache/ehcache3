@@ -1946,6 +1946,83 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
+  public void testGetServerStoreProxyFailureClearsEntityListeners() throws Exception {
+    // Initial setup begin
+    String entityIdentifier = "my-application";
+    ClusteringServiceConfiguration configuration =
+      new ClusteringServiceConfiguration(
+        URI.create(CLUSTER_URI_BASE + entityIdentifier),
+        true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    service.start(null);
+
+    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
+
+    ResourcePools resourcePools = mock(ResourcePools.class);
+    @SuppressWarnings("unchecked")
+    Store.Configuration<String, Object> storeConfig = mock(Store.Configuration.class);
+    when(storeConfig.getResourcePools()).thenReturn(resourcePools);
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
+    when(storeConfig.getKeyType()).thenReturn(String.class);
+    when(storeConfig.getValueType()).thenReturn(Object.class);
+
+    service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);  // Creates the store
+    service.stop();
+    // Initial setup end
+
+    service.start(null);
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 2L, MemoryUnit.MB));
+    try {
+      service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
+      fail("Server store proxy creation should have failed");
+    } catch (CachePersistenceException cpe) {
+      assertThat(service.entity.getDisconnectionListeners().isEmpty(), is(true));
+      assertThat(service.entity.getReconnectListeners().isEmpty(), is(true));
+    }
+  }
+
+  @Test
+  public void testGetServerStoreProxyFailureDoesNotClearOtherStoreEntityListeners() throws Exception {
+    // Initial setup begin
+    String entityIdentifier = "my-application";
+    ClusteringServiceConfiguration configuration =
+      new ClusteringServiceConfiguration(
+        URI.create(CLUSTER_URI_BASE + entityIdentifier),
+        true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    service.start(null);
+
+    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
+
+    ResourcePools resourcePools = mock(ResourcePools.class);
+    @SuppressWarnings("unchecked")
+    Store.Configuration<String, Object> storeConfig = mock(Store.Configuration.class);
+    when(storeConfig.getResourcePools()).thenReturn(resourcePools);
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
+    when(storeConfig.getKeyType()).thenReturn(String.class);
+    when(storeConfig.getValueType()).thenReturn(Object.class);
+
+    service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);  // Creates the store
+    service.stop();
+    // Initial setup end
+
+    service.start(null);
+    ClusteringService.ClusteredCacheIdentifier otherCacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-other-cache", null);
+    service.getServerStoreProxy(otherCacheIdentifier, storeConfig, Consistency.STRONG);  // Creates one more store
+    int disconnectionListenersSize = service.entity.getDisconnectionListeners().size();
+    int reconnectionListenersSize = service.entity.getReconnectListeners().size();
+
+    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 2L, MemoryUnit.MB));
+    try {
+      service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
+      fail("Server store proxy creation should have failed");
+    } catch (CachePersistenceException cpe) {
+      assertThat(service.entity.getDisconnectionListeners().size(), is(disconnectionListenersSize));
+      assertThat(service.entity.getReconnectListeners().size(), is(reconnectionListenersSize));
+    }
+  }
+
+  @Test
   public void testGetStateRepositoryWithinTwiceWithSameName() throws Exception {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));

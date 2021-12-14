@@ -105,6 +105,7 @@ public class EhcacheClientEntity implements Entity {
     endpoint.setDelegate(new EndpointDelegate() {
       @Override
       public void handleMessage(EntityResponse messageFromServer) {
+        LOGGER.trace("Entity response received from server: {}", messageFromServer);
         if (messageFromServer instanceof EhcacheEntityResponse) {
           fireResponseEvent((EhcacheEntityResponse) messageFromServer);
         }
@@ -147,6 +148,7 @@ public class EhcacheClientEntity implements Entity {
     @SuppressWarnings("unchecked")
     List<ResponseListener<T>> responseListeners = (List) this.responseListeners.get(response.getClass());
     if (responseListeners == null) {
+      LOGGER.warn("Ignoring the response {} as no registered response listener could be found.", response);
       return;
     }
     LOGGER.debug("{} registered response listener(s) for {}", responseListeners.size(), response.getClass());
@@ -170,10 +172,28 @@ public class EhcacheClientEntity implements Entity {
     disconnectionListeners.add(listener);
   }
 
+  public void removeDisconnectionListener(DisconnectionListener listener) {
+    disconnectionListeners.remove(listener);
+  }
+
+  public List<DisconnectionListener> getDisconnectionListeners() {
+    return Collections.unmodifiableList(disconnectionListeners);
+  }
+
   public void addReconnectListener(ReconnectListener listener) {
     synchronized (lock) {
       reconnectListeners.add(listener);
     }
+  }
+
+  public void removeReconnectListener(ReconnectListener listener) {
+    synchronized (lock) {
+      reconnectListeners.remove(listener);
+    }
+  }
+
+  public List<ReconnectListener> getReconnectListeners() {
+    return Collections.unmodifiableList(reconnectListeners);
   }
 
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
@@ -185,6 +205,13 @@ public class EhcacheClientEntity implements Entity {
     responseListeners.add(responseListener);
   }
 
+  public <T extends EhcacheEntityResponse> void removeResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
+    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
+    if (responseListeners != null) {
+      responseListeners.remove(responseListener);
+    }
+  }
+
   public UUID identity() {
     return ClusteredEhcacheIdentity.deserialize(endpoint.getEntityConfiguration());
   }
@@ -192,6 +219,9 @@ public class EhcacheClientEntity implements Entity {
   @Override
   public void close() {
     endpoint.close();
+    this.responseListeners.clear();
+    this.disconnectionListeners.clear();
+    this.reconnectListeners.clear();
   }
 
   public void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException {
