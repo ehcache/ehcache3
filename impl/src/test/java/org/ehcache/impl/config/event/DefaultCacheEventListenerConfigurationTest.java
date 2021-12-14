@@ -39,9 +39,10 @@ public class DefaultCacheEventListenerConfigurationTest {
   @Test(expected = IllegalArgumentException.class)
   public void testFailsToConstructWithEmptyEventSetAndClass() {
     Set<EventType> fireOn = emptySet();
-    new DefaultCacheEventListenerConfiguration(fireOn, (Class)TestCacheEventListener.class);
+    Class<TestCacheEventListener> eventListenerClass = TestCacheEventListener.class;
+    new DefaultCacheEventListenerConfiguration(fireOn, eventListenerClass);
   }
 
-  abstract static class TestCacheEventListener<K, V> implements CacheEventListener<K, V> {
+  abstract static class TestCacheEventListener implements CacheEventListener<String, String> {
   }
 }

@@ -28,5 +28,5 @@ dependencies {
 apply plugin: EhDistribute
 
 dependencies {
-  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
 }

@@ -55,6 +55,7 @@ public class EventualServerStoreProxyTest {
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
+
   private static EhcacheClientEntity clientEntity1;
   private static EhcacheClientEntity clientEntity2;
   private static EventualServerStoreProxy serverStoreProxy1;
@@ -66,15 +67,18 @@ public class EventualServerStoreProxyTest {
         new PassthroughServerBuilder()
             .resource("defaultResource", 128, MemoryUnit.MB)
             .build());
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
+    UnitTestConnectionService unitTestConnectionService = new UnitTestConnectionService();
+    Connection connection1 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
+    Connection connection2 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    EhcacheClientEntityFactory entityFactory1 = new EhcacheClientEntityFactory(connection1);
+    EhcacheClientEntityFactory entityFactory2 = new EhcacheClientEntityFactory(connection2);
 
-    entityFactory.create("TestCacheManager",
+    entityFactory1.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity1 = entityFactory.retrieve("TestCacheManager",
+    clientEntity1 = entityFactory1.retrieve("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity2 = entityFactory.retrieve("TestCacheManager",
+    clientEntity2 = entityFactory2.retrieve("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
@@ -88,8 +92,8 @@ public class EventualServerStoreProxyTest {
     clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
     clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
-    serverStoreProxy1 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity1);
-    serverStoreProxy2 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity2);
+    serverStoreProxy1 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity1.getClientId()), clientEntity1);
+    serverStoreProxy2 = new EventualServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity2.getClientId()), clientEntity2);
   }
 
   @AfterClass

@@ -37,6 +37,7 @@ public class ArrayPackageScopeTest {
 
   @Test
   public void testArrayPackageScope() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
     serializer.init(new TransientStateRepository());
 

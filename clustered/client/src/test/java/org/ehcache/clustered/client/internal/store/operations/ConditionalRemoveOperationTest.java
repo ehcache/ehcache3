@@ -50,7 +50,7 @@ public class ConditionalRemoveOperationTest extends BaseKeyValueOperationTest {
     result = operation.apply(anotherOperation);
     assertNull(result);
 
-    PutIfAbsentOperation yetAnotherOperation = new PutIfAbsentOperation<Long, String>(1L, "two", System.currentTimeMillis());
+    PutIfAbsentOperation<Long, String> yetAnotherOperation = new PutIfAbsentOperation<Long, String>(1L, "two", System.currentTimeMillis());
     result = operation.apply(yetAnotherOperation);
     assertSame(yetAnotherOperation, result);
   }

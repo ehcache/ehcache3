@@ -45,7 +45,7 @@ public class EhcacheClientEntityService implements EntityClientService<EhcacheCl
   }
 
   @Override
-  public EhcacheClientEntity create(EntityClientEndpoint endpoint) {
+  public EhcacheClientEntity create(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     return new EhcacheClientEntity(endpoint);
   }
 

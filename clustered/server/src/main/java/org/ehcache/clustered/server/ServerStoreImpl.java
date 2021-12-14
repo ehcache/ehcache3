@@ -19,26 +19,27 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
+import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
+import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import com.tc.classloader.CommonComponent;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 @CommonComponent
-public class ServerStoreImpl implements ServerStore {
-
-  private static final int OFFHEAP_CHAIN_SEGMENTS = 16;
+public class ServerStoreImpl implements ServerStore, MapInternals {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
   private final OffHeapServerStore store;
 
-  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
+  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource, KeySegmentMapper mapper) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
-    this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
+    this.store = new OffHeapServerStore(pageSource, mapper);
   }
 
   public void setEvictionListener(ServerStoreEvictionListener listener) {
@@ -89,5 +90,78 @@ public class ServerStoreImpl implements ServerStore {
 
   public void close() {
     store.close();
+  }
+
+  public List<OffHeapChainMap<Long>> getSegments() {
+    return store.getSegments();
+  }
+
+  // stats
+
+
+  @Override
+  public long getSize() {
+    return store.getSize();
+  }
+
+  @Override
+  public long getTableCapacity() {
+    return store.getTableCapacity();
+  }
+
+  @Override
+  public long getUsedSlotCount() {
+    return store.getUsedSlotCount();
+  }
+
+  @Override
+  public long getRemovedSlotCount() {
+    return store.getRemovedSlotCount();
+  }
+
+  @Override
+  public long getAllocatedMemory() {
+    return store.getAllocatedMemory();
+  }
+
+  @Override
+  public long getOccupiedMemory() {
+    return store.getOccupiedMemory();
+  }
+
+  @Override
+  public long getVitalMemory() {
+    return store.getVitalMemory();
+  }
+
+  @Override
+  public long getDataAllocatedMemory() {
+    return store.getDataAllocatedMemory();
+  }
+
+  @Override
+  public long getDataOccupiedMemory() {
+    return store.getDataOccupiedMemory();
+  }
+
+  @Override
+  public long getDataVitalMemory() {
+    return store.getDataVitalMemory();
+  }
+
+  @Override
+  public long getDataSize() {
+    return store.getDataSize();
+  }
+
+  @Override
+  public int getReprobeLength() {
+    //TODO
+    //MapInternals Interface may need to change to implement this function correctly.
+    //Currently MapInternals Interface contains function: int getReprobeLength();
+    //however OffHeapServerStore.reprobeLength() returns a long
+    //Thus there could be data loss
+
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 }

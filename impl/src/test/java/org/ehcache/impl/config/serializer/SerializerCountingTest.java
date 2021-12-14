@@ -58,6 +58,7 @@ public class SerializerCountingTest {
   public TemporaryFolder folder = new TemporaryFolder();
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     cacheManager = newCacheManagerBuilder()
         .using(new DefaultSerializationProviderConfiguration().addSerializerFor(Serializable.class, (Class) CountingSerializer.class)

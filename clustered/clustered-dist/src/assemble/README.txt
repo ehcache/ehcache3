@@ -1,11 +1,11 @@
-Ehcache 3.1
+Ehcache 3.2
 =========================
 
-Welcome to version 3.1 of Ehcache with Terracotta-based distributed caching. 
+Welcome to version 3.2 of Ehcache with Terracotta-based distributed caching.
 
 Contents
 ---------------
- Included in this kit are the following: 
+ Included in this kit are the following:
    README.txt -- This file
    server -- Directory containing libraries, executables, and other supporting files for the Terracotta Server
    └─plugins -- Directory containing libraries for the applications installed in the server

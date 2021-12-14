@@ -40,6 +40,7 @@ public class BasicSerializationTest {
 
   @Test
   public void testSimpleObject() throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> test = new CompactJavaSerializer(null);
     test.init(new TransientStateRepository());
 
@@ -52,6 +53,7 @@ public class BasicSerializationTest {
 
   @Test
   public void testComplexObject() throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> test = new CompactJavaSerializer(null);
     test.init(new TransientStateRepository());
 
@@ -74,6 +76,7 @@ public class BasicSerializationTest {
 
   @Test
   public void testPrimitiveClasses() throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 
@@ -89,6 +92,7 @@ public class BasicSerializationTest {
     int foo = rand.nextInt();
     float bar = rand.nextFloat();
 
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 

@@ -25,6 +25,7 @@ import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.hamcrest.Matcher;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +64,10 @@ public class ScopedStoreEventDispatcherTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testListenerNotifiedUnordered() {
     ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
+    @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
 
@@ -76,8 +79,10 @@ public class ScopedStoreEventDispatcherTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testListenerNotifiedOrdered() {
     ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
+    @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
     dispatcher.setEventOrdering(true);
@@ -92,9 +97,11 @@ public class ScopedStoreEventDispatcherTest {
   @Test
   public void testEventFiltering() {
     ScopedStoreEventDispatcher<String, String> dispatcher = new ScopedStoreEventDispatcher<String, String>(1);
+    @SuppressWarnings("unchecked")
     StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
 
+    @SuppressWarnings("unchecked")
     StoreEventFilter<String, String> filter = mock(StoreEventFilter.class);
     when(filter.acceptEvent(eq(EventType.CREATED), anyString(), anyString(), anyString())).thenReturn(true);
     when(filter.acceptEvent(eq(EventType.REMOVED), anyString(), anyString(), anyString())).thenReturn(false);

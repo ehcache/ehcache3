@@ -170,7 +170,7 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(TimeoutDuration.of(5, TimeUnit.SECONDS)));
+    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(TimeoutDuration.of(20, TimeUnit.SECONDS)));
   }
 
   @Test

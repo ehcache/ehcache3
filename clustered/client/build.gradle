@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
+import org.gradle.internal.jvm.Jvm
+
 apply plugin: EhDeploy
 
 dependencies {
   compileOnly project(':api')
   compileOnly project(':xml')
   compile project(':clustered:common')
-  compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
+  provided "org.terracotta:entity-client-api:$parent.entityApiVersion"
+  provided "org.terracotta.management:management-registry-service-api:$parent.managementVersion" // provided in management-server jar
 
   testCompile project(':api')
   testCompile project(':xml')
@@ -30,4 +33,18 @@ dependencies {
   }
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
   testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
+}
+
+compileTestJava {
+  options.forkOptions.executable = Jvm.current().javacExecutable
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+}
+
+test {
+  executable = Jvm.current().javaExecutable
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
 }

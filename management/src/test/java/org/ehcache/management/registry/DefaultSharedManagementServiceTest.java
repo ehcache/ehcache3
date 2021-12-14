@@ -25,7 +25,9 @@ import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.terracotta.management.model.call.ContextualReturn;
@@ -67,6 +69,9 @@ public class DefaultSharedManagementServiceTest {
 
   ManagementRegistryServiceConfiguration config1;
   ManagementRegistryServiceConfiguration config2;
+
+  @Rule
+  public final Timeout globalTimeout = Timeout.seconds(10);
 
   @Before
   public void init() {
@@ -151,7 +156,7 @@ public class DefaultSharedManagementServiceTest {
     assertThat(new ArrayList<Capability>(capabilities2).get(3).getName(), equalTo("SettingsCapability"));
   }
 
-  @Test (timeout=10000)
+  @Test
   public void testStats() {
     String statisticName = "Cache:MissCount";
 
@@ -194,10 +199,10 @@ public class DefaultSharedManagementServiceTest {
   }
 
   private static ResultSet<ContextualStatistics> getResultSet(StatisticQuery.Builder builder, List<Context> contextList, Class<CounterHistory> type, String statisticsName) {
-    ResultSet<ContextualStatistics> counters;
+    ResultSet<ContextualStatistics> counters = null;
 
     //wait till Counter history is initialized and contains values > 0.
-    while(true) {
+    while(!Thread.currentThread().isInterrupted()) {
       counters = builder.build().execute();
 
       if(counters.getResult(contextList.get(0)).getStatistic(type, statisticsName).getValue().length > 0 &&

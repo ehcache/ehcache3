@@ -37,6 +37,7 @@ public class GetFieldTest {
 
   @Test
   public void testGetField() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 

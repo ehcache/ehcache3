@@ -51,7 +51,7 @@ import static org.hamcrest.Matchers.is;
 
 public class ChainResolverExpiryTest {
 
-  private static final OperationsCodec<Long, String> codec = new OperationsCodec(new LongSerializer(), new StringSerializer());
+  private static final OperationsCodec<Long, String> codec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
 
   private static TestTimeSource timeSource = null;
 
@@ -61,9 +61,10 @@ public class ChainResolverExpiryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetExpiryForAccessIsIgnored() {
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
 
@@ -83,9 +84,10 @@ public class ChainResolverExpiryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsInvokedOnlyOnce() {
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
 
@@ -108,9 +110,10 @@ public class ChainResolverExpiryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsNotInvokedForReplacedChains() {
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
 
@@ -130,10 +133,11 @@ public class ChainResolverExpiryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsInvokedAfterRemoveOperations() {
 
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
 
@@ -180,9 +184,10 @@ public class ChainResolverExpiryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testNullGetExpiryForCreation() {
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(null);
 
@@ -198,9 +203,10 @@ public class ChainResolverExpiryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testNullGetExpiryForUpdate() {
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenReturn(null);
 
@@ -209,18 +215,19 @@ public class ChainResolverExpiryTest {
     list.add(new PutOperation<Long, String>(1L, "New", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
-    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<Long, String> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
-    assertThat(resolvedChain.getResolvedResult(1L).getValue().toString(), is("New"));
+    assertThat(resolvedChain.getResolvedResult(1L).getValue(), is("New"));
     assertTrue(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).isExpiryAvailable());
     assertThat(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).expirationTime(), is(10L));
     assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetExpiryForUpdateUpdatesExpirationTimeStamp() {
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenReturn(new Duration(2L, TimeUnit.MILLISECONDS));
 
@@ -229,18 +236,19 @@ public class ChainResolverExpiryTest {
     list.add(new PutOperation<Long, String>(1L, "New", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
-    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<Long, String> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
-    assertThat(resolvedChain.getResolvedResult(1L).getValue().toString(), is("New"));
+    assertThat(resolvedChain.getResolvedResult(1L).getValue(), is("New"));
     assertTrue(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).isExpiryAvailable());
     assertThat(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).expirationTime(), is(2L));
     assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testExpiryThrowsException() {
     Expiry<Long, String> expiry = mock(Expiry.class);
-    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+    ChainResolver<Long, String> chainResolver = new ChainResolver<Long, String>(codec, expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenThrow(new RuntimeException("Test Update Expiry"));
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenThrow(new RuntimeException("Test Create Expiry"));
@@ -250,7 +258,7 @@ public class ChainResolverExpiryTest {
     list.add(new PutOperation<Long, String>(1L, "Two", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
-    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<Long, String> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
     assertThat(resolvedChain.getResolvedResult(1L), nullValue());
 

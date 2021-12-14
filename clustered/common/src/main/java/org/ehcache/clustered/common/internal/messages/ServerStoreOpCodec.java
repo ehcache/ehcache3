@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAndAppendMessage;
@@ -25,6 +26,7 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.Clien
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 class ServerStoreOpCodec {
 
@@ -33,6 +35,7 @@ class ServerStoreOpCodec {
   private static final byte KEY_SIZE = 8;
   private static final byte CHAIN_LEN_SIZE = 4;
   private static final byte INVALIDATION_ID_LEN_SIZE = 4;
+  private static final byte MESSAGE_ID_SIZE = 24;
 
   private final ChainCodec chainCodec;
 
@@ -54,26 +57,26 @@ class ServerStoreOpCodec {
         return encodedMsg.array();
       case APPEND:
         AppendMessage appendMessage = (AppendMessage)message;
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + appendMessage
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + MESSAGE_ID_SIZE + 2 * cacheIdLen + appendMessage
             .getPayload()
             .remaining());
-        putCacheIdKeyAndOpCode(encodedMsg, appendMessage.getCacheId(), appendMessage.getKey(), appendMessage.getOpCode());
+        putCacheIdKeyAndOpCode(encodedMsg, appendMessage, appendMessage.getKey());
         encodedMsg.put(appendMessage.getPayload());
         return encodedMsg.array();
       case GET_AND_APPEND:
         GetAndAppendMessage getAndAppendMessage = (GetAndAppendMessage)message;
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + MESSAGE_ID_SIZE + 2 * cacheIdLen +
                                          getAndAppendMessage.getPayload().remaining());
-        putCacheIdKeyAndOpCode(encodedMsg, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey(), getAndAppendMessage.getOpCode());
+        putCacheIdKeyAndOpCode(encodedMsg, getAndAppendMessage, getAndAppendMessage.getKey());
         encodedMsg.put(getAndAppendMessage.getPayload());
         return encodedMsg.array();
       case REPLACE:
         ReplaceAtHeadMessage replaceAtHeadMessage = (ReplaceAtHeadMessage)message;
         byte[] encodedExpectedChain = chainCodec.encode(replaceAtHeadMessage.getExpect());
         byte[] encodedUpdatedChain = chainCodec.encode(replaceAtHeadMessage.getUpdate());
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + MESSAGE_ID_SIZE + 2 * cacheIdLen +
                                          CHAIN_LEN_SIZE + encodedExpectedChain.length + encodedUpdatedChain.length);
-        putCacheIdKeyAndOpCode(encodedMsg, replaceAtHeadMessage.getCacheId(), replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getOpCode());
+        putCacheIdKeyAndOpCode(encodedMsg, replaceAtHeadMessage, replaceAtHeadMessage.getKey());
         encodedMsg.putInt(encodedExpectedChain.length);
         encodedMsg.put(encodedExpectedChain);
         encodedMsg.put(encodedUpdatedChain);
@@ -87,8 +90,10 @@ class ServerStoreOpCodec {
         return encodedMsg.array();
       case CLEAR:
         ClearMessage clearMessage = (ClearMessage)message;
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + 2 * cacheIdLen);
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + MESSAGE_ID_SIZE + 2 * cacheIdLen);
         encodedMsg.put(clearMessage.getOpCode());
+        encodedMsg.put(ClusteredEhcacheIdentity.serialize(message.getClientId()));
+        encodedMsg.putLong(message.getId());
         CodecUtil.putStringAsCharArray(encodedMsg, clearMessage.getCacheId());
         return encodedMsg.array();
       default:
@@ -97,10 +102,12 @@ class ServerStoreOpCodec {
   }
 
   // This assumes correct allocation and puts extracts common code
-  private static void putCacheIdKeyAndOpCode(ByteBuffer byteBuffer, String cacheId, long key, byte opcode) {
-    byteBuffer.put(opcode);
-    byteBuffer.putInt(cacheId.length());
-    CodecUtil.putStringAsCharArray(byteBuffer, cacheId);
+  private static void putCacheIdKeyAndOpCode(ByteBuffer byteBuffer, ServerStoreOpMessage message, long key) {
+    byteBuffer.put(message.getOpCode());
+    byteBuffer.put(ClusteredEhcacheIdentity.serialize(message.getClientId()));
+    byteBuffer.putLong(message.getId());
+    byteBuffer.putInt(message.getCacheId().length());
+    CodecUtil.putStringAsCharArray(byteBuffer, message.getCacheId());
     byteBuffer.putLong(key);
   }
 
@@ -111,21 +118,34 @@ class ServerStoreOpCodec {
 
     long key;
     String cacheId;
+    UUID clientId;
+    long msgId;
 
+    EhcacheEntityMessage decodecMsg;
     switch (storeOp) {
       case GET:
         key = msg.getLong();
         cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
         return new GetMessage(cacheId, key);
       case GET_AND_APPEND:
+        clientId = getClientId(msg);
+        msgId = msg.getLong();
         cacheId = readStringFromBufferWithSize(msg);
         key = msg.getLong();
-        return new GetAndAppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer());
+        decodecMsg = new GetAndAppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer(), clientId);
+        decodecMsg.setId(msgId);
+        return decodecMsg;
       case APPEND:
+        clientId = getClientId(msg);
+        msgId = msg.getLong();
         cacheId = readStringFromBufferWithSize(msg);
         key = msg.getLong();
-        return new AppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer());
+        decodecMsg = new AppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer(), clientId);
+        decodecMsg.setId(msgId);
+        return decodecMsg;
       case REPLACE:
+        clientId = getClientId(msg);
+        msgId = msg.getLong();
         cacheId = readStringFromBufferWithSize(msg);
         key = msg.getLong();
         int expectChainLen = msg.getInt();
@@ -134,15 +154,21 @@ class ServerStoreOpCodec {
         int updateChainLen = msg.remaining();
         byte[] encodedUpdateChain = new byte[updateChainLen];
         msg.get(encodedUpdateChain);
-        return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
-            chainCodec.decode(encodedUpdateChain));
+        decodecMsg = new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
+            chainCodec.decode(encodedUpdateChain), clientId);
+        decodecMsg.setId(msgId);
+        return decodecMsg;
       case CLIENT_INVALIDATION_ACK:
         int invalidationId = msg.getInt();
         cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
         return new ClientInvalidationAck(cacheId, invalidationId);
       case CLEAR:
+        clientId = getClientId(msg);
+        msgId = msg.getLong();
         cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
-        return new ClearMessage(cacheId);
+        decodecMsg = new ClearMessage(cacheId, clientId);
+        decodecMsg.setId(msgId);
+        return decodecMsg;
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
     }
@@ -151,6 +177,12 @@ class ServerStoreOpCodec {
   private static String readStringFromBufferWithSize(ByteBuffer buffer) {
     int length = buffer.getInt();
     return CodecUtil.getStringFromBuffer(buffer, length);
+  }
+
+  private static UUID getClientId(ByteBuffer payload) {
+    long msb = payload.getLong();
+    long lsb = payload.getLong();
+    return new UUID(msb, lsb);
   }
 
 }

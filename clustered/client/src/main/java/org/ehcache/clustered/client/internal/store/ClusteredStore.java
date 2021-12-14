@@ -50,19 +50,19 @@ import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.core.statistics.TierOperationStatistic;
+import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.ContextManager;
-import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -81,7 +81,6 @@ import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.core.statistics.TierOperationStatistic.set;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -547,6 +546,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   /**
    * Provider of {@link ClusteredStore} instances.
    */
+  @ServiceDependencies({TimeSourceService.class, ClusteringService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
@@ -562,24 +562,22 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     private volatile ClusteringService clusteringService;
 
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, StoreConfig>();
-    private final Map<ClusteredStore<?, ?>, Collection<TierOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<ClusteredStore<?, ?>, Collection<TierOperationStatistic<?, ?>>>();
+    private final Map<ClusteredStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<ClusteredStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>>();
 
     @Override
     public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> store = createStoreInternal(storeConfig, serviceConfigs);
-      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
 
-      TierOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationStatistic.TierOperationOutcomes.GetOutcome> get = new TierOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationStatistic.TierOperationOutcomes.GetOutcome>(TierOperationStatistic.TierOperationOutcomes.GetOutcome.class, StoreOperationOutcomes.GetOutcome.class, store, new HashMap<TierOperationStatistic.TierOperationOutcomes.GetOutcome, Set<StoreOperationOutcomes.GetOutcome>>() {{
-        put(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT, set(StoreOperationOutcomes.GetOutcome.HIT));
-        put(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS, set(StoreOperationOutcomes.GetOutcome.MISS, StoreOperationOutcomes.GetOutcome.TIMEOUT));
-      }}, "get", TIER_HEIGHT, "get", STATISTICS_TAG);
+      MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
+              new MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome>(
+                      store, TierOperationOutcomes.GET_TRANSLATION, "get", TIER_HEIGHT, "get", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(store);
       tieredOps.add(get);
 
-      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationStatistic.TierOperationOutcomes.EvictionOutcome> evict = new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationStatistic.TierOperationOutcomes.EvictionOutcome>(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class, StoreOperationOutcomes.EvictionOutcome.class, store, new HashMap<TierOperationStatistic.TierOperationOutcomes.EvictionOutcome, Set<StoreOperationOutcomes.EvictionOutcome>>() {{
-        put(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.SUCCESS, set(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
-        put(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.FAILURE, set(StoreOperationOutcomes.EvictionOutcome.FAILURE));
-      }}, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
+      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+                      store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(store);
       tieredOps.add(evict);
 
@@ -648,7 +646,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       if (storeConfig == null) {
         throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
       }
-      final ClusteredStore clusteredStore = (ClusteredStore) resource;
+      final ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
       ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
       try {
         clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency());
@@ -693,7 +691,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
         @Override
         public void onEvictInvalidateHash(long hash) {
-          Enum result = StoreOperationOutcomes.EvictionOutcome.SUCCESS;
+          StoreOperationOutcomes.EvictionOutcome result = StoreOperationOutcomes.EvictionOutcome.SUCCESS;
           clusteredStore.evictionObserver.begin();
           if (clusteredStore.invalidationValve != null) {
             try {
@@ -756,21 +754,19 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
-      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
 
-      TierOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationStatistic.TierOperationOutcomes.GetOutcome> get = new TierOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationStatistic.TierOperationOutcomes.GetOutcome>(TierOperationStatistic.TierOperationOutcomes.GetOutcome.class, AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class, authoritativeTier, new HashMap<TierOperationStatistic.TierOperationOutcomes.GetOutcome, Set<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome>>() {{
-        put(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT, set(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.HIT));
-        put(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS, set(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS, AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.TIMEOUT));
-      }}, "get", TIER_HEIGHT, "getAndFault", STATISTICS_TAG);
+      MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome> get =
+              new MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome>(
+                      authoritativeTier, TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "get", TIER_HEIGHT, "getAndFault", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(authoritativeTier);
       tieredOps.add(get);
 
-      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationStatistic.TierOperationOutcomes.EvictionOutcome> evict = new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationStatistic.TierOperationOutcomes.EvictionOutcome>(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class, StoreOperationOutcomes.EvictionOutcome.class, authoritativeTier, new HashMap<TierOperationStatistic.TierOperationOutcomes.EvictionOutcome, Set<StoreOperationOutcomes.EvictionOutcome>>() {{
-        put(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.SUCCESS, set(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
-        put(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.FAILURE, set(StoreOperationOutcomes.EvictionOutcome.FAILURE));
-      }}, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
+      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+                      authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(authoritativeTier);
-      tieredOps.add(get);
+      tieredOps.add(evict);
 
       tierOperationStatistics.put(authoritativeTier, tieredOps);
       return authoritativeTier;
@@ -790,16 +786,16 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private static class StoreConfig {
 
     private final ClusteredCacheIdentifier cacheIdentifier;
-    private final Store.Configuration storeConfig;
+    private final Store.Configuration<?, ?> storeConfig;
     private final Consistency consistency;
 
-    StoreConfig(ClusteredCacheIdentifier cacheIdentifier, Configuration storeConfig, Consistency consistency) {
+    StoreConfig(ClusteredCacheIdentifier cacheIdentifier, Configuration<?, ?> storeConfig, Consistency consistency) {
       this.cacheIdentifier = cacheIdentifier;
       this.storeConfig = storeConfig;
       this.consistency = consistency;
     }
 
-    public Configuration getStoreConfig() {
+    public Configuration<?, ?> getStoreConfig() {
       return this.storeConfig;
     }
 

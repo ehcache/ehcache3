@@ -17,15 +17,19 @@
 package org.ehcache.core.spi;
 
 import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.hamcrest.core.IsCollectionContaining;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  *
@@ -35,23 +39,25 @@ public class ServiceProviderTest {
   @Test
   public void testSupportsMultipleAuthoritativeTierProviders() throws Exception {
 
-    ServiceLocator serviceLocator = new ServiceLocator();
+    ServiceLocator.DependencySet dependencySet = dependencySet();
 
     OnHeapStore.Provider cachingTierProvider = new OnHeapStore.Provider();
     OffHeapStore.Provider authoritativeTierProvider = new OffHeapStore.Provider();
     OffHeapDiskStore.Provider diskStoreProvider = new OffHeapDiskStore.Provider();
 
-    serviceLocator.addService(cachingTierProvider);
-    serviceLocator.addService(authoritativeTierProvider);
-    serviceLocator.addService(diskStoreProvider);
+    dependencySet.with(cachingTierProvider);
+    dependencySet.with(authoritativeTierProvider);
+    dependencySet.with(diskStoreProvider);
+    dependencySet.with(mock(DiskResourceService.class));
 
+    ServiceLocator serviceLocator = dependencySet.build();
     serviceLocator.startAllServices();
 
-    assertThat(serviceLocator.getServicesOfType(CachingTier.Provider.class).iterator().next(),
-        IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider));
-    assertThat(serviceLocator.getServicesOfType(AuthoritativeTier.Provider.class).iterator().next(),
-        IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider));
-    assertThat(serviceLocator.getServicesOfType(diskStoreProvider.getClass()).iterator().next(),
-        IsSame.sameInstance(diskStoreProvider));
+    assertThat(serviceLocator.getServicesOfType(CachingTier.Provider.class),
+      IsCollectionContaining.<CachingTier.Provider>hasItem(IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider)));
+    assertThat(serviceLocator.getServicesOfType(AuthoritativeTier.Provider.class),
+      IsCollectionContaining.<AuthoritativeTier.Provider>hasItem(IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider)));
+    assertThat(serviceLocator.getServicesOfType(OffHeapDiskStore.Provider.class),
+      IsCollectionContaining.<OffHeapDiskStore.Provider>hasItem(IsSame.<OffHeapDiskStore.Provider>sameInstance(diskStoreProvider)));
   }
 }

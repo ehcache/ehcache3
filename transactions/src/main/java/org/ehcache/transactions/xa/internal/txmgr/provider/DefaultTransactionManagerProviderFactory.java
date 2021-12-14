@@ -27,6 +27,7 @@ import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
  *
  * @see LookupTransactionManagerProvider
  */
+@ServiceFactory.RequiresConfiguration
 public class DefaultTransactionManagerProviderFactory implements ServiceFactory<TransactionManagerProvider> {
 
   /**

@@ -96,6 +96,25 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return new CacheConfigurationBuilder<K, V>(keyType, valueType, resourcePoolsBuilder.build());
   }
 
+  /**
+   * Creates a new instance ready to produce a {@link CacheConfiguration} functionally equivalent to the supplied configuration.
+   *
+   * @param configuration seed configuration
+   * @param <K> the key type
+   * @param <V> the value type
+   * @return a {@code CacheConfigurationBuilder}
+   */
+  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(CacheConfiguration<K, V> configuration) {
+    CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType(), configuration.getResourcePools())
+      .withClassLoader(configuration.getClassLoader())
+      .withEvictionAdvisor(configuration.getEvictionAdvisor())
+      .withExpiry(configuration.getExpiry());
+    for (ServiceConfiguration<?> serviceConfig : configuration.getServiceConfigurations()) {
+      builder = builder.add(serviceConfig);
+    }
+    return builder;
+  }
+
   private CacheConfigurationBuilder(Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) {
     this.keyType = keyType;
     this.valueType = valueType;

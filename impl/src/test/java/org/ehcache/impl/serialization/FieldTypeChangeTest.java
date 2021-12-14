@@ -35,6 +35,7 @@ public class FieldTypeChangeTest {
 
   @Test
   public void fieldTypeChangeWithOkayObject() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 
@@ -51,6 +52,7 @@ public class FieldTypeChangeTest {
 
   @Test
   public void fieldTypeChangeWithIncompatibleObject() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 

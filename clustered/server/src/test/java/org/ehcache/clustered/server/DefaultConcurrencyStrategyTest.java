@@ -16,6 +16,7 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.entity.ConcurrencyStrategy;
@@ -24,44 +25,56 @@ import org.terracotta.entity.EntityMessage;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+import static org.terracotta.entity.ConcurrencyStrategy.UNIVERSAL_KEY;
 
 /**
  * @author Ludovic Orban
  */
 public class DefaultConcurrencyStrategyTest {
 
+  private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
+
   @Test
   public void testConcurrencyKey() throws Exception {
     final int concurrency = 107;
-    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(concurrency);
+    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(DEFAULT_MAPPER);
 
     assertThat(strategy.concurrencyKey(new NonConcurrentTestEntityMessage()), is(DEFAULT_KEY));
 
     for (int i = -1024; i < 1024; i++) {
-      assertThat(strategy.concurrencyKey(new ConcurrentTestEntityMessage(i)), withinRange(DEFAULT_KEY, DEFAULT_KEY + concurrency));
+      assertThat(strategy.concurrencyKey(new ConcurrentTestEntityMessage(i)), withinRange(DATA_CONCURRENCY_KEY_OFFSET, DATA_CONCURRENCY_KEY_OFFSET + concurrency));
     }
+  }
+
+  @Test
+  public void testConcurrencyKeyForServerStoreGetOperation() throws Exception {
+    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(DEFAULT_MAPPER);
+    ServerStoreOpMessage.GetMessage getMessage = mock(ServerStoreOpMessage.GetMessage.class);
+    assertThat(strategy.concurrencyKey(getMessage), is(UNIVERSAL_KEY));
   }
 
   @Test
   public void testKeysForSynchronization() throws Exception {
     final int concurrency = 111;
-    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(concurrency);
+    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(DEFAULT_MAPPER);
 
-    assertThat(strategy.concurrencyKey(new NonConcurrentTestEntityMessage()), is(DEFAULT_KEY));
-
-    Set<Integer> visitedConcurrencyKeys = new HashSet<Integer>();
+    Set<Integer> visitedConcurrencyKeys = new HashSet<>();
     for (int i = -1024; i < 1024; i++) {
       int concurrencyKey = strategy.concurrencyKey(new ConcurrentTestEntityMessage(i));
-      assertThat(concurrencyKey, withinRange(DEFAULT_KEY, DEFAULT_KEY + concurrency));
+      assertThat(concurrencyKey, withinRange(DATA_CONCURRENCY_KEY_OFFSET, DATA_CONCURRENCY_KEY_OFFSET + concurrency));
       visitedConcurrencyKeys.add(concurrencyKey);
     }
-    assertThat(strategy.getKeysForSynchronization().containsAll(visitedConcurrencyKeys), is(true));
+    Set<Integer> keysForSynchronization = strategy.getKeysForSynchronization();
+    assertThat(keysForSynchronization.contains(DEFAULT_KEY), is(true));
+    assertThat(keysForSynchronization.containsAll(visitedConcurrencyKeys), is(true));
   }
 
   private static Matcher<Integer> withinRange(int greaterThanOrEqualTo, int lessThan) {
@@ -80,7 +93,7 @@ public class DefaultConcurrencyStrategyTest {
     }
 
     @Override
-    public int concurrencyKey() {
+    public long concurrencyKey() {
       return key;
     }
   }

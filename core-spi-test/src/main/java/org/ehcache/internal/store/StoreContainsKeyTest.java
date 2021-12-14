@@ -49,8 +49,10 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
       kvStore = null;
     }
     if (kvStore2 != null) {
+      @SuppressWarnings("unchecked")
+      Store<K, V> kvStore2 = this.kvStore2;
       factory.close(kvStore2);
-      kvStore2 = null;
+      this.kvStore2 = null;
     }
   }
 
@@ -89,7 +91,7 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore2 = factory.newStore();

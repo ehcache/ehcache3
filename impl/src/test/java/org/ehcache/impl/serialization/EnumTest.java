@@ -36,6 +36,7 @@ public class EnumTest {
 
   @Test
   public void basicInstanceSerialization() throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 
@@ -46,6 +47,7 @@ public class EnumTest {
 
   @Test
   public void classSerialization() throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 
@@ -57,6 +59,7 @@ public class EnumTest {
 
   @Test
   public void shiftingInstanceSerialization() throws ClassNotFoundException {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 

@@ -46,10 +46,11 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     }
     this.timeStamp = buffer.getLong();
     int keySize = buffer.getInt();
+    int maxLimit = buffer.limit();
     buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
     buffer.position(buffer.limit());
-    buffer.limit(buffer.capacity());
+    buffer.limit(maxLimit);
     try {
       this.key = keySerializer.read(keyBlob);
     } catch (ClassNotFoundException e) {

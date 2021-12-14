@@ -16,31 +16,20 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class ReconnectDataCodecTest {
+public class EhcacheEntityMessageTest {
 
   @Test
-  public void testCodec() {
-    Set<String> cacheIds = new HashSet<String>();
-    cacheIds.add("test");
-    cacheIds.add("test1");
-    cacheIds.add("test2");
-
-    ReconnectDataCodec dataCodec = new ReconnectDataCodec();
-
-    Set<String> decoded = dataCodec.decode(dataCodec.encode(cacheIds, 14));
-
-    assertThat(decoded, Matchers.hasSize(3));
-    assertThat(decoded, containsInAnyOrder("test", "test1", "test2"));
-
-
+  public void testEhcacheEntityMessageTypes() {
+    assertThat(EhcacheEntityMessage.Type.LIFECYCLE_OP.getCode(), is((byte) 10));
+    assertThat(EhcacheEntityMessage.Type.SERVER_STORE_OP.getCode(), is((byte) 20));
+    assertThat(EhcacheEntityMessage.Type.STATE_REPO_OP.getCode(), is((byte) 30));
+    assertThat(EhcacheEntityMessage.Type.SYNC_OP.getCode(), is((byte) 40));
+    assertThat(EhcacheEntityMessage.Type.REPLICATION_OP.getCode(), is((byte) 50));
   }
+
 }

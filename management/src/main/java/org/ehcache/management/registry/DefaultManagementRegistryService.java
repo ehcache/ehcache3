@@ -22,7 +22,6 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.cluster.Clustering;
@@ -48,7 +47,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
-@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class})
+@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class})
 public class DefaultManagementRegistryService extends AbstractManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 
   private final ManagementRegistryServiceConfiguration configuration;
@@ -104,13 +103,11 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
   public void cacheAdded(String alias, Cache<?, ?> cache) {
     StatisticsManager.associate(cache).withParent(cacheManager);
 
-    register(cache);
     register(new CacheBinding(alias, cache));
   }
 
   @Override
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
-    unregister(cache);
     unregister(new CacheBinding(alias, cache));
 
     StatisticsManager.dissociate(cache).fromParent(cacheManager);

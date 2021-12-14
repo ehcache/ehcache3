@@ -17,6 +17,7 @@
 package org.ehcache.core;
 
 import org.ehcache.Cache;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.Builder;
@@ -27,36 +28,35 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
-import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.spi.LifeCycledAdapter;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.store.InternalCacheManager;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.core.spi.service.CacheManagerProviderService;
-import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.event.CacheEventListener;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
-import org.ehcache.CachePersistenceException;
+import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreSupport;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.LifeCycled;
-import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.LifeCycledAdapter;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.store.InternalCacheManager;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.MaintainableService;
-import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +73,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
  * <P>
@@ -81,17 +83,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * </P>
  */
 public class EhcacheManager implements PersistentCacheManager, InternalCacheManager {
-
-  @ServiceDependencies({ Store.Provider.class,
-      CacheLoaderWriterProvider.class,
-      WriteBehindProvider.class,
-      CacheEventDispatcherFactory.class,
-      CacheEventListenerProvider.class })
-  private static class ServiceDeps {
-    private ServiceDeps() {
-      throw new UnsupportedOperationException("This is an annotation placeholder, not to be instantiated");
-    }
-  }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheManager.class);
 
@@ -119,10 +110,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     this.simpleName = (simpleName.isEmpty() ? this.getClass().getName() : simpleName);
     this.configuration = new DefaultConfiguration(config);
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
-    this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     this.useLoaderInAtomics = useLoaderInAtomics;
     validateServicesConfigs();
-    resolveServices();
+    this.serviceLocator = resolveServices(services);
   }
 
   private void validateServicesConfigs() {
@@ -134,17 +124,30 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
   }
 
-  private void resolveServices() {
-    if (serviceLocator.getService(CacheManagerProviderService.class) == null) {
-      this.serviceLocator.addService(new DefaultCacheManagerProviderService(this));
+  private ServiceLocator resolveServices(Collection<Service> services) {
+    ServiceLocator.DependencySet builder = dependencySet()
+      .with(Store.Provider.class)
+      .with(CacheLoaderWriterProvider.class)
+      .with(WriteBehindProvider.class)
+      .with(CacheEventDispatcherFactory.class)
+      .with(CacheEventListenerProvider.class)
+      .with(services);
+    if (!builder.contains(CacheManagerProviderService.class)) {
+      builder = builder.with(new DefaultCacheManagerProviderService(this));
     }
     for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
-      Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
-      if (service == null) {
-        throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
-      }
+      builder = builder.with(serviceConfig);
     }
-    serviceLocator.loadDependenciesOf(ServiceDeps.class);
+    return builder.build();
+  }
+
+  /**
+   * Exposed for testing purpose
+   *
+   * @return the status transitioner keeping the current cache manager state
+   */
+  StatusTransitioner getStatusTransitioner() {
+    return statusTransitioner;
   }
 
   @Override
@@ -660,12 +663,20 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     StatusTransitioner.Transition maintenance = null;
     try {
       maintenance = statusTransitioner.maintenance();
-      maintenance.succeeded();
     } catch(IllegalStateException e) {
       // the cache manager is already started, no need to put it in maintenance
-      // however, we need to check that we are in maintenance. Note that right after the check, the is a window
-      // for someone to go in maintenance
+      // however, we need to check that some other thread ISN'T in maintenance
+      // Note that right after the check, there is a window for someone to go in maintenance
       statusTransitioner.checkAvailable();
+    }
+
+    if(maintenance != null) {
+      try {
+        startMaintainableServices(MaintainableService.MaintenanceScope.CACHE);
+        maintenance.succeeded();
+      } catch (Throwable t) {
+        throw maintenance.failed(t);
+      }
     }
 
     try {
@@ -674,7 +685,13 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     } finally {
       // if it was started, stop it
       if(maintenance != null) {
-        statusTransitioner.exitMaintenance().succeeded();
+        StatusTransitioner.Transition st = statusTransitioner.exitMaintenance();
+        try {
+          stopMaintainableServices();
+          st.succeeded();
+        } catch (Throwable t) {
+          throw st.failed(t);
+        }
       }
     }
 
@@ -692,7 +709,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   public void destroy() throws CachePersistenceException {
     StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
-      startMaintainableServices();
+      startMaintainableServices(MaintainableService.MaintenanceScope.CACHE_MANAGER);
       st.succeeded();
     } catch (Throwable t) {
       throw st.failed(t);
@@ -708,11 +725,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     LOGGER.info("All persistent data destroyed for {}", simpleName);
   }
 
-  private void startMaintainableServices() {
+  private void startMaintainableServices(MaintainableService.MaintenanceScope maintenanceScope) {
     ServiceProvider<MaintainableService> provider = getMaintainableServiceProvider();
     Collection<MaintainableService> services = serviceLocator.getServicesOfType(MaintainableService.class);
     for (MaintainableService service : services) {
-      service.startForMaintenance(provider);
+      service.startForMaintenance(provider, maintenanceScope);
     }
   }
 

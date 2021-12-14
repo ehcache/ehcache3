@@ -1,9 +1,9 @@
 ---
 ---
 = Serializers and Copiers
-ifndef::sourcedir31[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -45,7 +45,7 @@ If a serializer is configured directly at the cache level, it will be used, igno
 
 If a serializer is configured at the cache manager level, upon initialization, a cache with no specifically configured serializer will
 search through its cache manager's registered list of serializers and try to find one that directly matches the cache's key or value type.
-If such search fails, all the registered serializers will be tried in the added order to find one that handles compatible types.
+If such a search fails, all the registered serializers will be tried in the added order to find one that handles compatible types.
 
 For instance, let's say you have a `Person` interface and two subclasses: `Employee` and `Customer`. If you configure your cache manager as follows:
 ```java
@@ -60,7 +60,7 @@ NOTE: Given the above, it is recommended to limit `Serializer` registration to c
 [[serializers-bundled]]
 === Bundled implementations
 
-By default, cache managers are pre-configured with specially optimized `Serializer` that can handle the following types, in the following order:
+By default, cache managers are pre-configured with a specially optimized `Serializer` that can handle the following types, in the following order:
 
 - `java.io.Serializable`
 - `java.lang.Long`
@@ -84,7 +84,7 @@ However, registering a different `Serializer` for one of the given type means it
 === Lifecycle: instances vs. class names
 
 When a `Serializer` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
-It will need to dispose of any resource the serializer might hold upon and/or persisting and reloading the serializer's state.
+It will need to dispose of any resource the serializer might hold upon persisting and/or reloading the serializer's state.
 
 When a `Serializer` is configured by providing a _class name_ either at the cache or cache manager level, since Ehcache is responsible for creating the
 instance, it also is responsible for disposing of it.
@@ -109,17 +109,17 @@ Implement the following interface, from package `org.ehcache.spi.serialization`:
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/api/src/main/java/org/ehcache/spi/serialization/Serializer.java[lines=21..-1]
+include::{sourcedir32}/api/src/main/java/org/ehcache/spi/serialization/Serializer.java[lines=21..-1]
 ----
 
 As the javadoc states, there are some constructor rules, see the <<persistent-vs-transient-caches,section on persistent and transient caches>> for that.
 
-You can optionally implement `java.io.Closeable`. If you do, Ehcache will call `close()` when a cache using such serializer gets disposed of, but *only if*
+You can optionally implement `java.io.Closeable`. If you do, Ehcache will call `close()` when a cache using such a serializer gets disposed of, but *only if*
 Ehcache instantiated the serializer itself.
 
 === ClassLoaders
 
-When Ehcache instantiates a serializer itself, it will pass it a `ClassLoader` via the constructor. Such class loader must be used to access the classes
+When Ehcache instantiates a serializer itself, it will pass it a `ClassLoader` via the constructor. Such a class loader must be used to access the classes
 of the serialized types as they might not be available in the current class loader
 
 [[persistent-vs-transient-caches]]
@@ -151,12 +151,12 @@ To address these requirements you can have a `StatefulSerializer` implementation
 public void init(StateRepository repository) {
 }
 ```
-The `StateRepository.getPersistentConcurrentMap(String, Class<K>, Class<V>)` provides a `ConcurrentMap` that you can use to store any relevant state.
+The `StateRepository.getPersistentStateHolder(String, Class<K>, Class<V>)` provides a `StateHolder` (a map like structure) that you can use to store any relevant state.
 The `StateRepository` is provided by the authoritative tier of the cache and hence will have the same persistence properties of that tier.
-For persistent caches it is highly recommended that all state is stored in these maps as the users won't have to worry about the persistence aspects of this map as it is taken care by `Ehcache`.
+For persistent caches it is highly recommended that all state is stored in these holders as the users won't have to worry about the persistence aspects of this state holder as it is taken care by `Ehcache`.
 
-* In the case of a disk persistent cache, the contents of the map will be persisted locally on to the disk.
-* For clustered caches the contents are persisted in the cluster itself so that other clients using the same cache can also access the contents of the map.
+* In the case of a disk persistent cache, the contents of the state holder will be persisted locally on to the disk.
+* For clustered caches the contents are persisted in the cluster itself so that other clients using the same cache can also access the contents of the state holder.
 
 NOTE: The constructor with the signature `(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext)`
       that existed till v3.1 has been removed since v3.2 in favor of `StatefulSerializer`s.
@@ -192,7 +192,7 @@ which allow by _instance_ or by _class name_ configuration.
 If a copier is configured directly at the cache level, it will be used, ignoring any cache manager level configuration.
 
 If a copier is configured at the cache manager level, upon initialization, a cache with no specifically configured copier will
-search through its cache manager's registered list of copiers and try to find one that directly matches the cache's key or value type. If such
+search through its cache manager's registered list of copiers and try to find one that directly matches the cache's key or value type. If such a
 search fails, all the registered copiers will be tried in the added order to find one that handles compatible types.
 
 For instance, let's say you have a `Person` interface and two subclasses: `Employee` and `Customer`. If you configure your cache manager as follows:
@@ -219,11 +219,11 @@ The `CacheConfigurationBuilder` provides the following methods to make use of th
 === Lifecycle: instances vs class names
 
 When a `Copier` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
-It will have dispose of any resource the copier might hold upon.
+It will have to dispose of any resource the copier might hold.
 
 When a `Copier` is configured by providing a _class name_ either at the cache or cache manager level, since Ehcache is responsible for creating the
 instance, it also is responsible for disposing of it.
-If the `Copier` implements `java.io.Closeable` then `close()` will be called when the cache is closed and the `Copier` no longer needed.
+If the `Copier` implements `java.io.Closeable` then `close()` will be called when the cache is closed and the `Copier` is no longer needed.
 
 === Writing your own Copier
 
@@ -231,7 +231,7 @@ Implement the following interface:
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/api/src/main/java/org/ehcache/spi/copy/Copier.java[lines=19..-1]
+include::{sourcedir32}/api/src/main/java/org/ehcache/spi/copy/Copier.java[lines=19..-1]
 ----
 
 * `T copyForRead(T obj)` is invoked when a copy must be made upon a read operation (like a cache `get()`),

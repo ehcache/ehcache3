@@ -74,6 +74,35 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     internalStart();
   }
 
+  @Override
+  public synchronized void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    internalStart();
+  }
+
+  private void internalStart() {
+    if (!started) {
+      createLocationIfRequiredAndVerify(rootDirectory);
+      try {
+        rw = new RandomAccessFile(lockFile, "rw");
+      } catch (FileNotFoundException e) {
+        // should not happen normally since we checked that everything is fine right above
+        throw new RuntimeException(e);
+      }
+      try {
+        lock = rw.getChannel().lock();
+      } catch (Exception e) {
+        try {
+          rw.close();
+        } catch (IOException e1) {
+          // ignore silently
+        }
+        throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
+      }
+      started = true;
+      LOGGER.debug("RootDirectory Locked");
+    }
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -160,35 +189,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
     if (!cleared) {
       LOGGER.warn("Could not delete all file based persistence contexts owned by {}", owner);
-    }
-  }
-
-  @Override
-  public synchronized void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
-    internalStart();
-  }
-
-  private void internalStart() {
-    if (!started) {
-      createLocationIfRequiredAndVerify(rootDirectory);
-      try {
-        rw = new RandomAccessFile(lockFile, "rw");
-      } catch (FileNotFoundException e) {
-        // should not happen normally since we checked that everything is fine right above
-        throw new RuntimeException(e);
-      }
-      try {
-        lock = rw.getChannel().lock();
-      } catch (Exception e) {
-        try {
-          rw.close();
-        } catch (IOException e1) {
-          // ignore silently
-        }
-        throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
-      }
-      started = true;
-      LOGGER.debug("RootDirectory Locked");
     }
   }
 

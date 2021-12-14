@@ -206,10 +206,12 @@ public class OnHeapStoreEvictionTest {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
+    @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
     }
 
+    @SuppressWarnings("unchecked")
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher());
     }

@@ -42,8 +42,8 @@ configurations {
 }
 
 dependencies {
-  compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion" changing true
-  compile "org.terracotta.internal:client-logging:$terracottaCoreVersion" changing true
+  compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  compile "org.terracotta.internal:client-logging:$terracottaCoreVersion"
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
@@ -52,9 +52,9 @@ dependencies {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
 
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip" changing true
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip"
 
-  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
 }
 
@@ -99,7 +99,7 @@ distributions {
         from project(':dist').javadocJar.archivePath.getPath()
       }
       into ('client/lib') {
-        from configurations.shadow
+        from configurations.shadowCompile
       }
       into ('') {
         from 'src/assemble'

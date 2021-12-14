@@ -16,9 +16,11 @@
 
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
@@ -39,10 +41,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
  */
 public class InvocationScopedEventSinkTest {
 
-  private StoreEventListener listener;
+  private StoreEventListener<String, String> listener;
   private InvocationScopedEventSink<String, String> eventSink;
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     HashSet<StoreEventListener<String, String>> storeEventListeners = new HashSet<StoreEventListener<String, String>>();
     listener = mock(StoreEventListener.class);
@@ -63,9 +66,12 @@ public class InvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener).onEvent(argThat(eventType(EventType.CREATED)));
-    inOrder.verify(listener).onEvent(argThat(eventType(EventType.UPDATED)));
-    inOrder.verify(listener).onEvent(argThat(eventType(EventType.EVICTED)));
+    Matcher<StoreEvent<String, String>> createdMatcher = eventType(EventType.CREATED);
+    inOrder.verify(listener).onEvent(argThat(createdMatcher));
+    Matcher<StoreEvent<String, String>> updatedMatcher = eventType(EventType.UPDATED);
+    inOrder.verify(listener).onEvent(argThat(updatedMatcher));
+    Matcher<StoreEvent<String, String>> evictedMatcher = eventType(EventType.EVICTED);
+    inOrder.verify(listener).onEvent(argThat(evictedMatcher));
     verifyNoMoreInteractions(listener);
   }
 

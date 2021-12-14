@@ -35,6 +35,7 @@ public class AddedSuperClassTest {
 
   @Test
   public void testAddedSuperClass() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
     serializer.init(new TransientStateRepository());
 
@@ -52,6 +53,7 @@ public class AddedSuperClassTest {
 
   @Test
   public void testAddedSuperClassNotHidden() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
     serializer.init(new TransientStateRepository());
 

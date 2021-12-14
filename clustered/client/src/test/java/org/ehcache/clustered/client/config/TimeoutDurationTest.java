@@ -41,6 +41,7 @@ public class TimeoutDurationTest {
   @Test
   public void testEquals() throws Exception {
 
+    @SuppressWarnings("unchecked")
     List<Pair<TimeoutDuration>> equalPairs = Arrays.asList(
         Pair.of(TimeoutDuration.of(1, NANOSECONDS), TimeoutDuration.of(1, NANOSECONDS)),
         Pair.of(TimeoutDuration.of(1, MICROSECONDS), TimeoutDuration.of(1000, NANOSECONDS)),
@@ -70,7 +71,7 @@ public class TimeoutDurationTest {
 
         Pair.of(TimeoutDuration.of(1, DAYS), TimeoutDuration.of(24L, HOURS)),
 
-        Pair.of(TimeoutDuration.of(7, NANOSECONDS), TimeoutDuration.of(1 * 7, NANOSECONDS)),
+        Pair.of(TimeoutDuration.of(7, NANOSECONDS), TimeoutDuration.of(7, NANOSECONDS)),
         Pair.of(TimeoutDuration.of(7, MICROSECONDS), TimeoutDuration.of(1000 * 7, NANOSECONDS)),
         Pair.of(TimeoutDuration.of(7, MILLISECONDS), TimeoutDuration.of(1000000 * 7, NANOSECONDS)),
         Pair.of(TimeoutDuration.of(7, SECONDS), TimeoutDuration.of(1000000000L * 7, NANOSECONDS)),
@@ -128,6 +129,7 @@ public class TimeoutDurationTest {
       assertThat(pair.getFirst().hashCode(), is(equalTo(pair.getSecond().hashCode())));
     }
 
+    @SuppressWarnings("unchecked")
     List<Pair<TimeoutDuration>> unEqualPairs = Arrays.asList(
         Pair.of(TimeoutDuration.of(Long.MAX_VALUE, DAYS), TimeoutDuration.of(Long.MAX_VALUE, HOURS)),
         Pair.of(TimeoutDuration.of(Long.MAX_VALUE, DAYS), TimeoutDuration.of(Long.MAX_VALUE, MINUTES)),

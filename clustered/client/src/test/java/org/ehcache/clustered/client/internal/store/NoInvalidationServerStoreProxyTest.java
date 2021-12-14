@@ -72,7 +72,7 @@ public class NoInvalidationServerStoreProxyTest {
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), null));
-    serverStoreProxy = new NoInvalidationServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity);
+    serverStoreProxy = new NoInvalidationServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId()), clientEntity);
   }
 
   @AfterClass

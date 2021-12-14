@@ -52,6 +52,7 @@ import static org.mockito.Mockito.when;
 public class CompoundCachingTierTest {
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetOrComputeIfAbsentComputesWhenBothTiersEmpty() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -83,6 +84,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetOrComputeIfAbsentDoesNotComputesWhenHigherTierContainsValue() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -107,6 +109,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetOrComputeIfAbsentDoesNotComputesWhenLowerTierContainsValue() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -138,6 +141,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetOrComputeIfAbsentComputesWhenLowerTierExpires() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     final LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -186,6 +190,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testInvalidateNoArg() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -198,6 +203,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testInvalidateWhenNoValueDoesNotFireListener() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -218,6 +224,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testInvalidateWhenValueInLowerTierFiresListener() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -275,6 +282,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testInvalidateWhenValueInHigherTierFiresListener() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -333,6 +341,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testInvalidateAllCoversBothTiers() throws Exception {
     HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
     LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
@@ -346,6 +355,7 @@ public class CompoundCachingTierTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testRankCachingTier() throws Exception {
     CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
     HashSet<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();

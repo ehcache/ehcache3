@@ -28,10 +28,12 @@ public abstract class ExposedCacheBinding implements ExposedObject<CacheBinding>
 
   protected final ManagementRegistryServiceConfiguration registryConfiguration;
   protected final CacheBinding cacheBinding;
+  private final Context context;
 
   protected ExposedCacheBinding(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding) {
     this.registryConfiguration = registryConfiguration;
     this.cacheBinding = cacheBinding;
+    this.context = registryConfiguration.getContext().with("cacheName", cacheBinding.getAlias());
   }
 
   @Override
@@ -46,10 +48,11 @@ public abstract class ExposedCacheBinding implements ExposedObject<CacheBinding>
   }
 
   @Override
-  public final boolean matches(Context context) {
-    return context.contains(registryConfiguration.getContext().with("cacheName", cacheBinding.getAlias()));
+  public Context getContext() {
+    return context;
   }
 
+  @Override
   public Collection<? extends Descriptor> getDescriptors() {
     return Collections.emptyList();
   }

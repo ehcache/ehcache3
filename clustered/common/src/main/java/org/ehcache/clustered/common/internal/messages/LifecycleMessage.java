@@ -20,6 +20,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 public abstract class LifecycleMessage extends EhcacheEntityMessage implements Serializable {
 
@@ -30,6 +31,27 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     VALIDATE_SERVER_STORE,
     RELEASE_SERVER_STORE,
     DESTROY_SERVER_STORE,
+  }
+
+  protected UUID clientId;
+  protected long id = NOT_REPLICATED;
+
+  @Override
+  public UUID getClientId() {
+    if (clientId == null) {
+      throw new AssertionError("Client Id cannot be null for lifecycle messages");
+    }
+    return this.clientId;
+  }
+
+  @Override
+  public long getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(long id) {
+    this.id = id;
   }
 
   @Override
@@ -54,8 +76,9 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
 
     private final ServerSideConfiguration configuration;
 
-    ValidateStoreManager(ServerSideConfiguration config) {
+    ValidateStoreManager(ServerSideConfiguration config, UUID clientId) {
       this.configuration = config;
+      this.clientId = clientId;
     }
 
     @Override
@@ -73,8 +96,9 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
 
     private final ServerSideConfiguration configuration;
 
-    ConfigureStoreManager(ServerSideConfiguration config) {
+    ConfigureStoreManager(ServerSideConfiguration config, UUID clientId) {
       this.configuration = config;
+      this.clientId = clientId;
     }
 
     @Override
@@ -93,9 +117,10 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     private final String name;
     private final ServerStoreConfiguration storeConfiguration;
 
-    protected BaseServerStore(String name, ServerStoreConfiguration storeConfiguration) {
+    BaseServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
       this.name = name;
       this.storeConfiguration = storeConfiguration;
+      this.clientId = clientId;
     }
 
     public String getName() {
@@ -114,8 +139,8 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
   public static class CreateServerStore extends BaseServerStore {
     private static final long serialVersionUID = -5832725455629624613L;
 
-    CreateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
-      super(name, storeConfiguration);
+    CreateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
+      super(name, storeConfiguration, clientId);
     }
 
     @Override
@@ -130,8 +155,8 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
   public static class ValidateServerStore extends BaseServerStore {
     private static final long serialVersionUID = 8762670006846832185L;
 
-    ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
-      super(name, storeConfiguration);
+    ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
+      super(name, storeConfiguration, clientId);
     }
 
     @Override
@@ -148,8 +173,9 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
 
     private final String name;
 
-    ReleaseServerStore(String name) {
+    ReleaseServerStore(String name, UUID clientId) {
       this.name = name;
+      this.clientId = clientId;
     }
 
     @Override
@@ -170,8 +196,9 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
 
     private final String name;
 
-    DestroyServerStore(String name) {
+    DestroyServerStore(String name, UUID clientId) {
       this.name = name;
+      this.clientId = clientId;
     }
 
     @Override

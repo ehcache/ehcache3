@@ -38,7 +38,7 @@ public abstract class CacheBindingManagementProvider extends AbstractManagementP
   @Override
   public Collection<Descriptor> getDescriptors() {
     Collection<Descriptor> capabilities = new LinkedHashSet<Descriptor>();
-    for (ExposedObject o : managedObjects) {
+    for (ExposedObject o : getExposedObjects()) {
       capabilities.addAll(((ExposedCacheBinding) o).getDescriptors());
     }
     return capabilities;

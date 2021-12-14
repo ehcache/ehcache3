@@ -27,7 +27,7 @@ import java.util.List;
 import static org.ehcache.clustered.common.internal.store.Util.getElement;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 
-class ChainCodec {
+public class ChainCodec {
 
   private static final byte NON_SEQUENCED_CHAIN = 0;
   private static final byte SEQUENCED_CHAIN = 1;

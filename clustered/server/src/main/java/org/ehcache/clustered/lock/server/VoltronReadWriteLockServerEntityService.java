@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 
+import org.ehcache.clustered.lock.server.messages.LockSyncMessaging;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ConcurrencyStrategy;
@@ -80,7 +81,7 @@ public class VoltronReadWriteLockServerEntityService implements EntityServerServ
 
   @Override
   public SyncMessageCodec<LockOperation> getSyncMessageCodec() {
-    return LockMessaging.syncCodec();
+    return LockSyncMessaging.syncCodec();
   }
 
   private static final <T> ServiceConfiguration<T> config(final Class<T> klazz) {

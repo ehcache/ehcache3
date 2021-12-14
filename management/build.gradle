@@ -22,6 +22,7 @@ dependencies {
 
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:client')
+  compileOnly "org.terracotta:entity-client-api:$parent.entityApiVersion"
   compileOnly "org.terracotta.management:management-entity-client:$parent.managementVersion"
 
   compile project(':api')

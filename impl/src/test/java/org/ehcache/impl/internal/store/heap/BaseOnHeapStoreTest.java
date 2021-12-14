@@ -119,6 +119,7 @@ public abstract class BaseOnHeapStoreTest {
   };
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     eventDispatcher = mock(StoreEventDispatcher.class);
     eventSink = mock(StoreEventSink.class);
@@ -128,19 +129,21 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testEvictEmptyStoreDoesNothing() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     assertThat(store.evict(eventSink), is(false));
-    verify(eventSink, never()).evicted(anyString(), any(ValueSupplier.class));
+    verify(eventSink, never()).evicted(anyString(), anyValueSupplier());
   }
 
   @Test
   public void testEvictWithNoEvictionAdvisorDoesEvict() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));
     }
     assertThat(store.evict(eventSink), is(true));
     assertThat(storeSize(store), is(99));
-    verify(eventSink, times(1)).evicted(anyString(), any(ValueSupplier.class));
+    verify(eventSink, times(1)).evicted(anyString(), anyValueSupplier());
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
   }
 
@@ -152,12 +155,13 @@ public abstract class BaseOnHeapStoreTest {
         return true;
       }
     });
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));
     }
     assertThat(store.evict(eventSink), is(true));
     assertThat(storeSize(store), is(99));
-    verify(eventSink, times(1)).evicted(anyString(), any(ValueSupplier.class));
+    verify(eventSink, times(1)).evicted(anyString(), anyValueSupplier());
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
   }
 
@@ -169,12 +173,13 @@ public abstract class BaseOnHeapStoreTest {
         throw new UnsupportedOperationException("Broken advisor!");
       }
     });
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));
     }
     assertThat(store.evict(eventSink), is(true));
     assertThat(storeSize(store), is(99));
-    verify(eventSink, times(1)).evicted(anyString(), any(ValueSupplier.class));
+    verify(eventSink, times(1)).evicted(anyString(), anyValueSupplier());
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
   }
 
@@ -196,6 +201,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testGetExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
@@ -214,10 +221,11 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(2, TimeUnit.MILLISECONDS)));
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     store.put("key", "value");
     timeSource.advanceTime(1);
     assertThat(store.get("key").value(), equalTo("value"));
-    verify(eventSink, never()).expired(anyString(), any(ValueSupplier.class));
+    verify(eventSink, never()).expired(anyString(), anyValueSupplier());
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT));
   }
 
@@ -251,6 +259,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testContainsKeyExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
 
@@ -266,6 +276,9 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testPut() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
+
     store.put("key", "value");
     verify(eventSink).created(eq("key"), eq("value"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
@@ -276,6 +289,9 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testPutOverwrite() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
+
     store.put("key", "value");
 
     store.put("key", "value2");
@@ -306,6 +322,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testPutIfAbsentNoValue() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     ValueHolder<String> prev = store.putIfAbsent("key", "value");
 
@@ -347,13 +365,15 @@ public abstract class BaseOnHeapStoreTest {
     ValueHolder<String> prev = store.putIfAbsent("key", "value2");
     assertThat(prev, nullValue());
     assertThat(store.get("key").value(), equalTo("value2"));
-    checkExpiryEvent(eventSink, "key", "value");
+    checkExpiryEvent(getStoreEventSink(), "key", "value");
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
   @Test
   public void testRemove() throws StoreAccessException {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
     store.put("key", "value");
 
     store.remove("key");
@@ -365,6 +385,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testRemoveTwoArgMatch() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
     store.put("key", "value");
 
 
@@ -389,8 +411,10 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testRemoveTwoArgExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
@@ -403,6 +427,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testReplaceTwoArgPresent() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     store.put("key", "value");
 
@@ -427,6 +453,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testReplaceTwoArgExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
 
@@ -442,6 +469,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testReplaceThreeArgMatch() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     store.put("key", "value");
 
@@ -471,6 +500,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testReplaceThreeArgExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
 
@@ -548,6 +578,8 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeReplaceTrue() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     store.put("key", "value");
     ValueHolder<String> installedHolder = store.get("key");
@@ -607,6 +639,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testCompute() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
       @Override
@@ -627,6 +661,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testComputeNull() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
       @Override
@@ -677,6 +713,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testComputeExistingValue() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     store.put("key", "value");
 
@@ -699,6 +737,7 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testComputeExpired() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
@@ -828,6 +867,8 @@ public abstract class BaseOnHeapStoreTest {
   @Test
   public void testComputeIfAbsent() throws Exception {
     OnHeapStore<String, String> store = newStore();
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+    StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
     ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
       @Override
@@ -1012,7 +1053,8 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-    CachingTier.InvalidationListener invalidationListener = mock(CachingTier.InvalidationListener.class);
+    @SuppressWarnings("unchecked")
+    CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
 
     store.put("key", "value");
@@ -1185,6 +1227,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testConcurrentFaultingAndInvalidate() throws Exception {
     final OnHeapStore<String, String> store = newStore();
     CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
@@ -1382,7 +1425,14 @@ public abstract class BaseOnHeapStoreTest {
     store.iterator();
   }
 
+  @SuppressWarnings("unchecked")
+  private ValueSupplier<String> anyValueSupplier() {
+    return any(ValueSupplier.class);
+  }
+
   private void verifyListenerReleaseEventsInOrder(StoreEventDispatcher<String, String> listener) {
+    StoreEventSink<String, String> eventSink = getStoreEventSink();
+
     InOrder inOrder = inOrder(listener);
     inOrder.verify(listener).eventSink();
     inOrder.verify(listener).releaseEventSink(eventSink);
@@ -1403,6 +1453,7 @@ public abstract class BaseOnHeapStoreTest {
     eventDispatcher = mock(StoreEventDispatcher.class);
     eventSink = mock(StoreEventSink.class);
     when(eventDispatcher.eventSink()).thenReturn(eventSink);
+    @SuppressWarnings("unchecked")
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
     return listener;
   }
@@ -1450,6 +1501,16 @@ public abstract class BaseOnHeapStoreTest {
     private void advanceTime(long delta) {
       this.time += delta;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <K, V> StoreEventSink<K, V> getStoreEventSink() {
+    return eventSink;
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <K, V> StoreEventDispatcher<K, V> getStoreEventDispatcher() {
+    return eventDispatcher;
   }
 
   protected <K, V> OnHeapStore<K, V> newStore() {

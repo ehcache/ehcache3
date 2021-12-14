@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.store.disk.factories;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory.EhcachePersistentSegment;
 import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
@@ -52,10 +51,12 @@ public class EhcachePersistentSegmentTest {
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
 
+  @SuppressWarnings("unchecked")
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
     return createTestSegment(noAdvice(), mock(EvictionListener.class));
   }
 
+  @SuppressWarnings("unchecked")
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
@@ -145,6 +146,7 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testEvictionFiresEvent() throws IOException {
+    @SuppressWarnings("unchecked")
     EvictionListener<String, String> evictionListener = mock(EvictionListener.class);
     EhcachePersistentSegment<String, String> segment = createTestSegment(evictionListener);
     try {

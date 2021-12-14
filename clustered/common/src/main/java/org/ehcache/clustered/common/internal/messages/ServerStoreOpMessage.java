@@ -19,8 +19,9 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
-public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implements ConcurrentEntityMessage {
+public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   public enum ServerStoreOp {
 
     GET_AND_APPEND((byte) 11),
@@ -62,6 +63,27 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
   }
 
+  protected UUID clientId;
+  protected long id = NOT_REPLICATED;
+
+  @Override
+  public UUID getClientId() {
+    if (clientId == null) {
+      throw new AssertionError("Client Id is not supported for message type " + this.operation() );
+    }
+    return this.clientId;
+  }
+
+  @Override
+  public long getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(long id) {
+    this.id = id;
+  }
+
   private final String cacheId;
 
   private ServerStoreOpMessage(String cacheId) {
@@ -70,11 +92,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
   public String getCacheId() {
     return cacheId;
-  }
-
-  @Override
-  public int concurrencyKey() {
-    return cacheId.hashCode();
   }
 
   @Override
@@ -94,7 +111,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     return getType() + "#" + operation();
   }
 
-  static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage {
+  public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage  implements ConcurrentEntityMessage {
 
     private final long key;
 
@@ -108,8 +125,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     }
 
     @Override
-    public int concurrencyKey() {
-      return (int) (super.concurrencyKey() + key);
+    public long concurrencyKey() {
+      return key;
     }
   }
 
@@ -129,9 +146,10 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
     private final ByteBuffer payload;
 
-    GetAndAppendMessage(String cacheId, long key, ByteBuffer payload) {
+    GetAndAppendMessage(String cacheId, long key, ByteBuffer payload, UUID clientId) {
       super(cacheId, key);
       this.payload = payload;
+      this.clientId = clientId;
     }
 
     @Override
@@ -149,9 +167,10 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
     private final ByteBuffer payload;
 
-    AppendMessage(String cacheId, long key, ByteBuffer payload) {
+    AppendMessage(String cacheId, long key, ByteBuffer payload, UUID clientId) {
       super(cacheId, key);
       this.payload = payload;
+      this.clientId = clientId;
     }
 
     @Override
@@ -170,10 +189,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     private final Chain expect;
     private final Chain update;
 
-    ReplaceAtHeadMessage(String cacheId, long key, Chain expect, Chain update) {
+    ReplaceAtHeadMessage(String cacheId, long key, Chain expect, Chain update, UUID clientId) {
       super(cacheId, key);
       this.expect = expect;
       this.update = update;
+      this.clientId = clientId;
     }
 
     @Override
@@ -209,10 +229,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     }
   }
 
-  static class ClearMessage extends ServerStoreOpMessage {
+  public static class ClearMessage extends ServerStoreOpMessage {
 
-    ClearMessage(final String cacheId) {
+    ClearMessage(String cacheId, UUID clientId) {
       super(cacheId);
+      this.clientId = clientId;
     }
 
     @Override

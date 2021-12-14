@@ -18,6 +18,8 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.junit.Test;
 
+import java.util.UUID;
+
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
@@ -26,7 +28,7 @@ import static org.ehcache.clustered.common.internal.store.Util.getChain;
 
 public class ServerStoreMessageFactoryTest {
 
-  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory("test");
+  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory("test", UUID.randomUUID());
 
   @Test
   public void testAppendMessage() {

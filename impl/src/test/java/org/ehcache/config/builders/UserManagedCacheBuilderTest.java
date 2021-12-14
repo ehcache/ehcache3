@@ -50,7 +50,7 @@ public class UserManagedCacheBuilderTest {
       public UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>> builder(final UserManagedCacheBuilder<String, Object, ? extends UserManagedCache<String, Object>> builder) {
         return new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class) {
           @Override
-          TestUserManagedCache<String, Object> build(final ServiceLocator serviceProvider) {
+          TestUserManagedCache<String, Object> build(final ServiceLocator.DependencySet dependencySet) {
             return new TestUserManagedCache<String, Object>();
           }
         };

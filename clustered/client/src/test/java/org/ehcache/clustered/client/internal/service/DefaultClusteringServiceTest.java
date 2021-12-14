@@ -48,6 +48,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.service.MaintainableService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -78,6 +79,7 @@ import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -329,7 +331,7 @@ public class DefaultClusteringServiceTest {
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     assertThat(service.isConnected(), is(false));
-    service.startForMaintenance(null);
+    service.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
     assertThat(service.isConnected(), is(true));
 
     assertThat(UnitTestConnectionService.getConnectionProperties(clusterUri).size(), is(1));
@@ -354,7 +356,7 @@ public class DefaultClusteringServiceTest {
 
     DefaultClusteringService maintenanceService = new DefaultClusteringService(configuration);
     try {
-      maintenanceService.startForMaintenance(null);
+      maintenanceService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
       // Expected
@@ -392,7 +394,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getConnectedClients().size(), is(0));
 
     DefaultClusteringService maintenanceService = new DefaultClusteringService(configuration);
-    maintenanceService.startForMaintenance(null);
+    maintenanceService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
 
     activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntities.size(), is(1));
@@ -445,14 +447,14 @@ public class DefaultClusteringServiceTest {
             .autoCreate()
             .build();
     DefaultClusteringService maintenanceService1 = new DefaultClusteringService(configuration);
-    maintenanceService1.startForMaintenance(null);
+    maintenanceService1.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntities.size(), is(0));
 
     DefaultClusteringService maintenanceService2 = new DefaultClusteringService(configuration);
     try {
-      maintenanceService2.startForMaintenance(null);
+      maintenanceService2.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString(" acquire cluster-wide "));
@@ -468,14 +470,14 @@ public class DefaultClusteringServiceTest {
             .autoCreate()
             .build();
     DefaultClusteringService maintenanceService1 = new DefaultClusteringService(configuration);
-    maintenanceService1.startForMaintenance(null);
+    maintenanceService1.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
     maintenanceService1.stop();
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntities.size(), is(0));
 
     DefaultClusteringService maintenanceService2 = new DefaultClusteringService(configuration);
-    maintenanceService2.startForMaintenance(null);
+    maintenanceService2.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
     maintenanceService2.stop();
 
     activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -547,7 +549,7 @@ public class DefaultClusteringServiceTest {
       assertThat(e.getMessage(), containsString("Maintenance mode required"));
     }
 
-    createService.startForMaintenance(null);
+    createService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
 
     createService.destroyAll();
 
@@ -1322,7 +1324,7 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testDestroyWhenStoppedWorks() throws Exception {
+  public void testDestroyCantBeCalledIfStopped() throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
@@ -1331,28 +1333,11 @@ public class DefaultClusteringServiceTest {
         .defaultServerResource("defaultResource")
         .build();
     DefaultClusteringService creationService = new DefaultClusteringService(configuration);
-    creationService.start(null);
 
-    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
-    Store.Configuration<Long, String> storeConfiguration =
-      getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage(endsWith(" should be started to call destroy"));
 
-    ServerStoreProxy serverStoreProxy = creationService.getServerStoreProxy(
-      getClusteredCacheIdentifier(creationService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
-    assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
-
-    creationService.stop();
     creationService.destroy(cacheAlias);
-
-    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
-    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
-
-    assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
-
-    assertThat("Service must be stopped after destroying the cache", creationService.isStarted(), is(false));
   }
 
   @Test
@@ -1403,7 +1388,7 @@ public class DefaultClusteringServiceTest {
       assertThat(e.getMessage(), containsString("Maintenance mode required"));
     }
 
-    createService.startForMaintenance(null);
+    createService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
 
     createService.destroyAll();
 
@@ -1774,7 +1759,7 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
     accessService.start(null);
 
-    Store.Configuration accessStoreConfig =
+    Store.Configuration<Long, String> accessStoreConfig =
         getSharedStoreConfig("serverResource1", serializationProvider, Long.class, String.class);
 
     try {
@@ -1925,30 +1910,8 @@ public class DefaultClusteringServiceTest {
     ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
 
     ResourcePools resourcePools = mock(ResourcePools.class);
-    Store.Configuration storeConfig = mock(Store.Configuration.class);
-    when(storeConfig.getResourcePools()).thenReturn(resourcePools);
-    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
-    when(storeConfig.getKeyType()).thenReturn(String.class);
-    when(storeConfig.getValueType()).thenReturn(Object.class);
-
-    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.EVENTUAL);
-    assertThat(serverStoreProxy, instanceOf(EventualServerStoreProxy.class));
-  }
-
-  @Test
-  public void testGetServerStoreProxyReturnsEventualStoreByDefault() throws Exception {
-    String entityIdentifier = "my-application";
-    ClusteringServiceConfiguration configuration =
-        new ClusteringServiceConfiguration(
-            URI.create(CLUSTER_URI_BASE + entityIdentifier),
-            true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
-    DefaultClusteringService service = new DefaultClusteringService(configuration);
-    service.start(null);
-
-    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
-
-    ResourcePools resourcePools = mock(ResourcePools.class);
-    Store.Configuration storeConfig = mock(Store.Configuration.class);
+    @SuppressWarnings("unchecked")
+    Store.Configuration<String, Object> storeConfig = mock(Store.Configuration.class);
     when(storeConfig.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
     when(storeConfig.getKeyType()).thenReturn(String.class);
@@ -1971,7 +1934,8 @@ public class DefaultClusteringServiceTest {
     ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
 
     ResourcePools resourcePools = mock(ResourcePools.class);
-    Store.Configuration storeConfig = mock(Store.Configuration.class);
+    @SuppressWarnings("unchecked")
+    Store.Configuration<String, Object> storeConfig = mock(Store.Configuration.class);
     when(storeConfig.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
     when(storeConfig.getKeyType()).thenReturn(String.class);

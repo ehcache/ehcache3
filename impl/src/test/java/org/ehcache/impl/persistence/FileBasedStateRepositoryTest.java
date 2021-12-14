@@ -16,6 +16,8 @@
 
 package org.ehcache.impl.persistence;
 
+import org.ehcache.impl.serialization.TransientStateHolder;
+import org.ehcache.spi.persistence.StateHolder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -26,8 +28,6 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
@@ -37,31 +37,33 @@ import static org.junit.Assert.*;
  */
 public class FileBasedStateRepositoryTest {
 
-  private static String MAP_FILE_NAME = "map-0-myMap.bin";
+  private static String HOLDER_FILE_NAME = "holder-0-myHolder.bin";
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
 
   @Test
-  public void testMapSave() throws Exception {
+  public void testHolderSave() throws Exception {
     File directory = folder.newFolder("testSave");
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    String mapName = "myMap";
-    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName, Long.class, String.class);
+    String holderName = "myHolder";
+    StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class);
 
-    myMap.put(42L, "TheAnswer!");
+    myHolder.putIfAbsent(42L, "TheAnswer!");
 
     stateRepository.close();
 
-    FileInputStream fis = new FileInputStream(new File(directory, MAP_FILE_NAME));
+    FileInputStream fis = new FileInputStream(new File(directory, HOLDER_FILE_NAME));
     try {
       ObjectInputStream ois = new ObjectInputStream(fis);
       try {
         String name = (String) ois.readObject();
-        assertThat(name, is(mapName));
+        assertThat(name, is(holderName));
         FileBasedStateRepository.Tuple loadedTuple = (FileBasedStateRepository.Tuple) ois.readObject();
         assertThat(loadedTuple.index, is(0));
-        assertThat((ConcurrentMap<Long, String>)loadedTuple.map, is(myMap));
+        @SuppressWarnings("unchecked")
+        StateHolder<Long, String> stateHolder = (StateHolder<Long, String>) loadedTuple.holder;
+        assertThat(stateHolder, is(myHolder));
       } finally {
         ois.close();
       }
@@ -71,17 +73,17 @@ public class FileBasedStateRepositoryTest {
   }
 
   @Test
-  public void testMapLoad() throws Exception {
+  public void testHolderLoad() throws Exception {
     File directory = folder.newFolder("testLoad");
-    String mapName = "myMap";
-    ConcurrentMap<Long, String> map = new ConcurrentHashMap<Long, String>();
-    map.put(42L, "Again? That's not even funny anymore!!");
+    String holderName = "myHolder";
+    StateHolder<Long, String> map = new TransientStateHolder<Long, String>();
+    map.putIfAbsent(42L, "Again? That's not even funny anymore!!");
 
-    FileOutputStream fos = new FileOutputStream(new File(directory, MAP_FILE_NAME));
+    FileOutputStream fos = new FileOutputStream(new File(directory, HOLDER_FILE_NAME));
     try {
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       try {
-        oos.writeObject(mapName);
+        oos.writeObject(holderName);
         oos.writeObject(new FileBasedStateRepository.Tuple(0, map));
       } finally {
         oos.close();
@@ -91,22 +93,22 @@ public class FileBasedStateRepositoryTest {
     }
 
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName, Long.class, String.class);
+    StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class);
 
-    assertThat(myMap, is(map));
+    assertThat(myHolder, is(map));
   }
 
   @Test
   public void testIndexProperlySetAfterLoad() throws Exception {
     File directory = folder.newFolder("testIndexAfterLoad");
-    String mapName = "myMap";
+    String holderName = "myHolder";
 
-    FileOutputStream fos = new FileOutputStream(new File(directory, MAP_FILE_NAME));
+    FileOutputStream fos = new FileOutputStream(new File(directory, HOLDER_FILE_NAME));
     try {
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       try {
-        oos.writeObject(mapName);
-        oos.writeObject(new FileBasedStateRepository.Tuple(0, new ConcurrentHashMap<Long, String>()));
+        oos.writeObject(holderName);
+        oos.writeObject(new FileBasedStateRepository.Tuple(0, new TransientStateHolder<Long, String>()));
       } finally {
         oos.close();
       }
@@ -115,13 +117,13 @@ public class FileBasedStateRepositoryTest {
     }
 
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    stateRepository.getPersistentConcurrentMap("otherMap", Long.class, Long.class);
+    stateRepository.getPersistentStateHolder("otherHolder", Long.class, Long.class);
     stateRepository.close();
 
     File[] files = directory.listFiles(new FilenameFilter() {
       @Override
       public boolean accept(File dir, String name) {
-        return name.contains("otherMap") && name.contains("-1-");
+        return name.contains("otherHolder") && name.contains("-1-");
       }
     });
 

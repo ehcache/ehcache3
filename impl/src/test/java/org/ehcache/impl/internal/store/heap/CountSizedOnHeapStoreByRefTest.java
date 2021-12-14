@@ -44,6 +44,7 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final int capacity) {

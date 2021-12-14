@@ -40,6 +40,7 @@ class EhDistribute implements Plugin<Project> {
     def OSGI_OVERRIDE_KEYS = ['Import-Package', 'Export-Package', 'Private-Package', 'Tool', 'Bnd-LastModified', 'Created-By', 'Require-Capability']
 
     project.configurations {
+        shadowCompile
         shadowProvided
     }
 

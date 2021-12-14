@@ -47,11 +47,11 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public abstract class CacheTest {
 
-  protected abstract InternalCache<Object, Object> getCache(Store store);
+  protected abstract InternalCache<Object, Object> getCache(Store<Object, Object> store);
 
   @Test
   public void testTransistionsState() {
-    Store store = mock(Store.class);
+    Store<Object, Object> store = mock(Store.class);
 
     InternalCache ehcache = getCache(store);
     assertThat(ehcache.getStatus(), CoreMatchers.is(Status.UNINITIALIZED));
@@ -63,10 +63,10 @@ public abstract class CacheTest {
 
   @Test
   public void testThrowsWhenNotAvailable() throws StoreAccessException {
-    Store store = mock(Store.class);
+    Store<Object, Object> store = mock(Store.class);
     Store.Iterator mockIterator = mock(Store.Iterator.class);
     when(store.iterator()).thenReturn(mockIterator);
-    InternalCache ehcache = getCache(store);
+    InternalCache<Object, Object> ehcache = getCache(store);
 
     try {
       ehcache.get("foo");

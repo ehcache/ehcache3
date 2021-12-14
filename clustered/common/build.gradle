@@ -17,5 +17,9 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compile "org.terracotta:entity-server-api:$parent.entityApiVersion"
+  provided "org.terracotta:entity-common-api:$parent.entityApiVersion"
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
 }

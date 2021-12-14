@@ -1,9 +1,9 @@
 ---
 ---
 = Concepts Related to Caching
-ifndef::sourcedir31[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -14,8 +14,8 @@ endif::notBuildingForSite[]
 
 === Data Freshness
 
-Data _freshness_ refers to aspect of a copy of data (e.g. in a cache) being up-to-date with the source version of the
-data (e.g. in the syste-of-record (SoR)).  A _stale_ copy is considered to be out of sync (or likely to be out of
+Data _freshness_ refers to how up-to-date a copy of data (e.g. in a cache) is compared to the source version of the
+data (e.g. in the system-of-record (SoR)).  A _stale_ copy is considered to be out of sync (or likely to be out of
 sync) with the SoR.
 
 Databases (and other SORs) weren't built with caching outside of the database in mind, and therefore don't normally
@@ -27,7 +27,7 @@ components that have loaded data from the SoR have no direct way of ensuring tha
 Ehcache can assist you with reducing the likelihood that stale data is used by your application by _expiring_ cache
 entries after some amount of configured time. Once expired, the entry is automatically removed from the cache.
 
-For instance the cache could be configured to expire entries five seconds after they are put in - which is a
+For instance the cache could be configured to expire entries five seconds after they are put into the cache - which is a
 time-to-live _TTL_ setting.  Or to expire entries 17 seconds after the last time the entry was retrieved from the
 cache - which is a time-to-idle _TTI_ setting.
 
@@ -38,18 +38,18 @@ and technical decision based upon the requirements and assumptions of your appli
 == Storage Tiers
 
 You can configure Ehcache to use various data storage areas.  When a cache is configured to use more than one data
-store, they are referred to as tiers.
+store, these stores are referred to as tiers.
 
 Data stores supported by Ehcache include:
 
 * On-Heap Store – Utilizes Java's on-heap RAM memory to store cache entries. This tier utilizes the same heap memory as
 your Java application, all of which must be scanned by the JVM's garbage collector.  The more heap space your JVM
-utilizes the more your application's performance will be impacted by garbage collection pauses.  This store is
+utilizes, the more your application's performance will be impacted by garbage collection pauses.  This store is
 extremely fast, but is typically your most limited storage resource.
 * Off-Heap Store – Limited in size only by available RAM (tested to as much as 6TB on a single machine!). Not subject
 to Java garbage collection (GC). Is quite fast, yet slower than the On-Heap Store because data must be moved off and
 on the JVM's heap as it is stored and re-accessed.
-* Disk Store – Utilizes a disk (filesystem) to store cache entries.  This type of storage resource is typically very
+* Disk Store – Utilizes a disk (file system) to store cache entries.  This type of storage resource is typically very
 abundant but much slower than the RAM-based stores.
 
 image::EhcacheTerminology.png[]

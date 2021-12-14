@@ -27,9 +27,6 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +34,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.internal.util.ByteBufferInputStream;
@@ -53,7 +51,7 @@ import org.ehcache.spi.serialization.StatefulSerializer;
  */
 public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
-  private volatile ConcurrentMap<Integer, ObjectStreamClass> readLookup;
+  private volatile StateHolder<Integer, ObjectStreamClass> readLookup;
   private final ConcurrentMap<Integer, ObjectStreamClass> readLookupLocalCache = new ConcurrentHashMap<Integer, ObjectStreamClass>();
   private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<SerializableDataKey, Integer>();
 
@@ -80,7 +78,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
   @Override
   public void init(final StateRepository stateRepository) {
-    this.readLookup = stateRepository.getPersistentConcurrentMap("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
+    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
     loadMappingsInWriteContext(readLookup.entrySet(), true);
   }
 
@@ -111,7 +109,9 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     try {
       ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary));
       try {
-        return (T) oin.readObject();
+        @SuppressWarnings("unchecked")
+        T value = (T) oin.readObject();
+        return value;
       } finally {
         oin.close();
       }
