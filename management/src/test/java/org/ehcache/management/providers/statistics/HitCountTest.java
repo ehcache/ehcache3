@@ -51,7 +51,7 @@ import org.terracotta.management.model.context.Context;
 public class HitCountTest {
 
   @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
+  public final Timeout globalTimeout = Timeout.seconds(60);
 
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();

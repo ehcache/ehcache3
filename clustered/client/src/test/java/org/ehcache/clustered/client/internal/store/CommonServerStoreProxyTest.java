@@ -44,13 +44,13 @@ import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class NoInvalidationServerStoreProxyTest {
+public class CommonServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
   private static EhcacheClientEntity clientEntity;
-  private static NoInvalidationServerStoreProxy serverStoreProxy;
+  private static CommonServerStoreProxy serverStoreProxy;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -72,7 +72,7 @@ public class NoInvalidationServerStoreProxyTest {
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), null));
-    serverStoreProxy = new NoInvalidationServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId()), clientEntity);
+    serverStoreProxy = new CommonServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId()), clientEntity);
   }
 
   @AfterClass
