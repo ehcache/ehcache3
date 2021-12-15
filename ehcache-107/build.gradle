@@ -1,0 +1,123 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+  id 'org.ehcache.build.internal-module'
+  id 'org.ehcache.build.plugins.variant'
+}
+
+publishing.publications.withType(MavenPublication) {
+  pom {
+    name = 'Ehcache 3 JSR-107 module'
+    description = 'The JSR-107 compatibility module of Ehcache 3'
+  }
+}
+
+variants {
+  variant('jakarta') {
+    capability "org.ehcache.modules:ehcache-107-jakarta:$version"
+    capability "org.ehcache.modules:ehcache-107-provider:$version"
+  }
+}
+
+configurations {
+  tckTestClasses
+
+  all {
+    resolutionStrategy {
+      dependencySubstitution {
+        substitute(module('junit:junit:4.11'))
+          .because('CVE-2020-15250')
+          .with(module('junit:junit:4.13.1'))
+      }
+    }
+  }
+
+  [apiElements, runtimeElements].each {
+    it.outgoing {
+      capability "org.ehcache.modules:ehcache-107:$version"
+      capability "org.ehcache.modules:ehcache-107-provider:$version"
+    }
+  }
+}
+
+sourceSets {
+  tckTest {
+    java.srcDir 'src/tck/java'
+    resources.srcDir 'src/tck/resources'
+    compileClasspath += sourceSets.test.compileClasspath
+    runtimeClasspath += sourceSets.test.runtimeClasspath
+  }
+}
+
+dependencies {
+  commonApi project(':ehcache-api')
+  commonApi "javax.cache:cache-api:$parent.jcacheVersion"
+
+  commonImplementation project(':ehcache-impl')
+  commonImplementation "org.terracotta:statistics:$statisticVersion"
+
+  implementation project(':ehcache-xml')
+  jakartaImplementation(project(':ehcache-xml')) {
+    capabilities {
+      requireCapability 'org.ehcache.modules:ehcache-xml-jakarta'
+    }
+  }
+
+  compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+
+  tckTestRuntimeOnly "javax.cache:cache-tests:$jcacheTckVersion"
+  tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
+    transitive = false
+  }
+}
+
+javadoc {
+  exclude '**/tck/**'
+}
+
+jar {
+  bnd(
+    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.jsr107.internal.*, org.ehcache.jsr107.*',
+    'Import-Package': 'javax.cache.*;resolution:=optional, *',
+  )
+}
+
+task unpackTckTests(type: Sync) {
+  from {
+    configurations.tckTestClasses.collect {zipTree(it)}
+  }
+  into sourceSets.tckTest.java.outputDir
+}
+
+task tckTest(type: Test, dependsOn: unpackTckTests) {
+  testClassesDirs = sourceSets.tckTest.output.classesDirs
+  classpath += sourceSets.tckTest.runtimeClasspath
+
+  binResultsDir file("$buildDir/tck-tests-results/binary/$name")
+  reports.junitXml.destination = file("$buildDir/tck-tests-results")
+  reports.html.destination = file("$buildDir/reports/tck-tests")
+
+  systemProperty 'java.net.preferIPv4Stack', 'true'
+  systemProperty 'javax.management.builder.initial', 'org.ehcache.jsr107.internal.tck.Eh107MBeanServerBuilder'
+  systemProperty 'org.jsr107.tck.management.agentId', 'Eh107MBeanServer'
+  systemProperty 'javax.cache.CacheManager', 'org.ehcache.CacheManager'
+  systemProperty 'javax.cache.Cache', 'org.ehcache.Cache'
+  systemProperty 'javax.cache.Cache.Entry', 'org.ehcache.Cache$Entry'
+  systemProperty 'javax.cache.annotation.CacheInvocationContext', 'javax.cache.annotation.impl.cdi.CdiCacheKeyInvocationContextImpl'
+}
+
+test.dependsOn tckTest

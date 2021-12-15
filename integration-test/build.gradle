@@ -14,11 +14,19 @@
  * limitations under the License.
  */
 
+plugins {
+  id 'org.ehcache.build.conventions.java'
+}
+
 dependencies {
   testImplementation "javax.cache:cache-api:$parent.jcacheVersion"
-  testImplementation project(':107')
-  testImplementation project(':impl')
-  testImplementation project(':transactions')
+  testImplementation project(':ehcache-107')
+  testImplementation project(':ehcache-impl')
+  testImplementation(project(':ehcache-transactions')) {
+    capabilities {
+      requireCapability('org.ehcache:ehcache-transactions-modules')
+    }
+  }
   testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }

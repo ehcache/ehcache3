@@ -221,8 +221,7 @@ public abstract class AbstractClusteringManagementTest {
   public static void sendManagementCallOnClientToCollectStats() throws Exception {
     org.terracotta.management.model.cluster.Cluster topology = readTopology();
     Client manageableClient = topology.getClient(ehcacheClientIdentifier).filter(AbstractManageableNode::isManageable).get();
-    Context cmContext = manageableClient.getContext()
-      .with("cacheManagerName", "my-super-cache-manager");
+    Context cmContext = manageableClient.getContext();
     CLUSTER.getNmsService().startStatisticCollector(cmContext, 1, TimeUnit.SECONDS).waitForReturn();
   }
 
