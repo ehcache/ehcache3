@@ -70,8 +70,13 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
         SimpleClusterTierClientEntity clientEntity2 = createClientEntity(ENTITY_NAME, getServerStoreConfiguration(), false, false);
         StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy(ENTITY_NAME, clientEntity2, new ServerCallback() {
           @Override
-          public void onInvalidateHash(long hash, Chain evictedChain) {
+          public void onAppendInvalidateHash(long hash) {
             invalidatedHash.set(hash);
+          }
+
+          @Override
+          public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+            throw new AssertionError("Should not be called");
           }
 
           @Override

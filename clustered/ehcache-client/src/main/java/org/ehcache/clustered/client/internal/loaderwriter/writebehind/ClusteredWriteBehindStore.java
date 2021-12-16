@@ -228,8 +228,13 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     }
 
     @Override
-    public void onInvalidateHash(long hash, Chain evictedChain) {
-      this.delegate.onInvalidateHash(hash, evictedChain);
+    public void onAppendInvalidateHash(long hash) {
+      this.delegate.onAppendInvalidateHash(hash);
+    }
+
+    @Override
+    public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+      this.delegate.onEvictInvalidateHash(hash, evictedChain);
     }
 
     @Override

@@ -160,6 +160,10 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     return new ServerInvalidateHash(key, evictedChain);
   }
 
+  public static ServerInvalidateHash serverInvalidateHash(long key) {
+    return new ServerInvalidateHash(key, null);
+  }
+
   // this is fired when the server evicts a chain
   public static class ServerInvalidateHash extends EhcacheEntityResponse {
     private final long key;
