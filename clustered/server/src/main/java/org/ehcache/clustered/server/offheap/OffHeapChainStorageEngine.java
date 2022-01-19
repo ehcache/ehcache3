@@ -50,7 +50,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   private final Portability<? super K> keyPortability;
   private final Set<AttachedInternalChain> activeChains = new HashSet<AttachedInternalChain>();
 
-  private StorageEngine.Owner owner;
+  private OffHeapChainMap.HeadMap<?> owner;
   private long nextSequenceNumber = 0;
 
   public OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean thief, boolean victim) {
@@ -158,7 +158,11 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   @Override
   public void bind(StorageEngine.Owner owner) {
-    this.owner = owner;
+    if (owner instanceof OffHeapChainMap.HeadMap<?>) {
+      this.owner = (OffHeapChainMap.HeadMap<?>) owner;
+    } else {
+      throw new IllegalArgumentException("Chain storage engine owner must be an OffHeapChainMap.HeadMap (was " + owner.getClass() + ")");
+    }
   }
 
   @Override
@@ -295,9 +299,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       if (suffixHead == chain) {
         //whole chain removed
         int slot = owner.getSlotForHashAndEncoding(readKeyHash(chain), chain, ~0);
-        if (!owner.evict(slot, true)) {
-          throw new AssertionError("Unexpected failure to evict slot " + slot);
-        }
+        owner.removeAtSlot(slot, true);
         return true;
       } else {
         int hash = readKeyHash(chain);

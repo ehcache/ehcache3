@@ -43,6 +43,9 @@ import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 
 @RunWith(Parameterized.class)
@@ -254,6 +257,24 @@ public class ChainMapTest {
     map.replaceAtHead("foo", chain(buffer(1), buffer(2)), chain());
     assertThat(map.getDataOccupiedMemory(), lessThan(before));
     assertThat(map.get("foo"), contains(element(3)));
+  }
+
+  @Test
+  public void testReplaceEntireChainAtHeadWithEmpty() {
+    OffHeapChainMap.ChainMapEvictionListener<String> evictionListener = mock(OffHeapChainMap.ChainMapEvictionListener.class);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.setEvictionListener(evictionListener);
+
+    map.append("foo", buffer(1));
+    map.append("foo", buffer(2));
+    map.append("foo", buffer(3));
+
+    long before = map.getDataOccupiedMemory();
+    map.replaceAtHead("foo", chain(buffer(1), buffer(2), buffer(3)), chain());
+    assertThat(map.getDataOccupiedMemory(), lessThan(before));
+    assertThat(map.get("foo"), emptyIterable());
+    assertThat(map.getSize(), is(0L));
+    verify(evictionListener, never()).onEviction("foo");
   }
 
   @Test

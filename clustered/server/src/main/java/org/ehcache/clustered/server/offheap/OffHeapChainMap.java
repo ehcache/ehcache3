@@ -42,7 +42,7 @@ class OffHeapChainMap<K> implements MapInternals {
     void onEviction(K key);
   }
 
-  private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
+  private final HeadMap<K> heads;
   private final OffHeapChainStorageEngine<K> chainStorage;
   private volatile ChainMapEvictionListener<K> evictionListener;;
 
@@ -68,7 +68,7 @@ class OffHeapChainMap<K> implements MapInternals {
 
     //TODO: EvictionListeningReadWriteLockedOffHeapClockCache lacks ctor that takes shareByThieving
     // this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, shareByThieving, chainStorage);
-    this.heads = new EvictionListeningReadWriteLockedOffHeapClockCache<K, InternalChain>(listener, source, chainStorage);
+    this.heads = new HeadMap<K>(listener, source, chainStorage);
   }
 
   void setEvictionListener(ChainMapEvictionListener<K> listener) {
@@ -338,4 +338,22 @@ class OffHeapChainMap<K> implements MapInternals {
   protected void storageEngineFailure(Object failure) {
   }
 
+  public static class HeadMap<K> extends EvictionListeningReadWriteLockedOffHeapClockCache<K, InternalChain> {
+
+    public HeadMap(EvictionListener<K, InternalChain> listener, PageSource source, OffHeapChainStorageEngine<K> chainStorage) {
+      super(listener, source, chainStorage);
+    }
+
+    public void removeAtSlot(int slot, boolean shrink) {
+      Lock l = writeLock();
+      l.lock();
+      try {
+        if ((hashtable.get(slot + STATUS) & STATUS_USED) == STATUS_USED) {
+          removeAtTableOffset(slot, shrink);
+        }
+      } finally {
+        l.unlock();
+      }
+    }
+  }
 }
