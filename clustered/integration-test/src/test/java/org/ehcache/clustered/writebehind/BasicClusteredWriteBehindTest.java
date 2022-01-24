@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -79,7 +81,7 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
   }
 
   @Test
-  public void testBasicClusteredWriteBehind() {
+  public void testBasicClusteredWriteBehind() throws TimeoutException {
     PersistentCacheManager cacheManager = createCacheManager();
     Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
 
@@ -89,12 +91,12 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
 
     assertValue(cache, String.valueOf(9));
 
-    verifyRecords(cache);
+    verifyRecords();
     cache.clear();
   }
 
   @Test
-  public void testWriteBehindMultipleClients() {
+  public void testWriteBehindMultipleClients() throws TimeoutException {
     PersistentCacheManager cacheManager1 = createCacheManager();
     PersistentCacheManager cacheManager2 = createCacheManager();
     Cache<Long, String> client1 = cacheManager1.getCache(CACHE_NAME, Long.class, String.class);
@@ -117,12 +119,12 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
     remove(client1);
     assertValue(client2, null);
 
-    verifyRecords(client1);
+    verifyRecords();
     client1.clear();
   }
 
   @Test
-  public void testClusteredWriteBehindCAS() {
+  public void testClusteredWriteBehindCAS() throws TimeoutException {
     PersistentCacheManager cacheManager = createCacheManager();
     Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
     putIfAbsent(cache, "First value", true);
@@ -145,7 +147,7 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
     assertValue(cache, "new value");
     condRemove(cache, "new value", false);
 
-    verifyRecords(cache);
+    verifyRecords();
     cache.clear();
   }
 
@@ -155,7 +157,6 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
     Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
 
     put(cache,"Some value");
-    tryFlushingUpdatesToSOR(cache);
     cache.clear();
 
     assertThat(cache.get(KEY), notNullValue());
@@ -211,36 +212,27 @@ public class BasicClusteredWriteBehindTest extends ClusteredTests {
     }
   }
 
-  private void verifyRecords(Cache<Long, String> cache) {
-    tryFlushingUpdatesToSOR(cache);
+  private void verifyRecords() throws TimeoutException {
+    long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(2);
 
-    Map<Long, List<String>> loaderWriterRecords = loaderWriter.getRecords();
-
-    Map<Long, Integer> track = new HashMap<>();
-    for (Record cacheRecord : cacheRecords) {
-      Long key = cacheRecord.getKey();
-      int next = track.compute(key, (k, v) -> v == null ? 0 : v + 1);
-      assertThat(loaderWriterRecords.get(key).get(next), is(cacheRecord.getValue()));
-    }
-  }
-
-  private void tryFlushingUpdatesToSOR(Cache<Long, String> cache) {
-    int retryCount = 1000;
-    int i = 0;
-    while (true) {
-      String value = "flush_queue_" + i;
-      put(cache, value, false);
+    do {
       try {
-        Thread.sleep(100);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
+        Map<Long, List<String>> loaderWriterRecords = loaderWriter.getRecords();
+
+        Map<Long, Integer> track = new HashMap<>();
+        for (Record cacheRecord : cacheRecords) {
+          Long key = cacheRecord.getKey();
+          int next = track.compute(key, (k, v) -> v == null ? 0 : v + 1);
+          assertThat(loaderWriterRecords.get(key).get(next), is(cacheRecord.getValue()));
+        }
+        break;
+      } catch (Throwable t) {
+        if (System.nanoTime() > deadline) {
+          throw (TimeoutException) new TimeoutException("Timeout waiting for writer").initCause(t);
+        }
       }
-      if (value.equals(loaderWriter.load(KEY))) break;
-      if (i > retryCount) {
-        throw new RuntimeException("Couldn't flush updates to SOR after " + retryCount + " tries");
-      }
-      i++;
-    }
+    } while (true);
+
   }
 
   private PersistentCacheManager createCacheManager() {

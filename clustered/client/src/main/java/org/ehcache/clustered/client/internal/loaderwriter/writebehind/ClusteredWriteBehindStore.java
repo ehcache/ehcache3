@@ -134,6 +134,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     ByteBuffer payload = codec.encode(operation);
     long extractedKey = extractLongKey(key);
     storeProxy.append(extractedKey, payload);
+    clusteredWriteBehind.scheduleWriteOf(extractedKey);
   }
 
   @Override
@@ -143,6 +144,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       storeProxy.append(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
       return PutStatus.PUT;
     } catch (Exception re) {
       throw handleException(re);
@@ -157,6 +159,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       long extractedKey = extractLongKey(key);
       Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
 
       Result<K, V> result = resolvedChain.getResolvedResult(key);
       return result == null ? null : result.getValue();
@@ -173,6 +176,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       long extractedKey = extractLongKey(key);
       Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
 
       return resolvedChain.getResolvedResult(key) != null;
     } catch (Exception re) {
@@ -188,6 +192,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       long extractedKey = extractLongKey(key);
       Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
 
       Result<K, V> result = resolvedChain.getResolvedResult(key);
       return result == null ? null : result.getValue();
@@ -204,6 +209,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       long extractedKey = extractLongKey(key);
       Chain chain = storeProxy.getAndAppend(extractedKey, payload);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
 
       Result<K, V> result = resolvedChain.getResolvedResult(key);
       return result == null ? null : result.getValue();
@@ -219,6 +225,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       Chain chain = storeProxy.getAndAppend(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
 
       Result<K, V> result = resolvedChain.getResolvedResult(key);
@@ -253,7 +260,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
 
     @Override
     public Chain compact(Chain chain, long hash) {
-      clusteredWriteBehind.flushWriteBehindQueue(chain, hash);
+      clusteredWriteBehind.scheduleWriteOf(hash);
       return null;
     }
   }
@@ -278,7 +285,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       if (writeBehindConfiguration != null) {
         ExecutorService executorService =
           executionService.getOrderedExecutor(writeBehindConfiguration.getThreadPoolAlias(),
-                                              new LinkedBlockingQueue<>());
+                                              new LinkedBlockingQueue<>(writeBehindConfiguration.getMaxQueueSize()));
         return new ClusteredWriteBehindStore<>(storeConfig,
                                                codec,
                                                resolver,
