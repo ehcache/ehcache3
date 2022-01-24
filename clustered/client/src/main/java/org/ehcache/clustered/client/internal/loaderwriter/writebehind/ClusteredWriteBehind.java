@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
 class ClusteredWriteBehind<K, V> {
@@ -55,52 +56,58 @@ class ClusteredWriteBehind<K, V> {
     this.timeSource = timeSource;
   }
 
-  void flushWriteBehindQueue(Chain ignored, long hash) {
-    executorService.submit(() -> {
+  void scheduleWriteOf(long hash) {
+    try {
+      executorService.submit(() -> process(hash));
+    } catch (RejectedExecutionException e) {
+      process(hash);
+    }
+  }
+
+  private void process(long hash) {
+    try {
+      Chain chain = clusteredWriteBehindStore.lock(hash);
       try {
-        Chain chain = clusteredWriteBehindStore.lock(hash);
-        try {
-          if (!chain.isEmpty()) {
-            Map<K, PutOperation<K, V>> currentState = new HashMap<>();
-            for (Element element : chain) {
-              ByteBuffer payload = element.getPayload();
-              Operation<K, V> operation = codec.decode(payload);
-              K key = operation.getKey();
-              PutOperation<K, V> result = resolver.applyOperation(key,
-                                                                  currentState.get(key),
-                                                                  operation,
-                                                                  timeSource.getTimeMillis());
-              try {
-                if (result != null) {
-                  if (result != currentState.get(key) && !(operation instanceof PutOperation)) {
-                    cacheLoaderWriter.write(result.getKey(), result.getValue());
-                  }
-                  currentState.put(key, result.asOperationExpiringAt(result.expirationTime()));
-                } else {
-                  if (currentState.get(key) != null && (operation instanceof RemoveOperation
-                                                        || operation instanceof ConditionalRemoveOperation)) {
-                    cacheLoaderWriter.delete(key);
-                  }
-                  currentState.remove(key);
+        if (!chain.isEmpty()) {
+          Map<K, PutOperation<K, V>> currentState = new HashMap<>();
+          for (Element element : chain) {
+            ByteBuffer payload = element.getPayload();
+            Operation<K, V> operation = codec.decode(payload);
+            K key = operation.getKey();
+            PutOperation<K, V> result = resolver.applyOperation(key,
+              currentState.get(key),
+              operation,
+              timeSource.getTimeMillis());
+            try {
+              if (result != null) {
+                if (result != currentState.get(key) && !(operation instanceof PutOperation)) {
+                  cacheLoaderWriter.write(result.getKey(), result.getValue());
                 }
-              } catch (Exception e) {
-                throw new RuntimeException(e);
+                currentState.put(key, result.asOperationExpiringAt(result.expirationTime()));
+              } else {
+                if (currentState.get(key) != null && (operation instanceof RemoveOperation
+                  || operation instanceof ConditionalRemoveOperation)) {
+                  cacheLoaderWriter.delete(key);
+                }
+                currentState.remove(key);
               }
+            } catch (Exception e) {
+              throw new RuntimeException(e);
             }
-
-            ChainBuilder builder = new ChainBuilder();
-            for (PutOperation<K, V> operation : currentState.values()) {
-              builder = builder.add(codec.encode(operation));
-            }
-
-            clusteredWriteBehindStore.replaceAtHead(hash, chain, builder.build());
           }
-        } finally {
-          clusteredWriteBehindStore.unlock(hash);
+
+          ChainBuilder builder = new ChainBuilder();
+          for (PutOperation<K, V> operation : currentState.values()) {
+            builder = builder.add(codec.encode(operation));
+          }
+
+          clusteredWriteBehindStore.replaceAtHead(hash, chain, builder.build());
         }
-      } catch (TimeoutException e) {
-        throw new RuntimeException(e);
+      } finally {
+        clusteredWriteBehindStore.unlock(hash);
       }
-    });
+    } catch (TimeoutException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
