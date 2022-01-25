@@ -16,9 +16,14 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.terracotta.runnel.Struct;
+import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
@@ -27,6 +32,7 @@ import java.util.Collections;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class CommonConfigCodecTest {
@@ -47,4 +53,23 @@ public class CommonConfigCodecTest {
     assertThat(decodedServerSideConfiguration.getDefaultServerResource(), is("foo"));
     assertThat(decodedServerSideConfiguration.getResourcePools(), hasKey("bar"));
   }
+
+  @Test
+  public void testInjectServerStoreConfiguration() {
+    PoolAllocation poolAllocation = mock(PoolAllocation.class);
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(poolAllocation, "Long.class",
+            "String.class", null, null, Consistency.EVENTUAL, false, false);
+    ConfigCodec.InjectTuple injectTuple = CODEC.injectServerStoreConfiguration(newStructBuilder(), 10);
+
+    assertThat(injectTuple.getLastIndex(), is(40));
+
+    Struct struct = injectTuple.getUpdatedBuilder().build();
+    StructEncoder<Void> encoder = struct.encoder();
+
+    CODEC.encodeServerStoreConfiguration(encoder, serverStoreConfiguration);
+
+    encoder.int64(CommonConfigCodec.POOL_SIZE_FIELD, 20);
+
+  }
+
 }
