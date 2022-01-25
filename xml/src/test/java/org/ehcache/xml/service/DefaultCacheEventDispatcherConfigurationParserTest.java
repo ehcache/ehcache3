@@ -43,7 +43,7 @@ public class DefaultCacheEventDispatcherConfigurationParserTest {
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultCacheEventDispatcherConfiguration("foo")).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultCacheEventDispatcherConfiguration("foo")).build();
     CacheType cacheType = new CacheType();
     cacheType = new DefaultCacheEventDispatcherConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 

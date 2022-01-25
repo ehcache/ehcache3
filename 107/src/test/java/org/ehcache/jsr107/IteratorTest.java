@@ -23,7 +23,6 @@ import org.junit.Test;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
@@ -33,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 /**
  * @author Ludovic Orban
@@ -55,7 +53,7 @@ public class IteratorTest {
   }
 
   @Test
-  public void testIterateExpiredReturnsNull() throws Exception {
+  public void testIterateExpiredIsSkipped() throws Exception {
     EhcacheCachingProvider provider = (EhcacheCachingProvider) Caching.getCachingProvider();
     TestTimeSource testTimeSource = new TestTimeSource();
     TimeSourceConfiguration timeSourceConfiguration = new TimeSourceConfiguration(testTimeSource);
@@ -86,16 +84,7 @@ public class IteratorTest {
     testTimeSource.advanceTime(1000);
 
     Iterator<Cache.Entry<Number, CharSequence>> iterator = testCache.iterator();
-    assertThat(iterator.hasNext(), is(true));
-
-    int loopCount = 0;
-    while (iterator.hasNext()) {
-      Cache.Entry<Number, CharSequence> next = iterator.next();
-      assertThat(next, is(nullValue()));
-
-      loopCount++;
-    }
-    assertThat(loopCount, is(1));
+    assertThat(iterator.hasNext(), is(false));
 
     cacheManager.close();
   }

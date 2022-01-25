@@ -49,7 +49,7 @@ import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class, ClusteringService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
 
-  private final ClusteringManagementServiceConfiguration configuration;
+  private final ClusteringManagementServiceConfiguration<?> configuration;
 
   private volatile ManagementRegistryService managementRegistryService;
   private volatile CollectorService collectorService;
@@ -63,7 +63,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     this(new DefaultClusteringManagementServiceConfiguration());
   }
 
-  public DefaultClusteringManagementService(ClusteringManagementServiceConfiguration configuration) {
+  public DefaultClusteringManagementService(ClusteringManagementServiceConfiguration<?> configuration) {
     this.configuration = configuration == null ? new DefaultClusteringManagementServiceConfiguration() : configuration;
   }
 
@@ -92,17 +92,21 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   public void stop() {
     if (collectorService != null) {
       collectorService.stop();
+      collectorService = null;
     }
-    shutdownNow(managementCallExecutor);
+
+    if (managementCallExecutor != null) {
+      shutdownNow(managementCallExecutor);
+      managementCallExecutor = null;
+    }
 
     // nullify so that no further actions are done with them (see null-checks below)
     if (nmsAgentService != null) {
       nmsAgentService.close();
-      managementRegistryService = null;
       nmsAgentService = null;
     }
 
-    managementCallExecutor = null;
+    managementRegistryService = null;
   }
 
   @Override

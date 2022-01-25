@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -36,139 +38,73 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class ReferenceStoreImpl implements ServerStore  {
 
-  private final Map<Long, Chain> map = new HashMap<>();
-  private final List<ReadWriteLock> locks = new ArrayList<>();
+  private final ConcurrentMap<Long, Chain> map = new ConcurrentHashMap<>();
   private final AtomicLong sequenceGenerator = new AtomicLong();
-
-  private final int LOCK_COUNT = 16;
-
-  public ReferenceStoreImpl() {
-    for (int i = 0; i < LOCK_COUNT; i++) {
-      locks.add(new ReentrantReadWriteLock());
-    }
-  }
-
-  private ReadWriteLock getLock(long key) {
-    return locks.get((int)Math.abs(key)%LOCK_COUNT);
-  }
 
   @Override
   public Chain get(long key) {
-    Lock lock = getLock(key).readLock();
-    lock.lock();
-    try {
-      Chain chain = map.get(key);
-      if (chain != null) {
-        return chain;
-      } else {
-        return new HeapChainImpl();
-      }
-    } finally {
-      lock.unlock();
-    }
+    return map.getOrDefault(key, new HeapChainImpl());
   }
 
   @Override
   public void append(long key, ByteBuffer payLoad) {
-    Lock lock =  getLock(key).writeLock();
-    lock.lock();
-    try {
-      Chain mapping = map.get(key);
-      if (mapping == null) {
-        map.put(key, new HeapChainImpl(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad)));
-        return;
-      }
-      Chain newMapping = cast(mapping).append(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad));
-      map.put(key, newMapping);
-    } finally {
-      lock.unlock();
-    }
+    getAndAppend(key, payLoad);
   }
 
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
-    Lock lock =  getLock(key).writeLock();
-    lock.lock();
-    try {
-      Chain mapping = map.get(key);
-      if (mapping != null) {
-        Chain newMapping = cast(mapping).append(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad));
-        map.put(key, newMapping);
-        return mapping;
+    while (true) {
+      Chain existing = map.get(key);
+      if (existing == null) {
+        if (map.putIfAbsent(key, new HeapChainImpl(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad))) == null) {
+          return new HeapChainImpl();
+        }
       } else {
-        map.put(key, new HeapChainImpl(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad)));
-        return new HeapChainImpl();
+        if (map.replace(key, existing, cast(existing).append(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad)))) {
+          return existing;
+        }
       }
-    } finally {
-      lock.unlock();
     }
   }
 
   @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
-    Lock lock =  getLock(key).writeLock();
-    lock.lock();
-    try {
-      Chain mapping = map.get(key);
-      if (mapping == null) {
-        return;
-      }
-      boolean replaceable = true;
-      List<Element> elements = new LinkedList<>();
-      Iterator<Element> current = mapping.iterator();
+    map.computeIfPresent(key, (k, existing) -> {
+      Iterator<Element> current = existing.iterator();
       Iterator<Element> expected = expect.iterator();
       while (expected.hasNext()) {
         if (current.hasNext()) {
           HeapElementImpl expectedLink = (HeapElementImpl)expected.next();
           if (expectedLink.getSequenceNumber() != ((HeapElementImpl)current.next()).getSequenceNumber()) {
-            replaceable = false;
-            break;
+            return existing;
           }
         } else {
-          replaceable = false;
-          break;
+          return existing;
         }
       }
 
-      if (replaceable) {
-        for (Element element : update) {
-          elements.add(element);
-        }
-        while(current.hasNext()) {
-          elements.add(current.next());
-        }
-        map.put(key, new HeapChainImpl(elements.toArray(new Element[elements.size()])));
+      List<Element> elements = new LinkedList<>();
+      for (Element element : update) {
+        elements.add(element);
       }
-
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  private void writeLockAll() {
-    for (ReadWriteLock lock : locks) {
-      lock.writeLock().lock();
-    }
-  }
-
-  private void writeUnlockAll() {
-    for (ReadWriteLock lock : locks) {
-      lock.writeLock().unlock();
-    }
+      while(current.hasNext()) {
+        elements.add(current.next());
+      }
+      return new HeapChainImpl(elements.toArray(new Element[elements.size()]));
+    });
   }
 
   @Override
   public void clear() {
-    writeLockAll();
-    try {
-      map.clear();
-    } finally {
-      writeUnlockAll();
-    }
+    map.clear();
+  }
+
+  @Override
+  public Iterator<Chain> iterator() {
+    return map.values().iterator();
   }
 
   private HeapChainImpl cast(Chain chain) {
     return (HeapChainImpl)chain;
   }
-
 }

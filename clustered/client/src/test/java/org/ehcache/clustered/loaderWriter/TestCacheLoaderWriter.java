@@ -16,10 +16,10 @@
 
 package org.ehcache.clustered.loaderWriter;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TestCacheLoaderWriter implements CacheLoaderWriter<Long, String> {
 

@@ -85,7 +85,7 @@ public class XmlConfigTest {
     try {
       DefaultManagementRegistryConfiguration registryConfiguration = null;
 
-      for (ServiceCreationConfiguration<?> configuration : myCacheManager.getRuntimeConfiguration().getServiceCreationConfigurations()) {
+      for (ServiceCreationConfiguration<?, ?> configuration : myCacheManager.getRuntimeConfiguration().getServiceCreationConfigurations()) {
         if (configuration instanceof DefaultManagementRegistryConfiguration) {
           registryConfiguration = (DefaultManagementRegistryConfiguration) configuration;
           break;

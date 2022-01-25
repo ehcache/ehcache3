@@ -39,11 +39,6 @@ public class HeapChainImpl implements Chain {
   }
 
   @Override
-  public Iterator<Element> reverseIterator() {
-    return new ReverseChainIterator();
-  }
-
-  @Override
   public boolean isEmpty() {
     return first == null;
   }
@@ -134,37 +129,6 @@ public class HeapChainImpl implements Chain {
       Node temp = this.current;
       this.current = this.current.nextLink;
       return temp.element;
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("Remove operation is not supported");
-    }
-  }
-
-  private class ReverseChainIterator implements Iterator<Element> {
-
-    private Node current;
-
-    ReverseChainIterator() {
-      this.current = last;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return current != null;
-    }
-
-    @Override
-    public Element next() {
-      Node temp = this.current;
-      this.current = this.current.prevLink;
-      return temp.element;
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("Remove operation is not supported");
     }
   }
 

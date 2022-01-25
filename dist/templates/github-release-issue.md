@@ -1,0 +1,11 @@
+- [ ] Tag release
+- [ ] Build and verify release
+  - includes checking javadoc and source jars
+- [ ] Prepare release on GitHub
+- [ ] Prepare website update
+  - includes checking XSDs
+- [ ] Publish jars to Maven Central
+- [ ] Publish release on GitHub
+- [ ] Publish website
+- [ ] Update readme / bump version on release branch
+- [ ] Email announcement

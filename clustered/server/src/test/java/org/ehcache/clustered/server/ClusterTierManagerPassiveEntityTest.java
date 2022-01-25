@@ -429,6 +429,11 @@ public class ClusterTierManagerPassiveEntityTest {
       return capacity;
     }
 
+    @Override
+    public boolean setCapacity(long size) throws IllegalArgumentException {
+      throw new UnsupportedOperationException("Not supported");
+    }
+
     private long getUsed() {
       return used;
     }

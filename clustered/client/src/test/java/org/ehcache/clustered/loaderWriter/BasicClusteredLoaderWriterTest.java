@@ -20,20 +20,15 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
-import org.ehcache.clustered.util.ThrowingResilienceStrategy;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.hamcrest.Matchers;
+import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -73,7 +68,7 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -81,13 +76,13 @@ public class BasicClusteredLoaderWriterTest {
             ResourcePoolsBuilder
                     .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
                     .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-            .withResilienceStrategy(new ThrowingResilienceStrategy())
+            .withResilienceStrategy(new ThrowingResilienceStrategy<>())
             .build();
 
     try {
       CacheManager anotherManager = CacheManagerBuilder
               .newCacheManagerBuilder()
-              .with(cluster(CLUSTER_URI).autoCreate())
+              .with(cluster(CLUSTER_URI).autoCreate(c -> c))
               .withCache("cache-1", withoutLoaderWriter)
               .build(true);
     } catch (RuntimeException e) {
@@ -104,7 +99,7 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -127,13 +122,13 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -161,13 +156,13 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -204,7 +199,7 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -239,13 +234,13 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate())
+            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -279,7 +274,7 @@ public class BasicClusteredLoaderWriterTest {
                     .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
                     .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .withLoaderWriter(loaderWriter)
-            .withResilienceStrategy(new ThrowingResilienceStrategy())
+            .withResilienceStrategy(new ThrowingResilienceStrategy<>())
             .build();
   }
 

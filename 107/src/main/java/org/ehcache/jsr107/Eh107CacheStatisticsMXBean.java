@@ -18,10 +18,9 @@ package org.ehcache.jsr107;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.CacheStatistics;
-import org.terracotta.statistics.derived.latency.Jsr107LatencyMonitor;
+import org.ehcache.core.statistics.Jsr107LatencyMonitor;
 
 import java.net.URI;
-import java.util.EnumSet;
 
 /**
  * @author Ludovic Orban
@@ -45,7 +44,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
   }
 
   private <T extends Enum<T>> Jsr107LatencyMonitor<T> registerDerivedStatistics(Class<T> outcome, String name) {
-    Jsr107LatencyMonitor<T> monitor = new Jsr107LatencyMonitor<>(EnumSet.allOf(outcome), 1.0);
+    Jsr107LatencyMonitor<T> monitor = new Jsr107LatencyMonitor<>(outcome);
     CacheStatistics cacheStatistics = this.cacheStatistics;
     cacheStatistics.registerDerivedStatistic(outcome, name, monitor);
     return monitor;

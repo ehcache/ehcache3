@@ -37,6 +37,7 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 import org.terracotta.offheapstore.util.Factory;
 
 import static java.util.Collections.unmodifiableList;
+import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
 public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, BinaryStorageEngine {
   private static final int ELEMENT_HEADER_SEQUENCE_OFFSET = 0;
@@ -390,36 +391,6 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
     return chainAddress + CHAIN_HEADER_SIZE;
   }
 
-  private static class DetachedChain implements Chain {
-
-    private final List<Element> elements;
-
-    private DetachedChain(List<Element> buffers) {
-      this.elements = unmodifiableList(buffers);
-    }
-
-    @Override
-    public Iterator<Element> reverseIterator() {
-      return Util.reverseIterator(elements);
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return elements.isEmpty();
-    }
-
-    @Override
-    public int length() {
-      return elements.size();
-    }
-
-    @Override
-    public Iterator<Element> iterator() {
-      return elements.iterator();
-    }
-
-  }
-
   /**
    * Represents the initial form of a chain before the storage engine writes the chain mapping
    * to the underlying map against the key.
@@ -455,7 +426,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
     private final Element element;
 
     public GenesisLink(ByteBuffer buffer) {
-      element = () -> buffer;
+      element = buffer::asReadOnlyBuffer;
     }
 
     @Override
@@ -507,7 +478,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
         element = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
       } while (element != chain);
 
-      return new DetachedChain(buffers);
+      return chainFromList(buffers);
     }
 
     @Override

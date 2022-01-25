@@ -81,8 +81,8 @@ public class ClusterTierManagerClientEntityFactory {
     }
   }
 
-  public boolean abandonAllHolds(String entityIdentifier) {
-    return abandonLeadership(entityIdentifier) | abandonFetchHolds(entityIdentifier);
+  public boolean abandonAllHolds(String entityIdentifier, boolean healthyConnection) {
+    return abandonLeadership(entityIdentifier, healthyConnection) | abandonFetchHolds(entityIdentifier, healthyConnection);
   }
 
   /**
@@ -91,9 +91,9 @@ public class ClusterTierManagerClientEntityFactory {
    * @param entityIdentifier the master entity identifier
    * @return true of abandoned false otherwise
    */
-  public boolean abandonLeadership(String entityIdentifier) {
+  public boolean abandonLeadership(String entityIdentifier, boolean healthyConnection) {
     Hold hold = maintenanceHolds.remove(entityIdentifier);
-    return (hold != null) && silentlyUnlock(hold, entityIdentifier);
+    return (hold != null) && healthyConnection && silentlyUnlock(hold, entityIdentifier);
   }
 
   /**
@@ -102,9 +102,9 @@ public class ClusterTierManagerClientEntityFactory {
    * @param entityIdentifier the master entity identifier
    * @return true of abandoned false otherwise
    */
-  private boolean abandonFetchHolds(String entityIdentifier) {
+  private boolean abandonFetchHolds(String entityIdentifier, boolean healthyConnection) {
     Hold hold = fetchHolds.remove(entityIdentifier);
-    return (hold != null) && silentlyUnlock(hold, entityIdentifier);
+    return (hold != null) && healthyConnection && silentlyUnlock(hold, entityIdentifier);
   }
 
   /**
@@ -341,5 +341,10 @@ public class ClusterTierManagerClientEntityFactory {
 
   private static String entityName(String clusterTierManagerIdentifier, String storeIdentifier) {
     return clusterTierManagerIdentifier + "$" + storeIdentifier;
+  }
+
+  // For test purposes
+  public Map<String, Hold> getMaintenanceHolds() {
+    return maintenanceHolds;
   }
 }

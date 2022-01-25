@@ -18,9 +18,6 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.CacheIterationException;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
-import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -44,7 +41,10 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Provides testing of basic ITERATOR operations on an {@code Ehcache}.
@@ -228,20 +228,16 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
     assertThat(iterator.hasNext(), is(true));
-    doThrow(new StoreAccessException("")).when(storeIterator).next();
+    StoreAccessException exception = new StoreAccessException("");
+    doThrow(exception).when(storeIterator).next();
     Cache.Entry<String, String> entry = iterator.next();
     assertThat(entry.getKey(), is("foo"));
     assertThat(entry.getValue(), is("bar"));
 
-    doThrow(new StoreAccessException("")).when(storeIterator).next();
     doReturn(RemoveStatus.REMOVED).when(this.store).remove(anyString(), anyString());
 
-    try {
-      iterator.next();
-      fail();
-    } catch (CacheIterationException e) {
-      // Expected
-    }
+    iterator.next();
+    verify(resilienceStrategy).iteratorFailure(exception);
 
     assertThat(iterator.hasNext(), is(false));
 
@@ -281,8 +277,8 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    *
    * @return a new {@code Ehcache} instance
    */
+  @SuppressWarnings("unchecked")
   protected InternalCache<String, String> getEhcache() throws Exception {
-    this.resilienceStrategy = spy(new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(this.store)));
     final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
     ehcache.init();

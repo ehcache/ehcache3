@@ -16,19 +16,14 @@
 package org.ehcache.clustered.server.offheap;
 
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.ehcache.clustered.common.internal.store.operations.OperationCode;
 import org.junit.Test;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
+import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.common.internal.store.operations.OperationCode.PUT;
 import static org.ehcache.clustered.common.internal.store.operations.OperationCode.PUT_IF_ABSENT;
 import static org.ehcache.clustered.common.internal.store.operations.OperationCode.PUT_WITH_WRITER;
@@ -76,7 +71,7 @@ public class PinningOffHeapChainMapTest {
   public void testPutWithPinningChain() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.put(1L, chain(buffer(PUT), buffer(REMOVE)));
+    pinningOffHeapChainMap.put(1L, chainOf(buffer(PUT), buffer(REMOVE)));
     assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
   }
 
@@ -84,7 +79,7 @@ public class PinningOffHeapChainMapTest {
   public void testPutWithNormalChain() {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
-    pinningOffHeapChainMap.put(1L, chain(buffer(PUT), buffer(PUT)));
+    pinningOffHeapChainMap.put(1L, chainOf(buffer(PUT), buffer(PUT)));
     assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(false));
   }
 
@@ -93,8 +88,8 @@ public class PinningOffHeapChainMapTest {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
     ByteBuffer buffer = buffer(PUT_IF_ABSENT);
-    Chain pinningChain = chain(buffer);
-    Chain unpinningChain = chain(buffer(PUT));
+    Chain pinningChain = chainOf(buffer);
+    Chain unpinningChain = chainOf(buffer(PUT));
 
     pinningOffHeapChainMap.append(1L, buffer);
     assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
@@ -108,8 +103,8 @@ public class PinningOffHeapChainMapTest {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
     ByteBuffer buffer = buffer(REPLACE);
-    Chain pinningChain = chain(buffer);
-    Chain unpinningChain = chain(buffer(REPLACE_CONDITIONAL));
+    Chain pinningChain = chainOf(buffer);
+    Chain unpinningChain = chainOf(buffer(REPLACE_CONDITIONAL));
 
     pinningOffHeapChainMap.append(1L, buffer);
     assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
@@ -123,8 +118,8 @@ public class PinningOffHeapChainMapTest {
     PinningOffHeapChainMap<Long> pinningOffHeapChainMap = getPinningOffHeapChainMap();
 
     ByteBuffer buffer = buffer(PUT_WITH_WRITER);
-    Chain pinningChain = chain(buffer);
-    Chain unpinningChain = chain();
+    Chain pinningChain = chainOf(buffer);
+    Chain unpinningChain = chainOf();
 
     pinningOffHeapChainMap.append(1L, buffer);
     assertThat(pinningOffHeapChainMap.heads.isPinned(1L), is(true));
@@ -140,37 +135,5 @@ public class PinningOffHeapChainMapTest {
   private PinningOffHeapChainMap<Long> getPinningOffHeapChainMap() {
     return new PinningOffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), LongPortability.INSTANCE,
                                         4096, 4096, false);
-  }
-
-  public static Chain chain(ByteBuffer... buffers) {
-    final List<Element> list = new ArrayList<>();
-    for (ByteBuffer b : buffers) {
-      list.add(b::asReadOnlyBuffer);
-    }
-
-    return new Chain() {
-
-      final List<Element> elements = Collections.unmodifiableList(list);
-
-      @Override
-      public Iterator<Element> iterator() {
-        return elements.iterator();
-      }
-
-      @Override
-      public Iterator<Element> reverseIterator() {
-        return Util.reverseIterator(elements);
-      }
-
-      @Override
-      public boolean isEmpty() {
-        return elements.isEmpty();
-      }
-
-      @Override
-      public int length() {
-        return elements.size();
-      }
-    };
   }
 }

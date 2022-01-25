@@ -21,6 +21,7 @@ import org.ehcache.impl.internal.store.BinaryValueHolder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * BinaryOffHeapValueHolder
@@ -33,7 +34,7 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements
   BinaryOffHeapValueHolder(long id, V value, ByteBuffer binaryValue, long creationTime, long expireTime, long lastAccessTime) {
     super(id, creationTime, expireTime);
     this.value = value;
-    setLastAccessTime(lastAccessTime, TIME_UNIT);
+    setLastAccessTime(lastAccessTime);
     this.binaryValue = binaryValue;
   }
 

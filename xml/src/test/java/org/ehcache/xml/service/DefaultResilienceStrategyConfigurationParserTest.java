@@ -47,7 +47,7 @@ public class DefaultResilienceStrategyConfigurationParserTest {
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultResilienceStrategyConfiguration(TestResilienceStrategy.class)).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultResilienceStrategyConfiguration(TestResilienceStrategy.class)).build();
     CacheType cacheType = new DefaultResilienceStrategyConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType());
 
     assertThat(cacheType.getResilience()).isEqualTo(TestResilienceStrategy.class.getName());
@@ -58,7 +58,7 @@ public class DefaultResilienceStrategyConfigurationParserTest {
   public void unparseServiceConfigurationWithInstance() {
     TestResilienceStrategy<Integer, Integer> testObject = new TestResilienceStrategy<>();
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new DefaultResilienceStrategyConfiguration(testObject)).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultResilienceStrategyConfiguration(testObject)).build();
     assertThatExceptionOfType(XmlConfigurationException.class).isThrownBy(() ->
       new DefaultResilienceStrategyConfigurationParser().unparseServiceConfiguration(cacheConfig, new CacheType()))
       .withMessage("%s", "XML translation for instance based initialization for " +

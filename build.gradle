@@ -19,12 +19,18 @@ import org.gradle.internal.jvm.Jvm
 plugins {
   // This adds tasks to auto close or release nexus staging repos
   // see https://github.com/Codearte/gradle-nexus-staging-plugin/
-  id 'io.codearte.nexus-staging' version '0.9.0'
+  id 'io.codearte.nexus-staging' version '0.12.0'
   // This adds the ability to print a taskTree
   // ./gradlew <task1> ... <taskN> taskTree
-  id "com.dorongold.task-tree" version "1.3"
+  id "com.dorongold.task-tree" version "1.3.1"
   // Declare spotbugs at the top
-  id 'com.github.spotbugs' version '1.6.3' apply false
+  id 'com.github.spotbugs' version '1.6.9' apply false
+  // Declare osgi-ds at the top
+  id 'org.jayware.osgi-ds' version '0.5.6' apply false
+  //OWASP Security Vulnerability Detection
+  id 'org.owasp.dependencycheck' version '5.2.0' apply false
+  // Declare bnd at the top
+  id 'biz.aQute.bnd.builder' version '4.1.0' apply false
 }
 
 wrapper {
@@ -87,6 +93,7 @@ subprojects {
   apply plugin: 'checkstyle'
   apply plugin: 'com.github.spotbugs'
   apply plugin: 'jacoco'
+  apply plugin: 'org.owasp.dependencycheck'
 
   group = 'org.ehcache.modules'
   version = baseVersion
@@ -101,7 +108,7 @@ subprojects {
       mavenLocal()
     }
     mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
+    maven { url "https://repo.terracotta.org/maven2" }
   }
 
   sourceSets {
@@ -121,7 +128,6 @@ subprojects {
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testCompile 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
     testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   }
 
@@ -163,8 +169,6 @@ subprojects {
   }
 
   artifacts {
-    archives jar
-
     archives javadocJar
     archives sourceJar
   }
@@ -200,6 +204,13 @@ subprojects {
     }
   }
 
+  dependencyCheck {
+    failBuildOnCVSS = 0
+    skipConfigurations += ['checkstyle', 'spotbugs']
+    suppressionFile = 'config/owasp-supressions.xml'
+  }
+  check.dependsOn(dependencyCheckAnalyze)
+
   tasks.withType(AbstractCompile) {
     options.with {
       fork = true
@@ -217,6 +228,47 @@ subprojects {
       failOnVersionConflict()
       // If you want to override a dependency, instead of changing gradle.properties, use something like below
       // force 'org.terracotta:statistics:2.0-SNAPSHOT'
+    }
+  }
+
+  plugins.withId('biz.aQute.bnd.builder') {
+    /*
+     * The bnd gradle plugin does not handle our 2-digit snapshot versioning scheme very well. It maps `x.y-SNAPSHOT`
+     * to `x.y.0.SNAPSHOT`. This is bad since `x.y.0.SNAPSHOT` is considered to be less than *all* `x.y.z`. This means
+     * the baseline version range expression `(,x.y.0.SNAPSHOT[` will always pick the last release from the previous
+     * minor line. To fix this we manually map to a 3-digit snapshot version where the 3rd digit is a number chosen
+     * to be higher than we would ever release ('All the worlds a VAX').
+     */
+    def fixedVersion = project.version.asType(String).replaceAll(/^(\d+.\d+)-SNAPSHOT$/, "\$1.999-SNAPSHOT")
+
+    jar {
+      bnd(
+        'Bundle-Name': project.properties.subPomName,
+        'Bundle-Description': project.properties.subPomDesc,
+        'Bundle-SymbolicName': "org.ehcache.modules.$project.archivesBaseName",
+        'Bundle-DocURL': 'http://ehcache.org',
+        'Bundle-License': 'LICENSE',
+        'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
+        'Bundle-Version': fixedVersion,
+        'Service-Component': 'OSGI-INF/*.xml'
+      )
+    }
+    dependencies {
+      baseline(group: group, name: jar.archiveBaseName.get(), version: "(,${fixedVersion}[") {
+        force = true
+        transitive = false
+      }
+    }
+    configurations.baseline {
+      resolutionStrategy {
+        componentSelection {
+          all { selection ->
+            if (!selection.candidate.version.matches(/\d+(?:\.\d+)*/)) {
+              selection.reject("Only full releases can be used as OSGi baselines")
+            }
+          }
+        }
+      }
     }
   }
 }

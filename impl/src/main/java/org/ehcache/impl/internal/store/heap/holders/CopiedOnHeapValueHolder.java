@@ -20,6 +20,8 @@ import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author Albin Suresh
  */
@@ -51,7 +53,7 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
    * @param expiration computed expiration duration
    */
   public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Copier<V> valueCopier, long now, java.time.Duration expiration) {
-    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice);
+    super(valueHolder.getId(), valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
     }

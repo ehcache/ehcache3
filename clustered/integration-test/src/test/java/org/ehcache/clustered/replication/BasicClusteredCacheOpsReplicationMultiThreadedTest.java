@@ -123,15 +123,14 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
             .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
                 .read(Duration.ofMinutes(1))
                 .write(Duration.ofMinutes(1)))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
+            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     CACHE_MANAGER1 = clusteredCacheManagerBuilder.build(true);
     CACHE_MANAGER2 = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, BlobValue> config = CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Long.class, BlobValue.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(500, EntryUnit.ENTRIES)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
         .build();
 
     CACHE1 = CACHE_MANAGER1.createCache("clustered-cache", config);
@@ -142,6 +141,9 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
 
   @After
   public void tearDown() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+
     List<Runnable> unprocessed = executorService.shutdownNow();
     if(!unprocessed.isEmpty()) {
       log.warn("Tearing down with {} unprocess task", unprocessed);

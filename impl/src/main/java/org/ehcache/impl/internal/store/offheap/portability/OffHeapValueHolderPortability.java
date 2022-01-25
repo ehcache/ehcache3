@@ -24,6 +24,7 @@ import org.terracotta.offheapstore.storage.portability.WriteBackPortability;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * OffHeapValueHolderPortability
@@ -52,9 +53,9 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     }
     ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
     byteBuffer.putLong(valueHolder.getId());
-    byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
-    byteBuffer.putLong(valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
-    byteBuffer.putLong(valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT));
+    byteBuffer.putLong(valueHolder.creationTime());
+    byteBuffer.putLong(valueHolder.lastAccessTime());
+    byteBuffer.putLong(valueHolder.expirationTime());
     byteBuffer.putLong(0L); // represent the hits on previous versions. It is kept for compatibility reasons with previously saved data
     byteBuffer.put(serialized);
     byteBuffer.flip();
@@ -78,7 +79,10 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     long lastAccessTime = byteBuffer.getLong();
     long expireTime = byteBuffer.getLong();
     byteBuffer.getLong(); // hits read from disk. It is kept for compatibility reasons with previously saved data
-    return new LazyOffHeapValueHolder<>(id, byteBuffer.slice(), serializer,
-      creationTime, expireTime, lastAccessTime, writeContext);
+    return createLazyOffHeapValueHolder(id, byteBuffer.slice(), serializer, creationTime, expireTime, lastAccessTime, writeContext);
+  }
+
+  protected OffHeapValueHolder<V> createLazyOffHeapValueHolder(long id, ByteBuffer byteBuffer, Serializer<V> serializer, long creationTime, long expireTime, long lastAccessTime, WriteContext writeContext) {
+    return new LazyOffHeapValueHolder<>(id, byteBuffer, serializer, creationTime, expireTime, lastAccessTime, writeContext);
   }
 }

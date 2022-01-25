@@ -20,6 +20,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.util.TestCacheLoaderWriter;
 import org.ehcache.config.CacheConfiguration;
@@ -27,6 +28,10 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
+import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -36,6 +41,7 @@ import org.junit.runners.Parameterized;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -85,10 +91,16 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
   }
 
   private static PersistentCacheManager newCacheManager() {
+    DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager1");
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
     return CacheManagerBuilder.newCacheManagerBuilder()
             .with(cluster(CLUSTER.getConnectionURI())
-                    .autoCreate()
+                    .timeouts(TimeoutsBuilder.timeouts()
+                                             .read(Duration.ofSeconds(30))
+                                             .write(Duration.ofSeconds(30)))
+                    .autoCreate(c -> c)
                     .build())
+            .using(managementRegistry)
             .build(true);
   }
 
@@ -106,7 +118,8 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
                             .heap(20)
                             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .withLoaderWriter(new TestCacheLoaderWriter(sor))
-            .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+            .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+            .withResilienceStrategy(new ThrowingResilienceStrategy<>())
             .build();
   }
 

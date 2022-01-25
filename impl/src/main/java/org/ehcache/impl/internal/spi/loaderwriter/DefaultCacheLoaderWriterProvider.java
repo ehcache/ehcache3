@@ -30,7 +30,7 @@ import java.util.Set;
 /**
  * @author Alex Snaps
  */
-public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<String, CacheLoaderWriter<?, ?>> implements CacheLoaderWriterProvider {
+public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<String, DefaultCacheLoaderWriterConfiguration, CacheLoaderWriter<?, ?>> implements CacheLoaderWriterProvider {
 
   private final Set<String> cachesWithJsrRegisteredLoaders = new HashSet<>();
 
@@ -50,8 +50,8 @@ public class DefaultCacheLoaderWriterProvider extends ClassInstanceProvider<Stri
   }
 
   @Override
-  public CacheLoaderWriterConfiguration getPreConfiguredCacheLoaderWriterConfig(String alias) {
-    return (CacheLoaderWriterConfiguration) getPreconfigured(alias);
+  public CacheLoaderWriterConfiguration<?> getPreConfiguredCacheLoaderWriterConfig(String alias) {
+    return getPreconfigured(alias);
   }
 
   @Override

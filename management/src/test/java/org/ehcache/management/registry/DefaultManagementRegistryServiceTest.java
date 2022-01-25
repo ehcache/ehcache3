@@ -98,7 +98,7 @@ public class DefaultManagementRegistryServiceTest {
   @Test
   public void descriptorOnHeapTest() {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .add(new StoreStatisticsConfiguration(true))
+        .withService(new StoreStatisticsConfiguration(true))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -229,7 +229,7 @@ public class DefaultManagementRegistryServiceTest {
   @Test
   public void testCanGetCapabilities() {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-      .add(new StoreStatisticsConfiguration(true))
+      .withService(new StoreStatisticsConfiguration(true))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));

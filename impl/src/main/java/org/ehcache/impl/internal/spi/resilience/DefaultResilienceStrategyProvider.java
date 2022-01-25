@@ -18,9 +18,7 @@ package org.ehcache.impl.internal.spi.resilience;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
-import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
@@ -82,11 +80,11 @@ public class DefaultResilienceStrategyProvider implements ResilienceStrategyProv
     }
   }
 
-  static class ComponentProvider extends ClassInstanceProvider<String, ResilienceStrategy<?, ?>> {
+  static class ComponentProvider extends ClassInstanceProvider<String, DefaultResilienceStrategyConfiguration, ResilienceStrategy<?, ?>> {
 
     private DefaultResilienceStrategyConfiguration defaultConfiguration;
 
-    protected ComponentProvider(DefaultResilienceStrategyConfiguration dflt, ClassInstanceProviderConfiguration<String, ResilienceStrategy<?, ?>> factoryConfig) {
+    protected ComponentProvider(DefaultResilienceStrategyConfiguration dflt, DefaultResilienceStrategyProviderConfiguration factoryConfig) {
       super(factoryConfig, DefaultResilienceStrategyConfiguration.class);
       this.defaultConfiguration = dflt;
     }
@@ -95,7 +93,7 @@ public class DefaultResilienceStrategyProvider implements ResilienceStrategyProv
     public <K, V> ResilienceStrategy<K, V> create(String alias, DefaultResilienceStrategyConfiguration config,
                                                   RecoveryStore<K> recoveryStore, CacheLoaderWriter<? super K, V> loaderWriter) {
       if (config == null) {
-        DefaultResilienceStrategyConfiguration preconfigured = (DefaultResilienceStrategyConfiguration) getPreconfigured(alias);
+        DefaultResilienceStrategyConfiguration preconfigured = getPreconfigured(alias);
         if (preconfigured == null) {
           return (ResilienceStrategy<K, V>) newInstance(alias, defaultConfiguration.bind(recoveryStore, loaderWriter));
         } else {
@@ -109,7 +107,7 @@ public class DefaultResilienceStrategyProvider implements ResilienceStrategyProv
     @SuppressWarnings("unchecked")
     public <K, V> ResilienceStrategy<K, V> create(String alias, DefaultResilienceStrategyConfiguration config, RecoveryStore<K> recoveryStore) {
       if (config == null) {
-        DefaultResilienceStrategyConfiguration preconfigured = (DefaultResilienceStrategyConfiguration) getPreconfigured(alias);
+        DefaultResilienceStrategyConfiguration preconfigured = getPreconfigured(alias);
         if (preconfigured == null) {
           return (ResilienceStrategy<K, V>) newInstance(alias, defaultConfiguration.bind(recoveryStore));
         } else {

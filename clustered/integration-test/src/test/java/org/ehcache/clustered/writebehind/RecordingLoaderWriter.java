@@ -62,11 +62,7 @@ public class RecordingLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
     records.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
   }
 
-  public synchronized Map<K, List<V>> getRecords() {
+  synchronized Map<K, List<V>> getRecords() {
     return Collections.unmodifiableMap(records);
-  }
-
-  public void clear() {
-    records.clear();
   }
 }

@@ -39,7 +39,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -77,11 +76,6 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       @Override
       public Long get() {
         return key * 1000L;
-      }
-
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
       }
     });
     assertThat(computed.get(), is(1000L));
@@ -163,7 +157,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
-            .add(copierConfiguration)
+            .withService(copierConfiguration)
             .build());
     performAssertions(cache2, false);
 

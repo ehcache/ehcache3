@@ -55,6 +55,10 @@ class EhPomMangle implements Plugin<Project> {
       pomOnlyProvided
     }
 
+    project.dependencyCheck {
+      skipConfigurations += ['pomOnlyCompile', 'pomOnlyProvided']
+    }
+
     def artifactFiltering = {
       project.configurations.forEach {
         pom.scopeMappings.mappings.remove(it)

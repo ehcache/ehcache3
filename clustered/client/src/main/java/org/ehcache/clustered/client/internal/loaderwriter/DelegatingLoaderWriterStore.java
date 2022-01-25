@@ -92,7 +92,7 @@ public class DelegatingLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
-    throw new UnsupportedOperationException("Implement me");
+    return delegate.iterator();
   }
 
   @Override

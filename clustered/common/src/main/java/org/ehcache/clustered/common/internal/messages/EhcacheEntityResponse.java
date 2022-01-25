@@ -21,7 +21,10 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public abstract class EhcacheEntityResponse implements EntityResponse {
 
@@ -125,19 +128,53 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ServerInvalidateHash serverInvalidateHash(long key) {
-    return new ServerInvalidateHash(key);
+  public static ServerAppend serverAppend(ByteBuffer appended, Chain beforeAppend) {
+    return new ServerAppend(appended, beforeAppend);
   }
 
+  public static class ServerAppend extends EhcacheEntityResponse {
+    private final ByteBuffer appended;
+    private final Chain beforeAppend;
+
+    ServerAppend(ByteBuffer appended, Chain beforeAppend) {
+      this.appended = appended;
+      this.beforeAppend = beforeAppend;
+    }
+
+    public ByteBuffer getAppended() {
+      return appended;
+    }
+
+    public Chain getBeforeAppend() {
+      return beforeAppend;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.SERVER_APPEND;
+    }
+  }
+
+  public static ServerInvalidateHash serverInvalidateHash(long key, Chain evictedChain) {
+    return new ServerInvalidateHash(key, evictedChain);
+  }
+
+  // this is fired when the server evicts a chain
   public static class ServerInvalidateHash extends EhcacheEntityResponse {
     private final long key;
+    private final Chain evictedChain;
 
-    private ServerInvalidateHash(long key) {
+    private ServerInvalidateHash(long key, Chain evictedChain) {
       this.key = key;
+      this.evictedChain = evictedChain;
     }
 
     public long getKey() {
       return key;
+    }
+
+    public Chain getEvictedChain() {
+      return evictedChain;
     }
 
     @Override
@@ -150,6 +187,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     return new ClientInvalidateHash(key, invalidationId);
   }
 
+  // this is fired when a client modifies a chain (i.e.: on append)
   public static class ClientInvalidateHash extends EhcacheEntityResponse {
     private final long key;
     private final int invalidationId;
@@ -301,6 +339,40 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     @Override
     public EhcacheResponseType getResponseType() {
       return EhcacheResponseType.LOCK_FAILURE;
+    }
+  }
+
+  public static IteratorBatch iteratorBatchResponse(UUID id, List<Chain> chains, boolean last) {
+    return new IteratorBatch(id, chains, last);
+  }
+
+  public static class IteratorBatch extends EhcacheEntityResponse {
+
+    private final UUID id;
+    private final List<Chain> chains;
+    private final boolean last;
+
+    public IteratorBatch(UUID id, List<Chain> chains, boolean last) {
+      this.id = id;
+      this.chains = chains;
+      this.last = last;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.ITERATOR_BATCH;
+    }
+
+    public boolean isLast() {
+      return last;
+    }
+
+    public List<Chain> getChains() {
+      return chains;
+    }
+
+    public UUID getIdentity() {
+      return id;
     }
   }
 }

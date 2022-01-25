@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  * Enables configuring the default thread pool alias to be used by the
  * {@link org.ehcache.core.events.CacheEventDispatcher}s
  */
-public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory> {
+public class CacheEventDispatcherFactoryConfiguration implements ServiceCreationConfiguration<CacheEventDispatcherFactory, String> {
 
   private final String threadPoolAlias;
 
@@ -53,5 +53,15 @@ public class CacheEventDispatcherFactoryConfiguration implements ServiceCreation
   @Override
   public Class<CacheEventDispatcherFactory> getServiceType() {
     return CacheEventDispatcherFactory.class;
+  }
+
+  @Override
+  public String derive() {
+    return getThreadPoolAlias();
+  }
+
+  @Override
+  public CacheEventDispatcherFactoryConfiguration build(String alias) {
+    return new CacheEventDispatcherFactoryConfiguration(alias);
   }
 }

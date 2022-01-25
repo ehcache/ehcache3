@@ -78,11 +78,10 @@ public class BasicClusteredWriteBehindPassthroughTest {
     try (PersistentCacheManager cacheManager = createCacheManager()) {
       Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
 
-      for (int i = 0; i < 10; i++) {
-        put(cache, String.valueOf(i));
-      }
+      put(cache, String.valueOf(0));
+      put(cache, String.valueOf(1));
 
-      assertValue(cache, String.valueOf(9));
+      assertValue(cache, String.valueOf(1));
 
       verifyRecords(cache);
       cache.clear();
@@ -249,13 +248,13 @@ public class BasicClusteredWriteBehindPassthroughTest {
                                                                                  .offheap(1, MemoryUnit.MB)
                                                                                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
         .withLoaderWriter(loaderWriter)
-        .add(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
-        .add(new ClusteredStoreConfiguration(Consistency.STRONG))
+        .withService(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
+        .withService(new ClusteredStoreConfiguration(Consistency.STRONG))
         .build();
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(CLUSTER_URI).autoCreate())
+      .with(cluster(CLUSTER_URI).autoCreate(c -> c))
       .withCache(CACHE_NAME, cacheConfiguration)
       .build(true);
   }

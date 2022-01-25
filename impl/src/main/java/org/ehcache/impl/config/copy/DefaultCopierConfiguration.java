@@ -25,10 +25,13 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * {@link ServiceConfiguration} for the default {@link CopyProvider} implementation.
  * <p>
  * Enables configuring a {@link Copier} for the key or value of a given cache.
+ * <p>
+ * This class overrides the default {@link ServiceConfiguration#compatibleWith(ServiceConfiguration)} implementation
+ * to allow for independent configuration of the key and value copiers.
  *
  * @param <T> the type which the configured copier can handle
  */
-public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Copier<T>> implements ServiceConfiguration<CopyProvider> {
+public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Copier<T>> implements ServiceConfiguration<CopyProvider, Void> {
 
   private final Type type;
 
@@ -65,6 +68,15 @@ public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Co
   @Override
   public Class<CopyProvider> getServiceType() {
     return CopyProvider.class;
+  }
+
+  @Override
+  public boolean compatibleWith(ServiceConfiguration<?, ?> other) {
+    if (other instanceof DefaultCopierConfiguration<?>) {
+      return !getType().equals(((DefaultCopierConfiguration) other).getType());
+    } else {
+      return ServiceConfiguration.super.compatibleWith(other);
+    }
   }
 
   /**

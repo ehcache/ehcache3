@@ -113,7 +113,7 @@ class Eh107CacheManager implements CacheManager {
     CacheLoaderWriter<? super K, V> cacheLoaderWriter = cache.getCacheLoaderWriter();
 
     boolean storeByValueOnHeap = false;
-    for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
+    for (ServiceConfiguration<?, ?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration) serviceConfiguration;
         if(!copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))

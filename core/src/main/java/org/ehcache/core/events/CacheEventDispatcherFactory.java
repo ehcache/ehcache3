@@ -38,7 +38,7 @@ public interface CacheEventDispatcherFactory extends Service {
    *
    * @return the {@link CacheEventDispatcher}
    */
-  <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs);
+  <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?, ?>... serviceConfigs);
 
   /**
    * Releases an instance of {@link CacheEventDispatcher}, causing it to shutdown and release all

@@ -28,8 +28,5 @@ import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
  */
 public class ConfigurationParserTestHelper {
   public static void assertElement(String inputString, Node rootElement) {
-    assertThat(Input.from(rootElement), isSimilarTo(Input.from(inputString)).ignoreComments()
-      .ignoreWhitespace()
-      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 }

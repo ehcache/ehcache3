@@ -112,7 +112,7 @@ public class Tiering {
       .withCache("less-segments",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB))
-        .add(new OffHeapDiskStoreConfiguration(2)) // <1>
+        .withService(new OffHeapDiskStoreConfiguration(2)) // <1>
       )
       .build(true);
 
@@ -128,7 +128,7 @@ public class Tiering {
 
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
       ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES))
-      .add(cacheEventListenerConfiguration)
+      .withService(cacheEventListenerConfiguration)
       .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)

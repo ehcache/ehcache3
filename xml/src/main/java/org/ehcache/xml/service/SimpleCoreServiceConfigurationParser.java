@@ -19,10 +19,8 @@ package org.ehcache.xml.service;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.CoreServiceConfigurationParser;
-import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 
@@ -30,7 +28,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
-class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfiguration<?>> implements CoreServiceConfigurationParser {
+class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfiguration<?, ?>> implements CoreServiceConfigurationParser {
 
   private final Function<CacheTemplate, IN> extractor;
   private final Parser<IN, U> parser;
@@ -42,12 +40,6 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
   private final Function<U, OUT> unparser;
   private final BinaryOperator<OUT> merger;
 
-  public static void checkNoConcreteInstance(ClassInstanceConfiguration<?> classInstanceConfiguration) {
-    if(classInstanceConfiguration.getInstance() != null) {
-      throw new XmlConfigurationException("XML translation for instance based initialization for " + classInstanceConfiguration.getClass().getSimpleName() +
-        " is not supported");
-    }
-  }
   SimpleCoreServiceConfigurationParser(Class<U> configType,
                                        Function<CacheTemplate, IN> extractor, Function<IN, U> parser,
                                        Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> unparser) {
@@ -85,7 +77,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
     if (config != null) {
       U configuration = parser.parse(config, cacheClassLoader);
       if (configuration != null) {
-        return cacheBuilder.add(configuration);
+        return cacheBuilder.withService(configuration);
       }
     }
     return cacheBuilder;

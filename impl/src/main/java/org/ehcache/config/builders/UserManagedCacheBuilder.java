@@ -29,24 +29,22 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.PersistentUserManagedEhcache;
-import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.impl.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
-import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.resilience.DefaultRecoveryStore;
-import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
+import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.core.store.StoreSupport;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
@@ -56,6 +54,8 @@ import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfigurati
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
+import org.ehcache.impl.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -83,7 +83,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
@@ -112,7 +112,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private final Class<V> valueType;
   private String id;
   private final Set<Service> services = new HashSet<>();
-  private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<>();
+  private final Set<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = new HashSet<>();
   private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicy.NO_EXPIRY;
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
@@ -126,7 +126,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private Serializer<K> keySerializer;
   private Serializer<V> valueSerializer;
   private int dispatcherConcurrency = 4;
-  private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<>();
+  private List<CacheEventListenerConfiguration<?>> eventListenerConfigurations = new ArrayList<>();
   private ExecutorService unOrderedExecutor;
   private ExecutorService orderedExecutor;
   private long objectGraphSize = DEFAULT_OBJECT_GRAPH_SIZE;
@@ -157,6 +157,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.valueSerializer = toCopy.valueSerializer;
     this.useKeySerializingCopier = toCopy.useKeySerializingCopier;
     this.useValueSerializingCopier = toCopy.useValueSerializingCopier;
+    this.dispatcherConcurrency = toCopy.dispatcherConcurrency;
     this.eventListenerConfigurations = toCopy.eventListenerConfigurations;
     this.unOrderedExecutor = toCopy.unOrderedExecutor;
     this.orderedExecutor = toCopy.orderedExecutor;
@@ -171,7 +172,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
     ServiceLocator serviceLocator;
     try {
-      for (ServiceCreationConfiguration<?> serviceCreationConfig : serviceCreationConfigurations) {
+      for (ServiceCreationConfiguration<?, ?> serviceCreationConfig : serviceCreationConfigurations) {
         serviceLocatorBuilder = serviceLocatorBuilder.with(serviceCreationConfig);
       }
       serviceLocatorBuilder = serviceLocatorBuilder.with(Store.Provider.class);
@@ -181,7 +182,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
     }
 
-    List<ServiceConfiguration<?>> serviceConfigsList = new ArrayList<>();
+    List<ServiceConfiguration<?, ?>> serviceConfigsList = new ArrayList<>();
 
     if (keyCopier != null) {
       serviceConfigsList.add(new DefaultCopierConfiguration<>(keyCopier, DefaultCopierConfiguration.Type.KEY));
@@ -237,7 +238,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       serviceConfigsList.add(new DefaultSerializerConfiguration<>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
-    ServiceConfiguration<?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?>[0]);
+    ServiceConfiguration<?, ?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?, ?>[0]);
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
     if (serialization != null) {
       try {
@@ -365,7 +366,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       } else {
         listenerProvider = new DefaultCacheEventListenerProvider();
       }
-      for (CacheEventListenerConfiguration config : eventListenerConfigurations) {
+      for (CacheEventListenerConfiguration<?> config : eventListenerConfigurations) {
         final CacheEventListener<K, V> listener = listenerProvider.createEventListener(id, config);
         if (listener != null) {
           cache.getRuntimeConfiguration().registerCacheEventListener(listener, config.orderingMode(), config.firingMode(), config.fireOn());
@@ -559,7 +560,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withEventExecutors(ExecutorService, ExecutorService)
    * @see #withEventListeners(CacheEventListenerConfigurationBuilder)
    */
-  public final UserManagedCacheBuilder<K, V, T> withEventListeners(CacheEventListenerConfiguration... cacheEventListenerConfigurations) {
+  public final UserManagedCacheBuilder<K, V, T> withEventListeners(CacheEventListenerConfiguration<?> ... cacheEventListenerConfigurations) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     otherBuilder.eventListenerConfigurations.addAll(Arrays.asList(cacheEventListenerConfigurations));
     return otherBuilder;
@@ -813,7 +814,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    *
    * @see #using(Service)
    */
-  public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
+  public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?, ?> serviceConfiguration) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
     if (serviceConfiguration instanceof DefaultSizeOfEngineProviderConfiguration) {
       removeAnySizeOfEngine(otherBuilder);

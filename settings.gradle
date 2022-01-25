@@ -15,9 +15,5 @@
  */
 
 include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:common", "clustered:client", "clustered:server", "clustered:integration-test", "clustered:clustered-dist", "clustered:ops-tool",
-        "integration-test", "dist", "osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"
-
-// This is recommended to make sure publishing works correctly with the new default to be established
-// in Gradle 5. It can be removed when moving to Gradle 5.
-enableFeaturePreview('STABLE_PUBLISHING')
+        "clustered", "clustered:test-utils", "clustered:common", "clustered:client", "clustered:server", "clustered:integration-test", "clustered:clustered-dist", "clustered:ops-tool",
+        "integration-test", "dist", "osgi-test", "clustered:osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"

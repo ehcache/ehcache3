@@ -16,13 +16,10 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.internal.store.Element;
 import org.junit.Test;
 
-import java.util.Collections;
-
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
@@ -30,17 +27,17 @@ import static org.hamcrest.core.IsNot.not;
 public class ServerStoreOpMessageTest {
 
   @Test
-  public void testConcurrencyKeysEqualForSameCacheAndKey() throws Exception {
+  public void testConcurrencyKeysEqualForSameCacheAndKey() {
     ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
     ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L));
-    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.ReplaceAtHeadMessage(1L, getChain(Collections.<Element>emptyList()), getChain(Collections.<Element>emptyList()));
+    ConcurrentEntityMessage m3 = new ServerStoreOpMessage.ReplaceAtHeadMessage(1L, chainOf(), chainOf());
 
     assertThat(m1.concurrencyKey(), is(m2.concurrencyKey()));
     assertThat(m2.concurrencyKey(), is(m3.concurrencyKey()));
   }
 
   @Test
-  public void testConcurrencyKeysEqualForDifferentCachesSameKey() throws Exception {
+  public void testConcurrencyKeysEqualForDifferentCachesSameKey() {
     ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
     ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(1L, createPayload(1L));
 
@@ -48,7 +45,7 @@ public class ServerStoreOpMessageTest {
   }
 
   @Test
-  public void testConcurrencyKeysNotEqualForDifferentCachesAndKeys() throws Exception {
+  public void testConcurrencyKeysNotEqualForDifferentCachesAndKeys() {
     ConcurrentEntityMessage m1 = new ServerStoreOpMessage.AppendMessage(1L, createPayload(1L));
     ConcurrentEntityMessage m2 = new ServerStoreOpMessage.GetAndAppendMessage(2L, createPayload(1L));
     ConcurrentEntityMessage m3 = new ServerStoreOpMessage.AppendMessage(3L, createPayload(1L));

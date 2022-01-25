@@ -16,15 +16,14 @@
 
 package org.ehcache.core.config.store;
 
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * {@link ServiceConfiguration} used by the {@link org.ehcache.core.EhcacheManager} to populate the dispatcher
- * concurrency in the {@link StoreConfigurationImpl}.
+ * concurrency in the {@link org.ehcache.core.store.StoreConfigurationImpl}.
  */
-public interface StoreEventSourceConfiguration extends ServiceConfiguration<Store.Provider> {
+public interface StoreEventSourceConfiguration<R> extends ServiceConfiguration<Store.Provider, R> {
 
   /**
    * Default dispatcher concurrency

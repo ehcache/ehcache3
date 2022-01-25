@@ -15,9 +15,9 @@
  */
 package org.ehcache.impl.config.resilience;
 
-import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
-import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
+import org.ehcache.impl.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * {@link ServiceCreationConfiguration} for the default {@link ResilienceStrategyProvider}.
  */
-public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanceProviderConfiguration<String, ResilienceStrategy<?, ?>> implements ServiceCreationConfiguration<ResilienceStrategyProvider> {
+public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanceProviderConfiguration<String, DefaultResilienceStrategyConfiguration> implements ServiceCreationConfiguration<ResilienceStrategyProvider, DefaultResilienceStrategyProviderConfiguration> {
 
   @SuppressWarnings("rawtypes")
   private static final Class<? extends ResilienceStrategy> DEFAULT_RESILIENCE = RobustResilienceStrategy.class;
@@ -34,6 +34,12 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
 
   private DefaultResilienceStrategyConfiguration defaultRegularConfiguration;
   private DefaultResilienceStrategyConfiguration defaultLoaderWriterConfiguration;
+
+  private DefaultResilienceStrategyProviderConfiguration(DefaultResilienceStrategyProviderConfiguration config) {
+    super(config);
+    this.defaultRegularConfiguration = config.defaultRegularConfiguration;
+    this.defaultLoaderWriterConfiguration = config.defaultLoaderWriterConfiguration;
+  }
 
   public DefaultResilienceStrategyProviderConfiguration() {
     this.defaultRegularConfiguration = new DefaultResilienceStrategyConfiguration(DEFAULT_RESILIENCE);
@@ -153,5 +159,15 @@ public class DefaultResilienceStrategyProviderConfiguration extends ClassInstanc
   public DefaultResilienceStrategyProviderConfiguration addResilienceStrategyFor(String alias, ResilienceStrategy<?, ?> resilienceStrategy) {
     getDefaults().put(alias, new DefaultResilienceStrategyConfiguration(resilienceStrategy));
     return this;
+  }
+
+  @Override
+  public DefaultResilienceStrategyProviderConfiguration derive() {
+    return new DefaultResilienceStrategyProviderConfiguration(this);
+  }
+
+  @Override
+  public DefaultResilienceStrategyProviderConfiguration build(DefaultResilienceStrategyProviderConfiguration configuration) {
+    return configuration;
   }
 }

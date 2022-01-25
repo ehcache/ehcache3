@@ -51,7 +51,7 @@ public class DefaultSerializationProviderConfigurationParserTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
 
     assertThat(configuration).isExactlyInstanceOf(DefaultSerializationProviderConfiguration.class);
 
@@ -71,7 +71,7 @@ public class DefaultSerializationProviderConfigurationParserTest {
     providerConfig.addSerializerFor(Description.class, (Class) TestSerializer3.class);
     providerConfig.addSerializerFor(Person.class, (Class) TestSerializer4.class);
 
-    Configuration config = ConfigurationBuilder.newConfigurationBuilder().addService(providerConfig).build();
+    Configuration config = ConfigurationBuilder.newConfigurationBuilder().withService(providerConfig).build();
     ConfigType configType = new DefaultSerializationProviderConfigurationParser().unparseServiceCreationConfiguration(config, new ConfigType());
 
     List<SerializerType.Serializer> serializers = configType.getDefaultSerializers().getSerializer();

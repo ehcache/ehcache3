@@ -37,13 +37,12 @@ import org.junit.runners.Parameterized.Parameters;
 import org.junit.Test;
 
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
-import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import org.terracotta.offheapstore.storage.portability.StringPortability;
 
 import static java.util.Arrays.asList;
-import static org.ehcache.clustered.server.offheap.OffHeapChainMap.chain;
+import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.collection.IsEmptyIterable.emptyIterable;
@@ -51,6 +50,8 @@ import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -164,7 +165,7 @@ public class ChainMapTest {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
 
     try {
-      map.replaceAtHead("foo", chain(), chain(buffer(1)));
+      map.replaceAtHead("foo", chainOf(), chainOf(buffer(1)));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -177,7 +178,7 @@ public class ChainMapTest {
     map.append("foo", buffer(1));
 
     try {
-      map.replaceAtHead("foo", chain(), chain(buffer(2)));
+      map.replaceAtHead("foo", chainOf(), chainOf(buffer(2)));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -189,7 +190,7 @@ public class ChainMapTest {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
-    map.replaceAtHead("foo", chain(buffer(2)), chain(buffer(42)));
+    map.replaceAtHead("foo", chainOf(buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(1)));
   }
 
@@ -198,7 +199,7 @@ public class ChainMapTest {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
-    map.replaceAtHead("foo", chain(buffer(1)), chain(buffer(42)));
+    map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42)));
   }
 
@@ -208,7 +209,7 @@ public class ChainMapTest {
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
-    map.replaceAtHead("foo", chain(buffer(1)), chain(buffer(42)));
+    map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(2)));
   }
 
@@ -219,7 +220,7 @@ public class ChainMapTest {
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
-    map.replaceAtHead("foo", chain(buffer(1)), chain(buffer(42)));
+    map.replaceAtHead("foo", chainOf(buffer(1)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(2), element(3)));
   }
 
@@ -229,7 +230,7 @@ public class ChainMapTest {
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
-    map.replaceAtHead("foo", chain(buffer(1), buffer(3)), chain(buffer(42)));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(3)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(1), element(2)));
   }
 
@@ -239,7 +240,7 @@ public class ChainMapTest {
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
-    map.replaceAtHead("foo", chain(buffer(1), buffer(2)), chain(buffer(42)));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42)));
   }
 
@@ -250,7 +251,7 @@ public class ChainMapTest {
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
-    map.replaceAtHead("foo", chain(buffer(1), buffer(2)), chain(buffer(42)));
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf(buffer(42)));
     assertThat(map.get("foo"), contains(element(42), element(3)));
   }
 
@@ -262,7 +263,7 @@ public class ChainMapTest {
     map.append("foo", buffer(3));
 
     long before = map.getDataOccupiedMemory();
-    map.replaceAtHead("foo", chain(buffer(1), buffer(2)), chain());
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2)), chainOf());
     assertThat(map.getDataOccupiedMemory(), lessThan(before));
     assertThat(map.get("foo"), contains(element(3)));
   }
@@ -278,11 +279,11 @@ public class ChainMapTest {
     map.append("foo", buffer(3));
 
     long before = map.getDataOccupiedMemory();
-    map.replaceAtHead("foo", chain(buffer(1), buffer(2), buffer(3)), chain());
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2), buffer(3)), chainOf());
     assertThat(map.getDataOccupiedMemory(), lessThan(before));
     assertThat(map.get("foo"), emptyIterable());
     assertThat(map.getSize(), is(0L));
-    verify(evictionListener, never()).onEviction("foo");
+    verify(evictionListener, never()).onEviction(eq("foo"), any());
   }
 
   @Test
@@ -292,7 +293,7 @@ public class ChainMapTest {
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
 
-    map.replaceAtHead("foo", map.get("foo"), chain());
+    map.replaceAtHead("foo", map.get("foo"), chainOf());
     assertThat(map.get("foo"), emptyIterable());
   }
 
@@ -304,7 +305,7 @@ public class ChainMapTest {
     map.append("foo", buffer(3));
 
     assertThat(map.getDataOccupiedMemory(), greaterThan(0L));
-    map.replaceAtHead("foo", chain(buffer(1), buffer(2), buffer(3)), chain());
+    map.replaceAtHead("foo", chainOf(buffer(1), buffer(2), buffer(3)), chainOf());
     assertThat(map.getDataOccupiedMemory(), is(0L));
     assertThat(map.get("foo"), emptyIterable());
   }
@@ -356,7 +357,7 @@ public class ChainMapTest {
   public void testPutWhenKeyIsNotNull() {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("key", buffer(3));
-    map.put("key", chain(buffer(1), buffer(2)));
+    map.put("key", chainOf(buffer(1), buffer(2)));
 
     assertThat(map.get("key"), contains(element(1), element(2)));
   }
@@ -364,7 +365,7 @@ public class ChainMapTest {
   @Test
   public void testPutWhenKeyIsNull() {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
-    map.put("key", chain(buffer(1), buffer(2)));
+    map.put("key", chainOf(buffer(1), buffer(2)));
 
     assertThat(map.get("key"), contains(element(1), element(2)));
   }
@@ -378,7 +379,7 @@ public class ChainMapTest {
 
     OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
 
-    map.put("key", chain(buffer(1), buffer(2)));
+    map.put("key", chainOf(buffer(1), buffer(2)));
 
     int nThreads = 10;
     ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
@@ -406,8 +407,8 @@ public class ChainMapTest {
 
     OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
 
-    map.put("key", chain(buffer(1)));
-    map.put("key", chain(buffer(2)));
+    map.put("key", chainOf(buffer(1)));
+    map.put("key", chainOf(buffer(2)));
 
     assertThat(chainStorage.getActiveChains().size(), is(0));
 

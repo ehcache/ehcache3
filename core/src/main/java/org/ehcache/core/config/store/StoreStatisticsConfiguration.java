@@ -27,7 +27,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * Note that statistics about the store size, mapping and so on are not affected
  * by this configuration. Only operation statistics (e.g. get/put counts) are disabled.
  */
-public class StoreStatisticsConfiguration implements ServiceConfiguration<Store.Provider> {
+public class StoreStatisticsConfiguration implements ServiceConfiguration<Store.Provider, Boolean> {
 
   private final boolean operationStatisticsEnabled;
 
@@ -42,5 +42,15 @@ public class StoreStatisticsConfiguration implements ServiceConfiguration<Store.
   @Override
   public Class<Store.Provider> getServiceType() {
     return Store.Provider.class;
+  }
+
+  @Override
+  public Boolean derive() {
+    return isOperationStatisticsEnabled();
+  }
+
+  @Override
+  public StoreStatisticsConfiguration build(Boolean enabled) {
+    return new StoreStatisticsConfiguration(enabled);
   }
 }

@@ -26,7 +26,7 @@ public class MandatoryLowRankServiceAFactory implements ServiceFactory<RankServi
   }
 
   @Override
-  public RankServiceA create(ServiceCreationConfiguration<RankServiceA> configuration) {
+  public RankServiceA create(ServiceCreationConfiguration<RankServiceA, ?> configuration) {
     return new RankServiceA("low-rank");
   }
 

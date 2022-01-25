@@ -44,7 +44,7 @@ public class OffHeapDiskStoreConfigurationParserTest {
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).add(new OffHeapDiskStoreConfiguration("foo", 4, 8)).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new OffHeapDiskStoreConfiguration("foo", 4, 8)).build();
     CacheType cacheType = new CacheType();
     cacheType = new OffHeapDiskStoreConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 

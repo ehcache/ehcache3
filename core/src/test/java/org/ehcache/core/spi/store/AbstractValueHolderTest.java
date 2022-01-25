@@ -31,88 +31,63 @@ public class AbstractValueHolderTest {
 
   @Test
   public void testCreationTime() throws Exception {
-    AbstractValueHolder<String> valueHolder = newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L);
+    AbstractValueHolder<String> valueHolder = newAbstractValueHolder(1000L);
 
-    assertThat(valueHolder.creationTime(TimeUnit.SECONDS), is(1L));
-    assertThat(valueHolder.creationTime(TimeUnit.MILLISECONDS), is(1000L));
-    assertThat(valueHolder.creationTime(TimeUnit.MICROSECONDS), is(1000000L));
+    assertThat(valueHolder.creationTime(), is(1000L));
   }
 
   @Test
   public void testExpirationTime() throws Exception {
-    AbstractValueHolder<String> valueHolder = newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 1000L);
+    AbstractValueHolder<String> valueHolder = newAbstractValueHolder(0L, 1000L);
 
-    assertThat(valueHolder.expirationTime(TimeUnit.SECONDS), is(1L));
-    assertThat(valueHolder.expirationTime(TimeUnit.MILLISECONDS), is(1000L));
-    assertThat(valueHolder.expirationTime(TimeUnit.MICROSECONDS), is(1000000L));
+    assertThat(valueHolder.expirationTime(), is(1000L));
   }
 
 
   @Test
   public void testLastAccessTime() throws Exception {
     // last access time defaults to create time
-    AbstractValueHolder<String> valueHolder = newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L);
+    AbstractValueHolder<String> valueHolder = newAbstractValueHolder(1000L);
 
-    assertThat(valueHolder.lastAccessTime(TimeUnit.SECONDS), is(1L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(1000L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MICROSECONDS), is(1000000L));
+    assertThat(valueHolder.lastAccessTime(), is(1000L));
 
-    valueHolder = newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 0L, 2000L);
+    valueHolder = newAbstractValueHolder(1000L, 0L, 2000L);
 
-    assertThat(valueHolder.lastAccessTime(TimeUnit.SECONDS), is(2L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(2000L));
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MICROSECONDS), is(2000000L));
+    assertThat(valueHolder.lastAccessTime(), is(2000L));
   }
 
 
   @Test
   public void testIsExpired() throws Exception {
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L).isExpired(1L, TimeUnit.SECONDS), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L).isExpired(1000L, TimeUnit.MILLISECONDS), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L).isExpired(1000000L, TimeUnit.MICROSECONDS), is(false));
+    assertThat(newAbstractValueHolder(1000L).isExpired(1000L), is(false));
 
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 1001L).isExpired(1L, TimeUnit.SECONDS), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 1001L).isExpired(1000L, TimeUnit.MILLISECONDS), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 1001L).isExpired(1000000L, TimeUnit.MICROSECONDS), is(false));
+    assertThat(newAbstractValueHolder(1000L, 1001L).isExpired(1000L), is(false));
 
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 1000L).isExpired(1L, TimeUnit.SECONDS), is(true));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 1000L).isExpired(1000L, TimeUnit.MILLISECONDS), is(true));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L, 1000L).isExpired(1000000L, TimeUnit.MICROSECONDS), is(true));
+    assertThat(newAbstractValueHolder(1000L, 1000L).isExpired(1000L), is(true));
   }
 
   @Test
   public void testEquals() throws Exception {
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L)), is(true));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L)), is(false));
+    assertThat(newAbstractValueHolder( 0L).equals(newAbstractValueHolder( 0L)), is(true));
+    assertThat(newAbstractValueHolder( 1L).equals(newAbstractValueHolder( 0L)), is(false));
 
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 2L, 0L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 2L, 0L)), is(true));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 2L, 0L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 2L, 1L)), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 2L, 0L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 3L, 0L)), is(false));
+    assertThat(newAbstractValueHolder(2L, 0L).equals(newAbstractValueHolder(2L, 0L)), is(true));
+    assertThat(newAbstractValueHolder(2L, 0L).equals(newAbstractValueHolder(2L, 1L)), is(false));
+    assertThat(newAbstractValueHolder(2L, 0L).equals(newAbstractValueHolder(3L, 0L)), is(false));
 
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(true));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1L, 2L, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(false));
+    assertThat(newAbstractValueHolder(0L, 2L, 1L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(true));
+    assertThat(newAbstractValueHolder(1L, 2L, 1L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(false));
 
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 3L, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 3L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 0L, 2L, 1L)), is(false));
-
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1L).equals(newAbstractValueHolder(TimeUnit.SECONDS, 1L)), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.NANOSECONDS, 1L).equals(newAbstractValueHolder(TimeUnit.SECONDS, 0L)), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.SECONDS, 0L).equals(newAbstractValueHolder(TimeUnit.NANOSECONDS, 1L)), is(false));
-    assertThat(newAbstractValueHolder(TimeUnit.SECONDS, 1L).equals(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L)), is(true));
-    assertThat(newAbstractValueHolder(TimeUnit.MILLISECONDS, 1000L).equals(newAbstractValueHolder(TimeUnit.SECONDS, 1L)), is(true));
+    assertThat(newAbstractValueHolder(0L, 3L, 1L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(false));
+    assertThat(newAbstractValueHolder(0L, 2L, 3L).equals(newAbstractValueHolder(0L, 2L, 1L)), is(false));
   }
 
   @Test
   public void testSubclassEquals() throws Exception {
-    assertThat(new AbstractValueHolder<String>(-1, 1000L) {
+    assertThat(new AbstractValueHolder<String>(-1, 1L) {
       @Override
       public String get() {
         return "aaa";
-      }
-
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
       }
 
       @Override
@@ -131,11 +106,6 @@ public class AbstractValueHolderTest {
       @Override
       public String get() {
         return "aaa";
-      }
-
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.SECONDS;
       }
 
       @Override
@@ -153,93 +123,34 @@ public class AbstractValueHolderTest {
       }
     }), is(true));
 
-    assertThat(new AbstractValueHolder<String>(-1, 1000L) {
-      @Override
-      public String get() {
-        return "aaa";
-      }
-
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MICROSECONDS;
-      }
-
-      @Override
-      public int hashCode() {
-        return super.hashCode() + get().hashCode();
-      }
-      @Override
-      public boolean equals(Object obj) {
-        if (obj instanceof AbstractValueHolder) {
-          AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
-          return super.equals(obj) && get().equals(other.get());
-        }
-        return false;
-      }
-    }.equals(new AbstractValueHolder<String>(-1, 1L) {
-      @Override
-      public String get() {
-        return "bbb";
-      }
-
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
-
-      @Override
-      public int hashCode() {
-        return super.hashCode() + get().hashCode();
-      }
-
-      @Override
-      public boolean equals(Object obj) {
-        if (obj instanceof AbstractValueHolder) {
-          AbstractValueHolder<?> other = (AbstractValueHolder<?>)obj;
-          return super.equals(obj) && get().equals(other.get());
-        }
-        return false;
-      }
-    }), is(false));
   }
 
-  private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime) {
+  private AbstractValueHolder<String> newAbstractValueHolder(long creationTime) {
     return new AbstractValueHolder<String>(-1, creationTime) {
       @Override
-      protected TimeUnit nativeTimeUnit() {
-        return timeUnit;
-      }
-      @Override
       public String get() {
         throw new UnsupportedOperationException();
       }
     };
   }
-  private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime, long expirationTime) {
+
+  private AbstractValueHolder<String> newAbstractValueHolder(long creationTime, long expirationTime) {
     return new AbstractValueHolder<String>(-1, creationTime, expirationTime) {
       @Override
-      protected TimeUnit nativeTimeUnit() {
-        return timeUnit;
-      }
-      @Override
       public String get() {
         throw new UnsupportedOperationException();
       }
     };
   }
-  private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime, long expirationTime, long lastAccessTime) {
-    final AbstractValueHolder<String> abstractValueHolder = new AbstractValueHolder<String>(-1, creationTime, expirationTime) {
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return timeUnit;
-      }
 
+  private AbstractValueHolder<String> newAbstractValueHolder(long creationTime, long expirationTime, long lastAccessTime) {
+    final AbstractValueHolder<String> abstractValueHolder = new AbstractValueHolder<String>(-1, creationTime, expirationTime) {
       @Override
       public String get() {
         throw new UnsupportedOperationException();
       }
     };
-    abstractValueHolder.setLastAccessTime(lastAccessTime, timeUnit);
+    abstractValueHolder.setLastAccessTime(lastAccessTime);
     return abstractValueHolder;
   }
 
