@@ -23,11 +23,13 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
-abstract class AbstractClientEntityFactory<E extends Entity, C> implements ClientEntityFactory<E, C> {
+abstract class AbstractClientEntityFactory<E extends Entity, C, U> implements ClientEntityFactory<E, C> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClientEntityFactory.class);
 
@@ -69,22 +71,22 @@ abstract class AbstractClientEntityFactory<E extends Entity, C> implements Clien
 
   @Override
   public void create() throws EntityAlreadyExistsException {
-    EntityRef<E, C> ref = getEntityRef();
+    EntityRef<E, C, U> ref = getEntityRef();
     try {
       while (true) {
         ref.create(configuration);
         try {
-          ref.fetchEntity().close();
+          ref.fetchEntity(null).close();
           return;
         } catch (EntityNotFoundException e) {
           //continue;
         }
       }
-    } catch (EntityNotProvidedException e) {
+    } catch (EntityNotProvidedException | EntityVersionMismatchException e) {
       LOGGER.error("Unable to create entity {} for id {}", entityType.getName(), entityIdentifier, e);
       throw new AssertionError(e);
-    } catch (EntityVersionMismatchException e) {
-      LOGGER.error("Unable to create entity {} for id {}", entityType.getName(), entityIdentifier, e);
+    } catch (EntityConfigurationException e) {
+      LOGGER.error("Unable to create entity - configuration exception", e);
       throw new AssertionError(e);
     }
   }
@@ -92,7 +94,7 @@ abstract class AbstractClientEntityFactory<E extends Entity, C> implements Clien
   @Override
   public E retrieve() throws EntityNotFoundException {
     try {
-      return getEntityRef().fetchEntity();
+      return getEntityRef().fetchEntity(null);
     } catch (EntityVersionMismatchException e) {
       LOGGER.error("Unable to retrieve entity {} for id {}", entityType.getName(), entityIdentifier, e);
       throw new AssertionError(e);
@@ -101,18 +103,21 @@ abstract class AbstractClientEntityFactory<E extends Entity, C> implements Clien
 
   @Override
   public void destroy() throws EntityNotFoundException, EntityBusyException {
-    EntityRef<E, C> ref = getEntityRef();
+    EntityRef<E, C, U> ref = getEntityRef();
     try {
       if (!ref.destroy()) {
-        throw new EntityBusyException("Destroy operation failed; " + entityIdentifier + " clustered tier in use by other clients");
+        throw new EntityBusyException("Destroy operation failed; " + entityIdentifier + " cluster tier in use by other clients");
       }
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to destroy entity {} for id {}", entityType.getName(), entityIdentifier, e);
       throw new AssertionError(e);
+    } catch (PermanentEntityException e) {
+      LOGGER.error("Unable to destroy entity - server says it is permanent", e);
+      throw new AssertionError(e);
     }
   }
 
-  private EntityRef<E, C> getEntityRef() {
+  private EntityRef<E, C, U> getEntityRef() {
     try {
       return getConnection().getEntityRef(entityType, entityVersion, entityIdentifier);
     } catch (EntityNotProvidedException e) {

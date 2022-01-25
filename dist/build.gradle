@@ -18,11 +18,11 @@ group = 'org.ehcache'
 archivesBaseName = 'ehcache'
 
 dependencies {
-  compile project(':api')
-  compile project(':core')
-  compile project(':impl')
-  compile project(':107')
-  compile project(':xml')
+  compileOnly project(':api')
+  compileOnly project(':core')
+  compileOnly project(':impl')
+  compileOnly project(':107')
+  compileOnly project(':xml')
 }
 
 apply plugin: EhDistribute

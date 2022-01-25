@@ -36,7 +36,7 @@ import static org.ehcache.core.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
  * The {@code ResourcePoolsBuilder} enables building {@link ResourcePools} configurations using a fluent style.
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
@@ -46,7 +46,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   private final Map<ResourceType<?>, ResourcePool> resourcePools;
 
   private ResourcePoolsBuilder() {
-    this(Collections.<ResourceType<?>, ResourcePool>emptyMap());
+    this(Collections.emptyMap());
   }
 
   private ResourcePoolsBuilder(Map<ResourceType<?>, ResourcePool> resourcePools) {
@@ -103,7 +103,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
     if (existingPool != null) {
       throw new IllegalArgumentException("Can not add '" + resourcePool + "'; configuration already contains '" + existingPool + "'");
     }
-    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<ResourceType<?>, ResourcePool>(resourcePools);
+    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<>(resourcePools);
     newPools.put(type, resourcePool);
     return new ResourcePoolsBuilder(newPools);
   }
@@ -115,7 +115,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @return a new builder with the added pool
    */
   public ResourcePoolsBuilder withReplacing(ResourcePool resourcePool) {
-    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<ResourceType<?>, ResourcePool>(resourcePools);
+    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<>(resourcePools);
     newPools.put(resourcePool.getType(), resourcePool);
     return new ResourcePoolsBuilder(newPools);
   }
@@ -132,7 +132,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
    */
   public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent) {
-    return with(new SizedResourcePoolImpl<SizedResourcePool>(type, size, unit, persistent));
+    return with(new SizedResourcePoolImpl<>(type, size, unit, persistent));
   }
 
   /**

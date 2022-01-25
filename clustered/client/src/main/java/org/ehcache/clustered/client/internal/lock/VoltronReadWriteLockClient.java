@@ -24,7 +24,6 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
-import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
@@ -39,15 +38,11 @@ public class VoltronReadWriteLockClient implements Entity {
 
   public VoltronReadWriteLockClient(EntityClientEndpoint<LockOperation, LockTransition> endpoint) {
     this.endpoint = endpoint;
-    this.endpoint.setDelegate(new EndpointDelegate() {
+    this.endpoint.setDelegate(new EndpointDelegate<LockTransition>() {
       @Override
-      public void handleMessage(EntityResponse response) {
-        if (response instanceof LockTransition) {
-          if (((LockTransition) response).isReleased()) {
-            wakeup.release();
-          }
-        } else {
-          throw new AssertionError();
+      public void handleMessage(LockTransition response) {
+        if (response.isReleased()) {
+          wakeup.release();
         }
       }
 

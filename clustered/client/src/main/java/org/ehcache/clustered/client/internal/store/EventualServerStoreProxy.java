@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
@@ -26,23 +24,13 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
 
   private final ServerStoreProxy delegate;
 
-  public EventualServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
-    this.delegate = new CommonServerStoreProxy(messageFactory, entity);
+  public EventualServerStoreProxy(String cacheId, final ClusterTierClientEntity entity, final ServerCallback invalidation) {
+    this.delegate = new CommonServerStoreProxy(cacheId, entity, invalidation);
   }
 
   @Override
   public String getCacheId() {
     return delegate.getCacheId();
-  }
-
-  @Override
-  public void addInvalidationListener(InvalidationListener listener) {
-    delegate.addInvalidationListener(listener);
-  }
-
-  @Override
-  public boolean removeInvalidationListener(InvalidationListener listener) {
-    return delegate.removeInvalidationListener(listener);
   }
 
   @Override

@@ -34,9 +34,8 @@ public class FloatSerializer implements Serializer<Float> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link Float} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link Float} is a base java type.
    *
    * @param classLoader the classloader to use
    *
@@ -59,16 +58,15 @@ public class FloatSerializer implements Serializer<Float> {
    * {@inheritDoc}
    */
   @Override
-  public Float read(ByteBuffer binary) throws ClassNotFoundException {
-    float f = binary.getFloat();
-    return f;
+  public Float read(ByteBuffer binary) {
+    return binary.getFloat();
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public boolean equals(Float object, ByteBuffer binary) throws ClassNotFoundException {
+  public boolean equals(Float object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
 }

@@ -27,7 +27,7 @@ public class TestSerializer<T> implements Serializer<T> {
   private final Serializer<T> serializer;
 
   public TestSerializer(ClassLoader classLoader) {
-    CompactJavaSerializer<T> compactJavaSerializer = new CompactJavaSerializer<T>(classLoader);
+    CompactJavaSerializer<T> compactJavaSerializer = new CompactJavaSerializer<>(classLoader);
     compactJavaSerializer.init(new TransientStateRepository());
     serializer = compactJavaSerializer;
   }

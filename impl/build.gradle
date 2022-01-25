@@ -22,9 +22,13 @@ dependencies {
   compile (group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion) {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm-all:5.0.4'
+  testCompile project(path: ':core-spi-test'), 'org.ow2.asm:asm:6.1.1', 'org.ow2.asm:asm-commons:6.1.1'
 }
 
 jar {
   from "$rootDir/NOTICE"
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs = ['-Xlint:unchecked,deprecation']
 }

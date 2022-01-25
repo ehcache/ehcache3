@@ -20,25 +20,8 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
 import com.tc.classloader.CommonComponent;
 
-import java.util.UUID;
-
 @CommonComponent
 public abstract class EhcacheSyncMessage extends EhcacheEntityMessage {
-
-  @Override
-  public void setId(final long id) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public long getId() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public UUID getClientId() {
-    throw new UnsupportedOperationException();
-  }
 
   public abstract SyncMessageType getMessageType();
 

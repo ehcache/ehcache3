@@ -39,6 +39,10 @@ public enum BulkOps {
   /**
    * The "remove all" bulk operation
    */
-  REMOVE_ALL;
+  REMOVE_ALL,
 
+  /**
+   * The "put all" bulk operation performing an update
+   */
+  UPDATE_ALL
 }

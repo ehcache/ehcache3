@@ -16,27 +16,26 @@
 package org.ehcache.core;
 
 import java.util.*;
+import java.util.function.Function;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.ehcache.core.EhcacheBulkMethodsTest.entry;
 import static org.ehcache.core.EhcacheBulkMethodsTest.valueHolder;
 
@@ -50,14 +49,11 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
   @Test
   public void testPutAllWithWriter() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
-    when(store.bulkCompute((Set<Integer>) argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function<List<Map.Entry<Integer, String>>, Object> function =
-          (Function<List<Map.Entry<Integer, String>>, Object>)invocation.getArguments()[1];
-        function.apply(Arrays.asList(entry(1, "one"), entry(2, "two"), entry(3, "three")));
-        return null;
-      }
+    when(store.bulkCompute((Set<Integer>) argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
+      Function<List<Map.Entry<Integer, String>>, Object> function =
+        (Function<List<Map.Entry<Integer, String>>, Object>)invocation.getArguments()[1];
+      function.apply(Arrays.asList(entry(1, "one"), entry(2, "two"), entry(3, "three")));
+      return null;
     });
     CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter = mock(CacheLoaderWriter.class);
 
@@ -78,18 +74,15 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
   public void testGetAllWithLoader() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
 
-    when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function function = (Function)invocation.getArguments()[1];
-        function.apply(invocation.getArguments()[0]);
+    when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
+      Function function = (Function)invocation.getArguments()[1];
+      function.apply(invocation.getArguments()[0]);
 
-        final Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<Number, ValueHolder<CharSequence>>();
-        loaderValues.put(1, valueHolder((CharSequence)"one"));
-        loaderValues.put(2, valueHolder((CharSequence)"two"));
-        loaderValues.put(3, null);
-        return loaderValues;
-      }
+      final Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<>();
+      loaderValues.put(1, valueHolder((CharSequence)"one"));
+      loaderValues.put(2, valueHolder((CharSequence)"two"));
+      loaderValues.put(3, null);
+      return loaderValues;
     });
 
     CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -108,13 +101,10 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
   @Test
   public void testRemoveAllWithWriter() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
-    when(store.bulkCompute((Set<? extends Number>) argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function function = (Function)invocation.getArguments()[1];
-        function.apply(Arrays.asList(entry(1, "one"), entry(2, "two"), entry(3, "three")));
-        return null;
-      }
+    when(store.bulkCompute((Set<? extends Number>) argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
+      Function function = (Function)invocation.getArguments()[1];
+      function.apply(Arrays.asList(entry(1, "one"), entry(2, "two"), entry(3, "three")));
+      return null;
     });
     CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter = mock(CacheLoaderWriter.class);
 
@@ -128,9 +118,10 @@ public class EhcacheWithLoaderWriterBulkMethodsTest {
 
   protected InternalCache<Number, CharSequence> getCache(Store<Number, CharSequence> store, CacheLoaderWriter cacheLoaderWriter) {
     CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
-    when(cacheConfig.getExpiry()).thenReturn(mock(Expiry.class));
+    when(cacheConfig.getExpiryPolicy()).thenReturn(mock(ExpiryPolicy.class));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    return new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBulkMethodsTest"));
+    ResilienceStrategy<Number, CharSequence> resilienceStrategy = mock(ResilienceStrategy.class);
+    return new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBulkMethodsTest"));
   }
 
 }

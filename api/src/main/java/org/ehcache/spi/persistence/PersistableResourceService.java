@@ -16,11 +16,9 @@
 
 package org.ehcache.spi.persistence;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 
-import java.util.Collection;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.PluralService;
@@ -43,10 +41,9 @@ public interface PersistableResourceService extends MaintainableService {
 
   /**
    * Returns a {@link PersistenceSpaceIdentifier} for the space associated to the provided arguments.
-   * <P>
-   *   This method may create a new persistence space or load one. The returned identifier is the only way to interact
-   *   with the persistence space.
-   * </P>
+   * <p>
+   * This method may create a new persistence space or load one. The returned identifier is the only way to interact
+   * with the persistence space.
    *
    * @param name the name of the persistence context
    * @param config the configuration for the associated cache
@@ -60,10 +57,9 @@ public interface PersistableResourceService extends MaintainableService {
 
   /**
    * Releases a previously obtained {@link PersistenceSpaceIdentifier}.
-   * <P>
-   *   This indicates to the persistence space that resource linked to the given identifier are no longer needed and thus
-   *   enables cleaning up any transient state left.
-   * </P>
+   * <p>
+   * This indicates to the persistence space that resource linked to the given identifier are no longer needed and thus
+   * enables cleaning up any transient state left.
    *
    * @param identifier the {@code PersistenceSpaceIdentifier} to release
    * @throws CachePersistenceException If the identifier is not known
@@ -73,9 +69,8 @@ public interface PersistableResourceService extends MaintainableService {
   /**
    * Returns a named {@link StateRepository state repository} in the context of the given
    * {@link PersistenceSpaceIdentifier identifier}.
-   * <P>
-   *   If the {@code StateRepository} already existed, this method returns it in a fully available state.
-   * </P>
+   * <p>
+   * If the {@code StateRepository} already existed, this method returns it in a fully available state.
    *
    * @param identifier the space identifier
    * @param name the state repository name
@@ -87,10 +82,9 @@ public interface PersistableResourceService extends MaintainableService {
 
   /**
    * Destroys the persistence space with the given name.
-   * <P>
-   *   This method can be called without having created the persistence space
-   *   from this JVM.
-   * </P>
+   * <p>
+   * This method can be called without having created the persistence space
+   * from this JVM.
    *
    * @param name persistence context name
    *
@@ -100,10 +94,9 @@ public interface PersistableResourceService extends MaintainableService {
 
   /**
    * Destroys all persistence spaces.
-   * <P>
+   * <p>
    * Note that this method can be called without having created the persistence
    * spaces from this JVM.
-   * </P>
    *
    * @throws CachePersistenceException if the persistence storage cannot be destroyed
    */

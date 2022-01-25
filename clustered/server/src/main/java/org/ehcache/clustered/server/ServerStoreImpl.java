@@ -18,25 +18,34 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
-import org.terracotta.offheapstore.MapInternals;
+import org.ehcache.clustered.server.state.ResourcePageSource;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import com.tc.classloader.CommonComponent;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractList;
 import java.util.List;
+import java.util.Set;
 
 @CommonComponent
-public class ServerStoreImpl implements ServerStore, MapInternals {
+public class ServerStoreImpl implements ServerSideServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
-  private final PageSource pageSource;
+  private final ResourcePageSource pageSource;
   private final OffHeapServerStore store;
 
-  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource, KeySegmentMapper mapper) {
+  public ServerStoreImpl(ServerStoreConfiguration configuration, ResourcePageSource source, KeySegmentMapper mapper,
+                         List<OffHeapChainMap<Long>> recoveredMaps) {
+    this.storeConfiguration = configuration;
+    this.pageSource = source;
+    this.store = new OffHeapServerStore(recoveredMaps, mapper);
+  }
+
+  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, ResourcePageSource pageSource, KeySegmentMapper mapper) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
     this.store = new OffHeapServerStore(pageSource, mapper);
@@ -66,11 +75,13 @@ public class ServerStoreImpl implements ServerStore, MapInternals {
 
   @Override
   public void append(long key, ByteBuffer payLoad) {
+    checkPayLoadSize(payLoad);
     store.append(key, payLoad);
   }
 
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
+    checkPayLoadSize(payLoad);
     return store.getAndAppend(key, payLoad);
   }
 
@@ -92,8 +103,19 @@ public class ServerStoreImpl implements ServerStore, MapInternals {
     store.close();
   }
 
-  public List<OffHeapChainMap<Long>> getSegments() {
-    return store.getSegments();
+  @Override
+  public List<Set<Long>> getSegmentKeySets() {
+
+    return new AbstractList<Set<Long>>() {
+      @Override
+      public Set<Long> get(int index) {
+        return store.getSegments().get(index).keySet();
+      }
+      @Override
+      public int size() {
+        return store.getSegments().size();
+      }
+    };
   }
 
   // stats
@@ -163,5 +185,12 @@ public class ServerStoreImpl implements ServerStore, MapInternals {
     //Thus there could be data loss
 
     throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  private void checkPayLoadSize(ByteBuffer payLoad) {
+    if (payLoad.remaining() > pageSource.getPool().getSize()) {
+      throw new OversizeMappingException("Payload (" + payLoad.remaining() +
+                                         ") bigger than pool size (" + pageSource.getPool().getSize() + ")");
+    }
   }
 }

@@ -23,8 +23,7 @@ import java.util.Collections;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -37,7 +36,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
-  private final Expiry<? super K, ? super V> expiry;
+  private final ExpiryPolicy<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
 
   /**
@@ -53,8 +52,17 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
    */
   public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
           EvictionAdvisor<? super K, ? super V> evictionAdvisor,
-          ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
+          ClassLoader classLoader, ExpiryPolicy<? super K, ? super V> expiry,
           ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
+    if (keyType == null) {
+      throw new NullPointerException("keyType cannot be null");
+    }
+    if (valueType == null) {
+      throw new NullPointerException("valueType cannot be null");
+    }
+    if (resourcePools == null) {
+      throw new NullPointerException("resourcePools cannot be null");
+    }
     this.keyType = keyType;
     this.valueType = valueType;
     this.evictionAdvisor = evictionAdvisor;
@@ -62,7 +70,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     if (expiry != null) {
       this.expiry = expiry;
     } else {
-      this.expiry = Expirations.noExpiration();
+      this.expiry = ExpiryPolicy.NO_EXPIRY;
     }
     this.resourcePools = resourcePools;
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
@@ -111,8 +119,17 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   /**
    * {@inheritDoc}
    */
+  @SuppressWarnings("deprecation")
   @Override
-  public Expiry<? super K, ? super V> getExpiry() {
+  public org.ehcache.expiry.Expiry<? super K, ? super V> getExpiry() {
+    return ExpiryUtils.convertToExpiry(expiry);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public ExpiryPolicy<? super K, ? super V> getExpiryPolicy() {
     return expiry;
   }
 

@@ -51,16 +51,15 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
     if (cfg.getClassLoader() == null) {
       throw new NullPointerException();
     }
-    this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(cfg.getCacheConfigurations());
+    this.caches = new ConcurrentHashMap<>(cfg.getCacheConfigurations());
     this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
     this.classLoader = cfg.getClassLoader();
   }
 
   /**
    * Creates a new configuration with the specified class loader.
-   * <P>
-   *   This means no cache configurations nor service configurations.
-   * </P>
+   * <p>
+   * This means no cache configurations nor service configurations.
    *
    * @param classLoader the class loader to use
    * @param services an array of service configurations
@@ -81,7 +80,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
    */
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
-    this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(caches);
+    this.caches = new ConcurrentHashMap<>(caches);
     this.classLoader = classLoader == null ? ClassLoading.getDefaultClassLoader() : classLoader;
   }
 

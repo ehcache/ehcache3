@@ -27,12 +27,12 @@ public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
-    return new PutIfAbsentOperation<K, V>(key, value, timestamp);
+    return new PutIfAbsentOperation<>(key, value, timestamp);
   }
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-    return new PutIfAbsentOperation<K, V>(buffer, keySerializer, valueSerializer);
+    return new PutIfAbsentOperation<>(buffer, keySerializer, valueSerializer);
   }
 
   @Override
@@ -42,11 +42,11 @@ public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<Long, String>(1L, "one", System.currentTimeMillis());
-    Result<String> result = operation.apply(null);
+    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<>(1L, "one", System.currentTimeMillis());
+    Result<Long, String> result = operation.apply(null);
     assertSame(operation, result);
 
-    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(1L, "another one", System.currentTimeMillis());
+    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(anotherOperation, result);
   }

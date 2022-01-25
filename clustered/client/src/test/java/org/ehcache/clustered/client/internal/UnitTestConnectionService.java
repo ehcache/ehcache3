@@ -30,15 +30,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 
+import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -55,13 +57,17 @@ import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
+import org.terracotta.exception.PermanentEntityException;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
 import org.terracotta.offheapresource.config.ResourceType;
+import org.terracotta.passthrough.IAsynchronousServerCrasher;
 import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
+
+import static org.mockito.Mockito.mock;
 
 
 /**
@@ -101,20 +107,18 @@ import org.terracotta.passthrough.PassthroughServerRegistry;
  * public void removePassthroughServer() throws Exception {
  *   UnitTestConnectionService.remove(<i>CLUSTER_URI</i>);
  * }
- *   </code></pre>
+ * </code></pre>
  *
- *   If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
- *   can also add Voltron server & client services and service providers.
- * </p>
+ * If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
+ * can also add Voltron server & client services and service providers.
  * <p>
- *   Tests needing direct access to a {@link Connection} can obtain a connection using the following:
- *   <pre><code>
+ * Tests needing direct access to a {@link Connection} can obtain a connection using the following:
+ * <pre><code>
  * Connection connection = new UnitTestConnectionService().connect(<i>CLUSTER_URI</i>, new Properties());
- *   </code></pre>
- *   after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
- *   be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
- *   through {@link #connect(URI, Properties)}.
- * </p>
+ * </code></pre>
+ * after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
+ * be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
+ * through {@link #connect(URI, Properties)}.
  *
  * @see PassthroughServerBuilder
  */
@@ -122,8 +126,8 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
 
-  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<String, StripeDescriptor>();
-  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<URI, ServerDescriptor>();
+  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<>();
+  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<>();
 
   private static final String PASSTHROUGH = "passthrough";
 
@@ -142,7 +146,10 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     SERVERS.put(keyURI, new ServerDescriptor(server));
+    // TODO rework that better
+    server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
+    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -163,10 +170,8 @@ public class UnitTestConnectionService implements ConnectionService {
       try {
         LOGGER.warn("Force close {}", formatConnectionId(connection));
         connection.close();
-      } catch (IllegalStateException e) {
+      } catch (IllegalStateException | IOException e) {
         // Ignored in case connection is already closed
-      } catch (IOException e) {
-        // Ignored
       }
     }
     stripeDescriptor.removeConnections();
@@ -216,30 +221,32 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
-        } catch (AssertionError e) {
+        } catch (AssertionError | IOException e) {
           // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
-        } catch (IOException e) {
-          // Ignored
         }
       }
 
       //open destroy connection.  You need to make sure connection doesn't have any entities associated with it.
       PassthroughConnection connection  = serverDescriptor.server.connectNewClient("destroy-connection");
 
-      for(Entry entry : serverDescriptor.knownEntities.entrySet()) {
-        @SuppressWarnings("unchecked")
-        Class<? extends Entity> type = (Class) entry.getKey();
-        List args = (List)entry.getValue();
-        Long version = (Long)args.get(0);
-        String stringArg = (String)args.get(1);
+      // destroy in reverse order of the creation to keep coherence
+      List<Class<? extends Entity>> keys = new ArrayList<>(serverDescriptor.knownEntities.keySet());
+      Collections.reverse(keys);
+      for(Class<? extends Entity> type : keys) {
+        Object[] args = serverDescriptor.knownEntities.get(type);
+
+        Long version = (Long) args[0];
+        String stringArg = (String) args[1];
 
         try {
           EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
-          LOGGER.error("Entity destroy failed: ", ex);
+          LOGGER.error("Entity destroy failed (not provided???): ", ex);
         } catch (EntityNotFoundException ex) {
           LOGGER.error("Entity destroy failed: ", ex);
+        } catch (PermanentEntityException ex) {
+          LOGGER.error("Entity destroy failed (permanent???): ", ex);
         }
       }
 
@@ -268,19 +275,19 @@ public class UnitTestConnectionService implements ConnectionService {
    * {@link #serverEntityService(EntityServerService)} or {@link #clientEntityService(EntityClientService)},
    * this builder defines the following services for each {@code PassthroughServer} built:
    * <ul>
-   *   <li>{@link EhcacheServerEntityService}</li>
-   *   <li>{@link EhcacheClientEntityService}</li>
+   *   <li>{@link ClusterTierManagerServerEntityService}</li>
+   *   <li>{@link ClusterTierManagerClientEntityService}</li>
    *   <li>{@link VoltronReadWriteLockServerEntityService}</li>
    *   <li>{@link VoltronReadWriteLockEntityClientService}</li>
    * </ul>
    */
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
-    private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<EntityServerService<?, ?>>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>> clientEntityServices =
-        new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>>();
+    private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<>();
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
+      new ArrayList<>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
-        new IdentityHashMap<ServiceProvider, ServiceProviderConfiguration>();
+      new IdentityHashMap<>();
 
     private final OffheapResourcesType resources = new OffheapResourcesType();
 
@@ -330,7 +337,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -342,8 +349,10 @@ public class UnitTestConnectionService implements ConnectionService {
        * If services have been specified, don't establish the "defaults".
        */
       if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
-        newServer.registerServerEntityService(new EhcacheServerEntityService());
-        newServer.registerClientEntityService(new EhcacheClientEntityService());
+        newServer.registerServerEntityService(new ClusterTierManagerServerEntityService());
+        newServer.registerClientEntityService(new ClusterTierManagerClientEntityService());
+        newServer.registerServerEntityService(new ClusterTierServerEntityService());
+        newServer.registerClientEntityService(new ClusterTierClientEntityService());
         newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
       }
@@ -352,7 +361,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 
@@ -375,6 +384,11 @@ public class UnitTestConnectionService implements ConnectionService {
     } else {
       return Collections.emptyList();
     }
+  }
+
+  public static Collection<Connection> getConnections(URI uri) {
+    ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
+    return serverDescriptor.getConnections().keySet();
   }
 
   @Override
@@ -466,8 +480,8 @@ public class UnitTestConnectionService implements ConnectionService {
   }
 
   private static final class StripeDescriptor {
-    private final List<PassthroughServer> servers = new ArrayList<PassthroughServer>();
-    private final List<Connection> connections = new ArrayList<Connection>();
+    private final List<PassthroughServer> servers = new ArrayList<>();
+    private final List<Connection> connections = new ArrayList<>();
 
     synchronized void addServer (PassthroughServer server) {
       servers.add(server);
@@ -489,15 +503,15 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final class ServerDescriptor {
     private final PassthroughServer server;
-    private final Map<Connection, Properties> connections = new IdentityHashMap<Connection, Properties>();
-    private final Map<Class<? extends Entity>, List<Object>> knownEntities = new HashMap<Class<? extends Entity>, List<Object>>();
+    private final Map<Connection, Properties> connections = new IdentityHashMap<>();
+    private final Map<Class<? extends Entity>, Object[]> knownEntities = new LinkedHashMap<>();
 
     ServerDescriptor(PassthroughServer server) {
       this.server = server;
     }
 
     synchronized Map<Connection, Properties> getConnections() {
-      return new IdentityHashMap<Connection, Properties>(this.connections);
+      return new IdentityHashMap<>(this.connections);
     }
 
     synchronized void add(Connection connection, Properties properties) {
@@ -509,10 +523,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     public void addKnownEntity(Class<? extends Entity> arg, Object arg1, Object arg2) {
-      List<Object> set = new ArrayList<Object>();
-      set.add(arg1);
-      set.add(arg2);
-      knownEntities.put(arg, set);
+      knownEntities.put(arg, new Object[]{ arg1, arg2 });
     }
   }
 

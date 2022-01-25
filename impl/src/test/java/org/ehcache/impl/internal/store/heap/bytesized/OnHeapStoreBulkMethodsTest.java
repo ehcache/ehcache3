@@ -16,11 +16,10 @@
 
 package org.ehcache.impl.internal.store.heap.bytesized;
 
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -47,7 +46,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   protected <K, V> Store.Configuration<K, V> mockStoreConfig() {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(CharSequence.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build());
@@ -55,7 +54,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   }
 
   @SuppressWarnings("unchecked")
-  protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
+  protected OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
     return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
         new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
@@ -66,7 +65,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(Number.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build());
@@ -78,28 +77,25 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     store.put(2, 3);
     store.put(3, 4);
 
-    Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends Number>>, Iterable<? extends Map.Entry<? extends Number, ? extends Number>>>() {
-      @Override
-      public Iterable<? extends Map.Entry<? extends Number, ? extends Number>> apply(Iterable<? extends Map.Entry<? extends Number, ? extends Number>> entries) {
-        Map<Number, Number> newValues = new HashMap<Number, Number>();
-        for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
-          final Number currentValue = entry.getValue();
-          if(currentValue == null) {
-            if(entry.getKey().equals(4)) {
-              newValues.put(entry.getKey(), null);
-            } else {
-              newValues.put(entry.getKey(), 0);
-            }
+    Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), entries -> {
+      Map<Number, Number> newValues = new HashMap<>();
+      for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
+        final Number currentValue = entry.getValue();
+        if(currentValue == null) {
+          if(entry.getKey().equals(4)) {
+            newValues.put(entry.getKey(), null);
           } else {
-            newValues.put(entry.getKey(), currentValue.intValue() * 2);
+            newValues.put(entry.getKey(), 0);
           }
-
+        } else {
+          newValues.put(entry.getKey(), currentValue.intValue() * 2);
         }
-        return newValues.entrySet();
+
       }
+      return newValues.entrySet();
     });
 
-    ConcurrentMap<Number, Number> check = new ConcurrentHashMap<Number, Number>();
+    ConcurrentMap<Number, Number> check = new ConcurrentHashMap<>();
     check.put(1, 4);
     check.put(2, 6);
     check.put(3, 8);
@@ -107,17 +103,17 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     check.put(5, 0);
     check.put(6, 0);
 
-    assertThat(result.get(1).value(), Matchers.<Number>is(check.get(1)));
-    assertThat(result.get(2).value(), Matchers.<Number>is(check.get(2)));
-    assertThat(result.get(3).value(), Matchers.<Number>is(check.get(3)));
+    assertThat(result.get(1).get(), Matchers.is(check.get(1)));
+    assertThat(result.get(2).get(), Matchers.is(check.get(2)));
+    assertThat(result.get(3).get(), Matchers.is(check.get(3)));
     assertThat(result.get(4), nullValue());
-    assertThat(result.get(5).value(), Matchers.<Number>is(check.get(5)));
-    assertThat(result.get(6).value(), Matchers.<Number>is(check.get(6)));
+    assertThat(result.get(5).get(), Matchers.is(check.get(5)));
+    assertThat(result.get(6).get(), Matchers.is(check.get(6)));
 
     for (Number key : check.keySet()) {
       final Store.ValueHolder<Number> holder = store.get(key);
       if(holder != null) {
-        check.remove(key, holder.value());
+        check.remove(key, holder.get());
       }
     }
     assertThat(check.size(), is(1));

@@ -19,9 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.spi.test.After;
@@ -32,9 +30,9 @@ import org.hamcrest.Matcher;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * Tests eviction events according to the contract of the
@@ -47,10 +45,10 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   final K k = factory.createKey(1L);
-  final V v = factory.createValue(1l);
+  final V v = factory.createValue(1L);
   final K k2 = factory.createKey(2L);
-  final V v2 = factory.createValue(2l);
-  final V v3 = factory.createValue(3l);
+  final V v2 = factory.createValue(2L);
+  final V v3 = factory.createValue(3L);
 
   protected Store<K, V> kvStore;
 
@@ -91,7 +89,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k2, v2);
     verifyListenerInteractions(listener);
     kvStore.replace(getOnlyKey(kvStore.iterator()), v3);
-    assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).value(), is(v3));
+    assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).get(), is(v3));
   }
 
   @SPITest
@@ -99,12 +97,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.compute(k2, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        return v2;
-      }
-    });
+    kvStore.compute(k2, (mappedKey, mappedValue) -> v2);
     verifyListenerInteractions(listener);
   }
 
@@ -113,12 +106,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.computeIfAbsent(k2, new Function<K, V>() {
-      @Override
-      public V apply(K mappedKey) {
-        return v2;
-      }
-    });
+    kvStore.computeIfAbsent(k2, mappedKey -> v2);
     verifyListenerInteractions(listener);
   }
 

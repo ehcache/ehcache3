@@ -17,30 +17,34 @@
 package org.ehcache.clustered.server.repo;
 
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheStateRepoSyncMessage;
 
 import com.tc.classloader.CommonComponent;
 
-import java.util.AbstractMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static java.util.Collections.emptyList;
 
 @CommonComponent
 public class StateRepositoryManager {
 
-  private final ConcurrentMap<String, ServerStateRepository> mapRepositoryMap = new ConcurrentHashMap<String, ServerStateRepository>();
+  private final ConcurrentMap<String, ServerStateRepository> mapRepositoryMap = new ConcurrentHashMap<>();
 
-  public void destroyStateRepository(String cacheId) throws ClusterException {
+  public void destroyStateRepository(String cacheId) {
     mapRepositoryMap.remove(cacheId);
   }
 
-  public EhcacheEntityResponse invoke(StateRepositoryOpMessage message) throws ClusterException {
+  public EhcacheEntityResponse invoke(StateRepositoryOpMessage message) {
     String cacheId = message.getCacheId();
+    ServerStateRepository currentRepo = getServerStateRepository(cacheId);
+    return currentRepo.invoke(message);
+  }
+
+  private ServerStateRepository getServerStateRepository(String cacheId) {
     ServerStateRepository currentRepo = mapRepositoryMap.get(cacheId);
     if (currentRepo == null) {
       ServerStateRepository newRepo = new ServerStateRepository();
@@ -49,7 +53,18 @@ public class StateRepositoryManager {
         currentRepo = newRepo;
       }
     }
-    return currentRepo.invoke(message);
+    return currentRepo;
   }
 
+  public List<EhcacheStateRepoSyncMessage> syncMessageFor(String cacheId) {
+    ServerStateRepository repository = mapRepositoryMap.get(cacheId);
+    if (repository != null) {
+      return repository.syncMessage(cacheId);
+    }
+    return emptyList();
+  }
+
+  public void processSyncMessage(EhcacheStateRepoSyncMessage stateRepoSyncMessage) {
+    getServerStateRepository(stateRepoSyncMessage.getCacheId()).processSyncMessage(stateRepoSyncMessage);
+  }
 }

@@ -36,7 +36,7 @@ public class ConditionalRemoveOperation<K, V> extends BaseKeyValueOperation<K, V
   }
 
   @Override
-  public Result<V> apply(final Result<V> previousOperation) {
+  public Result<K, V> apply(final Result<K, V> previousOperation) {
     if(previousOperation == null) {
       return null;
     } else {

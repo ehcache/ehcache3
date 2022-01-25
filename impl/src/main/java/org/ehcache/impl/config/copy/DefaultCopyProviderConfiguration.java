@@ -24,10 +24,9 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  * {@link ServiceCreationConfiguration} for the default {@link CopyProvider} implementation.
- * <P>
- *   Enables configuring {@link Class} - {@link Copier} pairs that will be selected unless cache level configurations
- *   are provided.
- * </P>
+ * <p>
+ * Enables configuring {@link Class} - {@link Copier} pairs that will be selected unless cache level configurations
+ * are provided.
  */
 public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, Copier<?>> implements ServiceCreationConfiguration<CopyProvider> {
 
@@ -95,7 +94,7 @@ public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfi
       throw new IllegalArgumentException("Duplicate copier for class : " + clazz);
     }
     @SuppressWarnings("unchecked")
-    ClassInstanceConfiguration<Copier<?>> configuration = (ClassInstanceConfiguration) new DefaultCopierConfiguration<T>(copierClass);
+    ClassInstanceConfiguration<Copier<?>> configuration = (ClassInstanceConfiguration) new DefaultCopierConfiguration<>(copierClass);
     getDefaults().put(clazz, configuration);
     return this;
   }

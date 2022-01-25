@@ -15,10 +15,8 @@
  */
 package org.ehcache.management;
 
-import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.Collection;
 
@@ -33,13 +31,6 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
   Context getContext();
 
   /**
-   * Gets the alias of the executor to use for asynchronous statistics tasks.
-   *
-   * @return The static executor alias
-   */
-  String getStatisticsExecutorAlias();
-
-  /**
    * Gets the alias of the executor to use for asynchronous collector service tasks.
    *
    * @return The static colector executor alias
@@ -51,11 +42,4 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
    */
   Collection<String> getTags();
 
-  /**
-   * Returns the configuration of a specific {@link ManagementProvider} type.
-   *
-   * @param managementProviderClass The type of the class managing statistics, capabilities, actions, etc.
-   * @return The configuration class to use for this manager type
-   */
-  StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider> managementProviderClass);
 }

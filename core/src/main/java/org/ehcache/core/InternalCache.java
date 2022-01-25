@@ -16,20 +16,19 @@
 package org.ehcache.core;
 
 import java.util.Map;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
-import org.terracotta.statistics.jsr166e.LongAdder;
 
 /**
  * Extension of the {@link org.ehcache.Cache} and {@link UserManagedCache} interfaces defining common methods used by
  * collaborators of {@link org.ehcache.Cache} implementations.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  */
 public interface InternalCache<K, V> extends UserManagedCache<K, V> {
 
@@ -45,7 +44,7 @@ public interface InternalCache<K, V> extends UserManagedCache<K, V> {
    *
    * @return Jsr107Cache
    */
-  Jsr107Cache<K, V> getJsr107Cache();
+  Jsr107Cache<K, V> createJsr107Cache();
 
   /**
    * CacheLoaderWriter

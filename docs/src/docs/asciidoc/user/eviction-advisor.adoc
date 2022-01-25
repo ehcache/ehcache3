@@ -1,9 +1,9 @@
 ---
 ---
 = Eviction Advisor
-ifndef::sourcedir32[]
+ifndef::sourcedir35[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir35[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -14,33 +14,39 @@ endif::notBuildingForSite[]
 
 NOTE: This is an advanced topic/feature that will not be of interest to most users.
 
-You can affect which elements are selected for eviction from the cache by providing a class that implements the
-`org.ehcache.config.EvictionAdvisor` interface.
+You can affect which elements are selected for eviction from the cache by providing a class that implements the `org.ehcache.config.EvictionAdvisor` interface.
 
-`EvictionAdvisor` implementations are invoked when Ehcache attempts to evict entries from the cache
-(in order to make room for new entries) in order to determine whether the given entry should not be considered
-a good candidate for eviction.  If the eviction is advised against, Ehcache will try to honor the preference of
-preserving that entry in the cache, though there is no full guarantee of such.
+[NOTE]
+====
+Eviction advisors are not used for clustered storage tiers.
+For example, in a cache with a heap tier and clustered storage tier, the heap tier will use the eviction advisor but the clustered storage tier will evict independently, irrespective of the eviction advisor.
+The description below applies to using an eviction advisor for the cache tiers other than a clustered storage tier.
+====
 
-[source,java,indent=0]
+`EvictionAdvisor` implementations are invoked when Ehcache is attempting to evict entries from the cache
+(in order to make room for new entries) in order to determine whether the given entry should not be considered a good candidate for eviction.
+If the eviction is advised against, Ehcache will try to honor the preference of preserving that entry in the cache, though there is no full guarantee of such.
+
+[source%nowrap,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEvictionAdvisor]
+include::{sourcedir35}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEvictionAdvisor]
 ----
 
 <1> Configure a constrained heap, as the eviction advisor is only relevant when mappings get evicted from the cache.
-<2> If you want to hint to the eviction algorithm to advise against the eviction of some mappings, you have to
-    configure an instance of `EvictionAdvisor`.
+<2> If you want to give the eviction algorithm a hint to advise against the eviction of some mappings, you have to configure an instance of `EvictionAdvisor`.
 
 In this particular example, the `OddKeysEvictionAdvisor` class will advise against eviction of any key that is an odd number.
-The cache is constrained to only be allowed to contain two entries, however the code has put three entries
-into the cache - which will trigger capacity eviction.
-By the time the cache manager gets closed, only mappings with odd keys should be left in the cache as their
-prime candidacy for eviction would have been advised against.
+The cache is constrained to only be allowed to contain two entries, however the code has put three entries into the cache - which will trigger capacity eviction.
+By the time the cache manager gets closed, only mappings with odd keys should be left in the cache as their prime candidacy for eviction would have been advised against.
 
-NOTE: Eviction advisory status is computed when a mapping is written to the cache.
+[NOTE]
+====
+Eviction advisor may only be invoked when a mapping is written to the cache.
 This means that proper eviction advisor implementations are expected to be constant for a key-value pair.
+====
 
-NOTE: Please keep in mind that configuring an eviction advisor can slow down eviction: the more often you advise against
-eviction, the harder the cache has to work to evict an element when room is required. After a certain time, if a cache
-determines that the configured eviction advisor rejected too many eviction candidates, the cache can decide to completely
-bypass the eviction advisor and evict anything it sees fit.
+[NOTE]
+====
+Please keep in mind that configuring an eviction advisor can slow down eviction: the more often you advise against eviction, the harder the cache has to work to evict an element when room is required.
+After a certain time, if a cache determines that the configured eviction advisor rejected too many eviction candidates, the cache can decide to completely bypass the eviction advisor and evict anything it sees fit.
+====

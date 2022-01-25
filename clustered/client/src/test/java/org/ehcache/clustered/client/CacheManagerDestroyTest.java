@@ -34,7 +34,9 @@ import org.junit.Test;
 import java.net.URI;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -72,6 +74,20 @@ public class CacheManagerDestroyTest {
   }
 
   @Test
+  public void testCreateDestroyCreate() throws Exception {
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate()
+      .defaultServerResource("primary-server-resource"))
+      .withCache("my-cache", newCacheConfigurationBuilder(Long.class, String.class, heap(10).with(ClusteredResourcePoolBuilder
+        .clusteredDedicated(2, MemoryUnit.MB))))
+      .build(true);
+
+    cacheManager.close();
+    cacheManager.destroy();
+
+    cacheManager.init();
+  }
+
+  @Test
   public void testDestroyCacheManagerWithMultipleClients() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
@@ -89,7 +105,7 @@ public class CacheManagerDestroyTest {
 
     assertThat(persistentCacheManager2.getStatus(), is(Status.AVAILABLE));
 
-    Cache<Long, String> cache = persistentCacheManager2.createCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+    Cache<Long, String> cache = persistentCacheManager2.createCache("test", newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
 
@@ -104,7 +120,7 @@ public class CacheManagerDestroyTest {
   public void testDestroyCacheManagerDoesNotAffectsExistingCacheWithExistingClientsConnected() throws CachePersistenceException {
 
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = clusteredCacheManagerBuilder
-        .withCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        .withCache("test", newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
 
@@ -131,7 +147,7 @@ public class CacheManagerDestroyTest {
   @Test
   public void testCloseCacheManagerSingleClient() {
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = clusteredCacheManagerBuilder
-        .withCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        .withCache("test", newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
 
@@ -152,7 +168,7 @@ public class CacheManagerDestroyTest {
   @Test
   public void testCloseCacheManagerMultipleClients() {
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = clusteredCacheManagerBuilder
-        .withCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        .withCache("test", newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
 

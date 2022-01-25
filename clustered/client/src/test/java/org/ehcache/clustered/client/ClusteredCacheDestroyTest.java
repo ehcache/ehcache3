@@ -24,7 +24,6 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -43,7 +42,6 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -137,6 +135,16 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
+  public void testDestroyNonExistentCache() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+
+    String nonExistent = "this-is-not-the-cache-you-are-looking-for";
+    assertThat(persistentCacheManager.getCache(nonExistent, Long.class, String.class), nullValue());
+    persistentCacheManager.destroyCache(nonExistent);
+    persistentCacheManager.close();
+  }
+
+  @Test
   public void testDestroyCacheWhenMultipleClientsConnected() {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
@@ -149,8 +157,7 @@ public class ClusteredCacheDestroyTest {
       persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
       fail();
     } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), containsString("Cannot destroy clustered tier"));
-      assertThat(getRootCause(e), instanceOf(ResourceBusyException.class));
+      assertThat(e.getMessage(), containsString("Cannot destroy cluster tier"));
     }
 
     try {
@@ -185,12 +192,29 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
+  public void testDestroyNonExistentCacheWithCacheManagerStopped() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+    persistentCacheManager.close();
+    persistentCacheManager.destroyCache("this-is-not-the-cache-you-are-looking-for");
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
+  }
+
+  @Test
+  public void testDestroyCacheOnNonExistentCacheManager() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+    persistentCacheManager.close();
+    persistentCacheManager.destroy();
+
+    persistentCacheManager.destroyCache("this-is-not-the-cache-you-are-looking-for");
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
+  }
+  @Test
   public void testDestroyCacheWithTwoCacheManagerOnSameCache_forbiddenWhenInUse() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
 
     expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Cannot destroy clustered tier 'clustered-cache': in use by 1 other client(s) (on terracotta://example.com:9540)");
+    expectedException.expectMessage("Cannot destroy cluster tier 'clustered-cache': in use by other client(s)");
     persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
   }
 

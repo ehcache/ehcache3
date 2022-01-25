@@ -21,6 +21,8 @@ import java.util.Map;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
+import org.ehcache.core.internal.resilience.RobustLoaderWriterResilienceStrategy;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -31,9 +33,10 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 /**
  * @author Abhilash
@@ -63,7 +66,7 @@ public class EhcacheWithLoaderWriterBasicIteratorTest extends EhcacheBasicIterat
     }
 
     testStoreEntries.remove("keyA");
-    final Map<String, String> storeEntries = new HashMap<String, String>(fakeStore.getEntryMap());
+    final Map<String, String> storeEntries = new HashMap<>(fakeStore.getEntryMap());
     for (Map.Entry<String, String> expectedEntry : testStoreEntries.entrySet()) {
       final String expectedEntryKey = expectedEntry.getKey();
       assertThat(storeEntries, hasEntry(equalTo(expectedEntryKey), equalTo(expectedEntry.getValue())));
@@ -71,7 +74,7 @@ public class EhcacheWithLoaderWriterBasicIteratorTest extends EhcacheBasicIterat
     }
     assertThat("Iterator.remove removed incorrect Store entry", storeEntries.isEmpty(), is(true));
 
-    final Map<String, String> writerEntries = new HashMap<String, String>(fakeWriterWriter.getEntryMap());
+    final Map<String, String> writerEntries = new HashMap<>(fakeWriterWriter.getEntryMap());
     for (Map.Entry<String, String> expectedEntry : testStoreEntries.entrySet()) {
       final String expectedEntryKey = expectedEntry.getKey();
       assertThat(writerEntries, hasEntry(equalTo(expectedEntryKey), equalTo(expectedEntry.getValue())));
@@ -181,10 +184,11 @@ public class EhcacheWithLoaderWriterBasicIteratorTest extends EhcacheBasicIterat
   * @throws Exception
   */
   private InternalCache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter) throws Exception {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicIteratorTest"));
+    this.resilienceStrategy = spy(new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(this.store), cacheLoaderWriter));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicIteratorTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

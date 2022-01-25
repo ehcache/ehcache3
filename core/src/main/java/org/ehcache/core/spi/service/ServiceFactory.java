@@ -22,7 +22,6 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -34,11 +33,10 @@ public interface ServiceFactory<T extends Service> {
 
   /**
    * Creates an instance of the service using the passed in {@link ServiceCreationConfiguration}.
-   * <P>
-   *   Note that a {@code null} configuration may be supported or even required by a service implementation.
-   * </P>
-   * @param configuration the creation configuration, can be {@code null} for some services
+   * <p>
+   * Note that a {@code null} configuration may be supported or even required by a service implementation.
    *
+   * @param configuration the creation configuration, can be {@code null} for some services
    * @return the new service, not {@link Service#start(ServiceProvider) started}
    */
   T create(ServiceCreationConfiguration<T> configuration);

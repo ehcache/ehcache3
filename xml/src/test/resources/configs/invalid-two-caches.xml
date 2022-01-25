@@ -1,0 +1,14 @@
+<config
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns='http://www.ehcache.org/v3'
+  xsi:schemaLocation="http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
+
+  <cache alias="foo">
+    <heap unit="entries">2000</heap>
+  </cache>
+
+  <cache alias="foo">
+    <heap unit="entries">2000</heap>
+  </cache>
+
+</config>

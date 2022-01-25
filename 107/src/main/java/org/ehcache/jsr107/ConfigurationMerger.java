@@ -19,7 +19,7 @@ package org.ehcache.jsr107;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.InternalCache;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -48,7 +48,7 @@ import javax.cache.integration.CacheWriter;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * ConfigurationMerger
@@ -72,7 +72,7 @@ class ConfigurationMerger {
   }
 
   <K, V> ConfigHolder<K, V> mergeConfigurations(String cacheName, Configuration<K, V> configuration) {
-    final Eh107CompleteConfiguration<K, V> jsr107Configuration = new Eh107CompleteConfiguration<K, V>(configuration);
+    final Eh107CompleteConfiguration<K, V> jsr107Configuration = new Eh107CompleteConfiguration<>(configuration);
 
     Eh107Expiry<K, V> expiryPolicy = null;
     Jsr107CacheLoaderWriter<? super K, V> loaderWriter = null;
@@ -81,7 +81,7 @@ class ConfigurationMerger {
 
       String templateName = jsr107Service.getTemplateNameForCache(cacheName);
       if (xmlConfiguration != null && templateName != null) {
-        CacheConfigurationBuilder<K, V> templateBuilder = null;
+        CacheConfigurationBuilder<K, V> templateBuilder;
         try {
           templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
               jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
@@ -127,13 +127,13 @@ class ConfigurationMerger {
       setupManagementAndStatsInternal(jsr107Configuration, findSingletonAmongst(Jsr107CacheConfiguration.class, cacheConfiguration.getServiceConfigurations()));
 
       if (hasConfiguredExpiry) {
-        expiryPolicy = new EhcacheExpiryWrapper<K, V>(cacheConfiguration.getExpiry());
+        expiryPolicy = new EhcacheExpiryWrapper<>(cacheConfiguration.getExpiryPolicy());
       }
 
-      return new ConfigHolder<K, V>(
-          new CacheResources<K, V>(cacheName, loaderWriter, expiryPolicy, initCacheEventListeners(jsr107Configuration)),
-          new Eh107CompleteConfiguration<K, V>(jsr107Configuration, cacheConfiguration, hasConfiguredExpiry, useEhcacheLoaderWriter),
-          cacheConfiguration,useEhcacheLoaderWriter);
+      return new ConfigHolder<>(
+        new CacheResources<>(cacheName, loaderWriter, expiryPolicy, initCacheEventListeners(jsr107Configuration)),
+        new Eh107CompleteConfiguration<>(jsr107Configuration, cacheConfiguration, hasConfiguredExpiry, useEhcacheLoaderWriter),
+        cacheConfiguration, useEhcacheLoaderWriter);
     } catch (Throwable throwable) {
       MultiCacheException mce = new MultiCacheException();
       CacheResources.close(expiryPolicy, mce);
@@ -165,12 +165,12 @@ class ConfigurationMerger {
             if (defaults.containsKey(jsr107Configuration.getKeyType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
+              builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
             }
             if (defaults.containsKey(jsr107Configuration.getValueType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
+              builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
             }
             if (matchingDefault) {
               LOG.info("CacheManager level copier configuration overwriting JSR-107 by-value semantics for cache {}", cacheName);
@@ -187,8 +187,9 @@ class ConfigurationMerger {
     return builder;
   }
 
+  @SuppressWarnings("unchecked")
   private static <K, V> CacheConfigurationBuilder<K, V> addDefaultCopiers(CacheConfigurationBuilder<K, V> builder, Class keyType, Class valueType ) {
-    Set<Class> immutableTypes = new HashSet<Class>();
+    Set<Class> immutableTypes = new HashSet<>();
     immutableTypes.add(String.class);
     immutableTypes.add(Long.class);
     immutableTypes.add(Float.class);
@@ -198,13 +199,13 @@ class ConfigurationMerger {
     if (immutableTypes.contains(keyType)) {
       builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.KEY));
     } else {
-      builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
+      builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     }
 
     if (immutableTypes.contains(valueType)) {
       builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
     } else {
-      builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
+      builder = builder.add(new DefaultCopierConfiguration<>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     }
     return builder;
   }
@@ -218,14 +219,15 @@ class ConfigurationMerger {
     addIdentityCopierIfNoneRegistered(defaults, Character.class);
   }
 
-  private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class clazz) {
+  @SuppressWarnings("unchecked")
+  private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class<?> clazz) {
     if (!defaults.containsKey(clazz)) {
       defaults.put(clazz, new DefaultCopierConfiguration(Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
     }
   }
 
   private <K, V> Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> initCacheEventListeners(CompleteConfiguration<K, V> config) {
-    Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
+    Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<>();
     MultiCacheException mce = new MultiCacheException();
     for (CacheEntryListenerConfiguration<K, V> listenerConfig : config.getCacheEntryListenerConfigurations()) {
       listenerResources.put(listenerConfig, ListenerResources.createListenerResources(listenerConfig, mce));
@@ -234,7 +236,7 @@ class ConfigurationMerger {
   }
 
   private <K, V> Eh107Expiry<K, V> initExpiryPolicy(CompleteConfiguration<K, V> config) {
-    return new ExpiryPolicyToEhcacheExpiry<K, V>(config.getExpiryPolicyFactory().create());
+    return new ExpiryPolicyToEhcacheExpiry<>(config.getExpiryPolicyFactory().create());
   }
 
   private <K, V> Jsr107CacheLoaderWriter<K, V> initCacheLoaderWriter(CompleteConfiguration<K, V> config, MultiCacheException mce) {
@@ -264,12 +266,12 @@ class ConfigurationMerger {
     if (cacheLoader == null && cacheWriter == null) {
       return null;
     } else {
-      return new Eh107CacheLoaderWriter<K, V>(cacheLoader, config.isReadThrough(), cacheWriter, config.isWriteThrough());
+      return new Eh107CacheLoaderWriter<>(cacheLoader, config.isReadThrough(), cacheWriter, config.isWriteThrough());
     }
   }
 
   void setUpManagementAndStats(InternalCache<?, ?> cache, Eh107Configuration<?, ?> configuration) {
-    Jsr107CacheConfiguration cacheConfiguration = ServiceLocator.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
+    Jsr107CacheConfiguration cacheConfiguration = ServiceUtils.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
         .getRuntimeConfiguration().getServiceConfigurations());
     setupManagementAndStatsInternal(configuration, cacheConfiguration);
   }

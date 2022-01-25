@@ -18,10 +18,10 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -63,30 +63,30 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       @Override
       public Store<String, String> newStore() {
-        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
       public Store<String, String> newStoreWithCapacity(long capacity) {
-        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(capacity, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public Store<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      public Store<String, String> newStoreWithExpiry(ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
       @Override
       public Store<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
-        return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, evictionAdvisor, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @SuppressWarnings("unchecked")
-      private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-            evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
-        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), new TestStoreEventDispatcher<String, String>());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
+          evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
+        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), new TestStoreEventDispatcher<>());
       }
 
       @Override

@@ -16,8 +16,10 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-public interface Result<V> {
+public interface Result<K, V> {
 
   V getValue();
+
+  PutOperation<K, V> asOperationExpiringAt(long expirationTime);
 
 }

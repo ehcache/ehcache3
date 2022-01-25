@@ -16,17 +16,16 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.entity.ConcurrencyStrategy;
-import org.terracotta.entity.EntityMessage;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
-import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -45,18 +44,18 @@ public class DefaultConcurrencyStrategyTest {
   @Test
   public void testConcurrencyKey() throws Exception {
     final int concurrency = 107;
-    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(DEFAULT_MAPPER);
+    ConcurrencyStrategy<EhcacheEntityMessage> strategy = ConcurrencyStrategies.clusterTierConcurrency(DEFAULT_MAPPER);
 
     assertThat(strategy.concurrencyKey(new NonConcurrentTestEntityMessage()), is(DEFAULT_KEY));
 
     for (int i = -1024; i < 1024; i++) {
-      assertThat(strategy.concurrencyKey(new ConcurrentTestEntityMessage(i)), withinRange(DATA_CONCURRENCY_KEY_OFFSET, DATA_CONCURRENCY_KEY_OFFSET + concurrency));
+      assertThat(strategy.concurrencyKey(new ConcurrentTestEntityMessage(i)), withinRange(DEFAULT_KEY, concurrency));
     }
   }
 
   @Test
   public void testConcurrencyKeyForServerStoreGetOperation() throws Exception {
-    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(DEFAULT_MAPPER);
+    ConcurrencyStrategy<EhcacheEntityMessage> strategy = ConcurrencyStrategies.clusterTierConcurrency(DEFAULT_MAPPER);
     ServerStoreOpMessage.GetMessage getMessage = mock(ServerStoreOpMessage.GetMessage.class);
     assertThat(strategy.concurrencyKey(getMessage), is(UNIVERSAL_KEY));
   }
@@ -64,12 +63,12 @@ public class DefaultConcurrencyStrategyTest {
   @Test
   public void testKeysForSynchronization() throws Exception {
     final int concurrency = 111;
-    ConcurrencyStrategy<EntityMessage> strategy = ConcurrencyStrategies.defaultConcurrency(DEFAULT_MAPPER);
+    ConcurrencyStrategy<EhcacheEntityMessage> strategy = ConcurrencyStrategies.clusterTierConcurrency(DEFAULT_MAPPER);
 
     Set<Integer> visitedConcurrencyKeys = new HashSet<>();
     for (int i = -1024; i < 1024; i++) {
       int concurrencyKey = strategy.concurrencyKey(new ConcurrentTestEntityMessage(i));
-      assertThat(concurrencyKey, withinRange(DATA_CONCURRENCY_KEY_OFFSET, DATA_CONCURRENCY_KEY_OFFSET + concurrency));
+      assertThat(concurrencyKey, withinRange(DEFAULT_KEY, concurrency));
       visitedConcurrencyKeys.add(concurrencyKey);
     }
     Set<Integer> keysForSynchronization = strategy.getKeysForSynchronization();
@@ -81,10 +80,10 @@ public class DefaultConcurrencyStrategyTest {
     return allOf(greaterThanOrEqualTo(greaterThanOrEqualTo), lessThan(lessThan));
   }
 
-  private static class NonConcurrentTestEntityMessage implements EntityMessage {
+  private static class NonConcurrentTestEntityMessage extends EhcacheEntityMessage {
   }
 
-  private static class ConcurrentTestEntityMessage implements ConcurrentEntityMessage {
+  private static class ConcurrentTestEntityMessage extends EhcacheEntityMessage implements ConcurrentEntityMessage {
 
     private final int key;
 

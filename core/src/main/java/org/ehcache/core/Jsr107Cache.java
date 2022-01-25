@@ -19,18 +19,17 @@ package org.ehcache.core;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.ehcache.Cache;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 
 /**
  * Bridge interface for enabling specific JSR-107 methods not available on {@link org.ehcache.Cache}.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code javax.cache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code javax.cache}.
  *
  * @param <K> the key type
  * @param <V> the value type
@@ -86,8 +85,8 @@ public interface Jsr107Cache<K, V> {
    * @param withStatsAndEvents should statistics be updated and events fired
    */
   void compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
-      NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter,
-      final NullaryFunction<Boolean> withStatsAndEvents);
+      Supplier<Boolean> replaceEqual, final Supplier<Boolean> invokeWriter,
+      final Supplier<Boolean> withStatsAndEvents);
 
   /**
    * Invokes the cache loader for the given keys, optionally replacing the cache mappings with the loaded values.

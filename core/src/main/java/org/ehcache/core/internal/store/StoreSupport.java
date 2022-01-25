@@ -60,7 +60,7 @@ public final class StoreSupport {
 
     final Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
     int highRank = 0;
-    List<Store.Provider> rankingProviders = new ArrayList<Store.Provider>();
+    List<Store.Provider> rankingProviders = new ArrayList<>();
     for (final Store.Provider provider : storeProviders) {
       int rank = provider.rank(resourceTypes, serviceConfigs);
       if (rank > highRank) {
@@ -89,7 +89,7 @@ public final class StoreSupport {
     return rankingProviders.get(0);
   }
 
-  private static StringBuilder formatStoreProviders(final Collection<Store.Provider> storeProviders, final StringBuilder sb) {
+  private static void formatStoreProviders(final Collection<Store.Provider> storeProviders, final StringBuilder sb) {
     sb.append('{');
     boolean prependSeparator = false;
     for (final Store.Provider provider : storeProviders) {
@@ -101,6 +101,5 @@ public final class StoreSupport {
       sb.append(provider.getClass().getName());
     }
     sb.append('}');
-    return sb;
   }
 }

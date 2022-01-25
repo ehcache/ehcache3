@@ -23,8 +23,8 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -34,9 +34,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -99,7 +99,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));
     verify(this.store).putIfAbsent(eq("key"), eq("value"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT));
   }
@@ -119,7 +119,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(equalTo("oldValue")));
     verify(this.store).putIfAbsent(eq("key"), eq("value"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("oldValue"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
@@ -141,8 +141,8 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     ehcache.putIfAbsent("key", "value");
     verify(this.store).putIfAbsent(eq("key"), eq("value"));
-    verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), isNull(String.class), any(StoreAccessException.class), eq(false));
+    verify(this.resilienceStrategy)
+        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
@@ -163,8 +163,8 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     ehcache.putIfAbsent("key", "value");
     verify(this.store).putIfAbsent(eq("key"), eq("value"));
-    verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), isNull(String.class), any(StoreAccessException.class), eq(false));
+    verify(this.resilienceStrategy)
+        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
@@ -174,12 +174,11 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null,
-        Expirations.noExpiration(), ResourcePoolsHelper.createHeapOnlyPools());
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
+      ExpiryPolicy.NO_EXPIRY, ResourcePoolsHelper.createHeapOnlyPools());
+    final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

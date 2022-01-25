@@ -29,7 +29,8 @@ import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,7 +42,7 @@ public class VoltronReadWriteLockTest {
   private VoltronReadWriteLockClient client;
 
   @Mock
-  private EntityRef<VoltronReadWriteLockClient, Void> entityRef;
+  private EntityRef<VoltronReadWriteLockClient, Void, Void> entityRef;
 
   @Mock
   private Connection connection;
@@ -53,22 +54,22 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testCreateLockEntityWhenNotExisting() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.readLock();
 
-    verify(entityRef).create(any(Void.class));
+    verify(entityRef).create(isNull());
   }
 
   @Test
   public void testFetchExistingLockEntityWhenExists() throws Exception {
     doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any(Void.class));
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.readLock();
@@ -76,9 +77,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteLockLocksWrite() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.writeLock();
@@ -88,9 +89,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testReadLockLocksRead() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.readLock();
@@ -100,9 +101,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteUnlockUnlocksWrite() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.writeLock().unlock();
@@ -112,9 +113,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testReadUnlockUnlocksRead() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.readLock().unlock();
@@ -124,9 +125,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteUnlockClosesEntity() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.writeLock().unlock();
@@ -136,9 +137,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testReadUnlockClosesEntity() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.readLock().unlock();
@@ -148,9 +149,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteUnlockDestroysEntity() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.writeLock().unlock();
@@ -159,11 +160,10 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
-  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testReadUnlockDestroysEntity() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.readLock().unlock();
@@ -175,9 +175,9 @@ public class VoltronReadWriteLockTest {
   public void testTryWriteLockTryLocksWrite() throws Exception {
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryWriteLock(), notNullValue());
@@ -188,9 +188,9 @@ public class VoltronReadWriteLockTest {
   public void testTryReadLockTryLocksRead() throws Exception {
     when(client.tryLock(READ)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryReadLock(), notNullValue());
@@ -201,9 +201,9 @@ public class VoltronReadWriteLockTest {
   public void testTryWriteUnlockUnlocksWrite() throws Exception {
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.tryWriteLock().unlock();
@@ -215,9 +215,9 @@ public class VoltronReadWriteLockTest {
   public void testTryReadUnlockUnlocksRead() throws Exception {
     when(client.tryLock(READ)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.tryReadLock().unlock();
@@ -229,9 +229,9 @@ public class VoltronReadWriteLockTest {
   public void testTryWriteUnlockClosesEntity() throws Exception {
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.tryWriteLock().unlock();
@@ -243,9 +243,9 @@ public class VoltronReadWriteLockTest {
   public void testTryReadUnlockClosesEntity() throws Exception {
     when(client.tryLock(READ)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.tryReadLock().unlock();
@@ -257,9 +257,9 @@ public class VoltronReadWriteLockTest {
   public void testTryWriteUnlockDestroysEntity() throws Exception {
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.tryWriteLock().unlock();
@@ -268,13 +268,12 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
-  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testTryReadUnlockDestroysEntity() throws Exception {
     when(client.tryLock(READ)).thenReturn(true);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.tryReadLock().unlock();
@@ -286,9 +285,9 @@ public class VoltronReadWriteLockTest {
   public void testTryWriteLockFailingClosesEntity() throws Exception {
     when(client.tryLock(WRITE)).thenReturn(false);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryWriteLock(), nullValue());
@@ -299,9 +298,9 @@ public class VoltronReadWriteLockTest {
   public void testTryReadLockFailingClosesEntity() throws Exception {
     when(client.tryLock(READ)).thenReturn(false);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryReadLock(), nullValue());
@@ -309,13 +308,12 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
-  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testTryWriteLockFailingDestroysEntity() throws Exception {
     when(client.tryLock(WRITE)).thenReturn(false);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryWriteLock(), nullValue());
@@ -323,13 +321,12 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
-  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testTryReadLockFailingDestroysEntity() throws Exception {
     when(client.tryLock(READ)).thenReturn(false);
 
-    when(entityRef.fetchEntity()).thenReturn(client);
+    when(entityRef.fetchEntity(null)).thenReturn(client);
 
-    when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
+    when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryReadLock(), nullValue());

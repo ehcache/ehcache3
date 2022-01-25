@@ -1,0 +1,76 @@
+---
+---
+= Migration Guide
+ifndef::sourcedir35[]
+include::common.adoc[]
+endif::sourcedir35[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+
+== Introduction
+
+endif::notBuildingForSite[]
+
+This guide provides sample code snippets to help migrate Ehcache 2.x code to Ehcache 3.x code.
+
+[[per-mapping-expiry]]
+== Per Mapping Expiry
+
+Per mapping expiry covers use cases where a subset of mappings have different expiration settings than the ones configured at the cache level.
+
+=== Ehcache 2.x Code
+
+Here we are creating a cache manager that has a default time-to-live (TTL) expiry.
+
+Before adding, we verify the expiry and set it on the `Element` only when different than the `Cache` expiry.
+
+[source,java]
+----
+int defaultCacheTTLInSeconds = 20;
+
+CacheManager cacheManager = initCacheManager();
+CacheConfiguration cacheConfiguration = new CacheConfiguration().name("cache")
+    .maxEntriesLocalHeap(100)
+    .timeToLiveSeconds(defaultCacheTTLInSeconds);   // <1>
+cacheManager.addCache(new Cache(cacheConfiguration));
+
+Element element = new Element(10L, "Hello");
+
+int ttlInSeconds = getTimeToLiveInSeconds((Long)element.getObjectKey(), (String)element.getObjectValue()); // <2>
+
+if (ttlInSeconds != defaultCacheTTLInSeconds) {   // <3>
+  element.setTimeToLive(ttlInSeconds);
+}
+
+cacheManager.getCache("cache").put(element);
+
+System.out.println(cacheManager.getCache("cache").get(10L).getObjectValue());
+
+sleep(2100);  // <4>
+
+// Now the returned element should be null, as the mapping is expired.
+System.out.println(cacheManager.getCache("cache").get(10L));
+----
+
+<1> Expiry duration defined at the cache level.
+<2> Compute the mapping expiry using the helper method `getTimeToLiveInSeconds`.
+<3> Only setting the computed expiry on element if other than default expiry.
+<4> Waiting for 2.1 seconds - assuming 2 seconds is the custom expiry duration - to get the mapping to be expired.
+
+=== Corresponding Ehcache 3.x Code
+
+Here we are creating a cache manager with a cache configuration specifying a custom expiry,
+having dedicated logic in the methods called during the lifecycle of added and updated mappings.
+
+[source%nowrap,java,indent=0]
+----
+include::{sourcedir35}/impl/src/test/java/org/ehcache/docs/Ehcache3.java[tag=CustomExpiryEhcache3]
+----
+
+<1> Defining custom expiry to be called during the lifecycle of added mappings.
+<2> During mapping creation, defining expiry duration using the helper method `getTimeToLiveDuration`.
+<3> Waiting for 2.1 seconds - assuming 2 seconds is the custom expiry duration - to get the mapping to be expired.
+
+So to migrate the former Ehcache per mapping expiry code to the current version of Ehcache,
+move the expiry computation logic to the `getExpiryForCreation` method of the created custom expiry.

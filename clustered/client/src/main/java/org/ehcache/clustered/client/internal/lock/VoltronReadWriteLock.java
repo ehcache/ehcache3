@@ -24,15 +24,17 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 public class VoltronReadWriteLock {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VoltronReadWriteLock.class);
 
-  private final EntityRef<VoltronReadWriteLockClient, Void> reference;
+  private final EntityRef<VoltronReadWriteLockClient, Void, Void> reference;
 
   public VoltronReadWriteLock(Connection connection, String id) {
     try {
@@ -70,8 +72,7 @@ public class VoltronReadWriteLock {
       return new HoldImpl(client, type);
     } else {
       client.close();
-      //TODO Restore this clean up operation once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed
-//      tryDestroy();
+      tryDestroy();
       return null;
     }
   }
@@ -86,6 +87,9 @@ public class VoltronReadWriteLock {
       throw new AssertionError(e);
     } catch (EntityNotFoundException e) {
       // Nothing to do
+    } catch (PermanentEntityException e) {
+      LOGGER.error("Failed to destroy lock entity - server says it is permanent", e);
+      throw new AssertionError(e);
     }
   }
 
@@ -117,9 +121,7 @@ public class VoltronReadWriteLock {
     public void unlock() {
       client.unlock(type);
       client.close();
-      if (type == HoldType.WRITE) {
-        tryDestroy();
-      }
+      tryDestroy();
     }
   }
 
@@ -131,21 +133,22 @@ public class VoltronReadWriteLock {
           LOGGER.debug("Created lock entity " + reference.getName());
         } catch (EntityAlreadyExistsException f) {
           //ignore
+        } catch (EntityConfigurationException e) {
+          LOGGER.error("Error creating lock entity - configuration exception", e);
+          throw new AssertionError(e);
         }
         try {
-          return reference.fetchEntity();
+          return reference.fetchEntity(null);
         } catch (EntityNotFoundException e) {
           //ignore
         }
       }
-    } catch (EntityVersionMismatchException e) {
-      throw new IllegalStateException(e);
-    } catch (EntityNotProvidedException e) {
+    } catch (EntityVersionMismatchException | EntityNotProvidedException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  private static EntityRef<VoltronReadWriteLockClient, Void> createEntityRef(Connection connection, String identifier) throws EntityNotProvidedException {
+  private static EntityRef<VoltronReadWriteLockClient, Void, Void> createEntityRef(Connection connection, String identifier) throws EntityNotProvidedException {
     return connection.getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-" + identifier);
   }
 }

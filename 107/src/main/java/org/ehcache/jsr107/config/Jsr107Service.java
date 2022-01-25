@@ -33,9 +33,8 @@ public interface Jsr107Service extends Service {
 
   /**
    * Indicates the loader writer behavior in atomic methods.
-   * <P>
-   *   If {@code true} then loader writer will <EM>NOT</EM> be used in atomic methods, if {@code false} it will be.
-   * </P>
+   * <p>
+   * If {@code true} then loader writer will <em>NOT</em> be used in atomic methods, if {@code false} it will be.
    *
    * @return {@code true} or {@code false} depending on configuration
    */

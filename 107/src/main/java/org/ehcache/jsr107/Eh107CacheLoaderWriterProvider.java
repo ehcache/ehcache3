@@ -26,7 +26,7 @@ import org.ehcache.impl.internal.spi.loaderwriter.DefaultCacheLoaderWriterProvid
  */
 class Eh107CacheLoaderWriterProvider extends DefaultCacheLoaderWriterProvider {
 
-  private final ConcurrentMap<String, CacheLoaderWriter<?, ?>> cacheLoaderWriters = new ConcurrentHashMap<String, CacheLoaderWriter<?, ?>>();
+  private final ConcurrentMap<String, CacheLoaderWriter<?, ?>> cacheLoaderWriters = new ConcurrentHashMap<>();
 
   public Eh107CacheLoaderWriterProvider() {
     super(null);

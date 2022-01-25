@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.concurrent;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -43,11 +42,11 @@ public class ConcurrentHashMapITest {
     @Test
     public void testRandomValuesWithObjects() {
 
-        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<Object, KeyHolder<Object>>();
+        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<>();
 
         for(int i = 0; i < ENTRIES; i++) {
             final Object o = new Object();
-            map.put(o, new KeyHolder<Object>(o));
+            map.put(o, new KeyHolder<>(o));
         }
 
         assertThings(map);
@@ -55,11 +54,11 @@ public class ConcurrentHashMapITest {
 
     @Test
     public void testRandomValuesWithComparable() {
-        ConcurrentHashMap<Comparable<?>, KeyHolder<Object>> map = new ConcurrentHashMap<Comparable<?>, KeyHolder<Object>>();
+        ConcurrentHashMap<Comparable<?>, KeyHolder<Object>> map = new ConcurrentHashMap<>();
 
         for(int i = 0; i < ENTRIES; i++) {
             final EvilComparableKey o = new EvilComparableKey(UUID.randomUUID().toString());
-            map.put(o, new KeyHolder<Object>(o));
+            map.put(o, new KeyHolder<>(o));
         }
 
         assertThings(map);
@@ -67,7 +66,7 @@ public class ConcurrentHashMapITest {
 
     @Test
     public void testRandomValues() {
-        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<Object, KeyHolder<Object>>();
+        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<>();
         final long seed = System.nanoTime();
         System.out.println("SEED: " + seed);
         final Random random = new Random(seed);
@@ -91,7 +90,7 @@ public class ConcurrentHashMapITest {
                     o = new EvilComparableKey(Integer.toString(i));
 
             }
-            assertThat(map.put(o, new KeyHolder<Object>(o)) == null, is(true));
+            assertThat(map.put(o, new KeyHolder<>(o)) == null, is(true));
         }
 
         for (Object o : map.keySet()) {
@@ -104,11 +103,11 @@ public class ConcurrentHashMapITest {
 
     @Test
     public void testRandomValuesWithCollisions() {
-        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<Object, KeyHolder<Object>>();
+        ConcurrentHashMap<Object, KeyHolder<Object>> map = new ConcurrentHashMap<>();
 
         for(int i = 0; i < ENTRIES; i++) {
             final EvilKey o = new EvilKey(UUID.randomUUID().toString());
-            map.put(o, new KeyHolder<Object>(o));
+            map.put(o, new KeyHolder<>(o));
         }
 
         assertThings(map);
@@ -118,14 +117,11 @@ public class ConcurrentHashMapITest {
     public void testActuallyWorks() throws InterruptedException {
         final long top = 100000000;
         final String key = "counter";
-        final ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<String, Long>();
+        final ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<>();
         map.put(key, 0L);
 
-        final Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                for(Long val = map.get(key); val < top && map.replace(key, val, val + 1); val = map.get(key));
-            }
+        final Runnable runnable = () -> {
+            for(Long val = map.get(key); val < top && map.replace(key, val, val + 1); val = map.get(key));
         };
 
         Thread[] threads = new Thread[Runtime.getRuntime().availableProcessors() * 2];
@@ -149,7 +145,7 @@ public class ConcurrentHashMapITest {
         assertThat(map.size(), is(ENTRIES));
 
         for(int i = 0; i < 100; i ++) {
-            final HashSet randomValues = new HashSet(getRandomValues(map, ENTRIES));
+            final HashSet randomValues = new HashSet(getRandomValues(map));
             assertThat(randomValues.size(), is(ENTRIES));
             for (Object randomValue : randomValues) {
                 assertThat(randomValue, instanceOf(KeyHolder.class));
@@ -159,10 +155,10 @@ public class ConcurrentHashMapITest {
         }
     }
 
-    private static List<?> getRandomValues(Map<?, ?> map, int amount) {
+    private static List<?> getRandomValues(Map<?, ?> map) {
         List<?> values = new ArrayList<Object>(map.values());
         Collections.shuffle(values);
-        return values.subList(0, amount);
+        return values.subList(0, ENTRIES);
     }
 
 
@@ -205,7 +201,7 @@ public class ConcurrentHashMapITest {
 
         @Override
         public int compareTo(final EvilComparableKey o) {
-            return value.compareTo(o != null ? o.value : null);
+            return value.compareTo(o.value);
         }
     }
 

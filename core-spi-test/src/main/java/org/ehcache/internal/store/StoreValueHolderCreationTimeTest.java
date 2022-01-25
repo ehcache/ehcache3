@@ -28,7 +28,6 @@ import static org.hamcrest.core.Is.is;
 /**
  * Test the {@link Store.ValueHolder#creationTime(java.util.concurrent.TimeUnit)} contract of the
  * {@link Store.ValueHolder Store.ValueHolder} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

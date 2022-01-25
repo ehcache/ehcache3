@@ -17,6 +17,7 @@
 package org.ehcache.spi.persistence;
 
 import java.io.Serializable;
+import java.util.function.Predicate;
 
 /**
  * A repository allowing to preserve state in the context of a {@link org.ehcache.Cache}.
@@ -25,16 +26,40 @@ public interface StateRepository {
 
   /**
    * Gets a named state holder rooted in the current {@code StateRepository}.
-   * <P>
-   *   If the state holder existed already, it is returned with its content fully available.
-   * </P>
+   * <p>
+   * If the state holder existed already, it is returned with its content fully available.
+   *
+   * @deprecated Replaced by {@link #getPersistentStateHolder(String, Class, Class, Predicate, ClassLoader)} that takes in a Predicate that authorizes a class for deserialization
+   *
+   * @param name       the state holder name
+   * @param keyClass   concrete key type
+   * @param valueClass concrete value type
+   * @param <K>        the key type, must be {@code Serializable}
+   * @param <V>        the value type, must be {@code Serializable}
+   * @return a state holder
+   */
+  @Deprecated
+  default <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
+    return getPersistentStateHolder(name, keyClass, valueClass, c -> true, null);
+  }
+
+  /**
+   * Gets a named state holder rooted in the current {@code StateRepository}.
+   * <p>
+   * If the state holder existed already, it is returned with its content fully available.
    *
    * @param name the state holder name
    * @param keyClass concrete key type
    * @param valueClass concrete value type
    * @param <K> the key type, must be {@code Serializable}
    * @param <V> the value type, must be {@code Serializable}
+   * @param isClassPermitted Predicate that determines whether a class is authorized for deserialization as part of key or value deserialization
+   * @param classLoader class loader used at the time of deserialization of key and value
    * @return a state holder
    */
-  <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass);
+  <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name,
+                                                                                              Class<K> keyClass,
+                                                                                              Class<V> valueClass,
+                                                                                              Predicate<Class<?>> isClassPermitted,
+                                                                                              ClassLoader classLoader);
 }

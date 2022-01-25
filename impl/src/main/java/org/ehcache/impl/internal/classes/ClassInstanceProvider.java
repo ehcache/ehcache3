@@ -17,10 +17,11 @@
 package org.ehcache.impl.internal.classes;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -33,8 +34,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.impl.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
-import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * @author Alex Snaps
@@ -49,7 +50,7 @@ public class ClassInstanceProvider<K, T> {
   /**
    * Instances provided by this provider vs their counts.
    */
-  protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<T, AtomicInteger>();
+  protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<>();
   protected final Set<T> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<T, Boolean>());
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
@@ -104,7 +105,7 @@ public class ClassInstanceProvider<K, T> {
       }
     }
 
-    T instance = null;
+    T instance;
 
     if(config.getInstance() != null) {
       instance = config.getInstance();
@@ -112,13 +113,7 @@ public class ClassInstanceProvider<K, T> {
       try {
         instance = invokeConstructor(config.getClazz(), config.getArguments());
         instantiated.add(instance);
-      } catch (InstantiationException e) {
-        throw new RuntimeException(e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
+      } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
         throw new RuntimeException(e);
       }
     }

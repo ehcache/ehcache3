@@ -21,13 +21,19 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
+import java.util.Set;
+
 public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public abstract EhcacheResponseType getResponseType();
 
+  public static Success success() {
+    return Success.INSTANCE;
+  }
+
   public static class Success extends EhcacheEntityResponse {
 
-    public static final Success INSTANCE = new Success();
+    private static final Success INSTANCE = new Success();
 
     private Success() {
       //singleton
@@ -39,11 +45,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static Failure failure(ClusterException cause) {
+    return new Failure(cause);
+  }
+
   public static class Failure extends EhcacheEntityResponse {
 
     private final ClusterException cause;
 
-    Failure(ClusterException cause) {
+    private Failure(ClusterException cause) {
       this.cause = cause;
     }
 
@@ -57,11 +67,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static GetResponse getResponse(Chain chain) {
+    return new GetResponse(chain);
+  }
+
   public static class GetResponse extends EhcacheEntityResponse {
 
     private final Chain chain;
 
-    GetResponse(Chain chain) {
+    private GetResponse(Chain chain) {
       this.chain = chain;
     }
 
@@ -75,21 +89,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static HashInvalidationDone hashInvalidationDone(String cacheId, long key) {
-    return new HashInvalidationDone(cacheId, key);
+  public static HashInvalidationDone hashInvalidationDone(long key) {
+    return new HashInvalidationDone(key);
   }
 
   public static class HashInvalidationDone extends EhcacheEntityResponse {
-    private final String cacheId;
     private final long key;
 
-    HashInvalidationDone(String cacheId, long key) {
-      this.cacheId = cacheId;
+    private HashInvalidationDone(long key) {
       this.key = key;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public long getKey() {
@@ -102,19 +110,13 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static AllInvalidationDone allInvalidationDone(String cacheId) {
-    return new AllInvalidationDone(cacheId);
+  public static AllInvalidationDone allInvalidationDone() {
+    return new AllInvalidationDone();
   }
 
   public static class AllInvalidationDone extends EhcacheEntityResponse {
-    private final String cacheId;
 
-    AllInvalidationDone(String cacheId) {
-      this.cacheId = cacheId;
-    }
-
-    public String getCacheId() {
-      return cacheId;
+    private AllInvalidationDone() {
     }
 
     @Override
@@ -123,21 +125,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ServerInvalidateHash serverInvalidateHash(String cacheId, long key) {
-    return new ServerInvalidateHash(cacheId, key);
+  public static ServerInvalidateHash serverInvalidateHash(long key) {
+    return new ServerInvalidateHash(key);
   }
 
   public static class ServerInvalidateHash extends EhcacheEntityResponse {
-    private final String cacheId;
     private final long key;
 
-    public ServerInvalidateHash(String cacheId, long key) {
-      this.cacheId = cacheId;
+    private ServerInvalidateHash(long key) {
       this.key = key;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public long getKey() {
@@ -150,23 +146,17 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ClientInvalidateHash clientInvalidateHash(String cacheId, long key, int invalidationId) {
-    return new ClientInvalidateHash(cacheId, key, invalidationId);
+  public static ClientInvalidateHash clientInvalidateHash(long key, int invalidationId) {
+    return new ClientInvalidateHash(key, invalidationId);
   }
 
   public static class ClientInvalidateHash extends EhcacheEntityResponse {
-    private final String cacheId;
     private final long key;
     private final int invalidationId;
 
-    public ClientInvalidateHash(String cacheId, long key, int invalidationId) {
-      this.cacheId = cacheId;
+    private ClientInvalidateHash(long key, int invalidationId) {
       this.key = key;
       this.invalidationId = invalidationId;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public long getKey() {
@@ -183,21 +173,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public static ClientInvalidateAll clientInvalidateAll(String cacheId, int invalidationId) {
-    return new ClientInvalidateAll(cacheId, invalidationId);
+  public static ClientInvalidateAll clientInvalidateAll(int invalidationId) {
+    return new ClientInvalidateAll(invalidationId);
   }
 
   public static class ClientInvalidateAll extends EhcacheEntityResponse {
-    private final String cacheId;
     private final int invalidationId;
 
-    public ClientInvalidateAll(String cacheId, int invalidationId) {
-      this.cacheId = cacheId;
+    private ClientInvalidateAll(int invalidationId) {
       this.invalidationId = invalidationId;
-    }
-
-    public String getCacheId() {
-      return cacheId;
     }
 
     public int getInvalidationId() {
@@ -218,7 +202,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     private final Object value;
 
-    public MapValue(Object value) {
+    private MapValue(Object value) {
       this.value = value;
     }
 
@@ -232,4 +216,53 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public static PrepareForDestroy prepareForDestroy(Set<String> stores) {
+    return new PrepareForDestroy(stores);
+  }
+
+  public static class PrepareForDestroy extends EhcacheEntityResponse {
+
+    private final Set<String> stores;
+
+    private PrepareForDestroy(Set<String> stores) {
+      this.stores = stores;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.PREPARE_FOR_DESTROY;
+    }
+
+    public Set<String> getStores() {
+      return stores;
+    }
+  }
+
+  public static ResolveRequest resolveRequest(long key, Chain chain) {
+    return new ResolveRequest(key, chain);
+  }
+
+  public static class ResolveRequest extends EhcacheEntityResponse {
+
+    private final long key;
+    private final Chain chain;
+
+    ResolveRequest(long key, Chain chain) {
+      this.key = key;
+      this.chain = chain;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.RESOLVE_REQUEST;
+    }
+
+    public long getKey() {
+      return key;
+    }
+
+    public Chain getChain() {
+      return chain;
+    }
+  }
 }

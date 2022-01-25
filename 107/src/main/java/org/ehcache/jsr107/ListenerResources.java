@@ -58,7 +58,7 @@ class ListenerResources<K, V> implements Closeable {
     }
 
     try {
-      return new ListenerResources<K, V>(listener, filter);
+      return new ListenerResources<>(listener, filter);
     } catch (Throwable t) {
       mce.addThrowable(t);
       CacheResources.close(filter, mce);
@@ -91,7 +91,7 @@ class ListenerResources<K, V> implements Closeable {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     MultiCacheException mce = new MultiCacheException();
     CacheResources.close(listener, mce);
     CacheResources.close(filter, mce);

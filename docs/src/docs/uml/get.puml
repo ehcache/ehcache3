@@ -1,0 +1,28 @@
+@startuml
+
+title Get
+hide footbox
+
+participant Cache
+participant "Caching Tier" as C
+participant "Authoritative tier" as A
+
+-> Cache: get
+Cache -> C: get
+alt caching tier hit
+Cache <-- C: value
+<-- Cache: value
+else caching tier miss
+  C -> A: get
+  alt authoritative tier hit
+    C <-- A: value
+    C -> C: store value
+    Cache <-- C: value
+    <-- Cache: value
+  else authoritative tier miss
+    C <-- A: null
+    Cache <-- C: null
+    <-- Cache: null
+  end
+end
+@enduml

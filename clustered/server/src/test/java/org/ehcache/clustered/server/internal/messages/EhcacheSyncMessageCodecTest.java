@@ -15,89 +15,102 @@
  */
 package org.ehcache.clustered.server.internal.messages;
 
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.PoolAllocation;
-import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.ResponseCodec;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.server.TestClientSourceId;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class EhcacheSyncMessageCodecTest {
 
-  @Test
-  public void testStateSyncMessageEncodeDecode() throws Exception {
-    Map<String, ServerSideConfiguration.Pool> sharedPools = new HashMap<>();
-    ServerSideConfiguration.Pool pool1 = new ServerSideConfiguration.Pool(1, "foo1");
-    ServerSideConfiguration.Pool pool2 = new ServerSideConfiguration.Pool(2, "foo2");
-    sharedPools.put("shared-pool-1", pool1);
-    sharedPools.put("shared-pool-2", pool2);
-    ServerSideConfiguration serverSideConfig = new ServerSideConfiguration("default-pool", sharedPools);
+  private ResponseCodec responseCodec = mock(ResponseCodec.class);
 
-    PoolAllocation poolAllocation1 = new PoolAllocation.Dedicated("dedicated", 4);
-    ServerStoreConfiguration serverStoreConfiguration1 = new ServerStoreConfiguration(poolAllocation1,
-      "storedKeyType1", "storedValueType1", null, null,
-      "keySerializerType1", "valueSerializerType1", Consistency.STRONG);
-
-    PoolAllocation poolAllocation2 = new PoolAllocation.Shared("shared");
-    ServerStoreConfiguration serverStoreConfiguration2 = new ServerStoreConfiguration(poolAllocation2,
-      "storedKeyType2", "storedValueType2", null, null,
-      "keySerializerType2", "valueSerializerType2", Consistency.EVENTUAL);
-
-    Map<String, ServerStoreConfiguration> storeConfigs = new HashMap<>();
-    storeConfigs.put("cache1", serverStoreConfiguration1);
-    storeConfigs.put("cache2", serverStoreConfiguration2);
-
-    EhcacheStateSyncMessage message = new EhcacheStateSyncMessage(serverSideConfig, storeConfigs);
-    EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
-    EhcacheStateSyncMessage decodedMessage = (EhcacheStateSyncMessage) codec.decode(0, codec.encode(0, message));
-
-    assertThat(decodedMessage.getConfiguration().getDefaultServerResource(), is("default-pool"));
-    assertThat(decodedMessage.getConfiguration().getResourcePools(), is(sharedPools));
-    assertThat(decodedMessage.getStoreConfigs().keySet(), containsInAnyOrder("cache1", "cache2"));
-
-    ServerStoreConfiguration serverStoreConfiguration = decodedMessage.getStoreConfigs().get("cache1");
-    assertThat(serverStoreConfiguration.getPoolAllocation(), instanceOf(PoolAllocation.Dedicated.class));
-    PoolAllocation.Dedicated dedicatedPool = (PoolAllocation.Dedicated) serverStoreConfiguration.getPoolAllocation();
-    assertThat(dedicatedPool.getResourceName(), is("dedicated"));
-    assertThat(dedicatedPool.getSize(), is(4L));
-    assertThat(serverStoreConfiguration.getStoredKeyType(), is("storedKeyType1"));
-    assertThat(serverStoreConfiguration.getStoredValueType(), is("storedValueType1"));
-    assertThat(serverStoreConfiguration.getKeySerializerType(), is("keySerializerType1"));
-    assertThat(serverStoreConfiguration.getValueSerializerType(), is("valueSerializerType1"));
-    assertThat(serverStoreConfiguration.getConsistency(), is(Consistency.STRONG));
-
-    serverStoreConfiguration = decodedMessage.getStoreConfigs().get("cache2");
-    assertThat(serverStoreConfiguration.getPoolAllocation(), instanceOf(PoolAllocation.Shared.class));
-    PoolAllocation.Shared sharedPool = (PoolAllocation.Shared) serverStoreConfiguration.getPoolAllocation();
-    assertThat(sharedPool.getResourcePoolName(), is("shared"));
-    assertThat(serverStoreConfiguration.getStoredKeyType(), is("storedKeyType2"));
-    assertThat(serverStoreConfiguration.getStoredValueType(), is("storedValueType2"));
-    assertThat(serverStoreConfiguration.getKeySerializerType(), is("keySerializerType2"));
-    assertThat(serverStoreConfiguration.getValueSerializerType(), is("valueSerializerType2"));
-    assertThat(serverStoreConfiguration.getConsistency(), is(Consistency.EVENTUAL));
-  }
+  private EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec(responseCodec);
 
   @Test
   public void testDataSyncMessageEncodeDecode() throws Exception {
-    EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
-    EhcacheDataSyncMessage message = new EhcacheDataSyncMessage("foo", 123L,
-        getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)));
-    EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, codec.encode(0, message));
-    assertThat(decoded.getCacheId(), is(message.getCacheId()));
-    assertThat(decoded.getKey(), is(message.getKey()));
-    assertThat(chainsEqual(decoded.getChain(), message.getChain()), is(true));
+    Map<Long, Chain> chainMap = new HashMap<>();
+    Chain chain = getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L));
+    chainMap.put(1L, chain);
+    chainMap.put(2L, chain);
+    chainMap.put(3L, chain);
+    EhcacheDataSyncMessage message = new EhcacheDataSyncMessage(chainMap);
+    byte[] encodedMessage = codec.encode(0, message);
+    EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, encodedMessage);
+    Map<Long, Chain> decodedChainMap = decoded.getChainMap();
+    assertThat(decodedChainMap).hasSize(3);
+    assertThat(chainsEqual(decodedChainMap.get(1L), chain)).isTrue();
+    assertThat(chainsEqual(decodedChainMap.get(2L), chain)).isTrue();
+    assertThat(chainsEqual(decodedChainMap.get(3L), chain)).isTrue();
+  }
+
+  @Test
+  public void testMessageTrackerSyncEncodeDecode_emptyMessage() throws Exception {
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, new HashMap<>());
+    byte[] encodedMessage = codec.encode(0, message);
+    EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
+    assertThat(decoded.getTrackedMessages()).isEmpty();
+  }
+
+  @Test
+  public void testMessageTrackerSyncEncodeDecode_clientWithoutMessage() throws Exception {
+    HashMap<Long, Map<Long, EhcacheEntityResponse>> trackerMap = new HashMap<>();
+    trackerMap.put(1L, new HashMap<>());
+
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, trackerMap);
+    byte[] encodedMessage = codec.encode(0, message);
+    EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
+    assertThat(decoded.getTrackedMessages()).isEmpty();
+  }
+
+  @Test
+  public void testMessageTrackerSyncEncodeDecode_messages() throws Exception {
+    TestClientSourceId id1 = new TestClientSourceId(1);
+    TestClientSourceId id2 = new TestClientSourceId(2);
+
+    EhcacheEntityResponse r3 = new EhcacheMessageTrackerMessageTest.NullResponse();
+    EhcacheEntityResponse r4 = new EhcacheMessageTrackerMessageTest.NullResponse();
+    EhcacheEntityResponse r5 = new EhcacheMessageTrackerMessageTest.NullResponse();
+
+    when(responseCodec.encode(r3)).thenReturn(new byte[3]);
+    when(responseCodec.encode(r4)).thenReturn(new byte[4]);
+    when(responseCodec.encode(r5)).thenReturn(new byte[5]);
+
+    when(responseCodec.decode(argThat(a -> a != null && a.length == 3))).thenReturn(r3);
+    when(responseCodec.decode(argThat(a -> a != null && a.length == 4))).thenReturn(r4);
+    when(responseCodec.decode(argThat(a -> a != null && a.length == 5))).thenReturn(r5);
+
+    HashMap<Long, Map<Long, EhcacheEntityResponse>> trackerMap = new HashMap<>();
+
+
+    Map<Long, EhcacheEntityResponse> responses1 = new HashMap<>();
+    responses1.put(3L, r3);
+    responses1.put(4L, r4);
+    trackerMap.put(1L, responses1);
+
+    Map<Long, EhcacheEntityResponse> responses2 = new HashMap<>();
+    responses2.put(5L, r5);
+    trackerMap.put(2L, responses2);
+
+    EhcacheMessageTrackerMessage message = new EhcacheMessageTrackerMessage(1, trackerMap);
+    byte[] encodedMessage = codec.encode(0, message);
+    EhcacheMessageTrackerMessage decoded = (EhcacheMessageTrackerMessage) codec.decode(0, encodedMessage);
+
+    Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages = decoded.getTrackedMessages();
+    assertThat(trackedMessages).containsKeys(id1.toLong(), id2.toLong());
+    assertThat(trackedMessages.get(id1.toLong())).containsEntry(3L, r3);
+    assertThat(trackedMessages.get(id1.toLong())).containsEntry(4L, r4);
+    assertThat(trackedMessages.get(id2.toLong())).containsEntry(5L, r5);
   }
 }

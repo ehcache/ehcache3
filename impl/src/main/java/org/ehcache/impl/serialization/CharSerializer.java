@@ -34,9 +34,8 @@ public class CharSerializer implements Serializer<Character> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link Character} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link Character} is a base java type.
    *
    * @param classLoader the classloader to use
    *
@@ -59,16 +58,15 @@ public class CharSerializer implements Serializer<Character> {
    * {@inheritDoc}
    */
   @Override
-  public Character read(ByteBuffer binary) throws ClassNotFoundException {
-    char c = binary.getChar();
-    return c;
+  public Character read(ByteBuffer binary) {
+    return binary.getChar();
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public boolean equals(Character object, ByteBuffer binary) throws ClassNotFoundException {
+  public boolean equals(Character object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
 }

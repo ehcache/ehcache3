@@ -34,7 +34,7 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSerializationProviderConfiguration.class);
 
-  private final Map<Class<?>, Class<? extends Serializer<?>>> defaultSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
+  private final Map<Class<?>, Class<? extends Serializer<?>>> defaultSerializers = new LinkedHashMap<>();
 
   /**
    * Creates a new configuration instance.

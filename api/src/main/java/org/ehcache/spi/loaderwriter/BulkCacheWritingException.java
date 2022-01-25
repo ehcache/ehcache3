@@ -33,18 +33,17 @@ public class BulkCacheWritingException extends CacheWritingException {
 
   /**
    * Constructs a {@code BulkCacheWritingException} instance with the given map and set.
-   * <P>
-   *   The given arguments are:
-   *   <UL>
-   *     <LI>a map from keys to exception thrown while writing,</LI>
-   *     <LI>a set of keys for which writing succeeded</LI>
-   *   </UL>
-   * </P>
+   * <p>
+   * The given arguments are:
+   * <ul>
+   *   <li>a map from keys to exception thrown while writing,</li>
+   *   <li>a set of keys for which writing succeeded</li>
+   * </ul>
    *
    * @param failures the map of keys to failure encountered while loading
    * @param successes the map of keys successfully loaded and their associated value
    */
-  public BulkCacheWritingException(final Map<?, Exception> failures, final Set<?> successes) {
+  public BulkCacheWritingException(Map<?, Exception> failures, Set<?> successes) {
     this.failures = Collections.unmodifiableMap(failures);
     this.successes = Collections.unmodifiableSet(successes);
   }
@@ -69,11 +68,9 @@ public class BulkCacheWritingException extends CacheWritingException {
 
   @Override
   public String getMessage() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("Failed keys :");
-    for (Map.Entry<?, Exception> entry : failures.entrySet()) {
-      sb.append("\n ").append(entry.getKey()).append(" : ").append(entry.getValue());
-    }
+    StringBuilder sb = new StringBuilder(13 + failures.size() * 20); // try to guess the final size
+    sb.append("Failed keys:");
+    failures.forEach((k, v) -> sb.append("\n ").append(k).append(" : ").append(v));
     return sb.toString();
   }
 

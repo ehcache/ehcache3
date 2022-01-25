@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store#replace(Object, Object, Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -78,7 +77,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
-    assertThat(kvStore.get(key).value(), is(equalTo(newValue)));
+    assertThat(kvStore.get(key).get(), is(equalTo(newValue)));
   }
 
   @SPITest
@@ -100,7 +99,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
-    assertThat(kvStore.get(key).value(), is(not(equalTo(wrongValue))));
+    assertThat(kvStore.get(key).get(), is(not(equalTo(wrongValue))));
   }
 
   @SPITest

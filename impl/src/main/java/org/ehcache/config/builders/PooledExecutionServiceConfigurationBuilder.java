@@ -25,7 +25,7 @@ import java.util.Set;
 /**
  * The {@code PooledExecutionServiceConfigurationBuilder} enables building configurations for an
  * {@link org.ehcache.core.spi.service.ExecutionService} that is pool based using a fluent style.
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
@@ -33,7 +33,7 @@ import java.util.Set;
 public class PooledExecutionServiceConfigurationBuilder implements Builder<PooledExecutionServiceConfiguration> {
 
   private Pool defaultPool;
-  private final Set<Pool> pools = new HashSet<Pool>();
+  private final Set<Pool> pools = new HashSet<>();
 
   private PooledExecutionServiceConfigurationBuilder() {
   }
@@ -99,9 +99,9 @@ public class PooledExecutionServiceConfigurationBuilder implements Builder<Poole
 
 
   private static class Pool {
-    private String alias;
-    private int minSize;
-    private int maxSize;
+    private final String alias;
+    private final int minSize;
+    private final int maxSize;
 
     Pool(String alias, int minSize, int maxSize) {
       this.alias = alias;

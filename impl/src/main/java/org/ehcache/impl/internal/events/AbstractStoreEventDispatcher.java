@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
@@ -26,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Supplier;
 
 /**
  * AbstractStoreEventDispatcher
@@ -49,17 +49,17 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void removed(Object key, ValueSupplier<Object> value) {
+    public void removed(Object key, Supplier<Object> value) {
       // Do nothing
     }
 
     @Override
-    public void updated(Object key, ValueSupplier<Object> oldValue, Object newValue) {
+    public void updated(Object key, Supplier<Object> oldValue, Object newValue) {
       // Do nothing
     }
 
     @Override
-    public void expired(Object key, ValueSupplier<Object> value) {
+    public void expired(Object key, Supplier<Object> value) {
       // Do nothing
     }
 
@@ -69,13 +69,13 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void evicted(Object key, ValueSupplier<Object> value) {
+    public void evicted(Object key, Supplier<Object> value) {
       // Do nothing
     }
   };
 
-  private final Set<StoreEventFilter<K, V>> filters = new CopyOnWriteArraySet<StoreEventFilter<K, V>>();
-  private final Set<StoreEventListener<K, V>> listeners = new CopyOnWriteArraySet<StoreEventListener<K, V>>();
+  private final Set<StoreEventFilter<K, V>> filters = new CopyOnWriteArraySet<>();
+  private final Set<StoreEventListener<K, V>> listeners = new CopyOnWriteArraySet<>();
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
   private volatile boolean ordered = false;
 
@@ -87,7 +87,7 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = new LinkedBlockingQueue[dispatcherConcurrency];
     orderedQueues = queues;
     for (int i = 0; i < orderedQueues.length; i++) {
-      orderedQueues[i] = new LinkedBlockingQueue<FireableStoreEventHolder<K, V>>(10000);
+      orderedQueues[i] = new LinkedBlockingQueue<>(10000);
     }
   }
 

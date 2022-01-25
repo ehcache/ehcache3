@@ -24,16 +24,16 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.Builder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
@@ -42,6 +42,7 @@ import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
@@ -50,6 +51,7 @@ import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -71,6 +73,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -97,9 +100,9 @@ public class XmlConfiguration implements Configuration {
   private final ClassLoader classLoader;
   private final Map<String, ClassLoader> cacheClassLoaders;
 
-  private final Collection<ServiceCreationConfiguration<?>> serviceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>();
-  private final Map<String, CacheConfiguration<?, ?>> cacheConfigurations = new HashMap<String, CacheConfiguration<?, ?>>();
-  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<String, ConfigurationParser.CacheTemplate>();
+  private final Collection<ServiceCreationConfiguration<?>> serviceConfigurations = new ArrayList<>();
+  private final Map<String, CacheConfiguration<?, ?>> cacheConfigurations = new HashMap<>();
+  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<>();
 
   /**
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}
@@ -128,7 +131,7 @@ public class XmlConfiguration implements Configuration {
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader)
       throws XmlConfigurationException {
-    this(url, classLoader, Collections.<String, ClassLoader>emptyMap());
+    this(url, classLoader, Collections.emptyMap());
   }
 
   /**
@@ -158,7 +161,7 @@ public class XmlConfiguration implements Configuration {
     }
     this.xml = url;
     this.classLoader = classLoader;
-    this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
+    this.cacheClassLoaders = new HashMap<>(cacheClassLoaders);
     try {
       parseConfiguration();
     } catch (XmlConfigurationException e) {
@@ -174,7 +177,7 @@ public class XmlConfiguration implements Configuration {
     LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm());
 
-    final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<ServiceCreationConfiguration<?>>();
+    final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<>();
 
     for (ServiceType serviceType : configurationParser.getServiceElements()) {
       final ServiceCreationConfiguration<?> serviceConfiguration = configurationParser.parseExtension(serviceType.getServiceCreationConfiguration());
@@ -230,12 +233,13 @@ public class XmlConfiguration implements Configuration {
       serviceConfigs.add(new OffHeapDiskStoreProviderConfiguration(diskStoreThreading.getThreadPool()));
     }
 
-    for (ServiceCreationConfiguration<?> serviceConfiguration : Collections.unmodifiableList(serviceConfigs)) {
-      serviceConfigurations.add(serviceConfiguration);
-    }
+    serviceConfigurations.addAll(serviceConfigs);
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
       String alias = cacheDefinition.id();
+      if(cacheConfigurations.containsKey(alias)) {
+        throw new XmlConfigurationException("Two caches defined with the same alias: " + alias);
+      }
 
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
       boolean classLoaderConfigured = false;
@@ -290,7 +294,7 @@ public class XmlConfiguration implements Configuration {
       }
       final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
       if (parsedDiskStoreSettings != null) {
-        builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency()));
+        builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency(), parsedDiskStoreSettings.diskSegments()));
       }
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.add(serviceConfig);
@@ -317,25 +321,36 @@ public class XmlConfiguration implements Configuration {
                   .queueSize(writeBehind.maxQueueSize()));
         }
       }
+      if (cacheDefinition.resilienceStrategy() != null) {
+        Class<ResilienceStrategy<?, ?>> resilienceStrategyClass = (Class<ResilienceStrategy<?, ?>>) getClassForName(cacheDefinition.resilienceStrategy(), cacheClassLoader);
+        builder = builder.add(new DefaultResilienceStrategyConfiguration(resilienceStrategyClass));
+      }
       builder = handleListenersConfig(cacheDefinition.listenersConfig(), cacheClassLoader, builder);
-      final CacheConfiguration<?, ?> config = builder.build();
+      CacheConfiguration<?, ?> config = builder.build();
       cacheConfigurations.put(alias, config);
     }
 
     templates.putAll(configurationParser.getTemplates());
   }
 
-  private Expiry<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
+  @SuppressWarnings({"unchecked", "deprecation"})
+  private ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-    final Expiry<? super Object, ? super Object> expiry;
+    final ExpiryPolicy<? super Object, ? super Object> expiry;
     if (parsedExpiry.isUserDef()) {
-      expiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, Expiry.class);
+      ExpiryPolicy<? super Object, ? super Object> tmpExpiry;
+      try {
+        tmpExpiry = getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
+      } catch (ClassCastException e) {
+        tmpExpiry = ExpiryUtils.convertToExpiryPolicy(getInstanceOfName(parsedExpiry.type(), cacheClassLoader, org.ehcache.expiry.Expiry.class));
+      }
+      expiry = tmpExpiry;
     } else if (parsedExpiry.isTTL()) {
-      expiry = Expirations.timeToLiveExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      expiry = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else if (parsedExpiry.isTTI()) {
-      expiry = Expirations.timeToIdleExpiration(new Duration(parsedExpiry.value(), parsedExpiry.unit()));
+      expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.of(parsedExpiry.value(), parsedExpiry.unit()));
     } else {
-      expiry = Expirations.noExpiration();
+      expiry = ExpiryPolicyBuilder.noExpiration();
     }
     return expiry;
   }
@@ -363,10 +378,9 @@ public class XmlConfiguration implements Configuration {
   /**
    * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
    * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}.
-   * <P>
-   *   Note that this version does not specify resources, which are mandatory to create a
-   *   {@link CacheConfigurationBuilder}. So if the template does not define resources, this will throw.
-   * </P>
+   * <p>
+   * Note that this version does not specify resources, which are mandatory to create a
+   * {@link CacheConfigurationBuilder}. So if the template does not define resources, this will throw.
    *
    * @param name the unique name identifying the cache-template element in the XML
    * @param keyType the type of keys for the {@link CacheConfigurationBuilder} to use, must
@@ -459,6 +473,7 @@ public class XmlConfiguration implements Configuration {
     return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
+  @SuppressWarnings("unchecked")
   private <K, V> CacheConfigurationBuilder<K, V> internalCacheConfigurationBuilderFromTemplate(final String name,
                                                                                                final Class<K> keyType,
                                                                                                final Class<V> valueType,
@@ -540,6 +555,11 @@ public class XmlConfiguration implements Configuration {
                 .queueSize(writeBehind.maxQueueSize()));
       }
     }
+    String resilienceStrategy = cacheTemplate.resilienceStrategy();
+    if (resilienceStrategy != null) {
+      final Class<ResilienceStrategy<?, ?>> resilienceStrategyClass = (Class<ResilienceStrategy<?, ?>>) getClassForName(resilienceStrategy, defaultClassLoader);
+      builder = builder.add(new DefaultResilienceStrategyConfiguration(resilienceStrategyClass));
+    }
     builder = handleListenersConfig(cacheTemplate.listenersConfig(), defaultClassLoader, builder);
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.add(serviceConfiguration);
@@ -554,9 +574,10 @@ public class XmlConfiguration implements Configuration {
       }
       if (listenersConfig.listeners() != null) {
         for (ConfigurationParser.Listener listener : listenersConfig.listeners()) {
+          @SuppressWarnings("unchecked")
           final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
           final List<EventType> eventListToFireOn = listener.fireOn();
-          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
+          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<>();
           for (EventType events : eventListToFireOn) {
             switch (events) {
               case CREATED:

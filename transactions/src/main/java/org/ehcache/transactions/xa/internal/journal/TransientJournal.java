@@ -16,7 +16,6 @@
 
 package org.ehcache.transactions.xa.internal.journal;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.transactions.xa.internal.TransactionId;
 
 import java.io.IOException;
@@ -25,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * An in-memory only  {@link Journal} implementation.
@@ -57,20 +57,20 @@ public class TransientJournal<K> implements Journal<K> {
     public Entry(XAState state, boolean heuristic, Collection<K> keys) {
       this.state = state;
       this.heuristic = heuristic;
-      this.keys = new ArrayList<K>(keys); // make a copy of the collection
+      this.keys = new ArrayList<>(keys); // make a copy of the collection
     }
   }
 
-  protected final ConcurrentHashMap<TransactionId, Entry<K>> states = new ConcurrentHashMap<TransactionId, Entry<K>>();
+  protected final ConcurrentHashMap<TransactionId, Entry<K>> states = new ConcurrentHashMap<>();
 
   @Override
   public void saveCommitted(TransactionId transactionId, boolean heuristicDecision) {
-    save(transactionId, XAState.COMMITTED, heuristicDecision, Collections.<K>emptySet());
+    save(transactionId, XAState.COMMITTED, heuristicDecision, Collections.emptySet());
   }
 
   @Override
   public void saveRolledBack(TransactionId transactionId, boolean heuristicDecision) {
-    save(transactionId, XAState.ROLLED_BACK, heuristicDecision, Collections.<K>emptySet());
+    save(transactionId, XAState.ROLLED_BACK, heuristicDecision, Collections.emptySet());
   }
 
   @Override
@@ -82,7 +82,7 @@ public class TransientJournal<K> implements Journal<K> {
     if (!heuristicDecision) {
       // check for heuristics
       if (xaState == XAState.IN_DOUBT) {
-        Entry existing = states.putIfAbsent(transactionId, new Entry<K>(xaState, false, inDoubtKeys));
+        Entry existing = states.putIfAbsent(transactionId, new Entry<>(xaState, false, inDoubtKeys));
         if (existing != null) {
           throw new IllegalStateException("A transaction cannot go back to in-doubt state");
         }
@@ -97,7 +97,7 @@ public class TransientJournal<K> implements Journal<K> {
       if (xaState == XAState.IN_DOUBT) {
         throw new IllegalStateException("A transaction cannot enter in-doubt state heuristically");
       } else {
-        Entry replaced = states.replace(transactionId, new Entry<K>(xaState, true, Collections.<K>emptySet()));
+        Entry replaced = states.replace(transactionId, new Entry<>(xaState, true, Collections.emptySet()));
         if (replaced == null) {
           throw new IllegalStateException("Only in-doubt transactions can be heuristically terminated");
         }
@@ -117,15 +117,15 @@ public class TransientJournal<K> implements Journal<K> {
     if (entry == null || entry.heuristic) {
       return null;
     }
-    return new ArrayList<K>(entry.keys);
+    return new ArrayList<>(entry.keys);
   }
 
   @Override
   public Map<TransactionId, Collection<K>> recover() {
-    HashMap<TransactionId, Collection<K>> result = new HashMap<TransactionId, Collection<K>>();
+    HashMap<TransactionId, Collection<K>> result = new HashMap<>();
     for (Map.Entry<TransactionId, Entry<K>> entry : states.entrySet()) {
       if (!entry.getValue().heuristic) {
-        result.put(entry.getKey(), new ArrayList<K>(entry.getValue().keys));
+        result.put(entry.getKey(), new ArrayList<>(entry.getValue().keys));
       }
     }
     return result;
@@ -153,7 +153,7 @@ public class TransientJournal<K> implements Journal<K> {
 
   @Override
   public Map<TransactionId, Boolean> heuristicDecisions() {
-    HashMap<TransactionId, Boolean> result = new HashMap<TransactionId, Boolean>();
+    HashMap<TransactionId, Boolean> result = new HashMap<>();
     for (Map.Entry<TransactionId, Entry<K>> entry : states.entrySet()) {
       if (entry.getValue().heuristic) {
         result.put(entry.getKey(), entry.getValue().state == XAState.COMMITTED);

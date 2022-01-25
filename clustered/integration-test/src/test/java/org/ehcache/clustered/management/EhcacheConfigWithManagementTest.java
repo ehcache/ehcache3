@@ -16,22 +16,16 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.CacheManager;
+import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
@@ -39,8 +33,9 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class EhcacheConfigWithManagementTest {
+public class EhcacheConfigWithManagementTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -50,12 +45,9 @@ public class EhcacheConfigWithManagementTest {
       + "</ohr:offheap-resources>" +
       "</config>\n";
 
-  private static final List<File> MANAGEMENT_PLUGINS = Stream.of(System.getProperty("managementPlugins", "").split(File.pathSeparator))
-    .map(File::new)
-    .collect(Collectors.toList());
-
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, MANAGEMENT_PLUGINS, "", RESOURCE_CONFIG, "");
+  public static Cluster CLUSTER = newCluster().in(new File("build/cluster"))
+                                              .withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -74,11 +66,7 @@ public class EhcacheConfigWithManagementTest {
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")
-        .setCacheManagerAlias("my-super-cache-manager")
-        .addConfiguration(new EhcacheStatisticsProviderConfiguration(
-          1, TimeUnit.MINUTES,
-          100, 1, TimeUnit.SECONDS,
-          2, TimeUnit.SECONDS))) // TTD reduce to 2 seconds so that the stat collector runs faster
+        .setCacheManagerAlias("my-super-cache-manager"))
       // cache config
       .withCache("dedicated-cache-1", newCacheConfigurationBuilder(
         String.class, String.class,

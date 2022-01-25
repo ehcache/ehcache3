@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class EmptyValueHolder<V> implements Store.ValueHolder<V> {
 
-  private static final Store.ValueHolder<Object> EMPTY = new EmptyValueHolder<Object>();
+  private static final Store.ValueHolder<Object> EMPTY = new EmptyValueHolder<>();
 
   @SuppressWarnings("unchecked")
   public static <V> Store.ValueHolder<V> empty() {
@@ -34,7 +34,7 @@ public class EmptyValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return null;
   }
 

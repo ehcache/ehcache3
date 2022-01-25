@@ -48,7 +48,7 @@ public class NonXACacheTest {
     /*
      * Ensure the XA provider classes are loadable through the ServiceLoader mechanism.
      */
-    Set<Class<?>> targetProviders = new HashSet<Class<?>>();
+    Set<Class<?>> targetProviders = new HashSet<>();
     targetProviders.add(XAStore.Provider.class);
     targetProviders.add(TransactionManagerProvider.class);
     for (ServiceFactory factory : ClassLoading.libraryServiceLoaderFor(ServiceFactory.class)) {

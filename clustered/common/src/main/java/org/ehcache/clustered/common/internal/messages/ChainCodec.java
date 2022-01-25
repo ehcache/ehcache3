@@ -31,7 +31,11 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChainCodec {
+public final class ChainCodec {
+
+  private ChainCodec() {
+    //no implementations please
+  }
 
   private static final Struct ELEMENT_STRUCT = StructBuilder.newStructBuilder()
     .int64("sequence", 10)
@@ -42,8 +46,8 @@ public class ChainCodec {
     .structs("elements", 10, ELEMENT_STRUCT)
     .build();
 
-  public byte[] encode(Chain chain) {
-    StructEncoder encoder = CHAIN_STRUCT.encoder();
+  public static byte[] encode(Chain chain) {
+    StructEncoder<Void> encoder = CHAIN_STRUCT.encoder();
 
     encode(encoder, chain);
 
@@ -51,37 +55,39 @@ public class ChainCodec {
     return byteBuffer.array();
   }
 
-  public void encode(StructEncoder encoder, Chain chain) {
-    StructArrayEncoder elementsEncoder = encoder.structs("elements");
+  public static void encode(StructEncoder<?> encoder, Chain chain) {
+    StructArrayEncoder<? extends StructEncoder<?>> elementsEncoder = encoder.structs("elements");
     for (Element element : chain) {
+      StructEncoder<?> elementEncoder = elementsEncoder.add();
       if (element instanceof SequencedElement) {
-        elementsEncoder.int64("sequence", ((SequencedElement) element).getSequenceNumber());
+        elementEncoder.int64("sequence", ((SequencedElement) element).getSequenceNumber());
       }
-      elementsEncoder.byteBuffer("payload", element.getPayload());
-      elementsEncoder.next();
+      elementEncoder.byteBuffer("payload", element.getPayload());
+      elementEncoder.end();
     }
+    elementsEncoder.end();
   }
 
-  public Chain decode(byte[] payload) {
-    StructDecoder decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
+  public static Chain decode(byte[] payload) {
+    StructDecoder<Void> decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
     return decode(decoder);
   }
 
-  public Chain decode(StructDecoder decoder) {
-    StructArrayDecoder elementsDecoder = decoder.structs("elements");
+  public static Chain decode(StructDecoder<?> decoder) {
+    StructArrayDecoder<? extends StructDecoder<?>> elementsDecoder = decoder.structs("elements");
 
-    final List<Element> elements = new ArrayList<Element>();
+    final List<Element> elements = new ArrayList<>();
     for (int i = 0; i < elementsDecoder.length(); i++) {
-      Long sequence = elementsDecoder.int64("sequence");
-      ByteBuffer byteBuffer = elementsDecoder.byteBuffer("payload");
-      Element element;
-      if (sequence != null) {
-        element = Util.getElement(sequence, byteBuffer);
+      StructDecoder<?> elementDecoder = elementsDecoder.next();
+      Long sequence = elementDecoder.int64("sequence");
+      ByteBuffer byteBuffer = elementDecoder.byteBuffer("payload");
+      elementDecoder.end();
+
+      if (sequence == null) {
+        elements.add(Util.getElement(byteBuffer));
       } else {
-        element = Util.getElement(byteBuffer);
+        elements.add(Util.getElement(sequence, byteBuffer));
       }
-      elements.add(element);
-      elementsDecoder.next();
     }
 
     elementsDecoder.end();

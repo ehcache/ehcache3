@@ -19,12 +19,12 @@ package org.ehcache.impl.internal.store.disk;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
@@ -56,6 +56,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,7 +67,7 @@ import static org.mockito.Mockito.when;
 public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
-  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
+  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<>();
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -81,28 +83,28 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public AuthoritativeTier<String, String> newStore() {
-        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
       public AuthoritativeTier<String, String> newStoreWithCapacity(long capacity) {
-        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(capacity, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      public AuthoritativeTier<String, String> newStoreWithExpiry(ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
       @Override
       public AuthoritativeTier<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
-        return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, evictionAdvisor, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
 
-      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
-        Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
+      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
+        Serializer<String> keySerializer = new JavaSerializer<>(getClass().getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
 
         try {
           CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -113,14 +115,14 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
-          Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-              evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
-          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
-                  diskResourceService.createPersistenceContextWithin(space, "store"),
-                  new OnDemandExecutionService(), null, 1,
-                  config, timeSource,
-                  new TestStoreEventDispatcher<String, String>(),
-                  unit.toBytes(diskPool.getSize()));
+          Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
+            evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
+          OffHeapDiskStore<String, String> store = new OffHeapDiskStore<>(
+            diskResourceService.createPersistenceContextWithin(space, "store"),
+            new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+            config, timeSource,
+            new TestStoreEventDispatcher<>(),
+            unit.toBytes(diskPool.getSize()));
           OffHeapDiskStore.Provider.init(store);
           createdStores.put(store, spaceName);
           return store;
@@ -138,7 +140,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public Store.ValueHolder<String> newValueHolder(String value) {
-        return new BasicOffHeapValueHolder<String>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
+        return new BasicOffHeapValueHolder<>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
       }
 
       @Override

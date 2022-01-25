@@ -16,26 +16,25 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.internal.TestExpiries;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
+
+import java.time.Duration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-
 /**
  * Test the {@link Store#putIfAbsent(Object, Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -95,7 +94,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     V updatedValue = factory.createValue(2);
 
     try {
-      assertThat(kvStore.putIfAbsent(key, updatedValue).value(), is(equalTo(value)));
+      assertThat(kvStore.putIfAbsent(key, updatedValue).get(), is(equalTo(value)));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
@@ -180,22 +179,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testPutIfAbsentValuePresentExpiresOnAccess() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource(10043L);
-    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
-      @Override
-      public Duration getExpiryForCreation(K key, V value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
-        return Duration.INFINITE;
-      }
-    }, timeSource);
+    kvStore = factory.newStoreWithExpiry(TestExpiries.custom(ExpiryPolicy.INFINITE, Duration.ZERO, null), timeSource);
 
     K key = factory.createKey(250928L);
     V value = factory.createValue(2059820L);
@@ -203,7 +187,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      assertThat(kvStore.putIfAbsent(key, newValue).value(), is(value));
+      assertThat(kvStore.putIfAbsent(key, newValue).get(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

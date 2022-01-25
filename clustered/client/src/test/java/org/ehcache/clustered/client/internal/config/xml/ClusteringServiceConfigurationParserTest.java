@@ -17,10 +17,11 @@
 package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.config.Configuration;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
@@ -41,14 +42,17 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.URL;
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.Collection;
 import java.util.ServiceLoader;
-import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.stream.StreamSource;
 
+import static java.time.temporal.ChronoUnit.MINUTES;
+import static org.ehcache.xml.XmlModel.convertToJavaTemporalUnit;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -123,6 +127,8 @@ public class ClusteringServiceConfigurationParserTest {
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
             "      <tc:read-timeout unit=\"minutes\">5</tc:read-timeout>",
+            "      <tc:write-timeout unit=\"minutes\">10</tc:write-timeout>",
+            "      <tc:connection-timeout unit=\"minutes\">15</tc:connection-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
@@ -136,10 +142,13 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(equalTo(TimeoutDuration.of(5, TimeUnit.MINUTES))));
+    Timeouts timeouts = clusteringServiceConfiguration.getTimeouts();
+    assertThat(timeouts.getReadOperationTimeout(), is(Duration.of(5, MINUTES)));
+    assertThat(timeouts.getWriteOperationTimeout(), is(Duration.of(10, MINUTES)));
+    assertThat(timeouts.getConnectionTimeout(), is(Duration.of(15, MINUTES)));
   }
 
   @Test
@@ -167,10 +176,10 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(TimeoutDuration.of(20, TimeUnit.SECONDS)));
+    assertThat(clusteringServiceConfiguration.getTimeouts(), is(TimeoutsBuilder.timeouts().build()));
   }
 
   @Test
@@ -199,11 +208,12 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
     ClusteringServiceConfiguration clusteringServiceConfiguration =
-        ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
+        ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    TimeUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
-    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(equalTo(TimeoutDuration.of(5, defaultUnit))));
+    TemporalUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
+    assertThat(clusteringServiceConfiguration.getTimeouts().getReadOperationTimeout(),
+      is(equalTo(Duration.of(5, defaultUnit))));
   }
 
   @Test

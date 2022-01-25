@@ -16,26 +16,26 @@
 package org.ehcache.clustered.server.management;
 
 import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.ehcache.clustered.server.state.ResourcePageSource;
-import org.terracotta.context.extended.StatisticsRegistry;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
+import org.terracotta.management.registry.ExposedObject;
+import org.terracotta.management.registry.collect.StatisticProvider;
+import org.terracotta.management.registry.collect.StatisticRegistry;
 import org.terracotta.management.service.monitoring.registry.provider.AbstractExposedStatistics;
 import org.terracotta.management.service.monitoring.registry.provider.AbstractStatisticsManagementProvider;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static org.terracotta.context.extended.ValueStatisticDescriptor.descriptor;
+import static org.terracotta.statistics.registry.ValueStatisticDescriptor.descriptor;
 
 @Named("PoolStatistics")
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
+@StatisticProvider
 class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvider<PoolBinding> {
 
   private final EhcacheStateService ehcacheStateService;
@@ -51,42 +51,32 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
   }
 
   @Override
-  protected StatisticsRegistry createStatisticsRegistry(PoolBinding managedObject) {
+  protected StatisticRegistry getStatisticRegistry(PoolBinding managedObject) {
     if (managedObject == PoolBinding.ALL_SHARED) {
-      return null;
+      return new StatisticRegistry(null, () -> getTimeSource().getTimestamp());
     }
 
     String poolName = managedObject.getAlias();
     PoolBinding.AllocationType allocationType = managedObject.getAllocationType();
 
     if (allocationType == PoolBinding.AllocationType.DEDICATED) {
-      ResourcePageSource resourcePageSource = Objects.requireNonNull(ehcacheStateService.getDedicatedResourcePageSource(poolName));
-      return getStatisticsService().createStatisticsRegistry(resourcePageSource);
+      return new StatisticRegistry(ehcacheStateService.getDedicatedResourcePageSource(poolName), () -> getTimeSource().getTimestamp());
 
     } else {
-      ResourcePageSource resourcePageSource = Objects.requireNonNull(ehcacheStateService.getSharedResourcePageSource(poolName));
-      return getStatisticsService().createStatisticsRegistry(resourcePageSource);
+      return new StatisticRegistry(ehcacheStateService.getSharedResourcePageSource(poolName), () -> getTimeSource().getTimestamp());
     }
   }
 
   @Override
-  protected AbstractExposedStatistics<PoolBinding> internalWrap(Context context, PoolBinding managedObject, StatisticsRegistry statisticsRegistry) {
-    return new PoolExposedStatistics(context, managedObject, statisticsRegistry);
+  protected AbstractExposedStatistics<PoolBinding> internalWrap(Context context, PoolBinding managedObject, StatisticRegistry statisticRegistry) {
+    return new PoolExposedStatistics(context, managedObject, statisticRegistry);
   }
 
   private static class PoolExposedStatistics extends AbstractExposedStatistics<PoolBinding> {
 
-    PoolExposedStatistics(Context context, PoolBinding binding, StatisticsRegistry statisticsRegistry) {
-      super(context, binding, statisticsRegistry);
-
-      if (statisticsRegistry != null) {
-        statisticsRegistry.registerSize("AllocatedSize", descriptor("allocatedSize", tags("tier", "Pool")));
-      }
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "Pool");
+    PoolExposedStatistics(Context context, PoolBinding binding, StatisticRegistry statisticRegistry) {
+      super(context.with("type", "Pool"), binding, statisticRegistry);
+      getStatisticRegistry().registerStatistic("AllocatedSize", descriptor("allocatedSize", tags("tier", "Pool")));
     }
 
   }

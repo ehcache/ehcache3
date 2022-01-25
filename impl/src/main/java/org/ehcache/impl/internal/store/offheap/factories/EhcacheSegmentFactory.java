@@ -48,7 +48,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
   public PinnableSegment<K, V> newInstance() {
     StorageEngine<? super K, ? super V> storageEngine = storageEngineFactory.newInstance();
     try {
-      return new EhcacheSegment<K, V>(tableSource, storageEngine, tableSize, evictionAdvisor, evictionListener);
+      return new EhcacheSegment<>(tableSource, storageEngine, tableSize, evictionAdvisor, evictionListener);
     } catch (RuntimeException e) {
       storageEngine.destroy();
       throw e;

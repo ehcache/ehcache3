@@ -57,7 +57,9 @@ public class TxCacheManagerServiceConfigurationParser implements CacheManagerSer
       try {
         ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
         Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, defaultClassLoader);
-        return new LookupTransactionManagerProviderConfiguration((Class<? extends TransactionManagerLookup>) aClass);
+        @SuppressWarnings("unchecked")
+        Class<? extends TransactionManagerLookup> clazz = (Class<? extends TransactionManagerLookup>) aClass;
+        return new LookupTransactionManagerProviderConfiguration(clazz);
       } catch (Exception e) {
         throw new XmlConfigurationException("Error configuring XA transaction manager", e);
       }

@@ -18,8 +18,13 @@ package org.ehcache.clustered.lock.server;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 import org.hamcrest.beans.HasPropertyWithValue;
+import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.EntityResponse;
@@ -29,139 +34,129 @@ import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 public class VoltronReadWriteLockActiveEntityTest {
 
+  @Rule
+  public MockitoRule rule = MockitoJUnit.rule();
+
+  @Mock
+  private ClientCommunicator communicator = mock(ClientCommunicator.class);
+
+  @InjectMocks
+  VoltronReadWriteLockActiveEntity entity;
+
+  private ActiveInvokeContext<LockTransition> context = newContext();
+
+  private static ActiveInvokeContext<LockTransition> newContext() {
+    @SuppressWarnings("unchecked")
+    ActiveInvokeContext<LockTransition> context = mock(ActiveInvokeContext.class);
+    when(context.getClientDescriptor()).thenReturn(mock(ClientDescriptor.class));
+    return context;
+  }
+
   @Test
   public void testWriteLock() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
-
-    ClientDescriptor client = mock(ClientDescriptor.class);
-
-    LockTransition transition = entity.invoke(client, LockMessaging.lock(WRITE));
+    LockTransition transition = entity.invokeActive(context, LockMessaging.lock(WRITE));
 
     assertThat(transition.isAcquired(), is(true));
   }
 
   @Test
   public void testReadLock() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
-
-    ClientDescriptor client = mock(ClientDescriptor.class);
-
-    LockTransition transition = entity.invoke(client, LockMessaging.lock(READ));
+    LockTransition transition = entity.invokeActive(context, LockMessaging.lock(READ));
 
     assertThat(transition.isAcquired(), is(true));
   }
 
   @Test
   public void testWriteUnlock() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    entity.invokeActive(context, LockMessaging.lock(WRITE));
 
-    ClientDescriptor client = mock(ClientDescriptor.class);
-    entity.invoke(client, LockMessaging.lock(WRITE));
-
-    LockTransition transition = entity.invoke(client, LockMessaging.unlock(WRITE));
+    LockTransition transition = entity.invokeActive(context, LockMessaging.unlock(WRITE));
 
     assertThat(transition.isReleased(), is(true));
   }
 
   @Test
   public void testReadUnlock() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    entity.invokeActive(context, LockMessaging.lock(READ));
 
-    ClientDescriptor client = mock(ClientDescriptor.class);
-    entity.invoke(client, LockMessaging.lock(READ));
-
-    LockTransition transition = entity.invoke(client, LockMessaging.unlock(READ));
+    LockTransition transition = entity.invokeActive(context, LockMessaging.unlock(READ));
 
     assertThat(transition.isReleased(), is(true));
   }
 
   @Test
   public void testTryWriteLockWhenWriteLocked() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    entity.invokeActive(context, LockMessaging.lock(WRITE));
 
-    entity.invoke(mock(ClientDescriptor.class), LockMessaging.lock(WRITE));
-
-    LockTransition transition = entity.invoke(mock(ClientDescriptor.class), LockMessaging.tryLock(WRITE));
+    LockTransition transition = entity.invokeActive(newContext(), LockMessaging.tryLock(WRITE));
 
     assertThat(transition.isAcquired(), is(false));
   }
 
   @Test
   public void testTryReadLockWhenWriteLocked() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    entity.invokeActive(context, LockMessaging.lock(WRITE));
 
-    entity.invoke(mock(ClientDescriptor.class), LockMessaging.lock(WRITE));
-
-    LockTransition transition = entity.invoke(mock(ClientDescriptor.class), LockMessaging.tryLock(READ));
+    LockTransition transition = entity.invokeActive(newContext(), LockMessaging.tryLock(READ));
 
     assertThat(transition.isAcquired(), is(false));
   }
 
   @Test
   public void testTryWriteLockWhenReadLocked() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    entity.invokeActive(context, LockMessaging.lock(READ));
 
-    entity.invoke(mock(ClientDescriptor.class), LockMessaging.lock(READ));
-
-    LockTransition transition = entity.invoke(mock(ClientDescriptor.class), LockMessaging.tryLock(WRITE));
+    LockTransition transition = entity.invokeActive(newContext(), LockMessaging.tryLock(WRITE));
 
     assertThat(transition.isAcquired(), is(false));
   }
 
   @Test
   public void testTryReadLockWhenReadLocked() {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    entity.invokeActive(context, LockMessaging.lock(READ));
 
-    entity.invoke(mock(ClientDescriptor.class), LockMessaging.lock(READ));
-
-    LockTransition transition = entity.invoke(mock(ClientDescriptor.class), LockMessaging.tryLock(READ));
+    LockTransition transition = entity.invokeActive(newContext(), LockMessaging.tryLock(READ));
 
     assertThat(transition.isAcquired(), is(true));
   }
 
   @Test
   public void testWriteUnlockNotifiesListeners() throws MessageCodecException {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    ActiveInvokeContext<LockTransition> locker = newContext();
+    ActiveInvokeContext<LockTransition> waiter = newContext();
 
-    ClientDescriptor locker = mock(ClientDescriptor.class);
-    ClientDescriptor waiter = mock(ClientDescriptor.class);
+    ClientDescriptor waiterDescriptor = () -> null;
+    when(waiter.getClientDescriptor()).thenReturn(waiterDescriptor);
 
-    entity.invoke(locker, LockMessaging.lock(WRITE));
-    entity.invoke(waiter, LockMessaging.lock(WRITE));
-    entity.invoke(locker, LockMessaging.unlock(WRITE));
+    entity.invokeActive(locker, LockMessaging.lock(WRITE));
+    entity.invokeActive(waiter, LockMessaging.lock(WRITE));
+    entity.invokeActive(locker, LockMessaging.unlock(WRITE));
 
-    verify(communicator).sendNoResponse(eq(waiter), Matchers.<EntityResponse>argThat(
+    verify(communicator).sendNoResponse(same(waiterDescriptor), argThat(
             HasPropertyWithValue.<EntityResponse>hasProperty("released", is(true))));
   }
 
   @Test
   public void testReadUnlockNotifiesListeners() throws MessageCodecException {
-    ClientCommunicator communicator = mock(ClientCommunicator.class);
-    VoltronReadWriteLockActiveEntity entity = new VoltronReadWriteLockActiveEntity(communicator);
+    ActiveInvokeContext<LockTransition> locker = newContext();
+    ActiveInvokeContext<LockTransition> waiter = newContext();
 
-    ClientDescriptor locker = mock(ClientDescriptor.class);
-    ClientDescriptor waiter = mock(ClientDescriptor.class);
+    ClientDescriptor waiterDescriptor = () -> null;
+    when(waiter.getClientDescriptor()).thenReturn(waiterDescriptor);
 
-    entity.invoke(locker, LockMessaging.lock(READ));
-    entity.invoke(waiter, LockMessaging.lock(WRITE));
-    entity.invoke(locker, LockMessaging.unlock(READ));
+    entity.invokeActive(locker, LockMessaging.lock(READ));
+    entity.invokeActive(waiter, LockMessaging.lock(WRITE));
+    entity.invokeActive(locker, LockMessaging.unlock(READ));
 
-    verify(communicator).sendNoResponse(eq(waiter), Matchers.<EntityResponse>argThat(
+    verify(communicator).sendNoResponse(same(waiterDescriptor), argThat(
             HasPropertyWithValue.<EntityResponse>hasProperty("released", is(true))));
   }
 

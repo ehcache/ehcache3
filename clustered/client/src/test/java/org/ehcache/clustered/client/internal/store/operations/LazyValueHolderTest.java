@@ -27,7 +27,7 @@ import java.util.Date;
 
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -49,7 +49,7 @@ public class LazyValueHolderTest {
     ByteBuffer buffer = mock(ByteBuffer.class);
     doReturn(date).when(serializer).read(buffer);
 
-    LazyValueHolder<Date> valueHolder = new LazyValueHolder<Date>(buffer, serializer);
+    LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(buffer, serializer);
     verify(serializer, never()).read(buffer); //Encoded value not deserialized on creation itself
     valueHolder.getValue();
     verify(serializer).read(buffer);  //Deserialization happens on the first invocation of getValue()
@@ -63,7 +63,7 @@ public class LazyValueHolderTest {
     ByteBuffer buffer = mock(ByteBuffer.class);
     doReturn(buffer).when(serializer).serialize(date);
 
-    LazyValueHolder<Date> valueHolder = new LazyValueHolder<Date>(date);
+    LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(date);
     verify(serializer, never()).serialize(date); //Value not serialized on creation itself
     valueHolder.encode(serializer);
     verify(serializer).serialize(date); //Serialization happens on the first invocation of encode()
@@ -73,11 +73,11 @@ public class LazyValueHolderTest {
 
   @Test
   public void testEncodeDoesNotEncodeAlreadyEncodedValue() throws Exception {
-    ByteBuffer buffer = mock(ByteBuffer.class);
+    ByteBuffer buffer = ByteBuffer.allocate(0);
 
-    LazyValueHolder<Date> valueHolder = new LazyValueHolder<Date>(buffer, serializer);
+    LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(buffer, serializer);
     ByteBuffer encoded = valueHolder.encode(serializer);
-    assertThat(encoded, sameInstance(buffer));
+    assertThat(encoded.array(), sameInstance(buffer.array())); //buffer should be a dupicate to preserve positional parameters
     verify(serializer, never()).serialize(any(Date.class)); //Value not serialized as the serialized form was available on creation itself
   }
 }

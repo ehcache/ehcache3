@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.lock.server;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -23,11 +24,13 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 
+import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.StateDumpCollector;
 
 /**
  *
@@ -37,22 +40,52 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
 
   private final ClientCommunicator communicator;
 
-  private final Set<ClientDescriptor> releaseListeners = new CopyOnWriteArraySet<ClientDescriptor>();
-  private final Set<ClientDescriptor> sharedHolders = new CopyOnWriteArraySet<ClientDescriptor>();
+  private final Set<ClientDescriptor> releaseListeners = new CopyOnWriteArraySet<>();
+  private final Set<ClientDescriptor> sharedHolders = new CopyOnWriteArraySet<>();
 
-  private ClientDescriptor exclusiveHolder;
+  private volatile ClientDescriptor exclusiveHolder;
 
   public VoltronReadWriteLockActiveEntity(ClientCommunicator communicator) {
     this.communicator = communicator;
   }
 
   @Override
-  public LockTransition invoke(ClientDescriptor client, LockOperation message) {
+  public LockTransition invokeActive(ActiveInvokeContext<LockTransition> context, LockOperation message) {
+    ClientDescriptor clientDescriptor = context.getClientDescriptor();
+    return invokeActive(clientDescriptor, message);
+  }
+
+  private LockTransition invokeActive(ClientDescriptor clientDescriptor, LockOperation message) {
     switch (message.getOperation()) {
-      case TRY_ACQUIRE: return tryAcquire(client, message.getHoldType());
-      case ACQUIRE: return acquire(client, message.getHoldType());
-      case RELEASE: return release(client, message.getHoldType());
+      case TRY_ACQUIRE:
+        return tryAcquire(clientDescriptor, message.getHoldType());
+      case ACQUIRE: return acquire(clientDescriptor, message.getHoldType());
+      case RELEASE: return release(clientDescriptor, message.getHoldType());
       default: throw new AssertionError();
+    }
+  }
+
+  @Override
+  public void addStateTo(StateDumpCollector dump) {
+    ClientDescriptor exclusiveHolder = this.exclusiveHolder;
+    Set<ClientDescriptor> sharedHolders = new HashSet<>(this.sharedHolders);
+    Set<ClientDescriptor> releaseListeners = new HashSet<>(this.releaseListeners);
+    {
+      // Dump lock holders. we dump both exclusive and shared to leave the interpretation of
+      // the potential concurrency reading errors up to the person reading the state dump
+      // In a normal case, there will be either exclusive OR shared holders.
+      StateDumpCollector holdersDump = dump.subStateDumpCollector("holders");
+      // dump the exclusive holder
+      if (exclusiveHolder != null) {
+        holdersDump.addState("exclusive", String.valueOf(exclusiveHolder));
+      }
+      // dump the shared holders.
+      if(!sharedHolders.isEmpty()) {
+        holdersDump.addState("shared", sharedHolders);
+      }
+    }
+    {
+      dump.addState("releaseListeners", releaseListeners);
     }
   }
 
@@ -72,18 +105,21 @@ class VoltronReadWriteLockActiveEntity implements ActiveServerEntity<LockOperati
   }
 
   @Override
-  public void handleReconnect(ClientDescriptor client, byte[] reconnectData) {
-    if (reconnectData.length == 0) {
-      releaseListeners.add(client);
-    } else {
-      try {
-        if (!invoke(client, LockMessaging.codec().decodeMessage(reconnectData)).isAcquired()) {
-          throw new IllegalStateException("Unexpected lock acquisition failure during reconnect");
+  public ReconnectHandler startReconnect() {
+    return (clientDescriptor, bytes) -> {
+      if (bytes.length == 0) {
+        releaseListeners.add(clientDescriptor);
+      } else {
+        try {
+          LockOperation message = LockMessaging.codec().decodeMessage(bytes);
+          if (!invokeActive(clientDescriptor, message).isAcquired()) {
+            throw new IllegalStateException("Unexpected lock acquisition failure during reconnect");
+          }
+        } catch (MessageCodecException ex) {
+          throw new AssertionError(ex);
         }
-      } catch (MessageCodecException ex) {
-        throw new AssertionError(ex);
       }
-    }
+    };
   }
 
   @Override

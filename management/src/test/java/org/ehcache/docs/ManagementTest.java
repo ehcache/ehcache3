@@ -24,49 +24,40 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.StatsUtil;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.management.registry.DefaultSharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.context.CapabilityContext;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.history.CounterHistory;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 public class ManagementTest {
 
-  private final EhcacheStatisticsProviderConfiguration EHCACHE_STATS_CONFIG = new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES);
-
-
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
-
+  @Test
   public void usingManagementRegistry() throws Exception {
     // tag::usingManagementRegistry[]
 
     CacheManager cacheManager = null;
     try {
       DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager1"); // <1>
-      registryConfiguration.addConfiguration(EHCACHE_STATS_CONFIG);
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration); // <2>
 
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, MemoryUnit.MB))
+        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, MemoryUnit.MB).offheap(2, MemoryUnit.MB))
         .build();
 
       cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -74,6 +65,15 @@ public class ManagementTest {
           .using(managementRegistry) // <3>
           .build(true);
 
+      Object o = managementRegistry.withCapability("StatisticCollectorCapability")
+        .call("updateCollectedStatistics",
+          new Parameter("StatisticsCapability"),
+          new Parameter(Arrays.asList("Cache:HitCount", "Cache:MissCount"), Collection.class.getName()))
+        .on(Context.create("cacheManagerName", "myCacheManager1"))
+        .build()
+        .execute()
+        .getSingleResult();
+      System.out.println(o);
 
       Cache<Long, String> aCache = cacheManager.getCache("myCache", Long.class, String.class);
       aCache.put(1L, "one");
@@ -90,26 +90,11 @@ public class ManagementTest {
           .on(context)
           .build();
 
-      long onHeapHitCount = 0;
-      // it could be several seconds before the sampled stats could become available
-      // let's try until we find the correct value : 4
-      do {
-        ResultSet<ContextualStatistics> counters = query.execute();
+      ResultSet<ContextualStatistics> counters = query.execute();
 
-        ContextualStatistics statisticsContext = counters.getResult(context);
+      ContextualStatistics statisticsContext = counters.getResult(context);
 
-        Assert.assertThat(counters.size(), Matchers.is(1));
-
-        CounterHistory onHeapStore_Hit_Count = statisticsContext.getStatistic(CounterHistory.class, "Cache:HitCount");
-
-        // hit count is a sampled stat, for example its values could be [0,0,3,4].
-        // In the present case, only the last value is important to us , the cache was eventually hit 4 times
-        if (onHeapStore_Hit_Count.getValue().length > 0) {
-          int mostRecentIndex = onHeapStore_Hit_Count.getValue().length - 1;
-          onHeapHitCount = onHeapStore_Hit_Count.getValue()[mostRecentIndex].getValue();
-        }
-
-      } while (onHeapHitCount != 4L);
+      Assert.assertThat(counters.size(), Matchers.is(1));
     }
     finally {
       if(cacheManager != null) cacheManager.close();
@@ -210,13 +195,13 @@ public class ManagementTest {
       SharedManagementService sharedManagementService = new DefaultSharedManagementService(); // <1>
       cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
           .withCache("aCache", cacheConfiguration)
-          .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager-1").addConfiguration(EHCACHE_STATS_CONFIG))
+          .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager-1"))
           .using(sharedManagementService) // <2>
           .build(true);
 
       cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
           .withCache("aCache", cacheConfiguration)
-          .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager-2").addConfiguration(EHCACHE_STATS_CONFIG))
+          .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager-2"))
           .using(sharedManagementService) // <3>
           .build(true);
 
@@ -246,14 +231,11 @@ public class ManagementTest {
 
         ContextualStatistics statisticsContext1 = counters.getResult(context1);
 
-        CounterHistory counterContext1 = statisticsContext1.getStatistic(CounterHistory.class, "Cache:MissCount");
+        Long counterContext1 = statisticsContext1.<Long>getLatestSampleValue("Cache:MissCount").get();
 
         // miss count is a sampled stat, for example its values could be [0,1,2].
         // In the present case, only the last value is important to us , the cache was eventually missed 2 times
-        if (counterContext1.getValue().length > 0) {
-          int mostRecentSampleIndex = counterContext1.getValue().length - 1;
-          val = counterContext1.getValue()[mostRecentSampleIndex].getValue();
-        }
+        val = counterContext1.longValue();
       } while(val != 2);
     }
     finally {

@@ -19,6 +19,7 @@ package org.ehcache.transactions.xa.internal;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -36,17 +37,18 @@ public class UnSupportedResourceTypeTest {
   public void testUnSupportedResourceType() {
     XAStore.Provider provider = new XAStore.Provider();
 
-    Store.Configuration configuration = mock(Store.Configuration.class);
+    @SuppressWarnings("unchecked")
+    Store.Configuration<Object, Object> configuration = mock(Store.Configuration.class);
 
     ResourcePools resourcePools = mock(ResourcePools.class);
-    Set<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();
+    Set<ResourceType<?>> resourceTypes = new HashSet<>();
     resourceTypes.add(new TestResourceType());
 
     when(configuration.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getResourceTypeSet()).thenReturn(resourceTypes);
 
     try {
-      provider.createStore(configuration, null);
+      provider.createStore(configuration, (ServiceConfiguration<?>) null);
       fail("IllegalStateException expected");
     } catch (IllegalStateException e) {
 

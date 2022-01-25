@@ -23,11 +23,11 @@ package org.ehcache.impl.internal.classes.commonslang.reflect;
 
 import org.ehcache.impl.internal.classes.commonslang.ArrayUtils;
 import org.ehcache.impl.internal.classes.commonslang.ClassUtils;
-import org.ehcache.impl.internal.classes.commonslang.Validate;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.Objects;
 
 /**
  * <p> Utility reflection methods focused on constructors, modeled after
@@ -51,18 +51,6 @@ import java.lang.reflect.Modifier;
 public class ConstructorUtils {
 
     /**
-     * <p>ConstructorUtils instances should NOT be constructed in standard
-     * programming. Instead, the class should be used as
-     * {@code ConstructorUtils.invokeConstructor(cls, args)}.</p>
-     *
-     * <p>This constructor is {@code public} to permit tools that require a JavaBean
-     * instance to operate.</p>
-     */
-    public ConstructorUtils() {
-        super();
-    }
-
-    /**
      * <p>Returns a new instance of the specified class inferring the right constructor
      * from the types of the arguments.</p>
      *
@@ -79,7 +67,7 @@ public class ConstructorUtils {
      * @throws IllegalAccessException if invocation is not permitted by security
      * @throws InvocationTargetException if an error occurs on invocation
      * @throws InstantiationException if an error occurs on instantiation
-     * @see #invokeConstructor(java.lang.Class, java.lang.Object[], java.lang.Class[])
+     * @see #invokeConstructor(Class, Object[], Class[])
      */
     public static <T> T invokeConstructor(final Class<T> cls, Object... args)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException,
@@ -119,8 +107,14 @@ public class ConstructorUtils {
             throw new NoSuchMethodException(
                 "No such accessible constructor on object: " + cls.getName());
         }
+        if (ctor.isVarArgs()) {
+            final Class<?>[] methodParameterTypes = ctor.getParameterTypes();
+            args = MethodUtils.getVarArgs(args, methodParameterTypes);
+        }
         return ctor.newInstance(args);
     }
+
+    //-----------------------------------------------------------------------
 
     /**
      * <p>Checks if the specified constructor is accessible.</p>
@@ -130,11 +124,11 @@ public class ConstructorUtils {
      * @param <T> the constructor type
      * @param ctor  the prototype constructor object, not {@code null}
      * @return the constructor, {@code null} if no matching accessible constructor found
-     * @see java.lang.SecurityManager
+     * @see SecurityManager
      * @throws NullPointerException if {@code ctor} is {@code null}
      */
     public static <T> Constructor<T> getAccessibleConstructor(final Constructor<T> ctor) {
-        Validate.notNull(ctor, "constructor cannot be null");
+        Objects.requireNonNull(ctor, "constructor cannot be null");
         return MemberUtils.isAccessible(ctor)
                 && isAccessible(ctor.getDeclaringClass()) ? ctor : null;
     }
@@ -159,7 +153,7 @@ public class ConstructorUtils {
      */
     public static <T> Constructor<T> getMatchingAccessibleConstructor(final Class<T> cls,
             final Class<?>... parameterTypes) {
-        Validate.notNull(cls, "class cannot be null");
+        Objects.requireNonNull(cls, "class cannot be null");
         // see if we can find the constructor directly
         // most of the time this works and it's much faster
         try {
@@ -178,14 +172,12 @@ public class ConstructorUtils {
         // return best match:
         for (Constructor<?> ctor : ctors) {
             // compare parameters
-            if (ClassUtils.isAssignable(parameterTypes, ctor.getParameterTypes(), true)) {
+            if (MemberUtils.isMatchingConstructor(ctor, parameterTypes)) {
                 // get accessible version of constructor
                 ctor = getAccessibleConstructor(ctor);
                 if (ctor != null) {
                     MemberUtils.setAccessibleWorkaround(ctor);
-                    if (result == null
-                            || MemberUtils.compareParameterTypes(ctor.getParameterTypes(), result
-                                    .getParameterTypes(), parameterTypes) < 0) {
+                    if (result == null || MemberUtils.compareConstructorFit(ctor, result, parameterTypes) < 0) {
                         // temporary variable for annotation, see comment above (1)
                         @SuppressWarnings("unchecked")
                         final

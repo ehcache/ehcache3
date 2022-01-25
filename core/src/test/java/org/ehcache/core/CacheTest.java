@@ -18,26 +18,24 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.StateTransitionException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -214,118 +212,111 @@ public abstract class CacheTest {
 
   @Test
   public void testPutIfAbsent() throws StoreAccessException {
-    final AtomicReference<Object> existingValue = new AtomicReference<Object>();
+    final AtomicReference<Object> existingValue = new AtomicReference<>();
     final Store store = mock(Store.class);
     final String value = "bar";
-    when(store.computeIfAbsent(eq("foo"), any(Function.class))).thenAnswer(new Answer<Object>() {
-      @Override
-      public Object answer(final InvocationOnMock invocationOnMock) throws Throwable {
-        final Function<Object, Object> biFunction
-            = (Function<Object, Object>)invocationOnMock.getArguments()[1];
-        if (existingValue.get() == null) {
-          final Object newValue = biFunction.apply(invocationOnMock.getArguments()[0]);
-          existingValue.compareAndSet(null, newValue);
-        }
-        return new Store.ValueHolder<Object>() {
-          @Override
-          public Object value() {
-            return existingValue.get();
-          }
-
-          @Override
-          public long creationTime(final TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long expirationTime(TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public boolean isExpired(long expirationTime, TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long lastAccessTime(final TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public float hitRate(final long now, final TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long hits() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long getId() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-        };
+    when(store.computeIfAbsent(eq("foo"), any(Function.class))).thenAnswer(invocationOnMock -> {
+      final Function<Object, Object> biFunction
+          = (Function<Object, Object>)invocationOnMock.getArguments()[1];
+      if (existingValue.get() == null) {
+        final Object newValue = biFunction.apply(invocationOnMock.getArguments()[0]);
+        existingValue.compareAndSet(null, newValue);
       }
+      return new Store.ValueHolder<Object>() {
+        @Override
+        public Object get() {
+          return existingValue.get();
+        }
+
+        @Override
+        public long creationTime(final TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long expirationTime(TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public boolean isExpired(long expirationTime, TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long lastAccessTime(final TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public float hitRate(final long now, final TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long hits() {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long getId() {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+      };
     });
-    when(store.putIfAbsent(eq("foo"), any(String.class))).then(new Answer<Object>() {
-
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        final Object toReturn;
-        if ((toReturn = existingValue.get()) == null) {
-          existingValue.compareAndSet(null, invocation.getArguments()[1]);
-        }
-        return new Store.ValueHolder<Object>() {
-          @Override
-          public Object value() {
-            return toReturn;
-          }
-
-          @Override
-          public long creationTime(final TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long expirationTime(TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public boolean isExpired(long expirationTime, TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long lastAccessTime(final TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public float hitRate(final long now, final TimeUnit unit) {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long hits() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-
-          @Override
-          public long getId() {
-            throw new UnsupportedOperationException("Implement me!");
-          }
-        };
+    when(store.putIfAbsent(eq("foo"), any(String.class))).then(invocation -> {
+      final Object toReturn;
+      if ((toReturn = existingValue.get()) == null) {
+        existingValue.compareAndSet(null, invocation.getArguments()[1]);
       }
+      return new Store.ValueHolder<Object>() {
+        @Override
+        public Object get() {
+          return toReturn;
+        }
+
+        @Override
+        public long creationTime(final TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long expirationTime(TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public boolean isExpired(long expirationTime, TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long lastAccessTime(final TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public float hitRate(final long now, final TimeUnit unit) {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long hits() {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+
+        @Override
+        public long getId() {
+          throw new UnsupportedOperationException("Implement me!");
+        }
+      };
     });
     InternalCache<Object, Object> ehcache = getCache(store);
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
-    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.<Object>is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.is(value));
   }
 
   @Test

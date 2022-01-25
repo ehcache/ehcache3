@@ -16,8 +16,11 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
@@ -28,15 +31,12 @@ import org.terracotta.management.model.capabilities.context.CapabilityContext;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.model.stats.StatisticType;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -49,10 +49,11 @@ import static org.mockito.Mockito.when;
 public class EhcacheStatisticsProviderTest {
 
   ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+  StatisticsService statisticsService = new DefaultStatisticsService();
   Context cmContext_0 = Context.create("cacheManagerName", "cache-manager-0");
   ManagementRegistryServiceConfiguration cmConfig_0 = new DefaultManagementRegistryConfiguration()
-      .setContext(cmContext_0)
-      .addConfiguration(new EhcacheStatisticsProviderConfiguration(5 * 60, TimeUnit.SECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
+      .setContext(cmContext_0);
+  TimeSource timeSource = SystemTimeSource.INSTANCE;
 
   @After
   public void tearDown() throws Exception {
@@ -60,16 +61,17 @@ public class EhcacheStatisticsProviderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testDescriptions() throws Exception {
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService, timeSource) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
         StandardEhcacheStatistics mock = mock(StandardEhcacheStatistics.class);
-        Collection<StatisticDescriptor> descriptors = new HashSet<StatisticDescriptor>();
-        descriptors.add(new StatisticDescriptor("aCounter", StatisticType.COUNTER));
-        descriptors.add(new StatisticDescriptor("aDuration", StatisticType.DURATION));
-        descriptors.add(new StatisticDescriptor("aSampledRate", StatisticType.RATE_HISTORY));
-        when(mock.getDescriptors()).thenReturn((Collection) descriptors);
+        Collection<StatisticDescriptor> descriptors = new HashSet<>();
+        descriptors.add(new StatisticDescriptor("aCounter", "COUNTER"));
+        descriptors.add(new StatisticDescriptor("aDuration", "DURATION"));
+        descriptors.add(new StatisticDescriptor("aSampledRate", "RATE"));
+        when(mock.getDescriptors()).thenReturn(descriptors);
         return mock;
       }
     };
@@ -79,15 +81,15 @@ public class EhcacheStatisticsProviderTest {
     Collection<? extends Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
     assertThat(descriptions.size(), is(3));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
-        new StatisticDescriptor("aCounter", StatisticType.COUNTER),
-        new StatisticDescriptor("aDuration", StatisticType.DURATION),
-        new StatisticDescriptor("aSampledRate", StatisticType.RATE_HISTORY)
+        new StatisticDescriptor("aCounter", "COUNTER"),
+        new StatisticDescriptor("aDuration", "DURATION"),
+        new StatisticDescriptor("aSampledRate", "RATE")
     ));
   }
 
   @Test
   public void testCapabilityContext() throws Exception {
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService, timeSource) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
         return mock(StandardEhcacheStatistics.class);
@@ -112,7 +114,7 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testCallAction() throws Exception {
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor);
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService, timeSource);
 
     try {
       ehcacheStatisticsProvider.callAction(null, null);

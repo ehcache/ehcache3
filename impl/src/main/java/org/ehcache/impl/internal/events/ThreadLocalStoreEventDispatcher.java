@@ -23,8 +23,8 @@ import org.ehcache.core.events.StoreEventSink;
  */
 public class ThreadLocalStoreEventDispatcher<K, V> extends AbstractStoreEventDispatcher<K, V> {
 
-  private final ThreadLocal<StoreEventSink<K, V>> tlEventSink = new ThreadLocal<StoreEventSink<K, V>>();
-  private final ThreadLocal<Integer> usageDepth = new ThreadLocal<Integer>();
+  private final ThreadLocal<StoreEventSink<K, V>> tlEventSink = new ThreadLocal<>();
+  private final ThreadLocal<Integer> usageDepth = new ThreadLocal<>();
 
   public ThreadLocalStoreEventDispatcher(int dispatcherConcurrency) {
     super(dispatcherConcurrency);
@@ -39,7 +39,7 @@ public class ThreadLocalStoreEventDispatcher<K, V> extends AbstractStoreEventDis
     } else {
       StoreEventSink<K, V> eventSink = tlEventSink.get();
       if (eventSink == null) {
-        eventSink = new FudgingInvocationScopedEventSink<K, V>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
+        eventSink = new FudgingInvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
         tlEventSink.set(eventSink);
         usageDepth.set(0);
       } else {

@@ -1,9 +1,9 @@
 ---
 ---
 = Examples
-ifndef::sourcedir32[]
+ifndef::sourcedir35[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir35[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -22,7 +22,7 @@ is not running.  While running, information about the operation of the Peeper ap
 
 While the sample application may be run, the application is _very_ simplistic -- the code
 implementing the sample is the interesting bit. Running the sample application requires the
-use of https://gradle.org/[Gradle].  This sample may be accessed from GitHub by _cloning_
+use of https://gradle.org/[Gradle]. This sample may be accessed from GitHub by _cloning_
 the Ehcache 3 git repository:
 
 [source,bash]
@@ -35,7 +35,7 @@ git clone https://github.com/ehcache/ehcache3.git
 
 The first sample, located in +demos/00-NoCache+, is a base Peeper application that
 does *not* use caching.  Each peep is stored in the database and all peeps are read
-from the database to display the Peeper web page.  To run this implementation:
+from the database to display the Peeper web page. To run this implementation:
 
 [source,bash]
 ----
@@ -44,8 +44,7 @@ cd ehcache3/demos/00-NoCache
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
-and displays the URL of the web server on the console.  The URL will be something like
-+http://localhost:8080/ehcache-demos/00-NoCache/+.
+and displays the URL of the web server on the console. The URL should be +http://localhost:8080/+.
 
 While running, lines like the following are displayed to the console:
 [source]
@@ -79,8 +78,7 @@ cd ehcache3/demos/01-CacheAside
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
-and displays the URL of the web server on the console.  The URL will be something like
-+http://localhost:8080/ehcache-demos/01-CacheAside/+.
+and displays the URL of the web server on the console. The URL, again, should be +http://localhost:8080/+.
 
 While running, lines like the following are displayed to the console:
 [source]
@@ -104,5 +102,5 @@ Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and
 
 [source,xml,indent=0]
 ----
-include::{sourcedir32}/107/src/test/resources/ehcache-example.xml[]
+include::{sourcedir35}/107/src/test/resources/ehcache-example.xml[]
 ----

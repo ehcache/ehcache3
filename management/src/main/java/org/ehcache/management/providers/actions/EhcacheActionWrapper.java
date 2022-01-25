@@ -18,8 +18,8 @@ package org.ehcache.management.providers.actions;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
+import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.action.Exposed;
-import org.terracotta.management.registry.action.Named;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -69,9 +69,7 @@ public class EhcacheActionWrapper extends ExposedCacheBinding {
       throw new IllegalArgumentException("No conversion possible from " + srcObj.getClass().getName() + " to " + destClazz.getName(), e);
     } catch (InstantiationException e) {
       throw new IllegalArgumentException("Conversion error from " + srcObj.getClass().getName() + " to " + destClazz.getName(), e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
+    } catch (IllegalAccessException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }

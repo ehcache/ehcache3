@@ -16,76 +16,77 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.Util;
 
-import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * This message is sent by the Active Entity to Passive Entity.
  */
 public abstract class PassiveReplicationMessage extends EhcacheOperationMessage {
 
-  @Override
-  public void setId(long id) {
-    throw new UnsupportedOperationException("This method is not supported on replication message");
-  }
+  public static class ChainReplicationMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
 
-  public static class ClientIDTrackerMessage extends PassiveReplicationMessage {
-    private final UUID clientId;
-
-    public ClientIDTrackerMessage(UUID clientId) {
-      this.clientId = clientId;
-    }
-
-    public UUID getClientId() {
-      return clientId;
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("Not supported for ClientIDTrackerMessage");
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.CLIENT_ID_TRACK_OP;
-    }
-  }
-
-  public static class ChainReplicationMessage extends ClientIDTrackerMessage implements ConcurrentEntityMessage {
-
-    private final String cacheId;
+    private final long clientId;
     private final long key;
     private final Chain chain;
-    private final long msgId;
+    private final long transactionId;
+    private final long oldestTransactionId;
 
-    public ChainReplicationMessage(String cacheId, long key, Chain chain, long msgId, UUID clientId) {
-      super(clientId);
-      this.msgId = msgId;
-      this.cacheId = cacheId;
+    public ChainReplicationMessage(long key, Chain chain, long transactionId, long oldestTransactionId, long clientId) {
+      this.clientId = clientId;
+      this.transactionId = transactionId;
+      this.oldestTransactionId = oldestTransactionId;
       this.key = key;
       this.chain = chain;
     }
 
-    public String getCacheId() {
-      return this.cacheId;
+    private Chain dropLastElement(Chain chain) {
+      if (!chain.isEmpty()) {
+        List<Element> elements = StreamSupport.stream(chain.spliterator(), false)
+          .collect(Collectors.toList());
+        elements.remove(elements.size() - 1); // remove last
+        return Util.getChain(elements);
+      } else {
+        return chain;
+      }
+    }
+
+    public long getClientId() {
+      return clientId;
+    }
+
+    public long getTransactionId() {
+      return transactionId;
     }
 
     public long getKey() {
       return key;
     }
 
+    /**
+     * @return chain that needs to be save in the store
+     */
     public Chain getChain() {
       return chain;
     }
 
-    public long getId() {
-      return msgId;
+    /**
+     * @return result that should be returned is the original message is sent again to this server after a failover
+     */
+    public Chain getResult() {
+      return dropLastElement(chain);
+    }
+
+    public long getOldestTransactionId() {
+      return oldestTransactionId;
     }
 
     @Override
@@ -99,50 +100,28 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     }
   }
 
-  public static class ClearInvalidationCompleteMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
-    private final String cacheId;
+  public static class ClearInvalidationCompleteMessage extends PassiveReplicationMessage {
 
-    public ClearInvalidationCompleteMessage(String cacheId) {
-      this.cacheId = cacheId;
-    }
-
-    @Override
-    public long concurrencyKey() {
-      return this.cacheId.hashCode();
-    }
-
-    @Override
-    public long getId() {
-      throw new UnsupportedOperationException("Not supported for ClearInvalidationCompleteMessage");
-    }
-
-    @Override
-    public UUID getClientId() {
-      throw new UnsupportedOperationException("Not supported for ClearInvalidationCompleteMessage");
+    public ClearInvalidationCompleteMessage() {
     }
 
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.CLEAR_INVALIDATION_COMPLETE;
     }
-
-    public String getCacheId() {
-      return cacheId;
-    }
   }
 
-  public static class InvalidationCompleteMessage extends ClearInvalidationCompleteMessage {
+  public static class InvalidationCompleteMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
 
     private final long key;
 
-    public InvalidationCompleteMessage(String cacheId, long key) {
-      super(cacheId);
+    public InvalidationCompleteMessage(long key) {
       this.key = key;
     }
 
     @Override
     public long concurrencyKey() {
-      return (getCacheId().hashCode() + key);
+      return key;
     }
 
     @Override
@@ -152,70 +131,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
     public long getKey() {
       return key;
-    }
-  }
-
-  public static class CreateServerStoreReplicationMessage extends ClientIDTrackerMessage {
-
-    private final String storeName;
-    private final ServerStoreConfiguration storeConfiguration;
-    private final long msgId;
-
-    public CreateServerStoreReplicationMessage(LifecycleMessage.CreateServerStore createMessage) {
-      this(createMessage.getId(), createMessage.getClientId(), createMessage.getName(), createMessage.getStoreConfiguration());
-    }
-
-    public CreateServerStoreReplicationMessage(long msgId, UUID clientId, String storeName, ServerStoreConfiguration configuration) {
-      super(clientId);
-      this.msgId = msgId;
-      this.storeName = storeName;
-      this.storeConfiguration = configuration;
-    }
-
-    public String getStoreName() {
-      return storeName;
-    }
-
-    public ServerStoreConfiguration getStoreConfiguration() {
-      return storeConfiguration;
-    }
-
-    public long getId() {
-      return msgId;
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.CREATE_SERVER_STORE_REPLICATION;
-    }
-  }
-
-  public static class DestroyServerStoreReplicationMessage extends ClientIDTrackerMessage {
-
-    private final String storeName;
-    private final long msgId;
-
-    public DestroyServerStoreReplicationMessage(LifecycleMessage.DestroyServerStore destroyMessage) {
-      this(destroyMessage.getId(), destroyMessage.getClientId(), destroyMessage.getName());
-    }
-
-    public DestroyServerStoreReplicationMessage(long msgId, UUID clientId, String storeName) {
-      super(clientId);
-      this.storeName = storeName;
-      this.msgId = msgId;
-    }
-
-    public String getStoreName() {
-      return storeName;
-    }
-
-    public long getId() {
-      return msgId;
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.DESTROY_SERVER_STORE_REPLICATION;
     }
   }
 }

@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.not;
 /**
  * Test the {@link Store#remove(Object, Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -204,7 +203,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       if (this.factory.getKeyType() == String.class) {
         kvStore2.remove((K) (Object) 1.0f, value);
       } else {
-        kvStore2.remove((K) (Object) "key", value);
+        kvStore2.remove((K) "key", value);
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
@@ -226,7 +225,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       if (this.factory.getValueType() == String.class) {
         kvStore2.remove(key, (V) (Object) 1.0f);
       } else {
-        kvStore2.remove(key, (V) (Object) "value");
+        kvStore2.remove(key, (V) "value");
       }
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {

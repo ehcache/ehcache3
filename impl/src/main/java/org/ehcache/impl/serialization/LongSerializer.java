@@ -34,9 +34,8 @@ public class LongSerializer implements Serializer<Long> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link Long} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link Long} is a base java type.
    *
    * @param classLoader the classloader to use
    *
@@ -60,8 +59,7 @@ public class LongSerializer implements Serializer<Long> {
    */
   @Override
   public Long read(ByteBuffer binary) throws ClassNotFoundException {
-    long l = binary.getLong();
-    return l;
+    return binary.getLong();
   }
 
   /**

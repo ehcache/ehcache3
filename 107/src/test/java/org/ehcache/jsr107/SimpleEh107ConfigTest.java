@@ -66,14 +66,11 @@ public class SimpleEh107ConfigTest {
   public void testExpiryConfiguration() {
     final AtomicBoolean expiryCreated = new AtomicBoolean(false);
 
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class);
-    configuration.setExpiryPolicyFactory(new Factory<ExpiryPolicy>() {
-      @Override
-      public ExpiryPolicy create() {
-        expiryCreated.set(true);
-        return new CreatedExpiryPolicy(Duration.FIVE_MINUTES);
-      }
+    configuration.setExpiryPolicyFactory(() -> {
+      expiryCreated.set(true);
+      return new CreatedExpiryPolicy(Duration.FIVE_MINUTES);
     });
 
     Cache<String, String> cache = cacheManager.createCache("cache", configuration);
@@ -88,14 +85,11 @@ public class SimpleEh107ConfigTest {
   public void testLoaderConfiguration() throws Exception {
     final AtomicBoolean loaderCreated = new AtomicBoolean(false);
 
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class).setReadThrough(true);
-    configuration.setCacheLoaderFactory(new Factory<CacheLoader<String, String>>() {
-      @Override
-      public CacheLoader<String, String> create() {
-        loaderCreated.set(true);
-        return new TestCacheLoader();
-      }
+    configuration.setCacheLoaderFactory(() -> {
+      loaderCreated.set(true);
+      return new TestCacheLoader();
     });
 
     CachingProvider provider = Caching.getCachingProvider();
@@ -116,7 +110,7 @@ public class SimpleEh107ConfigTest {
 
   private static class TestCacheLoader implements CacheLoader<String, String> {
 
-    static Set<String> seen = new HashSet<String>();
+    static Set<String> seen = new HashSet<>();
 
     @Override
     public String load(String key) throws CacheLoaderException {

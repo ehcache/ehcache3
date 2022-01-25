@@ -20,17 +20,16 @@ import org.ehcache.clustered.common.internal.store.Chain;
 
 import com.tc.classloader.CommonComponent;
 
+import java.util.Collections;
+import java.util.Map;
+
 @CommonComponent
 public class EhcacheDataSyncMessage extends EhcacheSyncMessage {
 
-  private final String cacheId;
-  private final long key;
-  private final Chain chain;
+  private final Map<Long, Chain> chainMap;
 
-  public EhcacheDataSyncMessage(final String cacheId, final long key, final Chain chain) {
-    this.cacheId = cacheId;
-    this.key = key;
-    this.chain = chain;
+  public EhcacheDataSyncMessage(final Map<Long, Chain> chainMap) {
+    this.chainMap = Collections.unmodifiableMap(chainMap);
   }
 
   @Override
@@ -38,15 +37,7 @@ public class EhcacheDataSyncMessage extends EhcacheSyncMessage {
     return SyncMessageType.DATA;
   }
 
-  public String getCacheId() {
-    return cacheId;
-  }
-
-  public long getKey() {
-    return key;
-  }
-
-  public Chain getChain() {
-    return chain;
+  public Map<Long, Chain> getChainMap() {
+    return chainMap;
   }
 }

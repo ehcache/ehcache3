@@ -40,19 +40,12 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
 
   public static final Struct OP_CODE_DECODER = newStructBuilder().enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING).build();
 
-  private static final EhcacheCodec SERVER_INSTANCE =
-      new EhcacheCodec(new ServerStoreOpCodec(), new LifeCycleMessageCodec(), new StateRepositoryOpCodec(), new ResponseCodec());
-
   private final ServerStoreOpCodec serverStoreOpCodec;
   private final LifeCycleMessageCodec lifeCycleMessageCodec;
   private final StateRepositoryOpCodec stateRepositoryOpCodec;
   private final ResponseCodec responseCodec;
 
-  public static EhcacheCodec messageCodec() {
-    return SERVER_INSTANCE;
-  }
-
-  EhcacheCodec(ServerStoreOpCodec serverStoreOpCodec, LifeCycleMessageCodec lifeCycleMessageCodec,
+  public EhcacheCodec(ServerStoreOpCodec serverStoreOpCodec, LifeCycleMessageCodec lifeCycleMessageCodec,
                StateRepositoryOpCodec stateRepositoryOpCodec, ResponseCodec responseCodec) {
     this.serverStoreOpCodec = serverStoreOpCodec;
     this.lifeCycleMessageCodec = lifeCycleMessageCodec;
@@ -77,7 +70,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
   }
 
   @Override
-  public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
+  public EhcacheEntityMessage decodeMessage(byte[] payload) {
     ByteBuffer byteBuffer = wrap(payload);
     Enm<EhcacheMessageType> opCodeEnm = OP_CODE_DECODER.decoder(byteBuffer).enm("opCode");
 
@@ -108,12 +101,12 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
   }
 
   @Override
-  public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
+  public byte[] encodeResponse(EhcacheEntityResponse response) {
     return responseCodec.encode(response);
   }
 
   @Override
-  public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
+  public EhcacheEntityResponse decodeResponse(byte[] payload) {
     return responseCodec.decode(payload);
   }
 }

@@ -16,15 +16,14 @@
 
 package org.ehcache.core.exceptions;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 
 /**
  * A generic wrapper runtime exception that will not be caught and
  * handled at the store level.
- * <P>
- *   This wrapper can be used to enable any runtime exceptions that you don't want to be caught at the store level to
- *   be propagated.
- * </P>
+ * <p>
+ * This wrapper can be used to enable any runtime exceptions that you don't want to be caught at the store level to
+ * be propagated.
  */
 public class StorePassThroughException extends RuntimeException {
 
@@ -49,27 +48,34 @@ public class StorePassThroughException extends RuntimeException {
     super(cause);
   }
 
+  @Override
+  public synchronized Throwable fillInStackTrace() {
+    // skip the stack trace filling because this exception is just a placeholder and won't ever be caught outside of
+    // a store
+    return this;
+  }
+
   /**
    * Helper method for handling runtime exceptions.
-   * <P>
-   *   Throwing most as {@link StoreAccessException} except for {@code StorePassThroughException}.
-   *   In which case if its cause is a {@link RuntimeException} it is thrown back and if not it is
-   *   wrapped in a {@code StoreAccessException}.
-   * </P>
+   * <p>
+   * Returns most as {@link StoreAccessException} except for {@code StorePassThroughException}.
+   * In which case if its cause is a {@link RuntimeException} it is thrown and if not it is returned
+   * wrapped in a {@code StoreAccessException}.
    *
    * @param re the exception to handler
-   * @throws StoreAccessException except for {@code StorePassThroughException} containing a {@code RuntimeException}
+   * @return StoreAccessException to be thrown
+   * @throws RuntimeException if {@code re} is a {@code StorePassThroughException} containing a {@code RuntimeException}
    */
-  public static void handleRuntimeException(RuntimeException re) throws StoreAccessException {
+  public static StoreAccessException handleException(Exception re) {
     if(re instanceof StorePassThroughException) {
       Throwable cause = re.getCause();
       if(cause instanceof RuntimeException) {
         throw   (RuntimeException) cause;
       } else {
-        throw new StoreAccessException(cause);
+        return new StoreAccessException(cause);
       }
     } else {
-      throw new StoreAccessException(re);
+      return new StoreAccessException(re);
     }
   }
 }

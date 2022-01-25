@@ -21,18 +21,18 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
@@ -47,9 +47,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsCollectionContaining;
+import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -70,27 +70,33 @@ import com.pany.ehcache.serializer.TestSerializer4;
 
 import java.io.File;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import static java.util.Collections.nCopies;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
@@ -113,7 +119,7 @@ import static org.mockito.Mockito.mock;
 public class XmlConfigurationTest {
 
   @Rule
-  public ExpectedException thrown= ExpectedException.none();
+  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
@@ -183,8 +189,8 @@ public class XmlConfigurationTest {
 
     final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class,
         newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES));
-    assertThat(example.build().getExpiry(),
-        equalTo((Expiry) Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
+    assertThat(example.build().getExpiryPolicy(),
+        equalTo((ExpiryPolicy) ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(30))));
 
     try {
       xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Number.class);
@@ -206,23 +212,28 @@ public class XmlConfigurationTest {
   public void testExpiryIsParsed() throws Exception {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
 
-    Expiry expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiry();
-    Expiry value = Expirations.noExpiration();
+    ExpiryPolicy<?, ?> expiry = xmlConfiguration.getCacheConfigurations().get("none").getExpiryPolicy();
+    ExpiryPolicy<?, ?> value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiry();
-    value = Expirations.noExpiration();
+    expiry = xmlConfiguration.getCacheConfigurations().get("notSet").getExpiryPolicy();
+    value = ExpiryPolicyBuilder.noExpiration();
     assertThat(expiry, is(value));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiry();
+    expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiryPolicy();
     assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiry();
-    value = Expirations.timeToIdleExpiration(new Duration(500, TimeUnit.MILLISECONDS));
+    expiry = xmlConfiguration.getCacheConfigurations().get("deprecatedClass").getExpiryPolicy();
+    assertThat(expiry.getExpiryForCreation(null, null), is(Duration.ofSeconds(42)));
+    assertThat(expiry.getExpiryForAccess(null, () -> null), is(Duration.ofSeconds(42)));
+    assertThat(expiry.getExpiryForUpdate(null, () -> null, null), is(Duration.ofSeconds(42)));
+
+    expiry = xmlConfiguration.getCacheConfigurations().get("tti").getExpiryPolicy();
+    value = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(500));
     assertThat(expiry, equalTo(value));
 
-    expiry = xmlConfiguration.getCacheConfigurations().get("ttl").getExpiry();
-    value = Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS));
+    expiry = xmlConfiguration.getCacheConfigurations().get("ttl").getExpiryPolicy();
+    value = ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(30));
     assertThat(expiry, equalTo(value));
   }
 
@@ -242,10 +253,21 @@ public class XmlConfigurationTest {
   public void testInvalidServiceConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(6));
       assertThat(e.getColumnNumber(), is(15));
+    }
+  }
+
+  @Test
+  public void testTwoCachesWithSameAlias() {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-two-caches.xml"));
+      fail("Two caches with the same alias should not be allowed");
+    } catch (XmlConfigurationException e) {
+      assertThat(e.getMessage(), is("Two caches defined with the same alias: foo"));
     }
   }
 
@@ -351,7 +373,7 @@ public class XmlConfigurationTest {
 
     assertNotSame(cl, cl2);
 
-    Map<String, ClassLoader> loaders = new HashMap<String, ClassLoader>();
+    Map<String, ClassLoader> loaders = new HashMap<>();
     loaders.put("bar", cl2);
     XmlConfiguration config = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), cl, loaders);
 
@@ -378,22 +400,15 @@ public class XmlConfigurationTest {
     assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 
 
-    List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
+    List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<>(xmlConfig.getCacheConfigurations()
+      .get("baz")
+      .getServiceConfigurations());
     // order services by class name so the test can rely on some sort of ordering
-    Collections.sort(orderedServiceConfigurations, new Comparator<ServiceConfiguration<?>>() {
-      @Override
-      public int compare(ServiceConfiguration<?> o1, ServiceConfiguration<?> o2) {
-        return o1.getClass().getName().compareTo(o2.getClass().getName());
-      }
-    });
+    Collections.sort(orderedServiceConfigurations, (o1, o2) -> o1.getClass().getName().compareTo(o2.getClass().getName()));
     Iterator<ServiceConfiguration<?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration keySerializationProviderConfiguration = (DefaultSerializerConfiguration) it.next();
-    assertThat(keySerializationProviderConfiguration.getType(), isIn(DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE));
-  }
-
-  public static <T> Matcher<T> isIn(T... elements) {
-    return org.hamcrest.collection.IsIn.isIn(elements);
+    assertThat(keySerializationProviderConfiguration.getType(), isIn(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE }));
   }
 
   @Test
@@ -586,6 +601,7 @@ public class XmlConfigurationTest {
 
     assertThat(diskConfig.getThreadPoolAlias(), is("some-pool"));
     assertThat(diskConfig.getWriterConcurrency(), is(2));
+    assertThat(diskConfig.getDiskSegments(), is(4));
   }
 
   @Test
@@ -672,9 +688,30 @@ public class XmlConfigurationTest {
   public void testCustomResource() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
+      fail();
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }
+  }
+
+  @Test
+  public void testResilienceStrategy() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resilience-config.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("ni");
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfig.getServiceConfigurations());
+    assertThat(resilienceStrategyConfiguration.getClazz(), sameInstance(NiResilience.class));
+  }
+
+  @Test
+  public void testResilienceStrategyFromTemplate() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resilience-config.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("shrubbery");
+
+    DefaultResilienceStrategyConfiguration resilienceStrategyConfiguration = findSingletonAmongst(DefaultResilienceStrategyConfiguration.class, cacheConfig.getServiceConfigurations());
+    assertThat(resilienceStrategyConfiguration.getClazz(), sameInstance(ShrubberyResilience.class));
   }
 
   @Test
@@ -699,6 +736,20 @@ public class XmlConfigurationTest {
       assertThat(e.getMessage().contains("${bar}"), is(true));
     }
     assertThat(ConfigurationParser.replaceProperties("foo", System.getProperties()), nullValue());
+  }
+
+  @Test
+  public void testMultithreadedXmlParsing() throws InterruptedException, ExecutionException {
+    Callable<Configuration> parserTask = () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"));
+
+    ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    try {
+      for (Future<Configuration> c : service.invokeAll(nCopies(10, parserTask))) {
+        assertThat(c.get(), IsNull.notNullValue());
+      }
+    } finally {
+      service.shutdown();
+    }
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

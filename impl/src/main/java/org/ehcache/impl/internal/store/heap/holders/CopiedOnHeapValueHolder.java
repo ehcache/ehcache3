@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.store.heap.holders;
 
-import org.ehcache.expiry.Duration;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
@@ -51,7 +50,7 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
    * @param now timestamp in millis
    * @param expiration computed expiration duration
    */
-  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Copier<V> valueCopier, long now, Duration expiration) {
+  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Copier<V> valueCopier, long now, java.time.Duration expiration) {
     super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
@@ -74,7 +73,7 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return valueCopier.copyForRead(copiedValue);
   }
 }

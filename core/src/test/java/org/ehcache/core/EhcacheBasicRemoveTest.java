@@ -19,8 +19,10 @@ import java.util.Collections;
 import java.util.EnumSet;
 
 import org.ehcache.Status;
+import org.ehcache.core.internal.resilience.RobustResilienceStrategy;
+import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -28,8 +30,8 @@ import org.slf4j.LoggerFactory;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -69,7 +71,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
 
     ehcache.remove("key");
     verify(this.store).remove(eq("key"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.NOOP));
   }
@@ -91,7 +93,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
 
     ehcache.remove("key");
     verify(this.store, times(2)).remove(eq("key"));
-    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
@@ -111,7 +113,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
 
     ehcache.remove("key");
     verify(this.store).remove(eq("key"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
   }
@@ -133,7 +135,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
 
     ehcache.remove("key");
     verify(this.store, times(2)).remove(eq("key"));
-    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
@@ -143,10 +145,11 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveTest"));
+    this.resilienceStrategy = spy(new RobustResilienceStrategy<>(new DefaultRecoveryStore<>(this.store)));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
+      .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

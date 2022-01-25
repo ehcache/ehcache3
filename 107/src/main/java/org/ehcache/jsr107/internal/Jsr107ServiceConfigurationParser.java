@@ -74,7 +74,7 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
       enableStatisticsAll = parseBoolean(fragment.getAttribute(ENABLE_STATISTICS_ALL_ATTRIBUTE)) ? ConfigurationElementState.ENABLED : ConfigurationElementState.DISABLED;
     }
     final String defaultTemplate = fragment.getAttribute(DEFAULT_TEMPLATE_ATTRIBUTE);
-    final HashMap<String, String> templates = new HashMap<String, String>();
+    final HashMap<String, String> templates = new HashMap<>();
     final NodeList childNodes = fragment.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       final Node node = childNodes.item(i);

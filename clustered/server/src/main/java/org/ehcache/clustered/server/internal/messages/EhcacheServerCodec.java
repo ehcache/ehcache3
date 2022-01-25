@@ -38,12 +38,6 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheServerCodec.class);
 
-  private static final EhcacheServerCodec SERVER_INSTANCE = new EhcacheServerCodec((EhcacheCodec) EhcacheCodec.messageCodec(), new PassiveReplicationMessageCodec());
-
-  public static EhcacheServerCodec getInstance() {
-    return SERVER_INSTANCE;
-  }
-
   private final EhcacheCodec clientCodec;
   private final PassiveReplicationMessageCodec replicationCodec;
 
@@ -53,7 +47,7 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
   }
 
   @Override
-  public byte[] encodeMessage(EhcacheEntityMessage message) throws MessageCodecException {
+  public byte[] encodeMessage(EhcacheEntityMessage message) {
     if (message instanceof PassiveReplicationMessage) {
       return replicationCodec.encode((PassiveReplicationMessage) message);
     }
@@ -61,7 +55,7 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
   }
 
   @Override
-  public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
+  public EhcacheEntityMessage decodeMessage(byte[] payload) {
     ByteBuffer byteBuffer = wrap(payload);
     Enm<EhcacheMessageType> opCodeEnm = EhcacheCodec.OP_CODE_DECODER.decoder(byteBuffer).enm("opCode");
     if (!opCodeEnm.isFound()) {

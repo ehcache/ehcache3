@@ -23,17 +23,16 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -54,7 +53,7 @@ public class BasicClusteredCacheExpiryTest {
           .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-              .withExpiry(Expirations.timeToLiveExpiration(new Duration(1L, TimeUnit.MILLISECONDS)))
+              .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1L)))
               .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Before

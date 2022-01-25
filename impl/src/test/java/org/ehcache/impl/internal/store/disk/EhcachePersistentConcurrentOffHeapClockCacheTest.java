@@ -69,8 +69,8 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
       MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentConcurrentOffHeapClockCacheTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentConcurrentOffHeapClockCacheTest.class.getClassLoader());
-      PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
-      PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
+      PersistentPortability<String> keyPortability = persistent(new SerializerPortability<>(keySerializer));
+      PersistentPortability<String> elementPortability = persistent(new SerializerPortability<>(valueSerializer));
       Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, configuration.getMaximumSize() / 10, BYTES, keyPortability, elementPortability);
       SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
 
@@ -91,8 +91,8 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
           this.enabled = switchedOn;
         }
       };
-      EhcachePersistentSegmentFactory<String, String> segmentFactory = new EhcachePersistentSegmentFactory<String, String>(pageSource, storageEngineFactory, 0, wrappedEvictionAdvisor, evictionListener, true);
-      return new EhcachePersistentConcurrentOffHeapClockCache<String, String>(evictionPredicate, segmentFactory, 1);
+      EhcachePersistentSegmentFactory<String, String> segmentFactory = new EhcachePersistentSegmentFactory<>(pageSource, storageEngineFactory, 0, wrappedEvictionAdvisor, evictionListener, true);
+      return new EhcachePersistentConcurrentOffHeapClockCache<>(evictionPredicate, segmentFactory, 1);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }

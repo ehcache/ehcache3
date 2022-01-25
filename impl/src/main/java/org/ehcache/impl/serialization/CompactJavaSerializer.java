@@ -52,8 +52,8 @@ import org.ehcache.spi.serialization.StatefulSerializer;
 public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
   private volatile StateHolder<Integer, ObjectStreamClass> readLookup;
-  private final ConcurrentMap<Integer, ObjectStreamClass> readLookupLocalCache = new ConcurrentHashMap<Integer, ObjectStreamClass>();
-  private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<SerializableDataKey, Integer>();
+  private final ConcurrentMap<Integer, ObjectStreamClass> readLookupLocalCache = new ConcurrentHashMap<>();
+  private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<>();
 
   private final Lock lock = new ReentrantLock();
   private int nextStreamIndex = 0;
@@ -78,8 +78,8 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
   @Override
   public void init(final StateRepository stateRepository) {
-    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
-    loadMappingsInWriteContext(readLookup.entrySet(), true);
+    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class, c -> true, null);
+    loadMappingsInWriteContext(readLookup.entrySet());
   }
 
   /**
@@ -89,11 +89,8 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
   public ByteBuffer serialize(T object) throws SerializerException {
     try {
       ByteArrayOutputStream bout = new ByteArrayOutputStream();
-      ObjectOutputStream oout = getObjectOutputStream(bout);
-      try {
+      try (ObjectOutputStream oout = getObjectOutputStream(bout)) {
         oout.writeObject(object);
-      } finally {
-        oout.close();
       }
       return ByteBuffer.wrap(bout.toByteArray());
     } catch (IOException e) {
@@ -107,13 +104,10 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
   @Override
   public T read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     try {
-      ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary));
-      try {
+      try (ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary))) {
         @SuppressWarnings("unchecked")
         T value = (T) oin.readObject();
         return value;
-      } finally {
-        oin.close();
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -152,7 +146,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
   }
 
-  private int addMappingUnderLock(ObjectStreamClass desc, SerializableDataKey probe) throws IOException {
+  private int addMappingUnderLock(ObjectStreamClass desc, SerializableDataKey probe) {
     ObjectStreamClass disconnected = disconnect(desc);
     SerializableDataKey key = new SerializableDataKey(disconnected, true);
     while (true) {
@@ -175,12 +169,12 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
   }
 
-  private void loadMappingsInWriteContext(Set<Entry<Integer, ObjectStreamClass>> entries, boolean throwOnFailedPutIfAbsent) {
+  private void loadMappingsInWriteContext(Set<Entry<Integer, ObjectStreamClass>> entries) {
     for (Entry<Integer, ObjectStreamClass> entry : entries) {
       Integer index = entry.getKey();
       ObjectStreamClass discOsc = disconnect(entry.getValue());
       readLookupLocalCache.put(index, discOsc);
-      if (writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), index) != null && throwOnFailedPutIfAbsent) {
+      if (writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), index) != null) {
         throw new AssertionError("Corrupted data " + readLookup);
       }
       if (nextStreamIndex < index + 1) {
@@ -211,7 +205,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
 
     @Override
-    protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+    protected ObjectStreamClass readClassDescriptor() throws IOException {
       int key = readInt();
       ObjectStreamClass objectStreamClass = readLookupLocalCache.get(key);
       if (objectStreamClass != null) {
@@ -255,7 +249,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
         if (store) {
           throw new AssertionError("Must not store ObjectStreamClass instances with strong references to classes");
         } else if (ObjectStreamClass.lookup(forClass) == desc) {
-          this.klazz = new WeakReference<Class<?>>(forClass);
+          this.klazz = new WeakReference<>(forClass);
         }
       }
       this.hashCode = (3 * desc.getName().hashCode()) ^ (7 * (int) (desc.getSerialVersionUID() >>> 32))
@@ -286,7 +280,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
 
     public void setClass(Class<?> clazz) {
-      klazz = new WeakReference<Class<?>>(clazz);
+      klazz = new WeakReference<>(clazz);
     }
 
     ObjectStreamClass getObjectStreamClass() {
@@ -337,9 +331,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
       };
 
       return (ObjectStreamClass) oin.readObject();
-    } catch (ClassNotFoundException e) {
-      throw new AssertionError(e);
-    } catch (IOException e) {
+    } catch (ClassNotFoundException | IOException e) {
       throw new AssertionError(e);
     }
   }
@@ -347,11 +339,8 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
   private static byte[] getSerializedForm(ObjectStreamClass desc) throws IOException {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     try {
-      ObjectOutputStream oout = new ObjectOutputStream(bout);
-      try {
+      try (ObjectOutputStream oout = new ObjectOutputStream(bout)) {
         oout.writeObject(desc);
-      } finally {
-        oout.close();
       }
     } finally {
       bout.close();

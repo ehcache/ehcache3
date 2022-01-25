@@ -16,69 +16,63 @@
 import scripts.*
 import org.gradle.internal.jvm.Jvm
 
-ext {
-
-  baseVersion = findProperty('overrideVersion') ?: '3.2.0-SNAPSHOT'
-
-  // Third parties
-  offheapVersion = '2.3.2'
-  statisticVersion = '1.4.1'
-  jcacheVersion = '1.0.0'
-  slf4jVersion = '1.7.7'
-  sizeofVersion = '0.3.0'
-
-  // Clustered
-  terracottaPlatformVersion = '5.0.13.beta3'
-  managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.0.13.beta'
-  terracottaCoreVersion = '5.0.13-beta'
-  offheapResourceVersion = terracottaPlatformVersion
-  entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.0.13.beta'
-  entityTestLibVersion = terracottaPassthroughTestingVersion
-  galvanVersion = '1.0.13-beta'
-
-  // Tools
-  findbugsVersion = '3.0.1'
-
-  utils = new Utils(baseVersion, logger)
-  isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
-  isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
+plugins {
+  // This adds tasks to auto close or release nexus staging repos
+  // see https://github.com/Codearte/gradle-nexus-staging-plugin/
+  id 'io.codearte.nexus-staging' version '0.9.0'
+  // This adds the ability to print a taskTree
+  // ./gradlew <task1> ... <taskN> taskTree
+  id "com.dorongold.task-tree" version "1.3"
 }
 
 if (deployUrl.contains('nexus')) {
+  //internal terracotta config, shorten url for this plugin to end at local/
+  project.nexusStaging {
+    serverUrl = deployUrl.replaceAll(~/local\/.*$/, "local/")
+    packageGroup = 'Ehcache OS' //internal staging repository name
+  }
   ext {
     deployUser = tcDeployUser
     deployPwd = tcDeployPassword
   }
 } else {
+  project.nexusStaging {
+    packageGroup = 'org.ehcache' //Sonatype staging repository name
+  }
   ext {
     deployUser = sonatypeUser
     deployPwd = sonatypePwd
   }
 }
 
-// Java 6 build setup
-def java6Error = 'Set the poperty \'java6Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 6 installation'
-assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8 to run and a configured Java 6 installation\n' + java6Error
-assert hasProperty('java6Home') : 'The Ehcache 3 build requires a configured Java 6 installation\n' + java6Error
-def java6HomeLocation = new File(java6Home)
-def testJavaHomeLocation = java6HomeLocation
+project.nexusStaging {
+  username = project.ext.deployUser
+  password = project.ext.deployPwd
+  logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
+}
+
+// Disable automatic promotion for added safety
+closeAndReleaseRepository.enabled = false
+
+
+ext {
+
+  baseVersion = findProperty('overrideVersion') ?: '3.5.3-SNAPSHOT'
+
+  utils = new Utils(baseVersion, logger)
+  isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
+  isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
+}
+
+
+assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
+ext {
+  testJava = Jvm.current()
+}
 
 if (hasProperty('testVM')) {
-  switch (testVM) {
-    case '6':
-      break
-    case '7':
-      assert hasProperty('java7Home') : 'Set the poperty \'java7Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 7 installation'
-      testJavaHomeLocation = new File(java7Home)
-      break
-    case '8':
-      testJavaHomeLocation = Jvm.current().javaHome
-      break
-    default:
-      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 7 or 8")
-  }
+  testJava = Utils.jvmForHome(new File(testVM))
+  println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
 }
 
 subprojects {
@@ -93,8 +87,8 @@ subprojects {
 
   archivesBaseName = "ehcache-${project.name}"
 
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
 
   repositories {
     if (project.hasProperty('mvnlocal')) {
@@ -116,8 +110,8 @@ subprojects {
   dependencies {
     compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
     testCompileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
-    testCompile 'junit:junit:4.12', 'org.assertj:assertj-core:1.7.1', 'org.hamcrest:hamcrest-library:1.3'
-    testCompile('org.mockito:mockito-core:1.9.5') {
+    testCompile "junit:junit:$junitVersion", "org.assertj:assertj-core:$assertjVersion", "org.hamcrest:hamcrest-library:$hamcrestVersion"
+    testCompile("org.mockito:mockito-core:$mockitoVersion") {
       exclude group:'org.hamcrest', module:'hamcrest-core'
     }
     testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
@@ -137,12 +131,12 @@ subprojects {
   }
 
   task slowTest(type: Test) {
-    testClassesDir = sourceSets.slowTest.output.classesDir
+    testClassesDirs = sourceSets.slowTest.output.classesDirs
     classpath += sourceSets.slowTest.runtimeClasspath
 
     binResultsDir file("$buildDir/slow-tests-results/binary/$name")
-    reports.junitXml.destination = "$buildDir/slow-tests-results"
-    reports.html.destination = "$buildDir/reports/slow-tests"
+    reports.junitXml.destination = file("$buildDir/slow-tests-results")
+    reports.html.destination = file("$buildDir/reports/slow-tests")
   }
 
   task sourceJar(type: Jar, dependsOn: classes) {
@@ -170,17 +164,25 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.9'
+    toolVersion = checkstyleVersion
   }
 
   findbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    findbugs.toolVersion = parent.findbugsVersion
+    toolVersion = findbugsVersion
+  }
+
+  findbugsMain {
+    reports {
+      // Switch from xml to html by changing these flags
+      xml.enabled = true
+      html.enabled = false
+    }
   }
 
   jacoco {
-    toolVersion = '0.7.1.201405082137'
+    toolVersion = jacocoVersion
   }
 
   jacocoTestReport {
@@ -193,14 +195,10 @@ subprojects {
   tasks.withType(AbstractCompile) {
     options.with {
       fork = true
-      forkOptions.executable = utils.executables(java6HomeLocation).javac
     }
   }
   tasks.withType(Test) {
-    executable = utils.executables(testJavaHomeLocation).java
-  }
-  tasks.withType(JavaExec) {
-    executable = utils.executables(testJavaHomeLocation).java
+    executable = testJava.javaExecutable
   }
   tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')
@@ -216,7 +214,7 @@ subprojects {
 allprojects {
   tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint:unchecked']
+    options.compilerArgs += ['-Werror', '-Xlint:unchecked,deprecation']
   }
   tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'

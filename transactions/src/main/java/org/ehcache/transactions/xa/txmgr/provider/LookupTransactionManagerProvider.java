@@ -16,28 +16,25 @@
 
 package org.ehcache.transactions.xa.txmgr.provider;
 
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.transactions.xa.internal.XAStore;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 
 /**
  * A {@link TransactionManagerProvider} implementation that resolves the {@link TransactionManagerWrapper} through the
  * {@link TransactionManagerLookup lookup class} provided through its {@link LookupTransactionManagerProviderConfiguration}.
- * <P>
- *   The lifecycle this implementation will honour is as follows:
- *   <UL>
- *     <LI>On construction, instantiate the lookup class indicated by configuration</LI>
- *     <LI>On {@code start} the service will ask the lookup instance for a {@code TransactionManagerWrapper}
- *     which it will then cache and serve to service users.</LI>
- *     <LI>On {@code stop} the service will forget about the known {@code TransactionManagerWrapper}</LI>
- *     <LI>On subsequent {@code start}, the service will ask the lookup instance for a new
- *     {@code TransactionManagerWrapper}</LI>
- *   </UL>
- *   Note that in this scheme, the lookup instance is not expected to cache the {@code TransactionManagerWrapper}
- *   unless it can be considered a singleton.
- * </P>
+ * <p>
+ * The lifecycle this implementation will honour is as follows:
+ * <ul>
+ *   <li>On construction, instantiate the lookup class indicated by configuration</li>
+ *   <li>On {@code start} the service will ask the lookup instance for a {@code TransactionManagerWrapper}
+ *   which it will then cache and serve to service users.</li>
+ *   <li>On {@code stop} the service will forget about the known {@code TransactionManagerWrapper}</li>
+ *   <li>On subsequent {@code start}, the service will ask the lookup instance for a new
+ *   {@code TransactionManagerWrapper}</li>
+ * </ul>
+ * Note that in this scheme, the lookup instance is not expected to cache the {@code TransactionManagerWrapper}
+ * unless it can be considered a singleton.
  */
 public class LookupTransactionManagerProvider implements TransactionManagerProvider {
 
@@ -57,9 +54,7 @@ public class LookupTransactionManagerProvider implements TransactionManagerProvi
     }
     try {
       lookup = config.getTransactionManagerLookup().newInstance();
-    } catch (InstantiationException e) {
-      throw new IllegalArgumentException("Could not instantiate lookup class", e);
-    } catch (IllegalAccessException e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       throw new IllegalArgumentException("Could not instantiate lookup class", e);
     }
   }

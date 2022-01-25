@@ -34,9 +34,8 @@ public class DoubleSerializer implements Serializer<Double> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link Double} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link Double} is a base java type.
    *
    * @param classLoader the classloader to use
    *
@@ -60,8 +59,7 @@ public class DoubleSerializer implements Serializer<Double> {
    */
   @Override
   public Double read(ByteBuffer binary) throws ClassNotFoundException {
-    double d = binary.getDouble();
-    return d;
+    return binary.getDouble();
   }
 
   /**

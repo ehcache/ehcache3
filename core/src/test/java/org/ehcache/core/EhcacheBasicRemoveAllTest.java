@@ -19,13 +19,10 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.hamcrest.Matcher;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,8 +30,6 @@ import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -49,6 +44,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_A;
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_B;
@@ -56,17 +52,14 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_C;
 import static org.ehcache.core.EhcacheBasicBulkUtil.copyWithout;
 import static org.ehcache.core.EhcacheBasicBulkUtil.fanIn;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getEntryMap;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anySet;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -88,7 +81,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link Store#bulkCompute(Set, Function, NullaryFunction)
+   * {@link Store#bulkCompute(Set, Function, java.util.function.Supplier)
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor
@@ -117,7 +110,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Set<String> keys = new LinkedHashSet<String>();
+    final Set<String> keys = new LinkedHashSet<>();
     for (final String key : KEY_SET_A) {
       keys.add(key);
       if ("keyA2".equals(key)) {
@@ -154,7 +147,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
+    verify(this.resilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -185,7 +178,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -214,11 +207,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -246,11 +239,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -262,37 +255,35 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   @SuppressWarnings("unchecked")
   public void removeAllStoreCallsMethodTwice() throws Exception {
     CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    final List<String> removed = new ArrayList<String>();
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        @SuppressWarnings("unchecked")
-        Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
-        for (String key : i) {
-          removed.add(key);
-        }
-        return null;
+    final List<String> removed = new ArrayList<>();
+    doAnswer(invocation -> {
+      @SuppressWarnings("unchecked")
+      Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
+      for (String key : i) {
+        removed.add(key);
       }
+      return null;
     }).when(cacheLoaderWriter).deleteAll(any(Iterable.class));
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
 
     final ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>> functionArgumentCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
 
-    when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
-        Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = new HashMap<String, String>((Map) function.getClass().getDeclaredField("val$entriesToRemove").get(function)).entrySet();
-        function.apply(arg);
-        function.apply(arg);
-        return null;
-      }
-    });
-
     Set<String> keys = new HashSet<String>() {{
       add("1");
       add("2");
     }};
+
+    HashMap<String, String> entriesMap = new HashMap<>();
+    entriesMap.put("1", "one");
+    entriesMap.put("2", "two");
+
+    when(store.bulkCompute(any(Set.class), functionArgumentCaptor.capture())).then(invocation -> {
+      Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
+      Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = entriesMap.entrySet();
+      function.apply(arg);
+      function.apply(arg);
+      return null;
+    });
 
     ehcache.removeAll(keys);
 
@@ -307,18 +298,18 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
+      .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 
@@ -360,7 +351,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    in the order observed by the captor.
    */
   private Set<String> getBulkComputeArgs() {
-    final Set<String> bulkComputeArgs = new LinkedHashSet<String>();
+    final Set<String> bulkComputeArgs = new LinkedHashSet<>();
     for (final Set<String> set : this.bulkComputeSetCaptor.getAllValues()) {
       bulkComputeArgs.addAll(set);
     }
