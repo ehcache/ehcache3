@@ -83,7 +83,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
   private final ByteBuffer emptyExtendedChainHeader;
   private final int totalChainHeaderSize;
 
-  protected StorageEngine.Owner owner;
+  protected OffHeapChainMap.HeadMap<?> owner;
   private long nextSequenceNumber = 0;
   private volatile boolean hasContiguousChains = false;
 
@@ -350,7 +350,11 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
 
   @Override
   public void bind(StorageEngine.Owner owner) {
-    this.owner = owner;
+    if (owner instanceof OffHeapChainMap.HeadMap<?>) {
+      this.owner = (OffHeapChainMap.HeadMap<?>) owner;
+    } else {
+      throw new IllegalArgumentException("Chain storage engine owner must be an OffHeapChainMap.HeadMap (was " + owner.getClass() + ")");
+    }
   }
 
   @Override
@@ -546,9 +550,7 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
       } else if (suffixHead == chain) {
         //whole chain removed
         int slot = owner.getSlotForHashAndEncoding(readKeyHash(chain), chain, ~0);
-        if (!owner.evict(slot, true)) {
-          throw new AssertionError("Unexpected failure to evict slot " + slot);
-        }
+        owner.removeAtSlot(slot, true);
         return true;
       } else {
         int hash = readKeyHash(chain);
