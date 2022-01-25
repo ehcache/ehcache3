@@ -39,7 +39,7 @@ public class DiagnosticTest extends AbstractClusteringManagementTest {
   private static final String PROP_REQUEST_TIMEOUTMESSAGE = "request.timeoutMessage";
 
   @Test
-  public void test_state_dump() throws Exception {
+  public void test_CACHE_MANAGER_CLOSED() throws Exception {
     cacheManager.createCache("cache-2", newCacheConfigurationBuilder(
       String.class, String.class,
       newResourcePoolsBuilder()

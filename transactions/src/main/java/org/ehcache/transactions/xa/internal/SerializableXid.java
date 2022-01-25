@@ -27,6 +27,7 @@ import java.util.Arrays;
  */
 public class SerializableXid implements Xid, Serializable {
 
+  private static final long serialVersionUID = -508551479291939720L;
   private final int formatId;
   private final byte[] globalTransactionId;
   private final byte[] branchQualifier;

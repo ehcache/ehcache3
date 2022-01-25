@@ -51,7 +51,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"),
-    new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"),
+    new StatisticDescriptor("OnHeap:MappingCount" , "GAUGE"),
     new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:PutCount" , "COUNTER"),
     new StatisticDescriptor("OnHeap:RemovalCount" , "COUNTER")
@@ -60,7 +60,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("OffHeap:MissCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:OccupiedByteSize", "GAUGE"),
     new StatisticDescriptor("OffHeap:AllocatedByteSize", "GAUGE"),
-    new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"),
+    new StatisticDescriptor("OffHeap:MappingCount", "GAUGE"),
     new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:ExpirationCount", "COUNTER"),
     new StatisticDescriptor("OffHeap:HitCount", "COUNTER"),
@@ -74,7 +74,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("Disk:EvictionCount", "COUNTER"),
     new StatisticDescriptor("Disk:ExpirationCount", "COUNTER"),
     new StatisticDescriptor("Disk:MissCount", "COUNTER"),
-    new StatisticDescriptor("Disk:MappingCount", "COUNTER"),
+    new StatisticDescriptor("Disk:MappingCount", "GAUGE"),
     new StatisticDescriptor("Disk:PutCount", "COUNTER"),
     new StatisticDescriptor("Disk:RemovalCount", "COUNTER")
   );
@@ -93,7 +93,22 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     new StatisticDescriptor("Cache:RemovalCount", "COUNTER"),
     new StatisticDescriptor("Cache:EvictionCount", "COUNTER"),
     new StatisticDescriptor("Cache:ExpirationCount", "COUNTER"),
-    new StatisticDescriptor("Cache:GetLatency", "GAUGE")
+    new StatisticDescriptor("Cache:GetHitLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:GetHitLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:GetMissLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:PutLatency#99", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#100", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#50", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#95", "GAUGE"),
+    new StatisticDescriptor("Cache:RemoveLatency#99", "GAUGE")
   );
   private static final Collection<StatisticDescriptor> POOL_DESCRIPTORS = Arrays.asList(
     new StatisticDescriptor("Pool:AllocatedSize", "GAUGE")
@@ -208,14 +223,14 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("alias")).isEqualTo("resource-pool-b");
     assertThat(settings.get("type")).isEqualTo("Pool");
     assertThat(settings.get("serverResource")).isEqualTo("primary-server-resource");
-    assertThat(settings.get("size")).isEqualTo(16 * 1024 * 1024L);
+    assertThat(settings.get("size")).isEqualTo(8 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
     settings = (Settings) descriptors.get(1);
     assertThat(settings.get("alias")).isEqualTo("resource-pool-a");
     assertThat(settings.get("type")).isEqualTo("Pool");
     assertThat(settings.get("serverResource")).isEqualTo("secondary-server-resource");
-    assertThat(settings.get("size")).isEqualTo(28 * 1024 * 1024L);
+    assertThat(settings.get("size")).isEqualTo(10 * 1024 * 1024L);
     assertThat(settings.get("allocationType")).isEqualTo("shared");
 
     // Dedicated PoolSettings

@@ -33,8 +33,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
-import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
@@ -67,30 +65,6 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
   @After
   public void removePassthroughServer() throws Exception {
     UnitTestConnectionService.remove("terracotta://localhost/my-application");
-  }
-
-  @Test
-  public void testClusteredCacheWithLoaderWriter() {
-
-    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
-        = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
-            .autoCreate());
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
-
-    try {
-      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
-          .withLoaderWriter(new TestLoaderWriter())
-          .build();
-
-      cacheManager.createCache("test", config);
-      fail("IllegalStateException expected");
-    } catch (IllegalStateException e){
-      assertThat(e.getCause().getMessage(), is("CacheLoaderWriter is not supported with clustered tiers"));
-    }
-    cacheManager.close();
   }
 
   @Test

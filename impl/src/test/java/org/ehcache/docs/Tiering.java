@@ -54,7 +54,7 @@ public class Tiering {
     // tag::heap[]
     ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES); // <1>
     // or
-    ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10); // <2>
+    ResourcePoolsBuilder.heap(10); // <2>
     // or
     ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, MemoryUnit.MB); // <3>
     // end::heap[]
@@ -172,7 +172,7 @@ public class Tiering {
   @Test
   public void testNotShared() {
     // tag::notShared[]
-    ResourcePools pool = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10).build();
+    ResourcePools pool = ResourcePoolsBuilder.heap(10).build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("test-cache1", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, pool))

@@ -90,8 +90,10 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     });
     entity.addResponseListener(EhcacheEntityResponse.ResolveRequest.class, response -> {
       Chain incoming = response.getChain();
-      Chain compacted = invalidation.compact(incoming);
-      replaceAtHead(response.getKey(), incoming, compacted);
+      Chain compacted = invalidation.compact(incoming, response.getKey());
+      if (compacted != null) {
+        replaceAtHead(response.getKey(), incoming, compacted);
+      }
     });
   }
 

@@ -26,7 +26,6 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
@@ -266,6 +265,7 @@ public class XACacheTest {
   }
 
   static class AbortError extends Error {
+    private static final long serialVersionUID = 1L;
   }
 
   @Test

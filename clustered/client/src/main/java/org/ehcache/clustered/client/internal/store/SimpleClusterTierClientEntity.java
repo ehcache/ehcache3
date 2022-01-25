@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
-import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -43,7 +42,6 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -71,17 +69,18 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
+  private final Timeouts timeouts;
+  private final String storeIdentifier;
 
-  private ReconnectListener reconnectListener = reconnectMessage -> {
-    // No op
-  };
+  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<>();
 
-  private Timeouts timeouts = TimeoutsBuilder.timeouts().build();
-  private String storeIdentifier;
   private volatile boolean connected = true;
 
-  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
+                                       Timeouts timeouts, String storeIdentifier) {
     this.endpoint = endpoint;
+    this.timeouts = timeouts;
+    this.storeIdentifier = storeIdentifier;
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
@@ -94,7 +93,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
           ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
-          reconnectListener.onHandleReconnect(reconnectMessage);
+          reconnectListeners.forEach(reconnectListener -> reconnectListener.onHandleReconnect(reconnectMessage));
           return reconnectMessageCodec.encode(reconnectMessage);
         }
       }
@@ -105,11 +104,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
         fireDisconnectionEvent();
       }
     });
-  }
-
-  @Override
-  public void setTimeouts(Timeouts timeouts) {
-    this.timeouts = timeouts;
   }
 
   void fireDisconnectionEvent() {
@@ -133,7 +127,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void close() {
     endpoint.close();
-    reconnectListener = null;
+    reconnectListeners.clear();
     disconnectionListeners.clear();
   }
 
@@ -143,8 +137,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setReconnectListener(ReconnectListener reconnectListener) {
-    this.reconnectListener = reconnectListener;
+  public void addReconnectListener(ReconnectListener reconnectListener) {
+    this.reconnectListeners.add(reconnectListener);
   }
 
   @Override
@@ -174,11 +168,6 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
-  }
-
-  @Override
-  public void setStoreIdentifier(String storeIdentifier) {
-    this.storeIdentifier = storeIdentifier;
   }
 
   @Override

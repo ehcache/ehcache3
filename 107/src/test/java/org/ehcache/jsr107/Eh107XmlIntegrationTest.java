@@ -76,6 +76,8 @@ public class Eh107XmlIntegrationTest {
   public void test107CacheCanReturnCompleteConfigurationWhenNonePassedIn() {
     CacheManager cacheManager = cachingProvider.getCacheManager();
     Cache<Long, String> cache = cacheManager.createCache("cacheWithoutCompleteConfig", new Configuration<Long, String>() {
+      private static final long serialVersionUID = 1L;
+
       @Override
       public Class<Long> getKeyType() {
         return Long.class;

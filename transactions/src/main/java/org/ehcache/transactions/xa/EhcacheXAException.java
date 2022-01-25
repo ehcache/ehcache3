@@ -24,6 +24,8 @@ import javax.transaction.xa.XAException;
  */
 public class EhcacheXAException extends XAException {
 
+  private static final long serialVersionUID = 4369895735968757104L;
+
   public EhcacheXAException(String msg, int errorCode) {
     super(msg);
     this.errorCode = errorCode;

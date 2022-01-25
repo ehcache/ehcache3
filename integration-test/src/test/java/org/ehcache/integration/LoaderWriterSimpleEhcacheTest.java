@@ -59,7 +59,10 @@ public class LoaderWriterSimpleEhcacheTest {
     when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), org.mockito.ArgumentMatchers.<CacheConfiguration<Number, CharSequence>>any()))
       .thenReturn(CacheLoaderWriter.class.cast(cacheLoaderWriter));
     cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
-    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)).build());
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder
+            .newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10))
+            .withLoaderWriter(cacheLoaderWriter)
+            .build());
   }
 
   @After

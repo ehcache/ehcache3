@@ -40,7 +40,6 @@ import java.util.Map;
  * @param <V> value type
  */
 public abstract class ChainResolver<K, V> {
-  protected static final Logger LOG = LoggerFactory.getLogger(EternalChainResolver.class);
   protected final OperationsCodec<K, V> codec;
 
   public ChainResolver(final OperationsCodec<K, V> codec) {
@@ -122,5 +121,5 @@ public abstract class ChainResolver<K, V> {
    * @param now current time
    * @return an equivalent put operation
    */
-  protected abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now);
+  public abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now);
 }

@@ -22,6 +22,8 @@ package org.ehcache.core.spi.store.heap;
  */
 public class LimitExceededException extends Exception {
 
+  private static final long serialVersionUID = -4689090295854830331L;
+
   /**
    * Creates an exception with the provided message
    *

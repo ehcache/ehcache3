@@ -144,7 +144,7 @@ public class LeaseTest extends ClusteredTests {
       return null;
     });
 
-    assertThat(future.get(5, TimeUnit.SECONDS), is("The one"));
+    assertThat(future.get(30, TimeUnit.SECONDS), is("The one"));
 
     timedout.set(true);
 

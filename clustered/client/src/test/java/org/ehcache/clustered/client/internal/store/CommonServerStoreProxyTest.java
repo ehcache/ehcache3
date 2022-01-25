@@ -19,7 +19,6 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.units.MemoryUnit;
@@ -27,13 +26,11 @@ import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.Iterator;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
-import static org.ehcache.clustered.client.internal.store.ClusterTierClientEntity.ResponseListener;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,12 +42,12 @@ import static org.mockito.Mockito.when;
 public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   private static ClusterTierClientEntity createClientEntity(String name) throws Exception {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
       .getName(),
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-      .getName(), null);
+      .getName(), null, false);
 
     return createClientEntity(name, serverStoreConfiguration, true);
 
@@ -164,7 +161,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     ClusterTierClientEntity clientEntity = createClientEntity("testResolveRequestIsProcessed");
     ServerCallback serverCallback = mock(ServerCallback.class);
-    when(serverCallback.compact(any(Chain.class))).thenReturn(getChain(false, buffer.duplicate()));
+    when(serverCallback.compact(any(Chain.class), any(long.class))).thenReturn(getChain(false, buffer.duplicate()));
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testResolveRequestIsProcessed", clientEntity, serverCallback);
 
     for (int i = 0; i < 8; i++) {
@@ -175,7 +172,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     //trigger compaction at > 8 entries
     serverStoreProxy.append(1L, buffer.duplicate());
-    verify(serverCallback).compact(any(Chain.class));
+    verify(serverCallback).compact(any(Chain.class), any(long.class));
     assertChainHas(serverStoreProxy.get(1L), 42L);
   }
 

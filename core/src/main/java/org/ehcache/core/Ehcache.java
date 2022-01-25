@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -52,9 +51,10 @@ import org.slf4j.Logger;
  * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
  * {@code org.ehcache}.
  *
- * @see EhcacheWithLoaderWriter
  */
 public class Ehcache<K, V> extends EhcacheBase<K, V> {
+
+  private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   /**
    * Creates a new {@code Ehcache} based on the provided parameters.
@@ -66,12 +66,19 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
    */
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
                  CacheEventDispatcher<K, V> eventDispatcher, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, new StatusTransitioner(logger));
+    this(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, new StatusTransitioner(logger), null);
   }
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
-          CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner) {
+          CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
     super(runtimeConfiguration, store, resilienceStrategy, eventDispatcher, logger, statusTransitioner);
+    this.cacheLoaderWriter = cacheLoaderWriter;
+  }
+
+  public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
+                 CacheEventDispatcher<K, V> eventDispatcher, Logger logger, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+    super(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, new StatusTransitioner(logger));
+    this.cacheLoaderWriter = cacheLoaderWriter;
   }
 
   /**
@@ -130,7 +137,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
   @Override
   public ValueHolder<V> doPutIfAbsent(final K key, final V value, Consumer<Boolean> put) throws StoreAccessException {
-    ValueHolder<V> result = store.putIfAbsent(key, value);
+    ValueHolder<V> result = store.putIfAbsent(key, value, put);
     if(result == null) {
       put.accept(true);
     }
@@ -163,7 +170,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
    */
   @Override
   public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
-    return null;
+    return this.cacheLoaderWriter;
   }
 
   private final class Jsr107CacheImpl extends Jsr107CacheBase {
@@ -183,30 +190,19 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
             getObserver.end(GetOutcome.HIT);
           }
 
-          V newValue = computeFunction.apply(mappedKey, mappedValue);
+          return computeFunction.apply(mappedKey, mappedValue);
 
-          if (newValue == mappedValue) {
-            if (! replaceEqual.get()) {
-              return mappedValue;
-            }
-          }
-
-          if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
-            return null;
-          }
-
-          if (withStatsAndEvents.get()) {
-            if (newValue == null) {
-              removeObserver.end(RemoveOutcome.SUCCESS);
-            } else {
-              putObserver.end(PutOutcome.PUT);
-            }
-          }
-
-          return newValue;
         };
 
-        store.compute(key, fn, replaceEqual);
+        ValueHolder<V> compute = store.computeAndGet(key, fn, replaceEqual, invokeWriter);
+        V newValue = compute == null ? null : compute.get();
+        if (withStatsAndEvents.get()) {
+          if (newValue == null) {
+            removeObserver.end(RemoveOutcome.SUCCESS);
+          } else {
+            putObserver.end(PutOutcome.PUT);
+          }
+        }
       } catch (StoreAccessException e) {
         throw new RuntimeException(e);
       }
@@ -217,20 +213,16 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       getObserver.begin();
       removeObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<>();
+      ValueHolder<V> existingValue;
       try {
-        store.compute(key, (mappedKey, mappedValue) -> {
-          existingValue.set(mappedValue);
-
-          return null;
-        });
+        existingValue = store.getAndCompute(key, (mappedKey, mappedValue) -> null);
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
         throw new RuntimeException(e);
       }
 
-      V returnValue = existingValue.get();
+      V returnValue = existingValue == null ? null : existingValue.get();
       if (returnValue != null) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         removeObserver.end(RemoveOutcome.SUCCESS);
@@ -245,24 +237,16 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       getObserver.begin();
       putObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<>();
+      ValueHolder<V> existingValue;
       try {
-        store.compute(key, (mappedKey, mappedValue) -> {
-          existingValue.set(mappedValue);
-
-          if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
-            return null;
-          }
-
-          return value;
-        });
+        existingValue = store.getAndCompute(key, (mappedKey, mappedValue) -> value);
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
         throw new RuntimeException(e);
       }
 
-      V returnValue = existingValue.get();
+      V returnValue = existingValue == null ? null : existingValue.get();
       if (returnValue != null) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
       } else {

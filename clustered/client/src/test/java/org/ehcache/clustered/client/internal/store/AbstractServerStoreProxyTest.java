@@ -64,6 +64,13 @@ public abstract class AbstractServerStoreProxyTest {
   protected static SimpleClusterTierClientEntity createClientEntity(String name,
                                                                   ServerStoreConfiguration configuration,
                                                                   boolean create) throws Exception {
+    return createClientEntity(name, configuration, create, true);
+  }
+
+  protected static SimpleClusterTierClientEntity createClientEntity(String name,
+                                                                    ServerStoreConfiguration configuration,
+                                                                    boolean create,
+                                                                    boolean validate) throws Exception {
     Connection connection = CONNECTION_SERVICE.connect(CLUSTER_URI, new Properties());
 
     // Create ClusterTierManagerClientEntity if needed
@@ -75,9 +82,10 @@ public abstract class AbstractServerStoreProxyTest {
     }
     // Create or fetch the ClusterTierClientEntity
     SimpleClusterTierClientEntity clientEntity = (SimpleClusterTierClientEntity) entityFactory.fetchOrCreateClusteredStoreEntity(name, name, configuration, create);
-    clientEntity.validate(configuration);
+    if (validate) {
+      clientEntity.validate(configuration);
+    }
     return clientEntity;
   }
-
 
 }

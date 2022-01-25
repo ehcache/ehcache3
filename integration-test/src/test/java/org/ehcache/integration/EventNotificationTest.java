@@ -19,7 +19,7 @@ package org.ehcache.integration;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -240,7 +240,7 @@ public class EventNotificationTest {
 
   @Test
   public void testEventFiringInCacheIterator() {
-    Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
+    Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
     CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build())
@@ -260,12 +260,12 @@ public class EventNotificationTest {
     cache.put(4L, "4");
     cache.put(5L, "5");
     assertThat(listener1.expired.get(), is(0));
-    for(Cache.Entry entry : cache) {
+    for(Cache.Entry<Long, String> entry : cache) {
       logger.info("Iterating over key : ", entry.getKey());
     }
 
     testTimeSource.setTimeMillis(2000);
-    for(Cache.Entry entry : cache) {
+    for(Cache.Entry<Long, String> entry : cache) {
       logger.info("Iterating over key : ", entry.getKey());
     }
 
@@ -404,7 +404,7 @@ public class EventNotificationTest {
 
     @Override
     public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
-      Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
+      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       eventTypeHashMap.put(event.getType(), eventCounter.get());
       eventCounter.getAndIncrement();
@@ -462,6 +462,9 @@ public class EventNotificationTest {
   }
 
   public static class SerializableObject implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private int size;
     private Byte [] data;
 

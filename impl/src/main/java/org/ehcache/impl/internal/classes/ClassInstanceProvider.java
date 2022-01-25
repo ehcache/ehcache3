@@ -89,6 +89,16 @@ public class ClassInstanceProvider<K, T> {
     return newInstance(alias, config);
   }
 
+  protected T newInstance(K alias, ServiceConfiguration... serviceConfigurations) {
+    ClassInstanceConfiguration<T> config = null;
+    Iterator<? extends ClassInstanceConfiguration<T>> iterator =
+            findAmongst(cacheLevelConfig, serviceConfigurations).iterator();
+    if (iterator.hasNext()) {
+      config = iterator.next();
+    }
+    return newInstance(alias, config);
+  }
+
   protected T newInstance(K alias, ServiceConfiguration<?> serviceConfiguration) {
     ClassInstanceConfiguration<T> config = null;
     if (serviceConfiguration != null && cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {

@@ -123,7 +123,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
       return false;
     }
 
-    BaseKeyValueOperation other = (BaseKeyValueOperation) obj;
+    BaseKeyValueOperation<?, ?> other = (BaseKeyValueOperation<?, ?>) obj;
     if(this.getOpCode() != other.getOpCode()) {
       return false;
     }

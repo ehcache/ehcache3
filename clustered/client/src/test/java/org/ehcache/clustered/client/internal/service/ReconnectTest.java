@@ -43,7 +43,7 @@ public class ReconnectTest {
   @Test(expected = RuntimeException.class)
   public void testInitialConnectDoesNotRetryAfterConnectionException() {
     MockConnectionService.mockConnection = null;
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
     connectionState.initClusterConnection();
   }
@@ -57,7 +57,7 @@ public class ReconnectTest {
 
     MockConnectionService.mockConnection = connection;
 
-    ConnectionState connectionState = new ConnectionState(CLUSTER_URI, Timeouts.DEFAULT, "cm-entity", new Properties(), serviceConfiguration);
+    ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
     connectionState.initClusterConnection();
 

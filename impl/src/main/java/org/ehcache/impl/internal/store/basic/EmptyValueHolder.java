@@ -59,16 +59,6 @@ public class EmptyValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public float hitRate(long now, TimeUnit unit) {
-    return 0;
-  }
-
-  @Override
-  public long hits() {
-    return 0;
-  }
-
-  @Override
   public long getId() {
     return 0;
   }

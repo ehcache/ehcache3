@@ -91,8 +91,8 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     @SuppressWarnings("unchecked")
     Copier<T> copier = (Copier<T>) newInstance(clazz, config);
     if (copier == null) {
-      @SuppressWarnings("unchecked")
-      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration(IdentityCopier.class, type));
+      @SuppressWarnings({"unchecked", "rawtypes"})
+      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration<>((Class<Copier<T>>) (Class) IdentityCopier.class, type));
       copier = defaultInstance;
     }
     return copier;
@@ -102,14 +102,15 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
   private static <T> DefaultCopierConfiguration<T> find(Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultCopierConfiguration<T> result = null;
 
-    Collection<DefaultCopierConfiguration> copierConfigurations =
+    @SuppressWarnings("rawtypes")
+    Collection<DefaultCopierConfiguration<?>> copierConfigurations = (Collection)
         ServiceUtils.findAmongst(DefaultCopierConfiguration.class, (Object[])serviceConfigurations);
-    for (DefaultCopierConfiguration copierConfiguration : copierConfigurations) {
+    for (DefaultCopierConfiguration<?> copierConfiguration : copierConfigurations) {
       if (copierConfiguration.getType() == type) {
         if (result != null) {
           throw new IllegalArgumentException("Duplicate " + type + " copier : " + copierConfiguration);
         }
-        result = copierConfiguration;
+        result = (DefaultCopierConfiguration<T>) copierConfiguration;
       }
     }
 

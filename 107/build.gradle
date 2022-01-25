@@ -30,21 +30,22 @@ sourceSets {
 }
 
 dependencies {
-  compile project(':impl'), project(':xml')
-  provided "javax.cache:cache-api:$parent.jcacheVersion"
+  api project(':api')
+  providedApi "javax.cache:cache-api:$parent.jcacheVersion"
+
+  implementation project(':impl')
+  implementation project(':xml')
+  implementation "org.terracotta:statistics:$parent.statisticVersion"
+
   tckTestRuntime "javax.cache:cache-tests:$jcacheTckVersion"
   tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     transitive = false
   }
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
+  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 javadoc {
   exclude '**/tck/**'
-  classpath = sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + configurations.provided
 }
 
 test {
@@ -78,5 +79,3 @@ task tckTest(type: Test, dependsOn: unpackTckTests) {
 }
 
 test.dependsOn tckTest
-
-

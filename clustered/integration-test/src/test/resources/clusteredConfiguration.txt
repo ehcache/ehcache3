@@ -37,5 +37,5 @@ services:
         autoCreate: true
         defaultServerResource: primary-server-resource
             resourcePools:
-                resource-pool-a: [33554432 bytes from '<default>']
+                resource-pool-a: [10485760 bytes from '<default>']
     - org.ehcache.management.registry.DefaultManagementRegistryConfiguration

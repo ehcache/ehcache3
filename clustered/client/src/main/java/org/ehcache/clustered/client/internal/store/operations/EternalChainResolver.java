@@ -41,7 +41,7 @@ public class EternalChainResolver<K, V> extends ChainResolver<K, V> {
    * @param now current time
    * @return the equivalent put operation
    */
-  protected PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
+  public PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
     final Result<K, V> newValue = operation.apply(existing);
     if (newValue == null) {
       return null;

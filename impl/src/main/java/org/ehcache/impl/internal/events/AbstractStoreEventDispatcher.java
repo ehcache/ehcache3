@@ -84,7 +84,8 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
       throw new IllegalArgumentException("Dispatcher concurrency must be an integer greater than 0");
     }
     @SuppressWarnings("unchecked")
-    LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = new LinkedBlockingQueue[dispatcherConcurrency];
+    LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = (LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[])
+      new LinkedBlockingQueue<?>[dispatcherConcurrency];
     orderedQueues = queues;
     for (int i = 0; i < orderedQueues.length; i++) {
       orderedQueues[i] = new LinkedBlockingQueue<>(10000);

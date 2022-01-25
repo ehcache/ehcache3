@@ -23,17 +23,25 @@ public class ClusterTierReconnectMessage {
 
   private final Set<Long> hashInvalidationsInProgress;
   private boolean clearInProgress = false;
+  private final Set<Long> locksHeld;
 
   public ClusterTierReconnectMessage() {
     hashInvalidationsInProgress = new HashSet<>();
+    locksHeld = new HashSet<>();
   }
 
-  public ClusterTierReconnectMessage(Set<Long> hashInvalidationsInProgress) {
+  public ClusterTierReconnectMessage(Set<Long> hashInvalidationsInProgress, Set<Long> locksHeld, boolean clearInProgress) {
     this.hashInvalidationsInProgress = hashInvalidationsInProgress;
+    this.locksHeld = locksHeld;
+    this.clearInProgress = clearInProgress;
   }
 
   public void addInvalidationsInProgress(Set<Long> hashInvalidationsInProgress) {
     this.hashInvalidationsInProgress.addAll(hashInvalidationsInProgress);
+  }
+
+  public void addLocksHeld(Set<Long> locksHeld) {
+    this.locksHeld.addAll(locksHeld);
   }
 
   public Set<Long> getInvalidationsInProgress() {
@@ -48,4 +56,7 @@ public class ClusterTierReconnectMessage {
     return clearInProgress;
   }
 
+  public Set<Long> getLocksHeld() {
+    return locksHeld;
+  }
 }

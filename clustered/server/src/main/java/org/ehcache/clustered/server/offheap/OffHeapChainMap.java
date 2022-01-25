@@ -27,6 +27,7 @@ import java.util.concurrent.locks.Lock;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.Util;
+import org.ehcache.clustered.server.offheap.InternalChain.ReplaceResponse;
 import org.terracotta.offheapstore.MapInternals;
 
 import org.terracotta.offheapstore.eviction.EvictionListener;
@@ -42,8 +43,9 @@ public class OffHeapChainMap<K> implements MapInternals {
     void onEviction(K key);
   }
 
-  private final HeadMap<K> heads;
-  private final ChainStorageEngine<K> chainStorage;
+  protected final HeadMap<K> heads;
+  protected final ChainStorageEngine<K> chainStorage;
+
   private volatile ChainMapEvictionListener<K> evictionListener;
 
   private OffHeapChainMap(PageSource source, ChainStorageEngine<K> storageEngine) {
@@ -177,7 +179,8 @@ public class OffHeapChainMap<K> implements MapInternals {
           }
         } else {
           try {
-            if (chain.replace(expected, replacement)) {
+            ReplaceResponse response = chain.replace(expected, replacement);
+            if (response != ReplaceResponse.MATCH_BUT_NOT_REPLACED) {
               return;
             } else {
               evict();
@@ -213,6 +216,16 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
+  void remove(K key) {
+    Lock lock = heads.writeLock();
+    lock.lock();
+    try {
+      heads.removeNoReturn(key);
+    } finally {
+      lock.unlock();
+    }
+  }
+
   public void clear() {
     heads.writeLock().lock();
     try {
@@ -231,7 +244,7 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
-  private void evict() {
+  protected void evict() {
     int evictionIndex = heads.getEvictionIndex();
     if (evictionIndex < 0) {
       throw new OversizeMappingException("Storage Engine and Eviction Failed - Everything Pinned (" + getSize() + " mappings) \n" + "Storage Engine : " + chainStorage);
@@ -240,7 +253,7 @@ public class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
-  private static final Chain EMPTY_CHAIN = new Chain() {
+  protected static final Chain EMPTY_CHAIN = new Chain() {
     @Override
     public Iterator<Element> reverseIterator() {
       return Collections.<Element>emptyList().iterator();

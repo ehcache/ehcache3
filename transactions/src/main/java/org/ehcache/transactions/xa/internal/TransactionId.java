@@ -26,6 +26,7 @@ import java.io.Serializable;
  */
 public class TransactionId implements Serializable {
 
+  private static final long serialVersionUID = 3283565495631790142L;
   private final SerializableXid serializableXid;
 
   public TransactionId(Xid xid) {

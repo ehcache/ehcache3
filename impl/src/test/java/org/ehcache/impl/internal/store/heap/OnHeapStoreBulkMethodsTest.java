@@ -24,7 +24,6 @@ import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.copy.Copier;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -48,8 +47,6 @@ import static org.mockito.Mockito.when;
  */
 public class OnHeapStoreBulkMethodsTest {
 
-  public static final Copier DEFAULT_COPIER = new IdentityCopier();
-
   @SuppressWarnings("unchecked")
   protected <K, V> Store.Configuration<K, V> mockStoreConfig() {
     @SuppressWarnings("rawtypes")
@@ -64,8 +61,8 @@ public class OnHeapStoreBulkMethodsTest {
   @SuppressWarnings("unchecked")
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
-        new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
+    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+        new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
   }
 
   @Test
@@ -78,7 +75,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getValueType()).thenReturn(Number.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
+    OnHeapStore<Number, Number> store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
         new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     store.put(1, 2);
     store.put(2, 3);
@@ -158,7 +155,7 @@ public class OnHeapStoreBulkMethodsTest {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
     @SuppressWarnings("unchecked")
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher());
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");

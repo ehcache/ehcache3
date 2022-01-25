@@ -31,6 +31,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
@@ -51,8 +52,8 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class ManagementClusterConnectionTest {
@@ -98,8 +99,8 @@ public class ManagementClusterConnectionTest {
             .with(cluster(connectionURI.resolve("/my-server-entity-1"))
                     .autoCreate()
                     .defaultServerResource("primary-server-resource")
-                    .resourcePool("resource-pool-a", 28, MemoryUnit.MB, "secondary-server-resource") // <2>
-                    .resourcePool("resource-pool-b", 16, MemoryUnit.MB)) // will take from primary-server-resource
+                    .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
+                    .resourcePool("resource-pool-b", 10, MemoryUnit.MB)) // will take from primary-server-resource
             // management config
             .using(new DefaultManagementRegistryConfiguration()
                     .addTags("webapp-1", "server-node-1")
@@ -146,6 +147,8 @@ public class ManagementClusterConnectionTest {
 
     Assert.assertThat(count, Matchers.equalTo(1L));
 
+    String instanceId = getInstanceId();
+
     setDelay(6000, proxies);
     Thread.sleep(6000);
 
@@ -166,13 +169,26 @@ public class ManagementClusterConnectionTest {
               .count();
 
       if (count == 1) {
-        return;
+        break;
+      } else {
+        Thread.sleep(1_000);
       }
-
-      Thread.sleep(1_000);
     }
 
-    fail();
+    assertThat(Thread.currentThread().isInterrupted(), is(false));
+    assertThat(getInstanceId(), equalTo(instanceId));
+  }
+
+  private String getInstanceId() throws Exception {
+    return readTopology().clientStream()
+      .filter(client -> client.getName().startsWith("Ehcache:") && client.isManageable())
+      .findFirst().get()
+      .getManagementRegistry().get()
+      .getCapability("SettingsCapability").get()
+      .getDescriptors(Settings.class).stream()
+      .filter(settings -> settings.containsKey("instanceId"))
+      .map(settings -> settings.getString("instanceId"))
+      .findFirst().get();
   }
 
   @AfterClass

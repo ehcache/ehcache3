@@ -93,8 +93,7 @@ public class CacheManagerBuilderTest {
     String cacheAlias = "cacheAliasSameName";
 
     CacheConfiguration<Long, String> cacheConfig = CacheConfigurationBuilder
-      .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
-      .heap(10))
+      .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
       .build();
 
     expectedException.expect(IllegalArgumentException.class);

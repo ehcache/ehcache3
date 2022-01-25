@@ -38,6 +38,7 @@ import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.tiering.TieredStore;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
@@ -194,10 +195,15 @@ public class ClusteredStoreProviderTest {
       public int getDispatcherConcurrency() {
         return 1;
       }
+
+      @Override
+      public CacheLoaderWriter<? super Long, String> getCacheLoaderWriter() {
+        return null;
+      }
     };
   }
 
-  private static class UnmatchedResourceType implements ResourceType<ResourcePool> {
+  public static class UnmatchedResourceType implements ResourceType<ResourcePool> {
     @Override
     public Class<ResourcePool> getResourcePoolClass() {
       return ResourcePool.class;

@@ -21,11 +21,12 @@ package org.ehcache.clustered.client.internal.store.operations.codecs;
  */
 public class CodecException extends RuntimeException {
 
+  private static final long serialVersionUID = -4879598222155854243L;
+
   /**
    * Creates a {@code CodecException}.
    */
   public CodecException() {
-    super();
   }
 
   /**
@@ -33,7 +34,7 @@ public class CodecException extends RuntimeException {
    *
    * @param message information about the exception
    */
-  public CodecException(final String message) {
+  public CodecException(String message) {
     super(message);
   }
 
@@ -43,7 +44,7 @@ public class CodecException extends RuntimeException {
    * @param message information about the exception
    * @param cause the cause of this exception
    */
-  public CodecException(final String message, final Throwable cause) {
+  public CodecException(String message, Throwable cause) {
     super(message, cause);
   }
 
@@ -52,7 +53,7 @@ public class CodecException extends RuntimeException {
    *
    * @param cause the cause of this exception
    */
-  public CodecException(final Throwable cause) {
+  public CodecException(Throwable cause) {
     super(cause);
   }
 }
