@@ -58,7 +58,7 @@ public class EhcacheActionProviderTest {
     ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(EhcacheWithLoaderWriter.class)));
     ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(EhcacheWithLoaderWriter.class)));
 
-    Collection<Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
+    Collection<? extends Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
     assertThat(descriptions.size(), is(4));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new CallDescriptor("remove", "void", Collections.singletonList(new CallDescriptor.Parameter("key", "java.lang.Object"))),

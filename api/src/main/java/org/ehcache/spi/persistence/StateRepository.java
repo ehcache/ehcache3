@@ -17,7 +17,6 @@
 package org.ehcache.spi.persistence;
 
 import java.io.Serializable;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * A repository allowing to preserve state in the context of a {@link org.ehcache.Cache}.
@@ -25,17 +24,17 @@ import java.util.concurrent.ConcurrentMap;
 public interface StateRepository {
 
   /**
-   * Gets a named persistent map rooted in the current {@code StateRepository}.
+   * Gets a named state holder rooted in the current {@code StateRepository}.
    * <P>
-   *   If the map existed already, it is returned with its content fully available.
+   *   If the state holder existed already, it is returned with its content fully available.
    * </P>
    *
-   * @param name the map name
-   * @param keyClass concrete map key type
-   * @param valueClass concrete map value type
-   * @param <K> the map key type, must be {@code Serializable}
-   * @param <V> the map value type, must be {@code Serializable}
-   * @return a map
+   * @param name the state holder name
+   * @param keyClass concrete key type
+   * @param valueClass concrete value type
+   * @param <K> the key type, must be {@code Serializable}
+   * @param <V> the value type, must be {@code Serializable}
+   * @return a state holder
    */
-  <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass);
+  <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass);
 }

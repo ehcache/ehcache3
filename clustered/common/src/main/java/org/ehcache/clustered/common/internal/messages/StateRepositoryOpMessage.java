@@ -17,21 +17,38 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import java.io.Serializable;
+import java.util.UUID;
 
-public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage implements Serializable {
-
-  public enum StateRepositoryOp {
-    GET,
-    PUT_IF_ABSENT,
-    ENTRY_SET,
-  }
+public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage implements Serializable {
 
   private final String cacheId;
   private final String mapId;
 
-  private StateRepositoryOpMessage(String cacheId, String mapId) {
+  private UUID clientId;
+  protected long id = NOT_REPLICATED;
+
+  private StateRepositoryOpMessage(String cacheId, String mapId, UUID clientId) {
     this.cacheId = cacheId;
     this.mapId = mapId;
+    this.clientId = clientId;
+  }
+
+  @Override
+  public UUID getClientId() {
+    if (clientId == null) {
+      throw new AssertionError("Client Id cannot be null for StateRepository messages");
+    }
+    return this.clientId;
+  }
+
+  @Override
+  public long getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(long id) {
+    this.id = id;
   }
 
   public String getCacheId() {
@@ -42,29 +59,12 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
     return mapId;
   }
 
-  @Override
-  public Type getType() {
-    return Type.STATE_REPO_OP;
-  }
-
-  public abstract StateRepositoryOp operation();
-
-  @Override
-  public byte getOpCode() {
-    return getType().getCode();
-  }
-
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
-  }
-
   private static abstract class KeyBasedMessage extends StateRepositoryOpMessage {
 
     private final Object key;
 
-    private KeyBasedMessage(final String cacheId, final String mapId, final Object key) {
-      super(cacheId, mapId);
+    private KeyBasedMessage(final String cacheId, final String mapId, final Object key, final UUID clientId) {
+      super(cacheId, mapId, clientId);
       this.key = key;
     }
 
@@ -76,13 +76,13 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
 
   public static class GetMessage extends KeyBasedMessage {
 
-    public GetMessage(final String cacheId, final String mapId, final Object key) {
-      super(cacheId, mapId, key);
+    public GetMessage(final String cacheId, final String mapId, final Object key, final UUID clientId) {
+      super(cacheId, mapId, key, clientId);
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.GET;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.GET_STATE_REPO;
     }
   }
 
@@ -90,8 +90,8 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
 
     private final Object value;
 
-    public PutIfAbsentMessage(final String cacheId, final String mapId, final Object key, final Object value) {
-      super(cacheId, mapId, key);
+    public PutIfAbsentMessage(final String cacheId, final String mapId, final Object key, final Object value, final UUID clientId) {
+      super(cacheId, mapId, key, clientId);
       this.value = value;
     }
 
@@ -100,20 +100,20 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.PUT_IF_ABSENT;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.PUT_IF_ABSENT;
     }
   }
 
   public static class EntrySetMessage extends StateRepositoryOpMessage {
 
-    public EntrySetMessage(final String cacheId, final String mapId) {
-      super(cacheId, mapId);
+    public EntrySetMessage(final String cacheId, final String mapId, final UUID clientId) {
+      super(cacheId, mapId, clientId);
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.ENTRY_SET;
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.ENTRY_SET;
     }
   }
 

@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -165,7 +166,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
+        ServiceLocator serviceLocator = dependencySet().build();
         try {
           serviceLocator.startAllServices();
         } catch (Exception e) {
@@ -190,7 +191,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       public void close(final Store<String, String> store) {
         String spaceName = createdStores.get(store);
         try {
-          OffHeapDiskStore.Provider.close((OffHeapDiskStore)store);
+          OffHeapDiskStore.Provider.close((OffHeapDiskStore<String, String>)store);
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
@@ -209,7 +210,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   public void tearDown() throws CachePersistenceException, IOException {
     try {
       for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
-        OffHeapDiskStore.Provider.close((OffHeapDiskStore) entry.getKey());
+        OffHeapDiskStore.Provider.close((OffHeapDiskStore<String, String>) entry.getKey());
         diskResourceService.destroy(entry.getValue());
       }
     } finally {

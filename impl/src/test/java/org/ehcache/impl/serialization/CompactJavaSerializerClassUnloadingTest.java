@@ -52,6 +52,7 @@ public class CompactJavaSerializerClassUnloadingTest {
 
   @Test
   public void testClassUnloadingAfterSerialization() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
     serializer.init(new TransientStateRepository());
 
@@ -73,6 +74,7 @@ public class CompactJavaSerializerClassUnloadingTest {
   public void testClassUnloadingAfterSerializationAndDeserialization() throws Exception {
     Thread.currentThread().setContextClassLoader(specialObject.getClass().getClassLoader());
     try {
+      @SuppressWarnings("unchecked")
       StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
       serializer.init(new TransientStateRepository());
       specialObject = serializer.read(serializer.serialize(specialObject));

@@ -49,8 +49,10 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
       kvStore = null;
     }
     if (kvStore2 != null) {
+      @SuppressWarnings("unchecked")
+      Store<K, V> kvStore2 = this.kvStore2;
       factory.close(kvStore2);
-      kvStore2 = null;
+      this.kvStore2 = null;
     }
   }
 
@@ -94,10 +96,8 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore = factory.newStore();
 
-    K key = null;
-
     try {
-      kvStore.remove(key);
+      kvStore.remove(null);
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected

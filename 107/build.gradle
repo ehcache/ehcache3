@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import org.gradle.internal.jvm.Jvm
+
 apply plugin: EhDeploy
 
 configurations {
@@ -30,7 +32,8 @@ sourceSets {
 }
 
 dependencies {
-  compile project(':impl'), project(':xml'), "javax.cache:cache-api:$parent.jcacheVersion"
+  compile project(':impl'), project(':xml')
+  provided "javax.cache:cache-api:$parent.jcacheVersion"
   tckTestRuntime 'javax.cache:cache-tests:1.0.1'
   tckTestClasses('javax.cache:cache-tests:1.0.1:tests') {
     transitive = false
@@ -41,12 +44,7 @@ javadoc {
   exclude '**/tck/**'
 }
 
-def tckTestOnlyIfJava7 = {
-  JavaVersion.current().isJava7Compatible()
-}
-
 task unpackTckTests(type: Copy) {
-  onlyIf tckTestOnlyIfJava7
   from {
     configurations.tckTestClasses.collect {zipTree(it)}
   }
@@ -54,7 +52,7 @@ task unpackTckTests(type: Copy) {
 }
 
 task tckTest(type: Test, dependsOn: unpackTckTests) {
-  onlyIf tckTestOnlyIfJava7
+  executable = Jvm.current().javaExecutable
   testClassesDir = sourceSets.tckTest.output.classesDir
   classpath += sourceSets.tckTest.runtimeClasspath
 

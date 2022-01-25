@@ -14,27 +14,41 @@
  * limitations under the License.
  */
 
+import org.gradle.internal.jvm.Jvm
+
 apply plugin: EhDeploy
 
-configurations {
-    provided
-}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 dependencies {
-  compile project(':clustered:common')
-  compile group: 'org.terracotta', name: 'offheap-resource', version: parent.offheapResourceVersion
+  compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  compile("org.terracotta:offheap-resource:$parent.offheapResourceVersion") {
+    transitive = false
+  }
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
   compile group: 'org.slf4j', name: 'slf4j-api', version: parent.slf4jVersion
+  compile("org.terracotta.management:monitoring-service-api:$parent.managementVersion") {
+    transitive = false
+  }
+  compile"org.terracotta.management.dist:management-common:$parent.managementVersion"
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
+  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
-sourceSets {
-    main { 
-      compileClasspath += configurations.provided
-    }
-    test {
-      compileClasspath += configurations.provided
-      runtimeClasspath += configurations.provided
-    }
+compileJava {
+  options.forkOptions.executable = Jvm.current().javacExecutable
+}
+
+compileTestJava {
+  options.forkOptions.executable = Jvm.current().javacExecutable
+}
+
+test {
+  executable = Jvm.current().javaExecutable
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
 }

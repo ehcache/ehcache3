@@ -17,7 +17,6 @@
 group = 'org.ehcache'
 
 apply plugin: EhOsgi
-apply plugin: EhDeploy
 apply plugin: EhPomMangle
 
 dependencies {
@@ -33,4 +32,9 @@ dependencies {
 dependencies {
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
   pomOnlyProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
+}
+
+project.signing {
+  required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
+  sign project.configurations.getByName('archives')
 }

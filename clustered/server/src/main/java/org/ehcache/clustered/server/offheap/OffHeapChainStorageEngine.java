@@ -17,10 +17,12 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
@@ -48,7 +50,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   private final OffHeapStorageArea storage;
   private final Portability<? super K> keyPortability;
-  private final Set<AttachedInternalChain> activeChains = new HashSet<AttachedInternalChain>();
+  private final Set<AttachedInternalChain> activeChains = Collections.newSetFromMap(new ConcurrentHashMap<AttachedInternalChain, Boolean>());
 
   private OffHeapChainMap.HeadMap<?> owner;
   private long nextSequenceNumber = 0;
@@ -56,6 +58,11 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   public OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean thief, boolean victim) {
     this.storage = new OffHeapStorageArea(PointerSize.LONG, new StorageOwner(), source, minPageSize, maxPageSize, thief, victim);
     this.keyPortability = keyPortability;
+  }
+
+  //For tests
+  Set<AttachedInternalChain> getActiveChains() {
+    return this.activeChains;
   }
 
   InternalChain newChain(ByteBuffer element) {

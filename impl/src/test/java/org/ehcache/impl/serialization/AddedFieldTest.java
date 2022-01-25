@@ -41,6 +41,7 @@ public class AddedFieldTest {
 
   @Test
   public void addingSerializableField() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
     serializer.init(new TransientStateRepository());
 
@@ -59,6 +60,7 @@ public class AddedFieldTest {
 
   @Test
   public void addingExternalizableField() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
     serializer.init(new TransientStateRepository());
 

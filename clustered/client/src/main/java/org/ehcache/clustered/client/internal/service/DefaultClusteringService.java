@@ -26,7 +26,6 @@ import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
 import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
-import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -45,7 +44,6 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +66,6 @@ import java.util.concurrent.TimeoutException;
 /**
  * Provides support for accessing server-based cluster services.
  */
-@ServiceDependencies(ClusteredStore.Provider.class)
 class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
@@ -83,7 +80,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
-  private EhcacheClientEntity entity;
+  EhcacheClientEntity entity;
 
   private volatile boolean inMaintenance = false;
 
@@ -163,6 +160,20 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
+  @Override
+  public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    initClusterConnection();
+    createEntityFactory();
+    if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
+      if (!entityFactory.acquireLeadership(entityIdentifier)) {
+        entityFactory = null;
+        closeConnection();
+        throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
+      }
+    }
+    inMaintenance = true;
+  }
+
   private void createEntityFactory() {
     entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
   }
@@ -202,19 +213,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
             + "'; retrieve operation timed out", e);
       }
     }
-  }
-
-  @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
-    initClusterConnection();
-    createEntityFactory();
-
-    if (!entityFactory.acquireLeadership(entityIdentifier)) {
-      entityFactory = null;
-      closeConnection();
-      throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
-    }
-    inMaintenance = true;
   }
 
   @Override
@@ -303,38 +301,42 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
+  private void checkStarted() {
+    if(!isStarted()) {
+      throw new IllegalStateException(getClass().getName() + " should be started to call destroy");
+    }
+  }
+
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    boolean wasStarted = isStarted();
-    // If the cluster isn't started, start it first to be able to destroy the cache
-    if(!wasStarted) {
-      initClusterConnection();
-      createEntityFactory();
+    checkStarted();
+
+    // will happen when in maintenance mode
+    if(entity == null) {
       try {
         entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
         // No entity on the server, so no need to destroy anything
       } catch (TimeoutException e) {
         throw new CachePersistenceException("Could not connect to the clustered tier manager '" + entityIdentifier
-            + "'; retrieve operation timed out", e);
+                                            + "'; retrieve operation timed out", e);
       }
     }
+
     try {
-      entity.destroyCache(name);
+      if (entity != null) {
+        entity.destroyCache(name);
+      }
     } catch (ClusteredTierDestructionException e) {
       throw new CachePersistenceException(e.getMessage() + " (on " + clusterUri + ")", e);
     } catch (TimeoutException e) {
       throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
           + "; destroy operation timed out" + clusterUri, e);
-    } finally {
-      if (!wasStarted) {
-        stop();
-      }
     }
   }
 
   protected boolean isStarted() {
-    return entity != null;
+    return entityFactory != null;
   }
 
   @Override
@@ -364,6 +366,19 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
+    ServerStoreProxy serverStoreProxy;
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
+    switch (configuredConsistency) {
+      case STRONG:
+        serverStoreProxy =  new StrongServerStoreProxy(messageFactory, entity);
+        break;
+      case EVENTUAL:
+        serverStoreProxy = new EventualServerStoreProxy(messageFactory, entity);
+        break;
+      default:
+        throw new AssertionError("Unknown consistency : " + configuredConsistency);
+    }
+
     final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
         clusteredResourcePool.getPoolAllocation(),
         storeConfig.getKeyType().getName(),
@@ -378,40 +393,28 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     try {
       if (configuration.isAutoCreate()) {
         try {
-          this.entity.validateCache(cacheId, clientStoreConfiguration);
-        } catch (ClusteredTierValidationException ex) {
-          if (ex.getCause() instanceof InvalidStoreException) {
-            try {
-              this.entity.createCache(cacheId, clientStoreConfiguration);
-            } catch (TimeoutException e) {
-              throw new CachePersistenceException("Unable to create clustered tier proxy '"
-                  + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
-                  + "'; create operation timed out", e);
-            }
-          } else {
-            throw ex;
+          entity.createCache(cacheId, clientStoreConfiguration);
+        } catch (ClusteredTierCreationException e) {
+          // An InvalidStoreException means the cache already exists. That's fine, the validateCache will then work
+          if (!(e.getCause() instanceof InvalidStoreException)) {
+            throw e;
           }
+          entity.validateCache(cacheId, clientStoreConfiguration);
         }
       } else {
-        this.entity.validateCache(cacheId, clientStoreConfiguration);
+        entity.validateCache(cacheId, clientStoreConfiguration);
       }
     } catch (ClusteredTierException e) {
+      serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
     } catch (TimeoutException e) {
+      serverStoreProxy.close();
       throw new CachePersistenceException("Unable to create clustered tier proxy '"
           + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
           + "'; validate operation timed out", e);
     }
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
-    switch (configuredConsistency) {
-      case STRONG:
-        return new StrongServerStoreProxy(messageFactory, entity);
-      case EVENTUAL:
-        return new EventualServerStoreProxy(messageFactory, entity);
-      default:
-        throw new AssertionError("Unknown consistency : " + configuredConsistency);
-    }
+    return serverStoreProxy;
   }
 
   @Override

@@ -1,9 +1,9 @@
 ---
 ---
-= Ehcache 3.1 Documentation Overview
-ifndef::sourcedir31[]
+= Ehcache 3.2 Documentation Overview
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -11,7 +11,7 @@ endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache 3.1 documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.2 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics
@@ -25,7 +25,7 @@ Each topic below corresponds to a menu item at the left.
 |link:107.html[JSR-107 Support]|Using Ehcache as a javax.cache aka JSR-107 provider
 |link:examples.html[Java Examples]|Examples of using Ehcache APIs
 |link:xsds.html[Configuration XSD]|Reference XSD for configuration
-|link:clustered-cache.html[Clustering with Terracotta]|Using Terracotta to enable clustering of caches in EhCache
+|link:clustered-cache.html[Clustering with Terracotta]|Using Terracotta to enable clustering of caches in Ehcache
 |===
 
 === General Topics

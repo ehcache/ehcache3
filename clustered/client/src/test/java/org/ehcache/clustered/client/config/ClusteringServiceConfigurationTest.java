@@ -56,7 +56,7 @@ public class ClusteringServiceConfigurationTest {
   @Test
   public void testDefaultReadOperationTimeout() throws Exception {
 
-    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getReadOperationTimeout(), is(TimeoutDuration.of(5, TimeUnit.SECONDS)));
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getReadOperationTimeout(), is(TimeoutDuration.of(20, TimeUnit.SECONDS)));
   }
 
   @Test(expected = NullPointerException.class)

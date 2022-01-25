@@ -22,12 +22,15 @@ dependencies {
 
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:client')
-  compileOnly "org.terracotta.management:management-entity-client:$parent.managementVersion"
+  compileOnly "org.terracotta:entity-client-api:$parent.entityApiVersion"
+  compileOnly "org.terracotta.management.dist:management-client:$parent.managementVersion"
 
   compile project(':api')
   compile project(':core')
   compile project(':impl')
-  compile "org.terracotta.management:management-registry:$parent.managementVersion"
+  compile ("org.terracotta.management:management-registry:$parent.managementVersion") {
+    exclude group: 'org.terracotta', module: 'statistics'
+  }
 
   testCompile project(':xml')
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"

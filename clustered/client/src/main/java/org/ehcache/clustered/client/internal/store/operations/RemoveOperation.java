@@ -96,7 +96,8 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
       return false;
     }
 
-    RemoveOperation<K, V> other = (RemoveOperation)obj;
+    @SuppressWarnings("unchecked")
+    RemoveOperation<K, V> other = (RemoveOperation) obj;
     if(this.getOpCode() != other.getOpCode()) {
       return false;
     }

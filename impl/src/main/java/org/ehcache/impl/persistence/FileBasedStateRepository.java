@@ -20,6 +20,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.serialization.TransientStateHolder;
+import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Closeable;
@@ -42,10 +44,10 @@ import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
  */
 class FileBasedStateRepository implements StateRepository, Closeable {
 
-  private static final String MAP_FILE_PREFIX = "map-";
-  private static final String MAP_FILE_SUFFIX = ".bin";
+  private static final String HOLDER_FILE_PREFIX = "holder-";
+  private static final String HOLDER_FILE_SUFFIX = ".bin";
   private final File dataDirectory;
-  private final ConcurrentMap<String, Tuple> knownMaps;
+  private final ConcurrentMap<String, Tuple> knownHolders;
   private final AtomicInteger nextIndex = new AtomicInteger();
 
   FileBasedStateRepository(File directory) throws CachePersistenceException {
@@ -56,7 +58,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
       throw new IllegalArgumentException(directory + " is not a directory");
     }
     this.dataDirectory = directory;
-    knownMaps = new ConcurrentHashMap<String, Tuple>();
+    knownHolders = new ConcurrentHashMap<String, Tuple>();
     loadMaps();
   }
 
@@ -66,7 +68,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
       for (File file : dataDirectory.listFiles(new FilenameFilter() {
         @Override
         public boolean accept(File dir, String name) {
-          return name.endsWith(MAP_FILE_SUFFIX);
+          return name.endsWith(HOLDER_FILE_SUFFIX);
         }
       })) {
         FileInputStream fis = new FileInputStream(file);
@@ -78,7 +80,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
             if (nextIndex.get() <= tuple.index) {
               nextIndex.set(tuple.index + 1);
             }
-            knownMaps.put(name, tuple);
+            knownHolders.put(name, tuple);
           } finally {
             oin.close();
           }
@@ -87,13 +89,13 @@ class FileBasedStateRepository implements StateRepository, Closeable {
         }
       }
     } catch (Exception e) {
-      knownMaps.clear();
+      knownHolders.clear();
       throw new CachePersistenceException("Failed to load existing StateRepository data", e);
     }
   }
 
   private void saveMaps() throws IOException {
-    for (Map.Entry<String, Tuple> entry : knownMaps.entrySet()) {
+    for (Map.Entry<String, Tuple> entry : knownHolders.entrySet()) {
       File outFile = new File(dataDirectory, createFileName(entry));
       FileOutputStream fos = new FileOutputStream(outFile);
       try {
@@ -110,20 +112,23 @@ class FileBasedStateRepository implements StateRepository, Closeable {
     }
   }
 
-  private String createFileName(Map.Entry<String, Tuple> entry) {return MAP_FILE_PREFIX + entry.getValue().index + "-" + safeIdentifier(entry.getKey(), false) + MAP_FILE_SUFFIX;}
+  private String createFileName(Map.Entry<String, Tuple> entry) {return HOLDER_FILE_PREFIX + entry.getValue().index + "-" + safeIdentifier(entry.getKey(), false) + HOLDER_FILE_SUFFIX;}
 
   @Override
-  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
-    Tuple result = knownMaps.get(name);
+  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
+    Tuple result = knownHolders.get(name);
     if (result == null) {
-      ConcurrentHashMap<K, V> newMap = new ConcurrentHashMap<K, V>();
-      result = knownMaps.putIfAbsent(name, new Tuple(nextIndex.getAndIncrement(), newMap));
+      StateHolder<K, V> holder = new TransientStateHolder<K, V>();
+      result = knownHolders.putIfAbsent(name, new Tuple(nextIndex.getAndIncrement(), holder));
 
       if (result == null) {
-        return newMap;
+        return holder;
       }
     }
-    return (ConcurrentMap<K, V>) result.map;
+
+    @SuppressWarnings("unchecked")
+    StateHolder<K, V> holder = (StateHolder<K, V>) result.holder;
+    return holder;
   }
 
   @Override
@@ -133,11 +138,11 @@ class FileBasedStateRepository implements StateRepository, Closeable {
 
   static class Tuple implements Serializable {
     final int index;
-    final ConcurrentMap<?, ?> map;
+    final StateHolder<?, ?> holder;
 
-    Tuple(int index, ConcurrentMap<?, ?> map) {
+    Tuple(int index, StateHolder<?, ?> holder) {
       this.index = index;
-      this.map = map;
+      this.holder = holder;
     }
   }
 }

@@ -25,7 +25,9 @@ import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.terracotta.management.model.call.ContextualReturn;
@@ -67,6 +69,9 @@ public class DefaultSharedManagementServiceTest {
 
   ManagementRegistryServiceConfiguration config1;
   ManagementRegistryServiceConfiguration config2;
+
+  @Rule
+  public final Timeout globalTimeout = Timeout.seconds(10);
 
   @Before
   public void init() {
@@ -133,25 +138,27 @@ public class DefaultSharedManagementServiceTest {
 
   @Test
   public void testSharedCapabilities() {
-    assertEquals(2, service.getCapabilities().size());
+    assertEquals(2, service.getCapabilitiesByContext().size());
 
-    Collection<Capability> capabilities1 = service.getCapabilities().get(config1.getContext());
-    Collection<Capability> capabilities2 = service.getCapabilities().get(config2.getContext());
+    Collection<? extends Capability> capabilities1 = service.getCapabilitiesByContext().get(config1.getContext());
+    Collection<? extends Capability> capabilities2 = service.getCapabilitiesByContext().get(config2.getContext());
 
     assertThat(capabilities1, hasSize(4));
     assertThat(new ArrayList<Capability>(capabilities1).get(0).getName(), equalTo("ActionsCapability"));
-    assertThat(new ArrayList<Capability>(capabilities1).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities1).get(1).getName(), equalTo("SettingsCapability"));
     assertThat(new ArrayList<Capability>(capabilities1).get(2).getName(), equalTo("StatisticCollectorCapability"));
-    assertThat(new ArrayList<Capability>(capabilities1).get(3).getName(), equalTo("SettingsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities1).get(3).getName(), equalTo("StatisticsCapability"));
+
+
 
     assertThat(capabilities2, hasSize(4));
     assertThat(new ArrayList<Capability>(capabilities2).get(0).getName(), equalTo("ActionsCapability"));
-    assertThat(new ArrayList<Capability>(capabilities2).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities2).get(1).getName(), equalTo("SettingsCapability"));
     assertThat(new ArrayList<Capability>(capabilities2).get(2).getName(), equalTo("StatisticCollectorCapability"));
-    assertThat(new ArrayList<Capability>(capabilities2).get(3).getName(), equalTo("SettingsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities2).get(3).getName(), equalTo("StatisticsCapability"));
   }
 
-  @Test (timeout=10000)
+  @Test
   public void testStats() {
     String statisticName = "Cache:MissCount";
 
@@ -194,10 +201,10 @@ public class DefaultSharedManagementServiceTest {
   }
 
   private static ResultSet<ContextualStatistics> getResultSet(StatisticQuery.Builder builder, List<Context> contextList, Class<CounterHistory> type, String statisticsName) {
-    ResultSet<ContextualStatistics> counters;
+    ResultSet<ContextualStatistics> counters = null;
 
     //wait till Counter history is initialized and contains values > 0.
-    while(true) {
+    while(!Thread.currentThread().isInterrupted()) {
       counters = builder.build().execute();
 
       if(counters.getResult(contextList.get(0)).getStatistic(type, statisticsName).getValue().length > 0 &&

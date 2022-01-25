@@ -31,6 +31,8 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.Arrays.asList;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -69,14 +71,13 @@ public class StoreSupportTest {
   public void testSelectStoreProvider() throws Exception {
 
     final TestBaseProvider expectedProvider = new PrimaryProvider1();
-    final TestBaseProvider[] storeProviders = {
+    Collection<TestBaseProvider> storeProviders = asList(
         new SecondaryProvider1(),
         new ZeroProvider(),
         expectedProvider
-    };
+    );
 
-    final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
-
+    final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
     final Store.Provider selectedProvider = StoreSupport.selectStoreProvider(serviceLocator,
         Collections.<ResourceType<?>>singleton(anyResourceType),
         Collections.<ServiceConfiguration<?>>emptyList());
@@ -92,15 +93,15 @@ public class StoreSupportTest {
   public void testSelectStoreProviderMultiple() throws Exception {
 
     final TestBaseProvider expectedProvider = new PrimaryProvider1();
-    final TestBaseProvider[] storeProviders = {
+    final Collection<TestBaseProvider> storeProviders = asList(
         new SecondaryProvider1(),
         new ZeroProvider(),
         expectedProvider,
         new SecondaryProvider2(),
         new PrimaryProvider2()
-    };
+    );
 
-    final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
+    final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
 
     try {
       StoreSupport.selectStoreProvider(serviceLocator,
@@ -119,10 +120,8 @@ public class StoreSupportTest {
 
   @Test
   public void testSelectStoreProviderNoProviders() throws Exception {
-
-    final ServiceLocator serviceLocator = new ServiceLocator();
     try {
-      StoreSupport.selectStoreProvider(serviceLocator,
+      StoreSupport.selectStoreProvider(dependencySet().build(),
           Collections.<ResourceType<?>>singleton(anyResourceType),
           Collections.<ServiceConfiguration<?>>emptyList());
       fail();
@@ -154,13 +153,13 @@ public class StoreSupportTest {
       }
     };
 
-    final TestBaseProvider[] storeProviders = {
+    final Collection<TestBaseProvider> storeProviders = asList(
         new SecondaryProvider1(),
         new ZeroProvider(),
         new PrimaryProvider1()
-    };
+    );
 
-    final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
+    final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
     try {
       StoreSupport.selectStoreProvider(serviceLocator,
           Collections.<ResourceType<?>>singleton(otherResourceType),

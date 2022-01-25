@@ -19,30 +19,37 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 
+import java.util.UUID;
+
 public class LifeCycleMessageFactory {
 
-  public EhcacheEntityMessage validateStoreManager(ServerSideConfiguration configuration){
-    return new LifecycleMessage.ValidateStoreManager(configuration);
+  private UUID clientId;
+
+  public LifecycleMessage validateStoreManager(ServerSideConfiguration configuration){
+    return new LifecycleMessage.ValidateStoreManager(configuration, clientId);
   }
 
-  public EhcacheEntityMessage configureStoreManager(ServerSideConfiguration configuration) {
-    return new LifecycleMessage.ConfigureStoreManager(configuration);
+  public LifecycleMessage configureStoreManager(ServerSideConfiguration configuration) {
+    return new LifecycleMessage.ConfigureStoreManager(configuration, clientId);
   }
 
-  public EhcacheEntityMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
-    return new LifecycleMessage.CreateServerStore(name, serverStoreConfiguration);
+  public LifecycleMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    return new LifecycleMessage.CreateServerStore(name, serverStoreConfiguration, clientId);
   }
 
-  public EhcacheEntityMessage validateServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
-    return new LifecycleMessage.ValidateServerStore(name, serverStoreConfiguration);
+  public LifecycleMessage validateServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    return new LifecycleMessage.ValidateServerStore(name, serverStoreConfiguration, clientId);
   }
 
-  public EhcacheEntityMessage releaseServerStore(String name) {
-    return new LifecycleMessage.ReleaseServerStore(name);
+  public LifecycleMessage releaseServerStore(String name) {
+    return new LifecycleMessage.ReleaseServerStore(name, clientId);
   }
 
-  public EhcacheEntityMessage destroyServerStore(String name) {
-    return new LifecycleMessage.DestroyServerStore(name);
+  public LifecycleMessage destroyServerStore(String name) {
+    return new LifecycleMessage.DestroyServerStore(name, clientId);
   }
 
+  public void setClientId(UUID clientId) {
+    this.clientId = clientId;
+  }
 }

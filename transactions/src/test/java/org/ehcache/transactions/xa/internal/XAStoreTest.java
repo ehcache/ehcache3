@@ -27,6 +27,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -95,6 +96,7 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 
 import static java.util.Collections.emptySet;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -1540,13 +1542,11 @@ public class XAStoreTest {
   public void testRank() throws Exception {
     XAStore.Provider provider = new XAStore.Provider();
     XAStoreConfiguration configuration = new XAStoreConfiguration("testXAResourceId");
-    ServiceLocator serviceLocator = new ServiceLocator(
-        provider,
-        new TieredStore.Provider(),
-        new OnHeapStore.Provider(),
-        new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider(),
-        mock(TransactionManagerProvider.class));
+    ServiceLocator serviceLocator = dependencySet()
+      .with(provider)
+      .with(Store.Provider.class)
+      .with(mock(DiskResourceService.class))
+      .with(mock(TransactionManagerProvider.class)).build();
 
     serviceLocator.startAllServices();
 

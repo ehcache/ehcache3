@@ -43,6 +43,7 @@ import java.util.Arrays;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<String, String> {
 
@@ -86,7 +87,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       @Override
       public Store.Provider newProvider() {
         Store.Provider service = new OnHeapStore.Provider();
-        service.start(new ServiceLocator());
+        service.start(dependencySet().build());
         return service;
       }
 
@@ -130,7 +131,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        return new ServiceLocator();
+        return dependencySet().build();
       }
 
     };

@@ -37,7 +37,10 @@ public class DefaultSizeOfEngineTest {
   public void testMaxObjectGraphSizeExceededException() {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(3, Long.MAX_VALUE);
     try {
-      sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(), new CopiedOnHeapValueHolder(new MaxDepthGreaterThanThree(), 0l, true, new IdentityCopier()));
+      @SuppressWarnings("unchecked")
+      IdentityCopier<MaxDepthGreaterThanThree> valueCopier = new IdentityCopier();
+      sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(),
+        new CopiedOnHeapValueHolder<MaxDepthGreaterThanThree>(new MaxDepthGreaterThanThree(), 0L, true, valueCopier));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(LimitExceededException.class));
@@ -49,7 +52,9 @@ public class DefaultSizeOfEngineTest {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(Long.MAX_VALUE, 1000);
     try {
       String overSized = new String(new byte[1000]);
-      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder("test", 0l, true, new IdentityCopier()));
+      @SuppressWarnings("unchecked")
+      IdentityCopier<String> valueCopier = new IdentityCopier();
+      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder<String>("test", 0L, true, valueCopier));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(LimitExceededException.class));

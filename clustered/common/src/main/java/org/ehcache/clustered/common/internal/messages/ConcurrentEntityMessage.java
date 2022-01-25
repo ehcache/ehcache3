@@ -30,6 +30,6 @@ public interface ConcurrentEntityMessage extends EntityMessage {
    * @see org.terracotta.entity.ConcurrencyStrategy#concurrencyKey(EntityMessage)
    * @return the concurrency key
    */
-  int concurrencyKey();
+  long concurrencyKey();
 
 }

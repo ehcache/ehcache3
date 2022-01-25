@@ -20,6 +20,8 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,21 +43,19 @@ import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.spi.service.Service;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.history.CounterHistory;
 
-/**
- *
- *
- */
 @RunWith(Parameterized.class)
 public class EvictionTest {
 
@@ -97,6 +97,9 @@ public class EvictionTest {
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();
 
+  @Rule
+  public final Timeout globalTimeout = Timeout.seconds(60);
+
   public EvictionTest(Builder<? extends ResourcePools> resources, int iterations, List<Long> expected, byte[] value, List<String> stats) {
     this.resources = resources.build();
     this.iterations = iterations;
@@ -124,7 +127,19 @@ public class EvictionTest {
       CacheConfiguration<Long, byte[]> cacheConfig = newCacheConfigurationBuilder(Long.class, byte[].class, resources).build();
 
       cacheManager.init();
+
       Cache<Long, byte[]> cache = cacheManager.createCache("myCache", cacheConfig);
+
+      Context context = StatsUtil.createContext(managementRegistry);
+
+      // we need to  trigger first the stat computation with a first query
+      ContextualStatistics contextualStatistics = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistics(stats)
+        .on(context)
+        .build()
+        .execute()
+        .getSingleResult();
+      assertThat(contextualStatistics.size(), Matchers.is(stats.size()));
 
       for(long i=0; i<iterations; i++) {
         cache.put(i, value);
@@ -132,40 +147,41 @@ public class EvictionTest {
 
       Thread.sleep(1000);
 
-      Context context = StatsUtil.createContext(managementRegistry);
-
-      ContextualStatistics contextualStatistics = managementRegistry.withCapability("StatisticsCapability")
+      int lowestTier;
+      CounterHistory evictionCounterHistory;
+      do {
+        contextualStatistics = managementRegistry.withCapability("StatisticsCapability")
           .queryStatistics(stats)
           .on(context)
           .build()
           .execute()
           .getSingleResult();
 
-      Assert.assertThat(contextualStatistics.size(), Matchers.is(stats.size()));
+        assertThat(contextualStatistics.size(), Matchers.is(stats.size()));
 
-      int lowestTier = stats.size() - 1;
-      CounterHistory evictionCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(lowestTier));
+        lowestTier = stats.size() - 1;
+        evictionCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(lowestTier));
+      } while(!Thread.currentThread().isInterrupted() && !StatsUtil.isHistoryReady(evictionCounterHistory));
 
-      while(!StatsUtil.isHistoryReady(evictionCounterHistory)) {}
       int mostRecentIndex = evictionCounterHistory.getValue().length - 1;
-      Assert.assertThat(evictionCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(lowestTier)));
+      assertThat(evictionCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(lowestTier)));
 
       if(stats.size() == 2) {
         CounterHistory evictionHighestTierCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(0));
-        while(!StatsUtil.isHistoryReady(evictionHighestTierCounterHistory)) {}
+        assertThat(StatsUtil.isHistoryReady(evictionHighestTierCounterHistory), is(true));
         mostRecentIndex = evictionHighestTierCounterHistory.getValue().length - 1;
-        Assert.assertThat(evictionHighestTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(0)));
+        assertThat(evictionHighestTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(0)));
 
       } else if(stats.size() == 3) {
         CounterHistory evictionHighestTierCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(0));
-        while(!StatsUtil.isHistoryReady(evictionHighestTierCounterHistory)) {}
+        assertThat(StatsUtil.isHistoryReady(evictionHighestTierCounterHistory), is(true));
         mostRecentIndex = evictionHighestTierCounterHistory.getValue().length - 1;
-        Assert.assertThat(evictionHighestTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(0)));
+        assertThat(evictionHighestTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(0)));
 
         CounterHistory evictionMiddleTierCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(1));
-        while(!StatsUtil.isHistoryReady(evictionMiddleTierCounterHistory)) {}
+        assertThat(StatsUtil.isHistoryReady(evictionMiddleTierCounterHistory), is(true));
         mostRecentIndex = evictionMiddleTierCounterHistory.getValue().length - 1;
-        Assert.assertThat(evictionMiddleTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(1)));
+        assertThat(evictionMiddleTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(1)));
 
       }
     }

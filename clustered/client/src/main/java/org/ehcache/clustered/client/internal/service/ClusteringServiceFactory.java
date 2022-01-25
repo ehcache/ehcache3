@@ -27,6 +27,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  *
  * @author Clifford W. Johnson
  */
+@ServiceFactory.RequiresConfiguration
 public class ClusteringServiceFactory implements ServiceFactory<ClusteringService> {
 
   @Override

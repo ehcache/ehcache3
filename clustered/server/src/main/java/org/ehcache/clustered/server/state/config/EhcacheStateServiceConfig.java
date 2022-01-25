@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server.state.config;
 
+import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -28,11 +29,12 @@ import java.util.Set;
 public class EhcacheStateServiceConfig implements ServiceConfiguration<EhcacheStateService> {
 
   private final ServiceRegistry serviceRegistry;
-  private final Set<String> offHeapResourceIdentifiers;
+  private final KeySegmentMapper mapper;
 
-  public EhcacheStateServiceConfig(ServiceRegistry serviceRegistry, Set<String> offHeapResourceIdentifiers) {
+
+  public EhcacheStateServiceConfig(ServiceRegistry serviceRegistry, final KeySegmentMapper mapper) {
     this.serviceRegistry = serviceRegistry;
-    this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
+    this.mapper = mapper;
   }
 
   @Override
@@ -44,8 +46,8 @@ public class EhcacheStateServiceConfig implements ServiceConfiguration<EhcacheSt
     return this.serviceRegistry;
   }
 
-  public Set<String> getOffHeapResourceIdentifiers() {
-    return this.offHeapResourceIdentifiers;
+  public KeySegmentMapper getMapper() {
+    return mapper;
   }
 
 }

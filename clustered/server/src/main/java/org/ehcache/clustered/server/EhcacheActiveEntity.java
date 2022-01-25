@@ -15,24 +15,29 @@
  */
 package org.ehcache.clustered.server;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
@@ -42,19 +47,35 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
+import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBasedServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
+import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
+import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.terracotta.entity.ActiveServerEntity;
+import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
@@ -67,39 +88,48 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.hashInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ReleaseServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
 
-// TODO: Provide some mechanism to report on storage utilization -- PageSource provides little visibility
-// TODO: Ensure proper operations for concurrent requests
 class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
 
   private final UUID identity;
-  private final Set<String> offHeapResourceIdentifiers;
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
    * {@link #connected(ClientDescriptor)} method is invoked for a client and removed when the
    * {@link #disconnected(ClientDescriptor)} method is invoked for the client.
    */
-  private final Map<ClientDescriptor, ClientState> clientStateMap = new HashMap<ClientDescriptor, ClientState>();
+  private final Map<ClientDescriptor, ClientState> clientStateMap = new ConcurrentHashMap<>();
 
   private final ConcurrentHashMap<String, Set<ClientDescriptor>> storeClientMap =
-      new ConcurrentHashMap<String, Set<ClientDescriptor>>();
+      new ConcurrentHashMap<>();
 
-  private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
+  private final ConcurrentHashMap<ClientDescriptor, UUID> clientIdMap = new ConcurrentHashMap<>();
+  private final Set<UUID> trackedClients = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
   private final EhcacheEntityResponseFactory responseFactory;
-  private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<Integer, InvalidationHolder>();
+  private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ClientCommunicator clientCommunicator;
   private final EhcacheStateService ehcacheStateService;
+  private final IEntityMessenger entityMessenger;
+  private volatile ConcurrentHashMap<String, List<InvalidationTuple>> inflightInvalidations;
+  private final Management management;
+  private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -138,20 +168,19 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   }
 
-  EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
+  EhcacheActiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
-    OffHeapResources offHeapResources = services.getService(new OffHeapResourcesServiceConfiguration());
-    if (offHeapResources == null) {
-      this.offHeapResourceIdentifiers = Collections.emptySet();
-    } else {
-      this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
-    }
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers));
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
+    entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
+    if (entityMessenger == null) {
+      throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
+    }
+    this.management = new Management(services, ehcacheStateService, true);
   }
 
   /**
@@ -162,7 +191,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Map<ClientDescriptor, Set<String>> getConnectedClients() {
-    final HashMap<ClientDescriptor, Set<String>> clientMap = new HashMap<ClientDescriptor, Set<String>>();
+    final HashMap<ClientDescriptor, Set<String>> clientMap = new HashMap<>();
     for (Entry<ClientDescriptor, ClientState> entry : clientStateMap.entrySet()) {
       clientMap.put(entry.getKey(), entry.getValue().getAttachedStores());
     }
@@ -177,9 +206,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Map<String, Set<ClientDescriptor>> getInUseStores() {
-    final HashMap<String, Set<ClientDescriptor>> storeMap = new HashMap<String, Set<ClientDescriptor>>();
+    final HashMap<String, Set<ClientDescriptor>> storeMap = new HashMap<>();
     for (Map.Entry<String, Set<ClientDescriptor>> entry : storeClientMap.entrySet()) {
-      storeMap.put(entry.getKey(), Collections.unmodifiableSet(new HashSet<ClientDescriptor>(entry.getValue())));
+      storeMap.put(entry.getKey(), Collections.unmodifiableSet(new HashSet<>(entry.getValue())));
     }
     return Collections.unmodifiableMap(storeMap);
   }
@@ -188,7 +217,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   public void connected(ClientDescriptor clientDescriptor) {
     if (!clientStateMap.containsKey(clientDescriptor)) {
       LOGGER.info("Connecting {}", clientDescriptor);
-      clientStateMap.put(clientDescriptor, new ClientState());
+      ClientState clientState = new ClientState();
+      clientStateMap.put(clientDescriptor, clientState);
+      management.clientConnected(clientDescriptor, clientState);
     } else {
       // This is logically an AssertionError
       LOGGER.error("Client {} already registered as connected", clientDescriptor);
@@ -207,7 +238,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     Iterator<Entry<Integer, InvalidationHolder>> it = clientsWaitingForInvalidation.entrySet().iterator();
     while (it.hasNext()) {
       Entry<Integer, InvalidationHolder> next = it.next();
-      if (next.getValue().clientDescriptorWaitingForInvalidation.equals(clientDescriptor)) {
+      ClientDescriptor clientDescriptorWaitingForInvalidation = next.getValue().clientDescriptorWaitingForInvalidation;
+      if (clientDescriptorWaitingForInvalidation != null && clientDescriptorWaitingForInvalidation.equals(clientDescriptor)) {
         it.remove();
       }
     }
@@ -221,27 +253,39 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       for (String storeId : clientState.getAttachedStores()) {
         detachStore(clientDescriptor, storeId);
       }
+      management.clientDisconnected(clientDescriptor, clientState);
+    }
+    UUID clientId = clientIdMap.remove(clientDescriptor);
+    if (clientId != null) {
+      try {
+        entityMessenger.messageSelf(new ClientIDTrackerMessage(clientId));
+      } catch (MessageCodecException mce) {
+        throw new AssertionError("Codec error", mce);
+      }
+      trackedClients.remove(clientId);
+      ehcacheStateService.getClientMessageTracker().remove(clientId);
     }
   }
 
   @Override
   public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
     try {
-      if (this.offHeapResourceIdentifiers.isEmpty()) {
-        throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
-                                                  " Check your server configuration and define at least one offheap resource.");
-      }
+      clearClientTrackedAtReconnectComplete();
 
-      switch (message.getType()) {
-        case LIFECYCLE_OP:
-          return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
-        case SERVER_STORE_OP:
+      if (message instanceof EhcacheOperationMessage) {
+        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+        EhcacheMessageType messageType = operationMessage.getMessageType();
+        if (isStoreOperationMessage(messageType)) {
           return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
-        case STATE_REPO_OP:
+        } else if (isLifecycleMessage(messageType)) {
+          return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
+        } else if (isStateRepoOperationMessage(messageType)) {
           return invokeStateRepositoryOperation(clientDescriptor, (StateRepositoryOpMessage) message);
-        default:
-          throw new IllegalMessageException("Unknown message : " + message);
+        } else if (isPassiveReplicationMessage(messageType)) {
+          return responseFactory.success();
+        }
       }
+      throw new AssertionError("Unsupported message : " + message.getClass());
     } catch (ClusterException e) {
       return responseFactory.failure(e);
     } catch (Exception e) {
@@ -250,14 +294,29 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
+  private void clearClientTrackedAtReconnectComplete() {
+
+    if (!reconnectComplete.get()) {
+      if (reconnectComplete.compareAndSet(false, true)) {
+        ehcacheStateService.getClientMessageTracker().reconcileTrackedClients(trackedClients);
+      }
+    }
+
+  }
+
   @Override
   public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
+    if (inflightInvalidations == null) {
+      throw new AssertionError("Load existing was not invoked before handleReconnect");
+    }
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
       throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
     }
     clientState.attach();
-    Set<String> cacheIds = reconnectDataCodec.decode(extendedReconnectData);
+    ReconnectMessage reconnectMessage = reconnectMessageCodec.decode(extendedReconnectData);
+    addClientId(clientDescriptor, reconnectMessage.getClientId());
+    Set<String> cacheIds = reconnectMessage.getAllCaches();
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
       if (serverStore == null) {
@@ -266,44 +325,109 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         LOGGER.warn("ServerStore '{}' does not exist as expected by Client '{}'.", cacheId, clientDescriptor);
         continue;
       }
-      serverStore.setEvictionListener(new ServerStoreEvictionListener() {
-        @Override
-        public void onEviction(long key) {
-          invalidateHashAfterEviction(cacheId, key);
-        }
-      });
+      addInflightInvalidationsForStrongCache(clientDescriptor, reconnectMessage, cacheId, serverStore);
+
+      serverStore.setEvictionListener(key -> invalidateHashAfterEviction(cacheId, key));
       attachStore(clientDescriptor, cacheId);
     }
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
+    management.clientReconnected(clientDescriptor, clientState);
+  }
+
+  private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ReconnectMessage reconnectMessage, String cacheId, ServerStoreImpl serverStore) {
+    if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
+      Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress(cacheId);
+      LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", reconnectMessage.getClientId(), cacheId, invalidationsInProgress
+          .size());
+      inflightInvalidations.compute(cacheId, (s, tuples) -> {
+        if (tuples == null) {
+          tuples = new ArrayList<>();
+        }
+        tuples.add(new InvalidationTuple(clientDescriptor, invalidationsInProgress, reconnectMessage.isClearInProgress(cacheId)));
+        return tuples;
+      });
+    }
   }
 
   @Override
   public void synchronizeKeyToPassive(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
-    throw new UnsupportedOperationException("Active/passive is not supported yet");
+    LOGGER.info("Sync started for concurrency key {}.", concurrencyKey);
+    if (concurrencyKey == DEFAULT_KEY) {
+      ServerSideConfiguration configuration;
+      if (ehcacheStateService.getDefaultServerResource() == null) {
+        configuration = new ServerSideConfiguration(ehcacheStateService.getSharedResourcePools());
+      } else {
+        configuration = new ServerSideConfiguration(ehcacheStateService.getDefaultServerResource(), ehcacheStateService.getSharedResourcePools());
+      }
+
+      Map<String, ServerStoreConfiguration> storeConfigs = new HashMap<>();
+      for (String storeName : ehcacheStateService.getStores()) {
+        ServerStoreImpl store = ehcacheStateService.getStore(storeName);
+        storeConfigs.put(storeName, store.getStoreConfiguration());
+      }
+
+      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs));
+    } else {
+      ehcacheStateService.getStores().stream()
+        .forEach(name -> {
+          ServerStoreImpl store = ehcacheStateService.getStore(name);
+          store.getSegments().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET).keySet().stream()
+            .forEach(key -> {
+              syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, key, store.get(key)));
+            });
+        });
+    }
+    LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }
 
   @Override
   public void createNew() {
-    //nothing to do
+    management.init();
   }
 
   @Override
   public void loadExisting() {
-    //nothing to do
+    LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
+    inflightInvalidations = new ConcurrentHashMap<>();
+    addInflightInvalidationsForEventualCaches();
+    reconnectComplete.set(false);
+  }
+
+  private void addInflightInvalidationsForEventualCaches() {
+    Set<String> caches = ehcacheStateService.getStores();
+    caches.forEach(cacheId -> {
+      InvalidationTracker invalidationTracker = ehcacheStateService.removeInvalidationtracker(cacheId);
+      if (invalidationTracker != null) {
+        inflightInvalidations.compute(cacheId, (s, invalidationTuples) -> {
+          if (invalidationTuples == null) {
+            invalidationTuples = new ArrayList<>();
+          }
+          invalidationTuples.add(new InvalidationTuple(null, invalidationTracker.getInvalidationMap()
+              .keySet(), invalidationTracker.isClearInProgress()));
+          return invalidationTuples;
+        });
+        invalidationTracker.getInvalidationMap().clear();
+      }
+    });
   }
 
   private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
+    validateClientConnected(clientDescriptor, clientState);
   }
 
   private void validateClientAttached(ClientDescriptor clientDescriptor) throws ClusterException {
-    validateClientConnected(clientDescriptor);
-    if (!clientStateMap.get(clientDescriptor).isAttached()) {
+    ClientState clientState = this.clientStateMap.get(clientDescriptor);
+    validateClientConnected(clientDescriptor, clientState);
+    if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
+    }
+  }
+
+  private static void validateClientConnected(ClientDescriptor clientDescriptor, ClientState clientState) throws LifecycleException {
+    if (clientState == null) {
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
   }
 
@@ -315,7 +439,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) throws ClusterException {
-    switch (message.operation()) {
+    switch (message.getMessageType()) {
       case CONFIGURE:
         configure(clientDescriptor, (ConfigureStoreManager) message);
         break;
@@ -335,7 +459,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         destroyServerStore(clientDescriptor, (DestroyServerStore) message);
         break;
       default:
-        throw new IllegalMessageException("Unknown LifeCycle operation " + message);
+        throw new AssertionError("Unsupported LifeCycle operation " + message);
     }
     return responseFactory.success();
   }
@@ -354,22 +478,49 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       throw new LifecycleException("Client not attached to clustered tier '" + message.getCacheId() + "'");
     }
 
-    switch (message.operation()) {
-      case GET: {
+    // This logic totally counts on the fact that invokes will only happen
+    // after all handleReconnects are done, else this is flawed.
+    if (inflightInvalidations != null && inflightInvalidations.containsKey(message.getCacheId())) {
+      inflightInvalidations.computeIfPresent(message.getCacheId(), (cacheId, tuples) -> {
+        LOGGER.debug("Stalling all operations for cache {} for firing inflight invalidations again.", cacheId);
+        tuples.forEach(invalidationState -> {
+          if (invalidationState.isClearInProgress()) {
+            invalidateAll(invalidationState.getClientDescriptor(), cacheId);
+          }
+          invalidationState.getInvalidationsInProgress()
+              .forEach(hashInvalidationToBeResent -> invalidateHashForClient(invalidationState.getClientDescriptor(), cacheId, hashInvalidationToBeResent));
+        });
+        return null;
+      });
+    }
+
+    switch (message.getMessageType()) {
+      case GET_STORE: {
         ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage) message;
         return responseFactory.response(cacheStore.get(getMessage.getKey()));
       }
       case APPEND: {
-        ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-        cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-        invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
+        if (!isMessageDuplicate(message)) {
+          ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
+          cacheStore.getAndAppend(appendMessage.getKey(), appendMessage.getPayload());
+          sendMessageToSelfAndDeferRetirement(appendMessage, cacheStore.get(appendMessage.getKey()));
+          invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
+        }
         return responseFactory.success();
       }
       case GET_AND_APPEND: {
         ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
-        EhcacheEntityResponse response = responseFactory.response(cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload()));
-        invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
-        return response;
+        LOGGER.trace("Message {} : GET_AND_APPEND on key {} from client {}", message, getAndAppendMessage.getKey(), getAndAppendMessage.getClientId());
+        if (!isMessageDuplicate(message)) {
+          LOGGER.trace("Message {} : is not duplicate", message);
+          Chain result = cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
+          sendMessageToSelfAndDeferRetirement(getAndAppendMessage, cacheStore.get(getAndAppendMessage.getKey()));
+          EhcacheEntityResponse response = responseFactory.response(result);
+          LOGGER.debug("Send invalidations for key {}", getAndAppendMessage.getKey());
+          invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
+          return response;
+        }
+        return responseFactory.response(cacheStore.get(getAndAppendMessage.getKey()));
       }
       case REPLACE: {
         ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
@@ -385,13 +536,23 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         return responseFactory.success();
       }
       case CLEAR: {
-        String cacheId = message.getCacheId();
-        cacheStore.clear();
-        invalidateAll(clientDescriptor, cacheId);
+        if (!isMessageDuplicate(message)) {
+          String cacheId = message.getCacheId();
+          cacheStore.clear();
+          invalidateAll(clientDescriptor, cacheId);
+        }
         return responseFactory.success();
       }
       default:
-        throw new IllegalMessageException("Unknown ServerStore operation : " + message);
+        throw new AssertionError("Unsupported ServerStore operation : " + message);
+    }
+  }
+
+  private void sendMessageToSelfAndDeferRetirement(KeyBasedServerStoreOpMessage message, Chain result) {
+    try {
+      entityMessenger.messageSelfAndDeferRetirement(message, new ChainReplicationMessage(message.getCacheId(), message.getKey(), result, message.getId(), message.getClientId()));
+    } catch (MessageCodecException e) {
+      throw new AssertionError("Codec error", e);
     }
   }
 
@@ -409,8 +570,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       try {
         clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, serverInvalidateHash(cacheId, key));
       } catch (MessageCodecException mce) {
-        //TODO: what should be done here?
-        LOGGER.error("Codec error", mce);
+        throw new AssertionError("Codec error", mce);
       }
     }
   }
@@ -419,13 +579,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     int invalidationId = invalidationIdGenerator.getAndIncrement();
     Set<ClientDescriptor> clientsToInvalidate = Collections.newSetFromMap(new ConcurrentHashMap<ClientDescriptor, Boolean>());
     clientsToInvalidate.addAll(storeClientMap.get(cacheId));
-    clientsToInvalidate.remove(originatingClientDescriptor);
-
-    InvalidationHolder invalidationHolder = null;
-    if (ehcacheStateService.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
-      invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId, key);
-      clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
+    if (originatingClientDescriptor != null) {
+      clientsToInvalidate.remove(originatingClientDescriptor);
     }
+
+    InvalidationHolder invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId, key);
+    clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
 
     LOGGER.debug("SERVER: requesting {} client(s) invalidation of hash {} in cache {} (ID {})", clientsToInvalidate.size(), key, cacheId, invalidationId);
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
@@ -433,12 +592,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       try {
         clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateHash(cacheId, key, invalidationId));
       } catch (MessageCodecException mce) {
-        //TODO: what should be done here?
-        LOGGER.error("Codec error", mce);
+        throw new AssertionError("Codec error", mce);
       }
     }
 
-    if (invalidationHolder != null && clientsToInvalidate.isEmpty()) {
+    if (clientsToInvalidate.isEmpty()) {
       clientInvalidated(invalidationHolder.clientDescriptorWaitingForInvalidation, invalidationId);
     }
   }
@@ -447,13 +605,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     int invalidationId = invalidationIdGenerator.getAndIncrement();
     Set<ClientDescriptor> clientsToInvalidate = Collections.newSetFromMap(new ConcurrentHashMap<ClientDescriptor, Boolean>());
     clientsToInvalidate.addAll(storeClientMap.get(cacheId));
-    clientsToInvalidate.remove(originatingClientDescriptor);
-
-    InvalidationHolder invalidationHolder = null;
-    if (ehcacheStateService.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
-      invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId);
-      clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
+    if (originatingClientDescriptor != null) {
+      clientsToInvalidate.remove(originatingClientDescriptor);
     }
+
+    InvalidationHolder invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId);
+    clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
 
     LOGGER.debug("SERVER: requesting {} client(s) invalidation of all in cache {} (ID {})", clientsToInvalidate.size(), cacheId, invalidationId);
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
@@ -461,12 +618,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       try {
         clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateAll(cacheId, invalidationId));
       } catch (MessageCodecException mce) {
-        //TODO: what should be done here?
-        LOGGER.error("Codec error", mce);
+        throw new AssertionError("Codec error", mce);
       }
     }
 
-    if (invalidationHolder != null && clientsToInvalidate.isEmpty()) {
+    if (clientsToInvalidate.isEmpty()) {
       clientInvalidated(invalidationHolder.clientDescriptorWaitingForInvalidation, invalidationId);
     }
   }
@@ -474,23 +630,34 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void clientInvalidated(ClientDescriptor clientDescriptor, int invalidationId) {
     InvalidationHolder invalidationHolder = clientsWaitingForInvalidation.get(invalidationId);
 
-    if (ehcacheStateService.getStore(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
-      invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
-      if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
-        if (clientsWaitingForInvalidation.remove(invalidationId) != null) {
-          try {
-            Long key = invalidationHolder.key;
-            if (key == null) {
+    if (invalidationHolder == null) { // Happens when client is re-sending/sending invalidations for which server has lost track since fail-over happened.
+      LOGGER.debug("Ignoring invalidation from client {} " + clientDescriptor);
+      return;
+    }
+
+    invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
+    if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
+      if (clientsWaitingForInvalidation.remove(invalidationId) != null) {
+        try {
+          Long key = invalidationHolder.key;
+          boolean isStrong = ehcacheStateService.getStore(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG;
+          if (key == null) {
+            if (isStrong) {
               clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, allInvalidationDone(invalidationHolder.cacheId));
               LOGGER.debug("SERVER: notifying originating client that all other clients invalidated all in cache {} from {} (ID {})", invalidationHolder.cacheId, clientDescriptor, invalidationId);
             } else {
+              entityMessenger.messageSelf(new ClearInvalidationCompleteMessage(invalidationHolder.cacheId));
+            }
+          } else {
+            if (isStrong) {
               clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, hashInvalidationDone(invalidationHolder.cacheId, key));
               LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", key, invalidationHolder.cacheId, clientDescriptor, invalidationId);
+            } else {
+              entityMessenger.messageSelf(new InvalidationCompleteMessage(invalidationHolder.cacheId, key));
             }
-          } catch (MessageCodecException mce) {
-            //TODO: what should be done here?
-            LOGGER.error("Codec error", mce);
           }
+        } catch (MessageCodecException mce) {
+          throw new AssertionError("Codec error", mce);
         }
       }
     }
@@ -507,7 +674,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   @Override
   public void destroy() {
-
     /*
      * Ensure the allocated stores are closed out.
      */
@@ -535,8 +701,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    ehcacheStateService.configure(message);
+    if (ehcacheStateService.getClientMessageTracker().isConfigureApplicable(message.getClientId(), message.getId())) {
+      ehcacheStateService.configure(message.getConfiguration());
+    }
     this.clientStateMap.get(clientDescriptor).attach();
+    management.sharedPoolsConfigured();
   }
 
   /**
@@ -549,8 +718,22 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    ehcacheStateService.validate(message);
+    if (trackedClients.contains(message.getClientId())) {
+      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active paired with Client : " + clientDescriptor);
+    } else if (clientIdMap.get(clientDescriptor) != null) {
+      throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientIdMap.get(clientDescriptor));
+    }
+
+    addClientId(clientDescriptor, message.getClientId());
+    ehcacheStateService.validate(message.getConfiguration());
     this.clientStateMap.get(clientDescriptor).attach();
+    management.clientValidated(clientDescriptor, this.clientStateMap.get(clientDescriptor));
+  }
+
+  private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
+    LOGGER.info("Adding Client {} with client ID : {} ", clientDescriptor, clientId);
+    clientIdMap.put(clientDescriptor, clientId);
+    trackedClients.add(clientId);
   }
 
   /**
@@ -576,21 +759,29 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
       throw new LifecycleException("Clustered tier can't be created with an Unknown resource pool");
     }
-
+    boolean isDuplicate = isMessageDuplicate(createServerStore);
     final String name = createServerStore.getName();    // client cache identifier/name
+    ServerStoreImpl serverStore;
+    if (!isDuplicate) {
 
-    LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
+      LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
 
-    ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
+      ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
 
-    ServerStoreImpl serverStore = ehcacheStateService.createStore(name, storeConfiguration);
-    serverStore.setEvictionListener(new ServerStoreEvictionListener() {
-      @Override
-      public void onEviction(long key) {
-        invalidateHashAfterEviction(name, key);
-      }
-    });
+      serverStore = ehcacheStateService.createStore(name, storeConfiguration);
+
+      management.serverStoreCreated(name);
+    } else {
+      serverStore = ehcacheStateService.getStore(name);
+    }
+
+    serverStore.setEvictionListener(key -> invalidateHashAfterEviction(name, key));
     attachStore(clientDescriptor, name);
+    try {
+      entityMessenger.messageSelfAndDeferRetirement(createServerStore, new PassiveReplicationMessage.CreateServerStoreReplicationMessage(createServerStore));
+    } catch (MessageCodecException e) {
+      throw new AssertionError("Codec error", e);
+    }
   }
 
   /**
@@ -643,6 +834,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
       if (!removedFromClient) {
         throw new InvalidStoreException("Clustered tier '" + name + "' is not in use by client");
+      } else {
+        management.storeReleased(clientDescriptor, clientStateMap.get(clientDescriptor), name);
       }
     } else {
       throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
@@ -666,9 +859,24 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       throw new ResourceBusyException("Cannot destroy clustered tier '" + name + "': in use by " + clients.size() + " other client(s)");
     }
 
-    LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
-    ehcacheStateService.destroyServerStore(name);
+    boolean isDuplicate = isMessageDuplicate(destroyServerStore);
+
+    if (!isDuplicate) {
+      LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
+      management.serverStoreDestroyed(name);
+      ehcacheStateService.destroyServerStore(name);
+    }
+
     storeClientMap.remove(name);
+    try {
+      entityMessenger.messageSelfAndDeferRetirement(destroyServerStore, new PassiveReplicationMessage.DestroyServerStoreReplicationMessage(destroyServerStore));
+    } catch (MessageCodecException e) {
+      throw new AssertionError("Codec error", e);
+    }
+  }
+
+  private boolean isMessageDuplicate(EhcacheEntityMessage message) {
+    return ehcacheStateService.getClientMessageTracker().isDuplicate(message.getId(), message.getClientId());
   }
 
   /**
@@ -687,12 +895,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       Set<ClientDescriptor> clients = storeClientMap.get(storeId);
       Set<ClientDescriptor> newClients;
       if (clients == null) {
-        newClients = new HashSet<ClientDescriptor>();
+        newClients = new HashSet<>();
         newClients.add(clientDescriptor);
         updated = (storeClientMap.putIfAbsent(storeId, newClients) == null);
 
       } else if (!clients.contains(clientDescriptor)) {
-        newClients = new HashSet<ClientDescriptor>(clients);
+        newClients = new HashSet<>(clients);
         newClients.add(clientDescriptor);
         updated = storeClientMap.replace(storeId, clients, newClients);
 
@@ -706,6 +914,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientState.addStore(storeId);
 
     LOGGER.info("Client {} attached to clustered tier '{}'", clientDescriptor, storeId);
+
+    management.storeAttached(clientDescriptor, clientState, storeId);
   }
 
   /**
@@ -725,7 +935,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       Set<ClientDescriptor> clients = storeClientMap.get(storeId);
       if (clients != null && clients.contains(clientDescriptor)) {
         wasRegistered = true;
-        Set<ClientDescriptor> newClients = new HashSet<ClientDescriptor>(clients);
+        Set<ClientDescriptor> newClients = new HashSet<>(clients);
         newClients.remove(clientDescriptor);
         updated = storeClientMap.replace(storeId, clients, newClients);
       } else {
@@ -744,38 +954,27 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     return clientsWaitingForInvalidation;
   }
 
-  /**
-   * Represents a client's state against an {@link EhcacheActiveEntity}.
-   */
-  private static class ClientState {
-    /**
-     * Indicates if the client has either configured or validated with clustered store manager.
-     */
-    private boolean attached = false;
+  private static class InvalidationTuple {
+    private final ClientDescriptor clientDescriptor;
+    private final Set<Long> invalidationsInProgress;
+    private final boolean isClearInProgress;
 
-    /**
-     * The set of stores to which the client has attached.
-     */
-    private final Set<String> attachedStores = new HashSet<String>();
-
-    boolean isAttached() {
-      return attached;
+    InvalidationTuple(ClientDescriptor clientDescriptor, Set<Long> invalidationsInProgress, boolean isClearInProgress) {
+      this.clientDescriptor = clientDescriptor;
+      this.invalidationsInProgress = invalidationsInProgress;
+      this.isClearInProgress = isClearInProgress;
     }
 
-    void attach() {
-      this.attached = true;
+    ClientDescriptor getClientDescriptor() {
+      return clientDescriptor;
     }
 
-    boolean addStore(String storeName) {
-      return this.attachedStores.add(storeName);
+    Set<Long> getInvalidationsInProgress() {
+      return invalidationsInProgress;
     }
 
-    boolean removeStore(String storeName) {
-      return this.attachedStores.remove(storeName);
-    }
-
-    Set<String> getAttachedStores() {
-      return Collections.unmodifiableSet(new HashSet<String>(this.attachedStores));
+    boolean isClearInProgress() {
+      return isClearInProgress;
     }
   }
 

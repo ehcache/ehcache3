@@ -76,18 +76,7 @@ public class EhcacheCachingProvider implements CachingProvider {
       }
     }
 
-    Configuration config;
-    try {
-      if (URI_DEFAULT.equals(uri)) {
-        config = new DefaultConfiguration(classLoader);
-      } else {
-        config = new XmlConfiguration(uri.toURL(), classLoader);
-      }
-    } catch (Exception e) {
-      throw new javax.cache.CacheException(e);
-    }
-
-    return getCacheManager(uri, config, properties);
+    return getCacheManager(new ConfigSupplier(uri, classLoader), properties);
   }
 
   /**
@@ -98,8 +87,8 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config) {
-    return getCacheManager(uri, config, new Properties());
+  public CacheManager getCacheManager(URI uri, Configuration config) {
+    return getCacheManager(new ConfigSupplier(uri, config), new Properties());
   }
 
   /**
@@ -112,10 +101,15 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
+  public CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
+    return getCacheManager(new ConfigSupplier(uri, config), properties);
+  }
+
+  Eh107CacheManager getCacheManager(ConfigSupplier configSupplier, Properties properties) {
     Eh107CacheManager cacheManager;
     ConcurrentMap<URI, Eh107CacheManager> byURI;
-    ClassLoader classLoader = config.getClassLoader();
+    final ClassLoader classLoader = configSupplier.getClassLoader();
+    final URI uri = configSupplier.getUri();
 
     synchronized (cacheManagers) {
       byURI = cacheManagers.get(classLoader);
@@ -131,7 +125,7 @@ public class EhcacheCachingProvider implements CachingProvider {
           byURI.remove(uri, cacheManager);
         }
 
-        cacheManager = createCacheManager(uri, config, properties);
+        cacheManager = createCacheManager(uri, configSupplier.getConfiguration(), properties);
         byURI.put(uri, cacheManager);
       }
     }
@@ -294,6 +288,47 @@ public class EhcacheCachingProvider implements CachingProvider {
       clone.put(entry.getKey(), entry.getValue());
     }
     return clone;
+  }
+
+  static class ConfigSupplier {
+    private final URI uri;
+    private final ClassLoader classLoader;
+    private Configuration configuration;
+
+    public ConfigSupplier(URI uri, ClassLoader classLoader) {
+      this.uri = uri;
+      this.classLoader = classLoader;
+      this.configuration = null;
+    }
+
+    public ConfigSupplier(URI uri, Configuration configuration) {
+      this.uri = uri;
+      this.classLoader = configuration.getClassLoader();
+      this.configuration = configuration;
+    }
+
+    public URI getUri() {
+      return uri;
+    }
+
+    public ClassLoader getClassLoader() {
+      return classLoader;
+    }
+
+    public Configuration getConfiguration() {
+      if(configuration == null) {
+        try {
+          if (URI_DEFAULT.equals(uri)) {
+            configuration = new DefaultConfiguration(classLoader);
+          } else {
+            configuration = new XmlConfiguration(uri.toURL(), classLoader);
+          }
+        } catch (Exception e) {
+          throw new javax.cache.CacheException(e);
+        }
+      }
+      return configuration;
+    }
   }
 
 }

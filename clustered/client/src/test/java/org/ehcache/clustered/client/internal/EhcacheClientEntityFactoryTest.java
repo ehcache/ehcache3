@@ -22,7 +22,10 @@ import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigu
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.terracotta.connection.Connection;
 
 import static org.hamcrest.core.Is.is;
@@ -44,12 +47,21 @@ import org.terracotta.exception.EntityNotFoundException;
 
 public class EhcacheClientEntityFactoryTest {
 
+  @Mock
+  private EntityRef<EhcacheClientEntity, Object> entityRef;
+  @Mock
+  private EhcacheClientEntity entity;
+  @Mock
+  private Connection connection;
+
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
+  }
+
   @Test
   public void testCreate() throws Exception {
-    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(entity);
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -63,11 +75,8 @@ public class EhcacheClientEntityFactoryTest {
 
   @Test
   public void testCreateBadConfig() throws Exception {
-    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(entity);
     doThrow(ClusteredTierManagerConfigurationException.class).when(entity).configure(any(ServerSideConfiguration.class));
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -87,9 +96,7 @@ public class EhcacheClientEntityFactoryTest {
 
   @Test
   public void testCreateWhenExisting() throws Exception {
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any());
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -105,10 +112,7 @@ public class EhcacheClientEntityFactoryTest {
 
   @Test
   public void testRetrieve() throws Exception {
-    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(entity);
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -121,11 +125,8 @@ public class EhcacheClientEntityFactoryTest {
 
   @Test
   public void testRetrieveFailedValidate() throws Exception {
-    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(entity);
     doThrow(IllegalArgumentException.class).when(entity).validate(any(ServerSideConfiguration.class));
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -142,11 +143,10 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testRetrieveWhenNotExisting() throws Exception {
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenThrow(EntityNotFoundException.class);
     doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any());
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -162,9 +162,7 @@ public class EhcacheClientEntityFactoryTest {
 
   @Test
   public void testDestroy() throws Exception {
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     doReturn(Boolean.TRUE).when(entityRef).destroy();
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -176,9 +174,7 @@ public class EhcacheClientEntityFactoryTest {
 
   @Test
   public void testDestroyWhenNotExisting() throws Exception {
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     doThrow(EntityNotFoundException.class).when(entityRef).destroy();
-    Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -199,6 +195,7 @@ public class EhcacheClientEntityFactoryTest {
   private static void addMockLock(Connection connection, String lockname, boolean result, Boolean ... results) throws Exception {
     VoltronReadWriteLockClient lock = mock(VoltronReadWriteLockClient.class);
     when(lock.tryLock(any(HoldType.class))).thenReturn(result, results);
+    @SuppressWarnings("unchecked")
     EntityRef<VoltronReadWriteLockClient, Object> interlockRef = mock(EntityRef.class);
     when(connection.getEntityRef(eq(VoltronReadWriteLockClient.class), anyInt(), eq(lockname))).thenReturn(interlockRef);
     when(interlockRef.fetchEntity()).thenReturn(lock);

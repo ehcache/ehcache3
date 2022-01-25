@@ -31,9 +31,10 @@ import org.slf4j.LoggerFactory;
 public class EhcacheTest extends CacheTest {
 
   @Override
-  protected InternalCache<Object, Object> getCache(Store store) {
+  protected InternalCache<Object, Object> getCache(Store<Object, Object> store) {
     final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
         null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    @SuppressWarnings("unchecked")
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     return new Ehcache<Object, Object>(config, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest"));
   }

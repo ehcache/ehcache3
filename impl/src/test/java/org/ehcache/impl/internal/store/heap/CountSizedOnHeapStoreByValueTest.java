@@ -21,6 +21,7 @@ import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.TimeSource;
@@ -47,6 +48,7 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final Copier<K> keyCopier, final Copier<V> valueCopier, final int capacity) {
+    StoreEventDispatcher<K, V> eventDispatcher = getStoreEventDispatcher();
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
 
       @SuppressWarnings("unchecked")

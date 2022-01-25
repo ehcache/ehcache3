@@ -33,6 +33,7 @@ public class SerializeAfterEvolutionTest {
 
   @Test
   public void test() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
     s.init(new TransientStateRepository());
 

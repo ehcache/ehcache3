@@ -28,6 +28,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.ResourcePoolsImpl;
 import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -46,6 +47,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
@@ -59,12 +62,13 @@ public class ClusteredStoreProviderTest {
   @Test
   public void testRank() throws Exception {
     ClusteredStore.Provider provider = new ClusteredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(
-        new TieredStore.Provider(),
-        new OnHeapStore.Provider(),
-        new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider(),
-        mock(ClusteringService.class));
+    ServiceLocator serviceLocator = dependencySet()
+      .with(new TieredStore.Provider())
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(mock(DiskResourceService.class))
+      .with(new OffHeapDiskStore.Provider())
+      .with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
     assertRank(provider, 1, ClusteredResourceType.Types.DEDICATED);
@@ -77,13 +81,14 @@ public class ClusteredStoreProviderTest {
   @Test
   public void testRankTiered() throws Exception {
     TieredStore.Provider provider = new TieredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(
-        provider,
-        new ClusteredStore.Provider(),
-        new OnHeapStore.Provider(),
-        new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider(),
-        mock(ClusteringService.class));
+    ServiceLocator serviceLocator = dependencySet()
+      .with(provider)
+      .with(new ClusteredStore.Provider())
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(new OffHeapDiskStore.Provider())
+      .with(mock(DiskResourceService.class))
+      .with(mock(ClusteringService.class)).build();
     serviceLocator.startAllServices();
 
     assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK);
@@ -115,12 +120,12 @@ public class ClusteredStoreProviderTest {
   @Test
   public void testAuthoritativeRank() throws Exception {
     ClusteredStore.Provider provider = new ClusteredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(mock(ClusteringService.class));
+    ServiceLocator serviceLocator = dependencySet().with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.EMPTY_LIST), is(1));
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.EMPTY_LIST), is(1));
-    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.EMPTY_LIST), is(0));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.<ServiceConfiguration<?>>emptyList()), is(0));
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
@@ -168,6 +173,7 @@ public class ClusteredStoreProviderTest {
       }
 
       @Override
+      @SuppressWarnings("unchecked")
       public ResourcePools getResourcePools() {
         Map<ClusteredResourceType<DedicatedClusteredResourcePool>, DedicatedClusteredResourcePoolImpl> poolMap = Collections
             .singletonMap(ClusteredResourceType.Types.DEDICATED, new DedicatedClusteredResourcePoolImpl("test", 10, MemoryUnit.MB));

@@ -19,93 +19,73 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.SequencedElement;
+import org.ehcache.clustered.common.internal.store.Util;
+import org.terracotta.runnel.Struct;
+import org.terracotta.runnel.StructBuilder;
+import org.terracotta.runnel.decoding.StructArrayDecoder;
+import org.terracotta.runnel.decoding.StructDecoder;
+import org.terracotta.runnel.encoding.StructArrayEncoder;
+import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.ehcache.clustered.common.internal.store.Util.getElement;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
+public class ChainCodec {
 
-class ChainCodec {
+  private static final Struct ELEMENT_STRUCT = StructBuilder.newStructBuilder()
+    .int64("sequence", 10)
+    .byteBuffer("payload", 20)
+    .build();
 
-  private static final byte NON_SEQUENCED_CHAIN = 0;
-  private static final byte SEQUENCED_CHAIN = 1;
-  private static final byte SEQ_NUM_OFFSET = 8;
-  private static final byte ELEMENT_PAYLOAD_OFFSET = 4;
+  public static final Struct CHAIN_STRUCT = StructBuilder.newStructBuilder()
+    .structs("elements", 10, ELEMENT_STRUCT)
+    .build();
 
-  //TODO: optimize too many bytebuffer allocation
   public byte[] encode(Chain chain) {
-    ByteBuffer msg = null;
-    boolean firstIteration = true ;
+    StructEncoder encoder = CHAIN_STRUCT.encoder();
+
+    encode(encoder, chain);
+
+    ByteBuffer byteBuffer = encoder.encode();
+    return byteBuffer.array();
+  }
+
+  public void encode(StructEncoder encoder, Chain chain) {
+    StructArrayEncoder elementsEncoder = encoder.structs("elements");
     for (Element element : chain) {
-      if (firstIteration) {
-        firstIteration = false;
-        ByteBuffer buffer = ByteBuffer.allocate(1);
-        if (element instanceof SequencedElement) {
-          buffer.put(SEQUENCED_CHAIN);
-        } else {
-          buffer.put(NON_SEQUENCED_CHAIN);
-        }
-        buffer.flip();
-        msg = combine(buffer, encodeElement(element));
-        continue;
+      if (element instanceof SequencedElement) {
+        elementsEncoder.int64("sequence", ((SequencedElement) element).getSequenceNumber());
       }
-      if (msg == null) {
-        throw new IllegalArgumentException("Message cannot be null");
-      }
-      msg = combine(msg, encodeElement(element));
+      elementsEncoder.byteBuffer("payload", element.getPayload());
+      elementsEncoder.next();
     }
-    return msg != null ? msg.array() : new byte[0];
   }
 
   public Chain decode(byte[] payload) {
+    StructDecoder decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
+    return decode(decoder);
+  }
+
+  public Chain decode(StructDecoder decoder) {
+    StructArrayDecoder elementsDecoder = decoder.structs("elements");
+
     final List<Element> elements = new ArrayList<Element>();
-    if (payload.length != 0) {
-      ByteBuffer buffer = ByteBuffer.wrap(payload);
-      boolean isSequenced = buffer.get() == 1;
-      if (isSequenced) {
-        while (buffer.hasRemaining()) {
-          long sequence = buffer.getLong();
-          elements.add(getElement(sequence, getElementPayLoad(buffer)));
-        }
+    for (int i = 0; i < elementsDecoder.length(); i++) {
+      Long sequence = elementsDecoder.int64("sequence");
+      ByteBuffer byteBuffer = elementsDecoder.byteBuffer("payload");
+      Element element;
+      if (sequence != null) {
+        element = Util.getElement(sequence, byteBuffer);
       } else {
-        while (buffer.hasRemaining()) {
-          elements.add(getElement(getElementPayLoad(buffer)));
-        }
+        element = Util.getElement(byteBuffer);
       }
+      elements.add(element);
+      elementsDecoder.next();
     }
-    return getChain(elements);
-  }
 
-  private static ByteBuffer combine(ByteBuffer buffer1, ByteBuffer buffer2) {
-    ByteBuffer byteBuffer = ByteBuffer.allocate(buffer1.remaining() + buffer2.remaining());
-    byteBuffer.put(buffer1);
-    byteBuffer.put(buffer2);
-    byteBuffer.flip();
-    return byteBuffer;
-  }
+    elementsDecoder.end();
 
-  private static ByteBuffer encodeElement(Element element) {
-    ByteBuffer buffer = null;
-    if (element instanceof SequencedElement) {
-      buffer = ByteBuffer.allocate(SEQ_NUM_OFFSET + ELEMENT_PAYLOAD_OFFSET + element.getPayload().remaining());
-      buffer.putLong(((SequencedElement)element).getSequenceNumber());
-    } else {
-      buffer = ByteBuffer.allocate(ELEMENT_PAYLOAD_OFFSET + element.getPayload().remaining());
-    }
-    buffer.putInt(element.getPayload().remaining());
-    buffer.put(element.getPayload());
-    buffer.flip();
-    return buffer;
-  }
-
-  private static ByteBuffer getElementPayLoad(ByteBuffer buffer) {
-    int payloadSize = buffer.getInt();
-    buffer.limit(buffer.position() + payloadSize);
-    ByteBuffer elementPayload = buffer.slice();
-    buffer.position(buffer.limit());
-    buffer.limit(buffer.capacity());
-    return elementPayload;
+    return Util.getChain(elements);
   }
 }

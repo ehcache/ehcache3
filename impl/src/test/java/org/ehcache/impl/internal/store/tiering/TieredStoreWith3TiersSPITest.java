@@ -71,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -126,7 +127,8 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
             evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
-        final Copier defaultCopier = new IdentityCopier();
+        @SuppressWarnings("unchecked")
+        final Copier<String> defaultCopier = new IdentityCopier();
 
         StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
         final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
@@ -318,9 +320,8 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
-        serviceLocator.addService(new FakeCachingTierProvider());
-        serviceLocator.addService(new FakeAuthoritativeTierProvider());
+        ServiceLocator serviceLocator = dependencySet().with(new FakeCachingTierProvider())
+          .with(new FakeAuthoritativeTierProvider()).build();
         return serviceLocator;
       }
     };
@@ -355,6 +356,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {
     @Override
+    @SuppressWarnings("unchecked")
     public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return mock(CachingTier.class);
     }
@@ -387,6 +389,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
   public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
     @Override
+    @SuppressWarnings("unchecked")
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return mock(AuthoritativeTier.class);
     }

@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Writers
-ifndef::sourcedir31[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -69,10 +69,10 @@ maximum write delay::
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
 ----
 
-<1> We register a sample `CacheLoaderWriter` who knows about the mapping `(41L -> "zero")`
+<1> We register a sample `CacheLoaderWriter` that knows about the mapping `(41L -> "zero")`
 <2> Since the cache has no content yet, this will delegate to the `CacheLoaderWriter`.
     The returned mapping will populate the cache and be returned to the caller.
 <3> While creating this cache mapping, the `CacheLoaderWriter` will be invoked to write the mapping into the system of record.
@@ -81,12 +81,12 @@ include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
 <1> For write-behind you need a configured `CacheLoaderWriter`.
 <2> Additionally, register a `WriteBehindConfiguration` on the cache by using the `WriteBehindConfigurationBuilder`.
-<3> Here we configure write behind or batching with a batch size of 3 and a maximum write delay of 1 second.
+<3> Here we configure write-behind or batching with a batch size of 3 and a maximum write delay of 1 second.
 <4> We also set the maximum size of the write-behind queue.
 <5> Define the concurrency level of write-behind queue(s).
     This indicates how many writer threads work in parallel to update the  underlying system of record asynchronously.

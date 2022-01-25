@@ -18,87 +18,133 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.junit.Test;
 
+
+import java.util.UUID;
+
+import static java.nio.ByteBuffer.wrap;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
-/**
- *
- */
 public class ServerStoreOpCodecTest {
 
-  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory("test");
+  private static final UUID CLIENT_ID = UUID.randomUUID();
+  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory("test", CLIENT_ID);
   private static final ServerStoreOpCodec STORE_OP_CODEC = new ServerStoreOpCodec();
 
   @Test
   public void testAppendMessageCodec() {
 
-    EhcacheEntityMessage appendMessage = MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
+    ServerStoreOpMessage.AppendMessage appendMessage = MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
+    appendMessage.setId(42L);
 
-    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)appendMessage));
+    byte[] encoded = STORE_OP_CODEC.encode(appendMessage);
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(appendMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.AppendMessage decodedAppendMessage = (ServerStoreOpMessage.AppendMessage) decodedMsg;
 
     assertThat(decodedAppendMessage.getCacheId(), is("test"));
     assertThat(decodedAppendMessage.getKey(), is(1L));
     assertThat(readPayLoad(decodedAppendMessage.getPayload()), is(1L));
+    assertThat(decodedAppendMessage.getId(), is(42L));
+    assertThat(decodedAppendMessage.getClientId(), is(CLIENT_ID));
+    assertThat(decodedAppendMessage.getMessageType(), is(EhcacheMessageType.APPEND));
   }
 
   @Test
   public void testGetMessageCodec() {
-    EhcacheEntityMessage getMessage = MESSAGE_FACTORY.getOperation(2L);
+    ServerStoreOpMessage getMessage = MESSAGE_FACTORY.getOperation(2L);
+    getMessage.setId(42L);
 
-    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)getMessage));
+    byte[] encoded = STORE_OP_CODEC.encode(getMessage);
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(getMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.GetMessage decodedGetMessage = (ServerStoreOpMessage.GetMessage) decodedMsg;
 
     assertThat(decodedGetMessage.getCacheId(), is("test"));
     assertThat(decodedGetMessage.getKey(), is(2L));
+    assertThat(decodedGetMessage.getId(), is(42L));
+    assertThat(decodedGetMessage.getMessageType(), is(EhcacheMessageType.GET_STORE));
+    try {
+      decodedGetMessage.getClientId();
+      fail("AssertionError expected");
+    } catch (AssertionError error) {
+      assertThat(error.getMessage(), containsString("Client Id is not supported"));
+    }
+
   }
 
   @Test
   public void testGetAndAppendMessageCodec() {
-    EhcacheEntityMessage getAndAppendMessage = MESSAGE_FACTORY.getAndAppendOperation(10L, createPayload(10L));
+    ServerStoreOpMessage getAndAppendMessage = MESSAGE_FACTORY.getAndAppendOperation(10L, createPayload(10L));
+    getAndAppendMessage.setId(123L);
 
-    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)getAndAppendMessage));
+    byte[] encoded = STORE_OP_CODEC.encode(getAndAppendMessage);
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(getAndAppendMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.GetAndAppendMessage decodedGetAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage) decodedMsg;
 
     assertThat(decodedGetAndAppendMessage.getCacheId(), is("test"));
     assertThat(decodedGetAndAppendMessage.getKey(), is(10L));
     assertThat(readPayLoad(decodedGetAndAppendMessage.getPayload()), is(10L));
+    assertThat(decodedGetAndAppendMessage.getId(), is(123L));
+    assertThat(decodedGetAndAppendMessage.getClientId(), is(CLIENT_ID));
+    assertThat(decodedGetAndAppendMessage.getMessageType(), is(EhcacheMessageType.GET_AND_APPEND));
   }
 
   @Test
   public void testReplaceAtHeadMessageCodec() {
-    EhcacheEntityMessage replaceAtHeadMessage = MESSAGE_FACTORY.replaceAtHeadOperation(10L,
+    ServerStoreOpMessage replaceAtHeadMessage = MESSAGE_FACTORY.replaceAtHeadOperation(10L,
         getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
         getChain(false, createPayload(2000L)));
+    replaceAtHeadMessage.setId(42L);
 
-    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)replaceAtHeadMessage));
+    byte[] encoded = STORE_OP_CODEC.encode(replaceAtHeadMessage);
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(replaceAtHeadMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.ReplaceAtHeadMessage decodedReplaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) decodedMsg;
 
     assertThat(decodedReplaceAtHeadMessage.getCacheId(), is("test"));
     assertThat(decodedReplaceAtHeadMessage.getKey(), is(10L));
+    assertThat(decodedReplaceAtHeadMessage.getId(), is(42L));
     Util.assertChainHas(decodedReplaceAtHeadMessage.getExpect(), 10L, 100L, 1000L);
     Util.assertChainHas(decodedReplaceAtHeadMessage.getUpdate(), 2000L);
+    assertThat(decodedReplaceAtHeadMessage.getClientId(), is(CLIENT_ID));
+    assertThat(decodedReplaceAtHeadMessage.getMessageType(), is(EhcacheMessageType.REPLACE));
   }
 
   @Test
   public void testClearMessageCodec() throws Exception {
-    EhcacheEntityMessage clearMessage = MESSAGE_FACTORY.clearOperation();
-    byte[] encodedBytes = STORE_OP_CODEC.encode((ServerStoreOpMessage)clearMessage);
-    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(encodedBytes);
-    assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
+    ServerStoreOpMessage clearMessage = MESSAGE_FACTORY.clearOperation();
+    clearMessage.setId(42L);
+
+    byte[] encoded = STORE_OP_CODEC.encode(clearMessage);
+    ServerStoreOpMessage decodedMsg = (ServerStoreOpMessage) STORE_OP_CODEC.decode(clearMessage.getMessageType(), wrap(encoded));
+
+    assertThat(decodedMsg.getCacheId(), is("test"));
+    assertThat(decodedMsg.getId(), is(42L));
+    assertThat(decodedMsg.getClientId(), is(CLIENT_ID));
+    assertThat(decodedMsg.getMessageType(), is(EhcacheMessageType.CLEAR));
   }
 
   @Test
   public void testClientInvalidationAckMessageCodec() throws Exception {
-    EhcacheEntityMessage invalidationAckMessage = MESSAGE_FACTORY.clientInvalidationAck(123);
-    byte[] encodedBytes = STORE_OP_CODEC.encode((ServerStoreOpMessage)invalidationAckMessage);
-    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(encodedBytes);
+    ServerStoreOpMessage invalidationAckMessage = MESSAGE_FACTORY.clientInvalidationAck(123);
+    invalidationAckMessage.setId(456L);
+
+    byte[] encoded = STORE_OP_CODEC.encode(invalidationAckMessage);
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(invalidationAckMessage.getMessageType(), wrap(encoded));
     ServerStoreOpMessage.ClientInvalidationAck decodedInvalidationAckMessage = (ServerStoreOpMessage.ClientInvalidationAck)decodedMsg;
 
     assertThat(decodedInvalidationAckMessage.getCacheId(), is("test"));
     assertThat(decodedInvalidationAckMessage.getInvalidationId(), is(123));
+    assertThat(decodedInvalidationAckMessage.getId(), is(456L));
+    assertThat(decodedInvalidationAckMessage.getMessageType(), is(EhcacheMessageType.CLIENT_INVALIDATION_ACK));
+    try {
+      decodedInvalidationAckMessage.getClientId();
+      fail("AssertionError expected");
+    } catch (AssertionError error) {
+      assertThat(error.getMessage(), containsString("Client Id is not supported"));
+    }
   }
 }

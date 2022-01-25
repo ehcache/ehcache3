@@ -21,7 +21,6 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -29,10 +28,13 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistOwnerClosedExpected;
-import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistsOwnerOpenExpected;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -63,6 +65,15 @@ public class PersistentCacheManagerTest {
   public void testInitializesLocalPersistenceService() throws IOException {
     builder.build(true);
     assertTrue(rootDirectory.isDirectory());
+    assertThat(Arrays.asList(rootDirectory.list()), contains(".lock"));
+  }
+
+  @Test
+  public void testInitializesLocalPersistenceServiceAndCreateCache() throws IOException {
+    buildCacheManagerWithCache(true);
+
+    assertThat(rootDirectory, isLocked());
+    assertThat(rootDirectory, containsCacheDirectory(TEST_CACHE_ALIAS));
   }
 
   @Test
@@ -81,49 +92,77 @@ public class PersistentCacheManagerTest {
 
   @Test
   public void testDestroyCache_Initialized_DestroyExistingCache() throws CachePersistenceException {
-    PersistentCacheManager manager = builder
-      .withCache(TEST_CACHE_ALIAS,
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
-      .build(true);
-    assertThat(rootDirectory, fileExistsOwnerOpenExpected(1, TEST_CACHE_ALIAS));
+    PersistentCacheManager manager = buildCacheManagerWithCache(true);
+
     manager.destroyCache(TEST_CACHE_ALIAS);
-    assertThat(rootDirectory, fileExistsOwnerOpenExpected(0, TEST_CACHE_ALIAS));
+
+    assertThat(rootDirectory, isLocked());
+    assertThat(rootDirectory, not(containsCacheDirectory(TEST_CACHE_ALIAS)));
   }
 
-  @Ignore("Ignoring as currently no support for destroying cache on a closed cache manager")
+
   @Test
   public void testDestroyCache_Uninitialized_DestroyExistingCache() throws CachePersistenceException {
-    PersistentCacheManager manager = builder
+    PersistentCacheManager manager = buildCacheManagerWithCache(true);
+
+    manager.close();
+    manager.destroyCache(TEST_CACHE_ALIAS);
+
+    assertThat(rootDirectory, not(isLocked()));
+    assertThat(rootDirectory, not(containsCacheDirectory(TEST_CACHE_ALIAS)));
+  }
+
+  @Test
+  public void testDestroyCache_CacheManagerUninitialized() throws CachePersistenceException {
+    PersistentCacheManager manager = buildCacheManagerWithCache(false);
+
+    manager.destroyCache(TEST_CACHE_ALIAS);
+
+    assertThat(rootDirectory, not(isLocked()));
+    assertThat(rootDirectory, not(containsCacheDirectory(TEST_CACHE_ALIAS)));
+  }
+
+  @Test
+  public void testClose_DiskCacheLockReleased() throws CachePersistenceException {
+    PersistentCacheManager manager = buildCacheManagerWithCache(true);
+
+    // Should lock the file when the CacheManager is opened
+    assertThat(rootDirectory, isLocked());
+
+    manager.close(); // pass it to uninitialized
+
+    // Should unlock the file when the CacheManager is closed
+    assertThat(rootDirectory, not(isLocked()));
+  }
+
+  @Test
+  public void testCloseAndThenOpenOnTheSameFile() throws CachePersistenceException {
+    // Open a CacheManager that will create a cache, close it and put it out of scope
+    {
+      PersistentCacheManager manager = buildCacheManagerWithCache(true);
+      manager.close();
+    }
+    //  Create a new CacheManager that will have the same cache. The cache should be there but the cache manager unlocked since the CacheManager isn't started
+    {
+      PersistentCacheManager manager = builder.build(false);
+      assertThat(rootDirectory, not(isLocked()));
+      assertThat(rootDirectory, containsCacheDirectory(TEST_CACHE_ALIAS));
+    }
+  }
+
+  public static class A {
+
+    public A() throws IOException {
+      throw new IOException("..");
+    }
+
+  }
+
+  private PersistentCacheManager buildCacheManagerWithCache(boolean init) {
+    return builder
       .withCache(TEST_CACHE_ALIAS,
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
-      .build(true);
-    assertThat(rootDirectory, fileExistsOwnerOpenExpected(1, TEST_CACHE_ALIAS));
-    manager.close(); // pass it to uninitialized
-    assertThat(rootDirectory, fileExistOwnerClosedExpected(1, TEST_CACHE_ALIAS));
-    manager.destroyCache(TEST_CACHE_ALIAS);
-    assertThat(rootDirectory, fileExistOwnerClosedExpected(0, TEST_CACHE_ALIAS));
-  }
-
-  @Ignore("Ignoring as currently no support for destroying cache on a closed cache manager")
-  @Test
-  public void testDestroyCache_CacheManagerUninitialized() throws CachePersistenceException {
-    {
-      PersistentCacheManager manager = builder
-        .withCache(TEST_CACHE_ALIAS,
-          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
-        .build(true);
-      assertThat(rootDirectory, fileExistsOwnerOpenExpected(1, TEST_CACHE_ALIAS));
-      manager.close(); // pass it to uninitialized
-      assertThat(rootDirectory, fileExistOwnerClosedExpected(1, TEST_CACHE_ALIAS));
-    }
-    {
-      PersistentCacheManager manager = builder.build(false);
-      assertThat(rootDirectory, fileExistOwnerClosedExpected(1, TEST_CACHE_ALIAS));
-      manager.destroyCache(TEST_CACHE_ALIAS);
-      assertThat(rootDirectory, fileExistOwnerClosedExpected(0, TEST_CACHE_ALIAS));
-    }
+      .build(init);
   }
 }

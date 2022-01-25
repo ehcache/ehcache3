@@ -16,6 +16,12 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.ehcache.clustered.common.internal.store.Element;
 
@@ -30,6 +36,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.junit.Test;
 
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
+import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import org.terracotta.offheapstore.storage.portability.StringPortability;
@@ -359,6 +366,50 @@ public class ChainMapTest {
     map.put("key", chain(buffer(1), buffer(2)));
 
     assertThat(map.get("key"), contains(element(1), element(2)));
+  }
+
+  @Test
+  public void testActiveChainsThreadSafety() throws ExecutionException, InterruptedException {
+    UnlimitedPageSource source = new UnlimitedPageSource(new OffHeapBufferSource());
+    OffHeapChainStorageEngine<String> chainStorage = new OffHeapChainStorageEngine<>(source, StringPortability.INSTANCE, minPageSize, maxPageSize, steal, steal);
+
+    OffHeapChainMap.HeadMap<String> heads = new OffHeapChainMap.HeadMap<>(callable -> {}, source, chainStorage);
+
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
+
+    map.put("key", chain(buffer(1), buffer(2)));
+
+    int nThreads = 10;
+    ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+
+    List<Future> futures = new ArrayList<>();
+
+    for (int i = 0; i < nThreads ; i++) {
+      futures.add(executorService.submit(() -> map.get("key")));
+    }
+
+    for (Future f : futures) {
+      f.get();
+    }
+
+    assertThat(chainStorage.getActiveChains().size(), is(0));
+
+  }
+
+  @Test
+  public void testPutDoesNotLeakWhenMappingIsNotNull() {
+    UnlimitedPageSource source = new UnlimitedPageSource(new OffHeapBufferSource());
+    OffHeapChainStorageEngine<String> chainStorage = new OffHeapChainStorageEngine<>(source, StringPortability.INSTANCE, minPageSize, maxPageSize, steal, steal);
+
+    OffHeapChainMap.HeadMap<String> heads = new OffHeapChainMap.HeadMap<>(callable -> {}, source, chainStorage);
+
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
+
+    map.put("key", chain(buffer(1)));
+    map.put("key", chain(buffer(2)));
+
+    assertThat(chainStorage.getActiveChains().size(), is(0));
+
   }
 
   private static ByteBuffer buffer(int i) {
