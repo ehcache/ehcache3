@@ -165,4 +165,19 @@ public class ClusteringServiceConfigurationTest {
     assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER)
         .builder(CacheManagerBuilder.newCacheManagerBuilder())).isExactlyInstanceOf(CacheManagerBuilder.class);
   }
+
+  @Test
+  public void testReadableString() {
+    ClusteringServiceConfiguration cfg;
+
+    cfg = new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER);
+    assertThat(cfg.readableString()).isNotNull();
+
+    cfg = new ClusteringServiceConfiguration(DEFAULT_URI);
+    assertThat(cfg.readableString()).isNotNull();
+
+    cfg = new ClusteringServiceConfiguration(DEFAULT_URI, TimeoutsBuilder.timeouts().build());
+    assertThat(cfg.readableString()).isNotNull();
+  }
+
 }

@@ -58,7 +58,7 @@ public class LoaderWriterStoreProvider implements WrapperStore.Provider {
     CacheLoaderWriter<? super K, V> decorator;
 
     WriteBehindConfiguration writeBehindConfiguration =
-      ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, serviceConfigs);
+      ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, (Object[]) serviceConfigs);
     if(writeBehindConfiguration == null) {
       decorator = cacheLoaderWriter;
     } else {

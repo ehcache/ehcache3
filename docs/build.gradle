@@ -15,13 +15,14 @@
  */
 
 plugins {
-  id 'org.asciidoctor.convert' version '1.5.3'
+  // Use 1.5.9.1 for now and wait for 1.5.9.3. The 1.5.9.2 prints annoying false warnings
+  id 'org.asciidoctor.convert' version '1.5.9.1'
   id 'org.kordamp.gradle.livereload' version '0.2.1'
-  id 'com.github.jruby-gradle.base' version '1.5.0'
+  id 'com.github.jruby-gradle.base' version '1.6.0'
 }
 
 dependencies {
-  gems 'rubygems:asciidoctor-diagram:1.5.4'
+  gems 'rubygems:asciidoctor-diagram:1.5.11'
 }
 
 configurations.asciidoctor.dependencies.matching({it.group == 'org.asciidoctor' && it.name == 'asciidoctorj-groovy-dsl'}).all {
@@ -45,7 +46,7 @@ task copyImages(type: Copy) {
 asciidoctor.dependsOn copyCSS, copyImages
 
 asciidoctorj {
-  version = '1.5.5'
+  version = '1.5.8.1'
 }
 
 asciidoctor {
