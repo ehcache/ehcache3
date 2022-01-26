@@ -42,6 +42,8 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -55,6 +57,8 @@ import static org.ehcache.core.exceptions.StorePassThroughException.handleExcept
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusteredWriteBehindStore.class);
 
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final ClusteredWriteBehind<K, V> clusteredWriteBehind;
@@ -72,6 +76,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
                                                          resolver,
                                                          this.cacheLoaderWriter,
                                                          codec);
+    LOGGER.warn("Write-behind caches using clustered resources have unresolved correctness issues. This can lead to dropped writes due to either client failure or heavy eviction rates.");
   }
 
 
