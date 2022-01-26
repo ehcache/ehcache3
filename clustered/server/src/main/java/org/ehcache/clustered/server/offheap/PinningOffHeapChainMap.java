@@ -16,12 +16,14 @@
 package org.ehcache.clustered.server.offheap;
 
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.server.offheap.InternalChain.ReplaceResponse;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Supplier;
 
 /**
  * This class is used in WriteBehind implementation
@@ -32,119 +34,60 @@ public class PinningOffHeapChainMap<K> extends OffHeapChainMap<K> {
     super(source, keyPortability, minPageSize, maxPageSize, shareByThieving);
   }
 
+  @Override
   public Chain getAndAppend(K key, ByteBuffer element) {
-    final Lock lock = heads.writeLock();
-    lock.lock();
-    try {
-      while (true) {
-        InternalChain chain = heads.get(key);
-        if (chain == null) {
-          heads.putPinned(key, chainStorage.newChain(element));
-          return EMPTY_CHAIN;
-        } else {
-          try {
-            Chain current = chain.detach();
-            if (chain.append(element)) {
-              heads.setPinning(key, true);
-              return current;
-            } else {
-              evict();
-            }
-          } finally {
-            chain.close();
-          }
-        }
-      }
-    } finally {
-      lock.unlock();
-    }
+    return execute(key, () -> super.getAndAppend(key, element));
   }
 
+  @Override
   public void append(K key, ByteBuffer element) {
-    final Lock lock = heads.writeLock();
-    lock.lock();
-    try {
-      while (true) {
-        InternalChain chain = heads.get(key);
-        if (chain == null) {
-          heads.putPinned(key, chainStorage.newChain(element));
-          return;
-        } else {
-          try {
-            if (chain.append(element)) {
-              heads.setPinning(key, true);
-              return;
-            } else {
-              evict();
-            }
-          } finally {
-            chain.close();
-          }
-        }
-      }
-    } finally {
-      lock.unlock();
-    }
-
+    execute(key, () -> {
+      super.append(key, element);
+      return null;
+    });
   }
 
-  public void replaceAtHead(K key, Chain expected, Chain replacement) {
-    replaceAtHead(key, expected, replacement, true);
-  }
-
+  @Override
   public void put(K key, Chain chain) {
+    execute(key, () -> {
+      super.put(key, chain);
+      return null;
+    });
+  }
+
+  @Override
+  public void replaceAtHead(K key, Chain expected, Chain replacement) {
+    execute(key, () -> {
+      heads.setPinning(key, false);
+      super.replaceAtHead(key, expected, replacement);
+      return null;
+    });
+  }
+
+  private Chain execute(K key, Supplier<Chain> supplier) {
     final Lock lock = heads.writeLock();
     lock.lock();
     try {
-      InternalChain current = heads.get(key);
-      if (current != null) {
-        try {
-          replaceAtHead(key, current.detach(), chain, false);
-        } finally {
-          current.close();
-        }
-      } else {
-        if (!chain.isEmpty()) {
-          heads.putPinned(key, chainStorage.newChain(chain));
-        }
-      }
+      return supplier.get();
     } finally {
+      pinIfNeeded(key);
       lock.unlock();
     }
   }
 
-  private void replaceAtHead(K key, Chain expected, Chain replacement, boolean shouldUnpin) {
-    final Lock lock = heads.writeLock();
-    lock.lock();
-    try {
-      while (true) {
-        InternalChain chain = heads.get(key);
-        if (chain == null) {
-          if (expected.isEmpty()) {
-            throw new IllegalArgumentException("Empty expected sequence");
-          } else {
-            return;
-          }
-        } else {
-          try {
-            heads.setPinning(key, false);
-            ReplaceResponse response = chain.replace(expected, replacement);
-            if (response != ReplaceResponse.MATCH_BUT_NOT_REPLACED) {
-              if (!shouldUnpin || response != ReplaceResponse.EXACT_MATCH_AND_REPLACED) {
-                heads.setPinning(key, true);
-              }
-              return;
-            } else {
-              heads.setPinning(key, true);
-              evict();
-            }
-          } finally {
-            chain.close();
-          }
-        }
-      }
-    } finally {
-      lock.unlock();
+  private void pinIfNeeded(K key) {
+    InternalChain internalChain = heads.get(key);
+    if (internalChain != null && shouldBePinned(internalChain.detach())) {
+      heads.setPinning(key, true);
     }
+  }
+
+  private boolean shouldBePinned(Chain chain) {
+    for (Element element : chain) {
+      if (OperationsCodec.getOperationCode(element.getPayload()).shouldBePinned()) {
+        return true;
+      }
+    }
+    return false;
   }
 }

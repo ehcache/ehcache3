@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.spi.serialization.Serializer;
 
@@ -26,6 +26,11 @@ public enum OperationCode {
     @Override
     public <K, V> Operation<K, V> decode(ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
       return new PutOperation<>(buffer, keySerializer, valueSerializer);
+    }
+
+    @Override
+    public boolean shouldBePinned() {
+      return false;
     }
   },
   REMOVE((byte)2) {
@@ -73,6 +78,10 @@ public enum OperationCode {
 
   public byte getValue() {
     return value;
+  }
+
+  public boolean shouldBePinned() {
+    return true;
   }
 
   public abstract  <K, V> Operation<K, V> decode(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer);

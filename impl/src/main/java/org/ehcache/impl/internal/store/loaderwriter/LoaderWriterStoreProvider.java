@@ -17,11 +17,16 @@ package org.ehcache.impl.internal.store.loaderwriter;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreSupport;
+import org.ehcache.core.spi.LifeCycledAdapter;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
+import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -34,12 +39,14 @@ import java.util.Set;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
-@ServiceDependencies({CacheLoaderWriterProvider.class})
+@ServiceDependencies({CacheLoaderWriterProvider.class, WriteBehindProvider.class})
 public class LoaderWriterStoreProvider implements WrapperStore.Provider {
 
   private volatile ServiceProvider<Service> serviceProvider;
 
   private final Map<Store<?, ?>, StoreRef<?, ?>> createdStores = new ConcurrentHashMap<>();
+
+  private volatile LifeCycledAdapter writeBehindLifecycleAdapter;
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
@@ -47,8 +54,28 @@ public class LoaderWriterStoreProvider implements WrapperStore.Provider {
             storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs));
     Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 
-    LocalLoaderWriterStore<K, V> loaderWriterStore = new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(),
-            storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
+    CacheLoaderWriter<? super K, V> cacheLoaderWriter = storeConfig.getCacheLoaderWriter();
+    CacheLoaderWriter<? super K, V> decorator;
+
+    WriteBehindConfiguration writeBehindConfiguration =
+      ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, serviceConfigs);
+    if(writeBehindConfiguration == null) {
+      decorator = cacheLoaderWriter;
+    } else {
+      WriteBehindProvider factory = serviceProvider.getService(WriteBehindProvider.class);
+      decorator = factory.createWriteBehindLoaderWriter(cacheLoaderWriter, writeBehindConfiguration);
+      if(decorator != null) {
+        writeBehindLifecycleAdapter = new LifeCycledAdapter() {
+          @Override
+          public void close() {
+            factory.releaseWriteBehindLoaderWriter(decorator);
+          }
+        };
+      }
+    }
+
+    LocalLoaderWriterStore<K, V> loaderWriterStore = new LocalLoaderWriterStore<>(store, decorator,
+                                                                                  storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     createdStores.put(loaderWriterStore, new StoreRef<>(store, underlyingStoreProvider));
     return loaderWriterStore;
   }
@@ -57,6 +84,13 @@ public class LoaderWriterStoreProvider implements WrapperStore.Provider {
   public void releaseStore(Store<?, ?> resource) {
     StoreRef<?, ?> storeRef = createdStores.remove(resource);
     storeRef.getUnderlyingStoreProvider().releaseStore(storeRef.getUnderlyingStore());
+    if (writeBehindLifecycleAdapter != null) {
+      try {
+        writeBehindLifecycleAdapter.close();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   @Override
