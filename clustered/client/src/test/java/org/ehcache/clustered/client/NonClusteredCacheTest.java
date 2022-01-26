@@ -25,15 +25,15 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceFactory;
-import org.hamcrest.Matchers;
+import org.ehcache.core.util.ClassLoading;
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.stream.Collectors;
 
-import static org.hamcrest.core.Is.is;
+import static java.util.Spliterators.spliterator;
+import static java.util.stream.StreamSupport.stream;
+import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -48,17 +48,8 @@ public class NonClusteredCacheTest {
     /*
      * Ensure the cluster provider classes are loadable through the ServiceLoader mechanism.
      */
-    Set<Class<?>> targetProviders = new HashSet<>();
-    targetProviders.add(ClusteredStore.Provider.class);
-    targetProviders.add(ClusteringService.class);
-    for (ServiceFactory<?> factory : ClassLoading.libraryServiceLoaderFor(ServiceFactory.class)) {
-      if (targetProviders.remove(factory.getServiceType())) {
-        if (targetProviders.isEmpty()) {
-          break;
-        }
-      }
-    }
-    assertThat(targetProviders, is(Matchers.empty()));
+    assertThat(stream(spliterator(ClassLoading.servicesOfType(ServiceFactory.class).iterator(), Long.MAX_VALUE, 0), false).map(f -> f.getServiceType()).collect(Collectors.toList()),
+      hasItems(ClusteredStore.Provider.class, ClusteringService.class));
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class,

@@ -230,22 +230,22 @@ public abstract class CacheTest {
         }
 
         @Override
-        public long creationTime(final TimeUnit unit) {
+        public long creationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long expirationTime(TimeUnit unit) {
+        public long expirationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public boolean isExpired(long expirationTime, TimeUnit unit) {
+        public boolean isExpired(long expirationTime) {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long lastAccessTime(final TimeUnit unit) {
+        public long lastAccessTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
@@ -267,22 +267,22 @@ public abstract class CacheTest {
         }
 
         @Override
-        public long creationTime(final TimeUnit unit) {
+        public long creationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long expirationTime(TimeUnit unit) {
+        public long expirationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public boolean isExpired(long expirationTime, TimeUnit unit) {
+        public boolean isExpired(long expirationTime) {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long lastAccessTime(final TimeUnit unit) {
+        public long lastAccessTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 

@@ -43,7 +43,7 @@ public class DefaultSizeOfEngineProviderConfigurationParserTest {
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
 
 
-    ServiceCreationConfiguration<?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
+    ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
     assertThat(configuration).isExactlyInstanceOf(DefaultSizeOfEngineProviderConfiguration.class);
 
     DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = (DefaultSizeOfEngineProviderConfiguration) configuration;
@@ -55,7 +55,7 @@ public class DefaultSizeOfEngineProviderConfigurationParserTest {
   public void unparseServiceCreationConfiguration() {
     ConfigType configType = new ConfigType();
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .addService(new DefaultSizeOfEngineProviderConfiguration(123, MemoryUnit.MB, 987)).build();
+      .withService(new DefaultSizeOfEngineProviderConfiguration(123, MemoryUnit.MB, 987)).build();
     configType = new DefaultSizeOfEngineProviderConfigurationParser().unparseServiceCreationConfiguration(config, configType);
 
     SizeofType heapStore = configType.getHeapStore();

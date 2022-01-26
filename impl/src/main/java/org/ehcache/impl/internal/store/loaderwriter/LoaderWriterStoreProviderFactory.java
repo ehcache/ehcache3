@@ -17,10 +17,12 @@ package org.ehcache.impl.internal.store.loaderwriter;
 
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
+@Component
 public class LoaderWriterStoreProviderFactory implements ServiceFactory<LoaderWriterStoreProvider> {
   @Override
-  public LoaderWriterStoreProvider create(ServiceCreationConfiguration<LoaderWriterStoreProvider> configuration) {
+  public LoaderWriterStoreProvider create(ServiceCreationConfiguration<LoaderWriterStoreProvider, ?> configuration) {
     return new LoaderWriterStoreProvider();
   }
 

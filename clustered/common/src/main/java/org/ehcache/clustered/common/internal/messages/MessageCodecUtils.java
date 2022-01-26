@@ -16,17 +16,20 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 /**
  * MessageCodecUtils
  */
-public class MessageCodecUtils {
+public final class MessageCodecUtils {
 
   public static final String SERVER_STORE_NAME_FIELD = "serverStoreName";
   public static final String KEY_FIELD = "key";
 
-  public void encodeMandatoryFields(StructEncoder<Void> encoder, EhcacheOperationMessage message) {
-    encoder.enm(EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME, message.getMessageType());
+  private MessageCodecUtils() {}
+
+  public static StructEncoder<Void> encodeMandatoryFields(Struct struct, EhcacheOperationMessage message) {
+    return struct.encoder().enm(EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME, message.getMessageType());
   }
 }

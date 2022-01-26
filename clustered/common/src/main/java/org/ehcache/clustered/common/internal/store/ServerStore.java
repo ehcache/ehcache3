@@ -17,6 +17,7 @@
 package org.ehcache.clustered.common.internal.store;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -128,4 +129,11 @@ public interface ServerStore {
    * @throws TimeoutException if the get exceeds the timeout configured for write operations
    */
   void clear() throws TimeoutException;
+
+  /**
+   * Returns an iterator over the chains.
+   *
+   * @return an chain iterator.
+   */
+  Iterator<Chain> iterator() throws TimeoutException;
 }

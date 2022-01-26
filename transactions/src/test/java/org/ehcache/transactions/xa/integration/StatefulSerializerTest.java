@@ -63,7 +63,7 @@ public class StatefulSerializerTest {
             CacheConfigurationBuilder
               .newCacheConfigurationBuilder(Long.class, Person.class,
                 ResourcePoolsBuilder.heap(5))
-              .withExpiry(ExpiryPolicyBuilder.noExpiration()).add(new XAStoreConfiguration("xaCache"))
+              .withExpiry(ExpiryPolicyBuilder.noExpiration()).withService(new XAStoreConfiguration("xaCache"))
               .build())
           .build(true)) {
 

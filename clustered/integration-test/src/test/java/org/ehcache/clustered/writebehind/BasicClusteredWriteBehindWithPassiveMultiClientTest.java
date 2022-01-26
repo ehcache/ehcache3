@@ -51,8 +51,8 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
     cacheManager1 = createCacheManager(CLUSTER.getConnectionURI());
     cacheManager2 = createCacheManager(CLUSTER.getConnectionURI());
 
-    client1 = cacheManager1.getCache(CACHE_NAME, Long.class, String.class);
-    client2 = cacheManager2.getCache(CACHE_NAME, Long.class, String.class);
+    client1 = cacheManager1.getCache(testName.getMethodName(), Long.class, String.class);
+    client2 = cacheManager2.getCache(testName.getMethodName(), Long.class, String.class);
   }
 
   @After

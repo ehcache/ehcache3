@@ -50,7 +50,7 @@ public interface SerializationProvider extends Service {
    *
    * @throws UnsupportedTypeException if a serializer cannot be created for the given type
    */
-  <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException;
+  <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?, ?>... configs) throws UnsupportedTypeException;
 
   /**
    * Creates a value {@link Serializer} with the given parameters.
@@ -65,7 +65,7 @@ public interface SerializationProvider extends Service {
    *
    * @throws UnsupportedTypeException if a serializer cannot be created for the given type
    */
-  <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException;
+  <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?, ?>... configs) throws UnsupportedTypeException;
 
   /**
    * Releases the given {@link Serializer} instance.

@@ -29,7 +29,11 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
 
+import static java.time.Duration.ofSeconds;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ClusteringServiceConfigurationTest {
@@ -180,4 +184,25 @@ public class ClusteringServiceConfigurationTest {
     assertThat(cfg.readableString()).isNotNull();
   }
 
+  @Test
+  public void testDerivedConfiguration() {
+    URI uri = URI.create("blah-blah");
+    Timeouts timeouts = new Timeouts(ofSeconds(1), ofSeconds(2), ofSeconds(3));
+    Map<String, ServerSideConfiguration.Pool> pools = singletonMap("default", new ServerSideConfiguration.Pool(42L, "resource"));
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfiguration("default", pools);
+    Properties properties = new Properties();
+    properties.setProperty("foo", "bar");
+
+    ClusteringServiceConfiguration configuration = new ClusteringServiceConfiguration(uri, timeouts, true, serverSideConfiguration, properties);
+
+
+    ClusteringServiceConfiguration derived = configuration.build(configuration.derive());
+
+    assertThat(derived).isNotSameAs(configuration);
+    assertThat(derived.getClusterUri()).isEqualTo(uri);
+    assertThat(derived.getTimeouts()).isEqualTo(timeouts);
+    assertThat(derived.getServerConfiguration().getDefaultServerResource()).isEqualTo("default");
+    assertThat(derived.getServerConfiguration().getResourcePools()).isEqualTo(pools);
+    assertThat(derived.getProperties()).isEqualTo(properties);
+  }
 }

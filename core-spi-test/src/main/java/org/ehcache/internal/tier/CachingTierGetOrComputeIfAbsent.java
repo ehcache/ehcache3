@@ -83,7 +83,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     V value = factory.createValue(1);
     final Store.ValueHolder<V> computedValueHolder = mock(Store.ValueHolder.class);
     when(computedValueHolder.get()).thenReturn(value);
-    when(computedValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(Store.ValueHolder.NO_EXPIRE);
+    when(computedValueHolder.expirationTime()).thenReturn(Store.ValueHolder.NO_EXPIRE);
 
     tier = factory.newCachingTier();
 

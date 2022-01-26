@@ -1,0 +1,4 @@
+dependencies {
+  compile project(':clustered:common')
+  compile "org.hamcrest:hamcrest-core:$hamcrestVersion"
+}

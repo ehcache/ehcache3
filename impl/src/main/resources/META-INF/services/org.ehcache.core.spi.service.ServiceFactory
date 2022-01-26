@@ -16,5 +16,5 @@ org.ehcache.impl.internal.loaderwriter.writebehind.WriteBehindProviderFactory
 org.ehcache.impl.internal.events.CacheEventNotificationListenerServiceProviderFactory
 org.ehcache.impl.internal.spi.copy.DefaultCopyProviderFactory
 org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineProviderFactory
-org.ehcache.impl.internal.statistics.DefaultStatisticsServiceFactory
+org.ehcache.core.statistics.DefaultStatisticsServiceFactory
 org.ehcache.impl.internal.spi.resilience.DefaultResilienceStrategyProviderFactory

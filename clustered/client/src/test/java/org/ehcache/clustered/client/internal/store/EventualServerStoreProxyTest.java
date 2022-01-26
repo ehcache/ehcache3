@@ -15,17 +15,14 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
+import org.ehcache.clustered.Matchers;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -33,8 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -43,27 +39,17 @@ import static org.mockito.Mockito.mock;
 
 public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
-  private static SimpleClusterTierClientEntity createClientEntity(String name, boolean create) throws Exception {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
-
-    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
-        Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.EVENTUAL, false);
-
-    return createClientEntity(name, serverStoreConfiguration, create);
-  }
-
   @Test
   public void testServerSideEvictionFiresInvalidations() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testServerSideEvictionFiresInvalidations", true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", false);
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.EVENTUAL, false);
 
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash) {
+      public void onInvalidateHash(long hash, Chain evictedChain) {
         store1InvalidatedHashes.add(hash);
       }
 
@@ -73,13 +59,18 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });
     EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash) {
+      public void onInvalidateHash(long hash, Chain evictedChain) {
         store2InvalidatedHashes.add(hash);
       }
 
@@ -89,8 +80,12 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
-        return chain;
+      public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void compact(ServerStoreProxy.ChainEntry chain) {
       }
     });
 
@@ -104,7 +99,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
     for (int i = 0; i < ITERATIONS; i++) {
       Chain elements1 = serverStoreProxy1.get(i);
       Chain elements2 = serverStoreProxy2.get(i);
-      assertThat(chainsEqual(elements1, elements2), is(true));
+      assertThat(elements1, Matchers.matchesChain(elements2));
       if (!elements1.isEmpty()) {
         entryCount++;
       } else {
@@ -124,8 +119,8 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithAppend() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithAppend", true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithAppend", false);
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithAppend", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithAppend", Consistency.EVENTUAL, false);
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
@@ -133,7 +128,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash) {
+      public void onInvalidateHash(long hash, Chain evictedChain) {
         invalidatedHash.set(hash);
         latch.countDown();
       }
@@ -144,7 +139,12 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });
@@ -159,8 +159,8 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   @Test
   public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", false);
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", Consistency.EVENTUAL, false);
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
@@ -168,7 +168,7 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash) {
+      public void onInvalidateHash(long hash, Chain evictedChain) {
         invalidatedHash.set(hash);
         latch.countDown();
       }
@@ -179,7 +179,12 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });
@@ -194,15 +199,15 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   @Test
   public void testAllInvalidationListener() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAllInvalidationListener", true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAllInvalidationListener", false);
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAllInvalidationListener", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAllInvalidationListener", Consistency.EVENTUAL, false);
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAllInvalidationListener", clientEntity1, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash) {
+      public void onInvalidateHash(long hash, Chain evictedChain) {
         throw new AssertionError("Should not be called");
       }
 
@@ -213,7 +218,12 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
       }
 
       @Override
-      public Chain compact(Chain chain) {
+      public void onAppend(Chain beforeAppend, ByteBuffer appended) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void compact(ServerStoreProxy.ChainEntry chain) {
         throw new AssertionError();
       }
     });

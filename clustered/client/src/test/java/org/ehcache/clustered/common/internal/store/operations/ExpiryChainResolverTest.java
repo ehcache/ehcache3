@@ -16,568 +16,349 @@
 
 package org.ehcache.clustered.common.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.ChainBuilder;
-import org.ehcache.clustered.client.internal.store.ResolvedChain;
+import org.ehcache.clustered.client.TestTimeSource;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.ExpiryChainResolver;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
-import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.impl.serialization.LongSerializer;
-import org.ehcache.impl.serialization.StringSerializer;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.Test;
+import org.mockito.InOrder;
 
-import java.nio.ByteBuffer;
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
+import static java.time.Duration.ofMillis;
+import static java.util.Collections.emptyMap;
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class ExpiryChainResolverTest {
+public class ExpiryChainResolverTest extends AbstractChainResolverTest {
 
-  private static OperationsCodec<Long, String> codec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void testResolveMaintainsOtherKeysInOrder() throws Exception {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Suresh", 0L);
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(2L, "Albin", 0L),
-      expected,
-      new PutOperation<>(2L, "Suresh", 0L),
-      new PutOperation<>(2L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-
-    Chain compactedChain = resolvedChain.getCompactedChain();
-    assertThat(compactedChain, contains( //@SuppressWarnings("unchecked")
-      operation(new PutOperation<>(2L, "Albin", 0L)),
-      operation(new PutOperation<>(2L, "Suresh", 0L)),
-      operation(new PutOperation<>(2L, "Mathew", 0L)),
-      operation(new PutOperation<>(1L, "Suresh", 0L))));
+  @Override
+  protected ChainResolver<Long, String> createChainResolver(ExpiryPolicy<? super Long, ? super String> expiryPolicy, OperationsCodec<Long, String> codec) {
+    return new ExpiryChainResolver<>(codec, expiryPolicy);
   }
 
-  @Test
-  public void testResolveEmptyChain() throws Exception {
-    Chain chain = getChainFromOperations();
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-
-    assertThat(resolvedChain.isCompacted(), is(false));
-  }
-
-  @Test
-  public void testResolveChainWithNonExistentKey() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(2L, "Suresh", 0L),
-      new PutOperation<>(2L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 3L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(3L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(false));
-  }
-
-  @Test
-  public void testResolveSinglePut() throws Exception {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
-    Chain chain = getChainFromOperations(expected);
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(false));
-  }
-
-  @Test
-  public void testResolvePutsOnly() throws Exception {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Mathew", 0L);
-
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(1L, "Suresh", 0L),
-      new PutOperation<>(1L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(2));
-  }
-
-  @Test
-  public void testResolveSingleRemove() throws Exception {
-    Chain chain = getChainFromOperations(new RemoveOperation<>(1L, 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(1));
-  }
-
-  @Test
-  public void testResolveRemovesOnly() throws Exception {
-    Chain chain = getChainFromOperations(
-      new RemoveOperation<>(1L, 0L),
-      new RemoveOperation<>(1L, 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(2));
-  }
-
-  @Test
-  public void testPutAndRemove() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new RemoveOperation<>(1L, 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertNull(result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-  }
-
-  @Test
-  public void testResolvePutIfAbsentOnly() throws Exception {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Mathew", 0L);
-    Chain chain = getChainFromOperations(new PutIfAbsentOperation<>(1L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(false));
-  }
-
-  @Test
-  public void testResolvePutIfAbsentsOnly() throws Exception {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
-    Chain chain = getChainFromOperations(
-      new PutIfAbsentOperation<>(1L, "Albin", 0L),
-      new PutIfAbsentOperation<>(1L, "Suresh", 0L),
-      new PutIfAbsentOperation<>(1L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-  }
-
-  @Test
-  public void testResolvePutIfAbsentSucceeds() throws Exception {
-    Operation<Long, String> expected = new PutOperation<>(1L, "Mathew", 0L);
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new RemoveOperation<>(1L, 0L),
-      new PutIfAbsentOperation<>(1L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    Result<Long, String> result = resolvedChain.getResolvedResult(1L);
-    assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
-  }
-
-  @Test
-  public void testResolveForSingleOperationDoesNotCompact() {
-    Chain chain = getChainFromOperations(new PutOperation<>(1L, "Albin", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    assertThat(resolvedChain.isCompacted(), is(false));
-    assertThat(resolvedChain.getCompactionCount(), is(0));
-  }
-
-  @Test
-  public void testResolveForMultiplesOperationsAlwaysCompact() {
-    //create a random mix of operations
-    Chain chain = getChainFromOperations(
-      new PutIfAbsentOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(1L, "Suresh", 0L),
-      new PutOperation<>(1L, "Mathew", 0L),
-      new PutOperation<>(2L, "Melbin", 0L),
-      new ReplaceOperation<>(1L, "Joseph", 0L),
-      new RemoveOperation<>(2L, 0L),
-      new ConditionalRemoveOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(1L, "Gregory", 0L),
-      new ConditionalReplaceOperation<>(1L, "Albin", "Abraham", 0L),
-      new RemoveOperation<>(1L, 0L),
-      new PutIfAbsentOperation<>(2L, "Albin", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 0L);
-    assertThat(resolvedChain.isCompacted(), is(true));
-    assertThat(resolvedChain.getCompactionCount(), is(8));
-  }
-
-  @Test
-  public void testResolveForMultipleOperationHasCorrectIsFirstAndTimeStamp() {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin1", 0),
-      new PutOperation<>(1L, "Albin2", 1),
-      new RemoveOperation<>(1L, 2),
-      new PutOperation<>(1L, "AlbinAfterRemove", 3));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofHours(1)));
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 3);
-
-    Operation<Long, String> operation = codec.decode(resolvedChain.getCompactedChain().iterator().next().getPayload());
-
-    assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(TimeUnit.HOURS.toMillis(1) + 3));
-    try {
-      operation.timeStamp();
-      fail();
-    } catch (Exception ex) {
-      assertThat(ex.getMessage(), is("Timestamp not available"));
-    }
-    assertThat(resolvedChain.isCompacted(), is(true));
-  }
-
-  @Test
-  public void testResolveForMultipleOperationHasCorrectIsFirstAndTimeStampWithExpiry() {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin1", 0L),
-      new PutOperation<>(1L, "Albin2", 1L),
-      new PutOperation<>(1L, "Albin3", 2L),
-      new PutOperation<>(1L, "Albin4", 3L)
-    );
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1L)));
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, 3L);
-
-    Operation<Long, String> operation = codec.decode(resolvedChain.getCompactedChain().iterator().next().getPayload());
-
-    assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(4L));
-
-    try {
-      operation.timeStamp();
-      fail();
-    } catch (Exception ex) {
-      assertThat(ex.getMessage(), is("Timestamp not available"));
-    }
-    assertThat(resolvedChain.isCompacted(), is(true));
-  }
-
-  @Test
-  public void testResolveDoesNotDecodeOtherKeyOperationValues() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(2L, "Albin", 0L),
-      new PutOperation<>(2L, "Suresh", 0L),
-      new PutOperation<>(2L, "Mathew", 0L));
-
-    CountingLongSerializer keySerializer = new CountingLongSerializer();
-    CountingStringSerializer valueSerializer = new CountingStringSerializer();
-    OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(customCodec, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(5)));
-    resolver.resolve(chain, 1L, 0L);
-
-    assertThat(keySerializer.decodeCount, is(3));
-    assertThat(valueSerializer.decodeCount, is(0));
-    assertThat(keySerializer.encodeCount, is(0));
-    assertThat(valueSerializer.encodeCount, is(0));
-  }
-
-  @Test
-  public void testResolveDecodesOperationValueOnlyOnDemand() throws Exception {
-    Chain chain = getChainFromOperations(
+  @Test @Override
+  public void testCompactDecodesOperationValueOnlyOnDemand() {
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 1),
       new PutOperation<>(1L, "Suresh", 2),
-      new PutOperation<>(1L, "Mathew", 3));
+      new PutOperation<>(1L, "Matthew", 3));
 
     CountingLongSerializer keySerializer = new CountingLongSerializer();
     CountingStringSerializer valueSerializer = new CountingStringSerializer();
     OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(customCodec, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(5)));
+    ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration(), customCodec);
+    resolver.compact(chain);
+
+    assertThat(keySerializer.decodeCount, is(3));
+    assertThat(valueSerializer.decodeCount, is(3));
+    assertThat(valueSerializer.encodeCount, is(0));
+    assertThat(keySerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
+  }
+
+  @Test @Override
+  public void testResolveDecodesOperationValueOnlyOnDemand() {
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "Albin", 1),
+      new PutOperation<>(1L, "Suresh", 2),
+      new PutOperation<>(1L, "Matthew", 3));
+
+    CountingLongSerializer keySerializer = new CountingLongSerializer();
+    CountingStringSerializer valueSerializer = new CountingStringSerializer();
+    OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
+    ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.noExpiration(), customCodec);
     resolver.resolve(chain, 1L, 0L);
 
     assertThat(keySerializer.decodeCount, is(3));
     assertThat(valueSerializer.decodeCount, is(3));
     assertThat(valueSerializer.encodeCount, is(0));
-    assertThat(keySerializer.encodeCount, is(1));
+    assertThat(keySerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
   }
 
   @Test
   @SuppressWarnings("unchecked")
-  public void testCompactingTwoKeys() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(2L, "Albin", 0L),
-      new PutOperation<>(1L, "Suresh", 0L),
-      new PutOperation<>(2L, "Suresh", 0L),
-      new PutOperation<>(2L, "Mathew", 0L));
+  public void testGetExpiryForAccessIsIgnored() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
 
-    assertThat(compactedChain, containsInAnyOrder( //@SuppressWarnings("unchecked")
-      operation(new PutOperation<>(2L, "Mathew", 0L)),
-      operation(new PutOperation<>(1L, "Suresh", 0L))
-    ));
-  }
-
-  @Test
-  public void testCompactEmptyChain() throws Exception {
-    Chain chain = (new ChainBuilder()).build();
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compacted = resolver.applyOperation(chain, 0L);
-    assertThat(compacted, emptyIterable());
-  }
-
-  @Test
-  public void testCompactSinglePut() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L)
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "One", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Second", timeSource.getTimeMillis())
     );
 
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compacted = resolver.applyOperation(chain, 0L);
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
-    assertThat(compacted, contains(operation(new PutOperation<>(1L, "Albin", 0L))));
+    verify(expiry, times(0)).getExpiryForAccess(anyLong(), any());
+    verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
+    verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(), anyString());
+
+    verify(chain).replaceAtHead(any());
   }
 
   @Test
-  public void testCompactMultiplePuts() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(1L, "Suresh", 0L),
-      new PutOperation<>(1L, "Mathew", 0L));
+  @SuppressWarnings("unchecked")
+  public void testGetExpiryForCreationIsInvokedOnlyOnce() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Mathew", 0L))));
-  }
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
-  @Test
-  public void testCompactSingleRemove() throws Exception {
-    Chain chain = getChainFromOperations(new RemoveOperation<>(1L, 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, emptyIterable());
-  }
-
-  @Test
-  public void testCompactMultipleRemoves() throws Exception {
-    Chain chain = getChainFromOperations(
-      new RemoveOperation<>(1L, 0L),
-      new RemoveOperation<>(1L, 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, emptyIterable());
-  }
-
-  @Test
-  public void testCompactPutAndRemove() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new RemoveOperation<>(1L, 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, emptyIterable());
-  }
-
-  @Test
-  public void testCompactSinglePutIfAbsent() throws Exception {
-    Chain chain = getChainFromOperations(new PutIfAbsentOperation<>(1L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Mathew", 0L))));
-  }
-
-  @Test
-  public void testCompactMultiplePutIfAbsents() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutIfAbsentOperation<>(1L, "Albin", 0L),
-      new PutIfAbsentOperation<>(1L, "Suresh", 0L),
-      new PutIfAbsentOperation<>(1L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin", 0L))));
-  }
-
-  @Test
-  public void testCompactPutIfAbsentAfterRemove() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 0L),
-      new RemoveOperation<>(1L, 0L),
-      new PutIfAbsentOperation<>(1L, "Mathew", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Mathew", 0L))));
-  }
-
-  @Test
-  public void testCompactForMultipleKeysAndOperations() {
-    //create a random mix of operations
-    Chain chain = getChainFromOperations(
-      new PutIfAbsentOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(1L, "Suresh", 0L),
-      new PutOperation<>(1L, "Mathew", 0L),
-      new PutOperation<>(2L, "Melbin", 0L),
-      new ReplaceOperation<>(1L, "Joseph", 0L),
-      new RemoveOperation<>(2L, 0L),
-      new ConditionalRemoveOperation<>(1L, "Albin", 0L),
-      new PutOperation<>(1L, "Gregory", 0L),
-      new ConditionalReplaceOperation<>(1L, "Albin", "Abraham", 0L),
-      new RemoveOperation<>(1L, 0L),
-      new PutIfAbsentOperation<>(2L, "Albin", 0L));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 0L);
-    assertThat(compactedChain, contains(operation(new PutOperation<>(2L, "Albin", 0L))));
-  }
-
-  @Test
-  public void testCompactHasCorrectTimeStamp() {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin1", 0),
-      new PutOperation<>(1L, "Albin2", 1),
-      new RemoveOperation<>(1L, 2),
-      new PutOperation<>(1L, "Albin3", 3));
-
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.noExpiration());
-    Chain compactedChain = resolver.applyOperation(chain, 3);
-
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin3", 3))));
-  }
-
-  @Test
-  public void testCompactHasCorrectWithExpiry() {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin1", 0L),
-      new PutOperation<>(1L, "Albin2", 1L),
-      new PutOperation<>(1L, "Albin3", 2L),
-      new PutOperation<>(1L, "Albin4", 3L)
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "One", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Second", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Three", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Four", timeSource.getTimeMillis())
     );
 
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(codec, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1L)));
-    Chain compactedChain = resolver.applyOperation(chain, 3L);
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
-    assertThat(compactedChain, contains(operation(new PutOperation<>(1L, "Albin4", 3L))));
+    InOrder inOrder = inOrder(expiry);
+
+    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
+    inOrder.verify(expiry, times(3)).getExpiryForUpdate(anyLong(), any(), anyString());
+
+    verify(chain).replaceAtHead(any());
   }
 
   @Test
-  public void testCompactDecodesOperationValueOnlyOnDemand() throws Exception {
-    Chain chain = getChainFromOperations(
-      new PutOperation<>(1L, "Albin", 1),
-      new PutOperation<>(1L, "Suresh", 2),
-      new PutOperation<>(1L, "Mathew", 3));
+  @SuppressWarnings("unchecked")
+  public void testGetExpiryForCreationIsNotInvokedForReplacedChains() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
-    CountingLongSerializer keySerializer = new CountingLongSerializer();
-    CountingStringSerializer valueSerializer = new CountingStringSerializer();
-    OperationsCodec<Long, String> customCodec = new OperationsCodec<>(keySerializer, valueSerializer);
-    ExpiryChainResolver<Long, String> resolver = new ExpiryChainResolver<>(customCodec, ExpiryPolicyBuilder.noExpiration());
-    resolver.applyOperation(chain, 0L);
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
 
-    assertThat(keySerializer.decodeCount, is(3));
-    assertThat(valueSerializer.decodeCount, is(3));
-    assertThat(valueSerializer.encodeCount, is(0));
-    assertThat(keySerializer.encodeCount, is(1));
+
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "Replaced", -10L),
+      new PutOperation<>(1L, "SecondAfterReplace", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "ThirdAfterReplace", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "FourthAfterReplace", timeSource.getTimeMillis())
+    );
+
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    verify(expiry, times(0)).getExpiryForCreation(anyLong(), anyString());
+    verify(expiry, times(3)).getExpiryForUpdate(anyLong(), any(), anyString());
+
+    verify(chain).replaceAtHead(any());
   }
 
-  @SafeVarargs
-  private final Chain getChainFromOperations(Operation<Long, String> ... operations) {
-    ChainBuilder chainBuilder = new ChainBuilder();
-    for(Operation<Long, String> operation: operations) {
-      chainBuilder = chainBuilder.add(codec.encode(operation));
-    }
-    return chainBuilder.build();
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testGetExpiryForCreationIsInvokedAfterRemoveOperations() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
+
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
+
+
+    ServerStoreProxy.ChainEntry chainA = getEntryFromOperations(
+      new PutOperation<>(1L, "Replaced", 10L),
+      new PutOperation<>(1L, "SecondAfterReplace", 3L),
+      new RemoveOperation<>(1L, 4L),
+      new PutOperation<>(1L, "FourthAfterReplace", 5L)
+    );
+
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chainA, 1L, timeSource.getTimeMillis());
+
+    InOrder inOrder = inOrder(expiry);
+
+    verify(expiry, times(0)).getExpiryForAccess(anyLong(), any());
+    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
+    inOrder.verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(), anyString());
+    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
+
+    verify(chainA).replaceAtHead(any());
+
+    reset(expiry);
+
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
+
+
+    ServerStoreProxy.ChainEntry chainB = getEntryFromOperations(
+      new PutOperation<>(1L, "One", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Second", timeSource.getTimeMillis()),
+      new RemoveOperation<>(1L, timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Four", timeSource.getTimeMillis())
+    );
+
+    chainResolver.resolve(chainB, 1L, timeSource.getTimeMillis());
+
+    inOrder = inOrder(expiry);
+
+    verify(expiry, times(0)).getExpiryForAccess(anyLong(), any());
+    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
+    inOrder.verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(), anyString());
+    inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
+
+    verify(chainB).replaceAtHead(any());
   }
 
-  private Matcher<Element> operation(Operation<?, ?> operation) {
-    return new TypeSafeMatcher<Element>() {
-      @Override
-      protected boolean matchesSafely(Element item) {
-        return operation.equals(codec.decode(item.getPayload()));
-      }
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testNullGetExpiryForCreation() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
-      @Override
-      public void describeTo(Description description) {
-        description.appendText("is ").appendValue(operation);
-      }
-    };
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(null);
+
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new PutOperation<>(1L, "Replaced", 10L));
+
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(valueHolder, nullValue());
+    verify(chain, never()).replaceAtHead(any());
   }
 
-  private static class CountingLongSerializer extends LongSerializer {
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testNullGetExpiryForUpdate() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
-    private int encodeCount = 0;
-    private int decodeCount = 0;
+    when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenReturn(null);
 
-    @Override
-    public ByteBuffer serialize(final Long object) {
-      encodeCount++;
-      return super.serialize(object);
-    }
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "Replaced", -10L),
+      new PutOperation<>(1L, "New", timeSource.getTimeMillis())
+    );
 
-    @Override
-    public Long read(final ByteBuffer binary) throws ClassNotFoundException {
-      decodeCount++;
-      return super.read(binary);
-    }
+    Store.ValueHolder<String> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
-    @Override
-    public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException {
-      return super.equals(object, binary);
-    }
+    assertThat(resolvedChain.get(), is("New"));
+
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "New", -10L)))));
   }
 
-  private static class CountingStringSerializer extends StringSerializer {
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testGetExpiryForUpdateUpdatesExpirationTimeStamp() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
-    private int encodeCount = 0;
-    private int decodeCount = 0;
+    when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenReturn(ofMillis(2L));
 
-    @Override
-    public ByteBuffer serialize(final String object) {
-      encodeCount++;
-      return super.serialize(object);
-    }
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "Replaced", -10L),
+      new PutOperation<>(1L, "New", timeSource.getTimeMillis())
+    );
 
-    @Override
-    public String read(final ByteBuffer binary) throws ClassNotFoundException {
-      decodeCount++;
-      return super.read(binary);
-    }
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
-    @Override
-    public boolean equals(final String object, final ByteBuffer binary) throws ClassNotFoundException {
-      return super.equals(object, binary);
-    }
+    assertThat(valueHolder.get(), is("New"));
+    verify(chain).replaceAtHead(argThat(contains(operation(new PutOperation<>(1L, "New", -2L)))));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testExpiryThrowsException() {
+    TimeSource timeSource = new TestTimeSource();
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
+
+    when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenThrow(new RuntimeException("Test Update Expiry"));
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenThrow(new RuntimeException("Test Create Expiry"));
+
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "One", -10L),
+      new PutOperation<>(1L, "Two", timeSource.getTimeMillis())
+    );
+
+    Store.ValueHolder<String> valueHolder = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(valueHolder, nullValue());
+
+    chain = getEntryFromOperations(
+      new PutOperation<>(1L, "One", timeSource.getTimeMillis()),
+      new PutOperation<>(1L, "Two", timeSource.getTimeMillis())
+    );
+
+    valueHolder = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(valueHolder, nullValue());
+
+    verify(chain).replaceAtHead(any());
+  }
+
+  @Test
+  public void testResolveExpiresUsingOperationTime() {
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<Long, String>(1L, "Albin", 0),
+      new PutIfAbsentOperation<Long, String>(1L, "Chris", 900)
+    );
+
+    ChainResolver<Long, String> resolver = createChainResolver(timeToLiveExpiration(ofMillis(1000)));
+
+    Store.ValueHolder<String> result = resolver.resolve(chain, 1L, 1500);
+    assertThat(result, nullValue());
+  }
+
+  @Test
+  public void testResolveAllExpiresUsingOperationTime() {
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
+      new PutOperation<>(1L, "Albin", 0),
+      new PutIfAbsentOperation<>(1L, "Chris", 900)
+    );
+
+    ChainResolver<Long, String> resolver = createChainResolver(timeToLiveExpiration(ofMillis(1000)));
+
+    Map<Long, Store.ValueHolder<String>> result = resolver.resolveAll(chain, 1500);
+
+    assertThat(result, is(emptyMap()));
+  }
+
+  @Test
+  public void testExpiredResolvedValueAddsTimestamp() throws TimeoutException {
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(new PutOperation<>(1L, "Albin", 0L));
+
+    ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.timeToLiveExpiration(ofMillis(1000)));
+
+    assertThat(resolver.resolve(chain, 1L, 1001L), nullValue());
+    verify(chain).append(argThat(binaryOperation(new TimestampOperation<>(1L, 1001L))));
+    verify(chain, never()).replaceAtHead(any());
+
+  }
+
+  @Test
+  public void testExpiredTimestampClearsChain() {
+    PutOperation<Long, String> expected = new PutOperation<>(1L, "Albin", 0L);
+    ServerStoreProxy.ChainEntry chain = getEntryFromOperations(expected,
+      new TimestampOperation<>(1L, 1000L)
+    );
+
+    ChainResolver<Long, String> resolver = createChainResolver(ExpiryPolicyBuilder.timeToLiveExpiration(ofMillis(1000)));
+
+    assertThat(resolver.resolve(chain, 1L, 999L), nullValue());
+    verify(chain).replaceAtHead(argThat(emptyIterable()));
   }
 }

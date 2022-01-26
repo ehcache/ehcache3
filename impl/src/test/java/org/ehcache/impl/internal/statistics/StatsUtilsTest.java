@@ -45,7 +45,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.ehcache.impl.internal.statistics.StatsUtils.*;
+import static org.ehcache.core.statistics.StatsUtils.*;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
@@ -65,7 +65,7 @@ public class StatsUtilsTest {
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
+        .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

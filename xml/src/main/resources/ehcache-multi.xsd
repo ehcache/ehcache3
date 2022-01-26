@@ -38,7 +38,7 @@
       <xs:sequence minOccurs="0" maxOccurs="unbounded">
         <xs:element name="configuration">
           <xs:complexType>
-            <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:choice>
               <xs:element ref="ehcache:config">
                 <xs:annotation>
                   <xs:appinfo>
@@ -46,22 +46,20 @@
                   </xs:appinfo>
                 </xs:annotation>
               </xs:element>
-              <xs:sequence>
-                <xs:element name="variant">
-                  <xs:complexType>
-                    <xs:sequence>
-                      <xs:element ref="ehcache:config">
-                        <xs:annotation>
-                          <xs:appinfo>
-                            <jaxb:dom/>
-                          </xs:appinfo>
-                        </xs:annotation>
-                      </xs:element>
-                    </xs:sequence>
-                    <xs:attribute name="type" type="xs:string" use="required"/>
-                  </xs:complexType>
-                </xs:element>
-              </xs:sequence>
+              <xs:element name="variant" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element ref="ehcache:config">
+                      <xs:annotation>
+                        <xs:appinfo>
+                          <jaxb:dom/>
+                        </xs:appinfo>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="type" type="xs:string" use="required"/>
+                </xs:complexType>
+              </xs:element>
             </xs:choice>
             <xs:attribute name="identity" type="xs:string" use="required"/>
           </xs:complexType>

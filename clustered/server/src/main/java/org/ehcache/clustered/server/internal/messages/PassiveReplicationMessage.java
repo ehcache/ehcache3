@@ -21,11 +21,12 @@ import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.ehcache.clustered.common.internal.store.Util;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
 /**
  * This message is sent by the Active Entity to Passive Entity.
@@ -49,13 +50,13 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     }
 
     private Chain dropLastElement(Chain chain) {
-      if (!chain.isEmpty()) {
+      if (chain.isEmpty()) {
+        return chain;
+      } else {
         List<Element> elements = StreamSupport.stream(chain.spliterator(), false)
           .collect(Collectors.toList());
         elements.remove(elements.size() - 1); // remove last
-        return Util.getChain(elements);
-      } else {
-        return chain;
+        return chainFromList(elements);
       }
     }
 

@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers;
 
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.context.Context;

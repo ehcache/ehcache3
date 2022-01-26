@@ -32,11 +32,12 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
 
 /**
  * The {@code Store} interface represents the backing storage of a {@link Cache}. It abstracts the support for multiple
@@ -113,6 +114,22 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   PutStatus put(K key, V value) throws StoreAccessException;
 
   /**
+   * Maps the specified key to the specified value in this store.
+   * Neither the key nor the value can be {@code null}.
+   *
+   * @param key   key with which the specified value is to be associated
+   * @param value value to be associated with the specified key
+   * @return the previously associated value
+   *
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
+   * @throws StoreAccessException if the mapping can't be installed
+   */
+  default ValueHolder<V> getAndPut(K key, V value) throws StoreAccessException {
+    return getAndCompute(key, (k, v) -> value);
+  }
+
+  /**
    * Maps the specified key to the specified value in this store, unless a non-expired mapping
    * already exists.
    * <p>
@@ -159,6 +176,24 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if the mapping can't be removed
    */
   boolean remove(K key) throws StoreAccessException;
+
+
+  /**
+   * Removes the key (and its corresponding value) from this store.
+   * This method does nothing if the key is not mapped.
+   * <p>
+   * The key cannot be {@code null}.
+   *
+   * @param key the key that needs to be removed
+   * @return the previously associated value
+   *
+   * @throws NullPointerException if the specified key is null
+   * @throws NullPointerException if the argument is {@code null}
+   * @throws StoreAccessException if the mapping can't be removed
+   */
+  default ValueHolder<V> getAndRemove(K key) throws StoreAccessException {
+    return getAndCompute(key, (k, v) -> null);
+  }
 
   /**
    * Removes the entry for a key only if currently mapped to the given value
@@ -470,35 +505,31 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * Accessor to the creation time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the creation time in the given unit
+     * @return the creation time in milliseconds
      */
-    long creationTime(TimeUnit unit);
+    long creationTime();
 
     /**
      * Accessor to the expiration time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the expiration time in the given unit. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
+     * @return the expiration time in milliseconds. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
      */
-    long expirationTime(TimeUnit unit);
+    long expirationTime();
 
     /**
      * Check if the ValueHolder is expired relative to the specified time
      *
-     * @param expirationTime the expiration time relative to which the expiry check must be made
-     * @param unit the unit of the expiration time
+     * @param expirationTime the expiration time (in ms) relative to which the expiry check must be made
      * @return true if the ValueHolder expired relative to the given expiration time
      */
-    boolean isExpired(long expirationTime, TimeUnit unit);
+    boolean isExpired(long expirationTime);
 
     /**
      * Accessor to the last access time of the Value held in this ValueHolder
      *
-     * @param unit the timeUnit to return the last access time in
-     * @return the last access time in the given unit
+     * @return the last access time in milliseconds
      */
-    long lastAccessTime(TimeUnit unit);
+    long lastAccessTime();
 
     /**
      * The combination of this identifier and the <code>key</code> that ValueHolder is mapped to should to be
@@ -509,6 +540,14 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      */
     long getId();
 
+    /**
+     * Returns the value held by this value holder. This value can't be {@code null}.
+     *
+     * @return the value held
+     */
+    @Nonnull
+    @Override
+    V get();
   }
 
   /**
@@ -525,7 +564,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * @param serviceConfigs the configurations the Provider may need to configure the Store
      * @return the Store honoring the configurations passed in
      */
-    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Informs this Provider, a Store it created is being disposed (i.e. closed)
@@ -551,7 +590,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the store
      *      can not handle all types specified in {@code resourceTypes}
      */
-    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs);
+    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
   /**

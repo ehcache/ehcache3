@@ -18,14 +18,16 @@ package org.ehcache.transactions.xa.internal.journal;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Ludovic Orban
  */
+@Component
 public class DefaultJournalProviderFactory implements ServiceFactory<JournalProvider> {
 
   @Override
-  public JournalProvider create(ServiceCreationConfiguration<JournalProvider> configuration) {
+  public JournalProvider create(ServiceCreationConfiguration<JournalProvider, ?> configuration) {
     return new DefaultJournalProvider();
   }
 

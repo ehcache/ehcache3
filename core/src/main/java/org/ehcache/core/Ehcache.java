@@ -16,6 +16,7 @@
 
 package org.ehcache.core;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,7 +32,7 @@ import java.util.function.Supplier;
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.internal.util.CollectionUtil;
+import org.ehcache.core.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.resilience.ResilienceStrategy;
@@ -215,7 +216,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
       ValueHolder<V> existingValue;
       try {
-        existingValue = store.getAndCompute(key, (mappedKey, mappedValue) -> null);
+        existingValue = store.getAndRemove(key);
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
@@ -239,7 +240,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
       ValueHolder<V> existingValue;
       try {
-        existingValue = store.getAndCompute(key, (mappedKey, mappedValue) -> value);
+        existingValue = store.getAndPut(key, value);
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
@@ -350,7 +351,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       List<Map.Entry<K, V>> computeResult = new ArrayList<>(size);
 
       for (K key : keys) {
-        computeResult.add(CollectionUtil.entry(key, null));
+        computeResult.add(new AbstractMap.SimpleImmutableEntry<>(key, null));
       }
 
       return computeResult;

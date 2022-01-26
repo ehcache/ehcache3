@@ -22,8 +22,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * <p>
  * The {@code CacheLoaderWriterProvider} provides write-behind services to a
  * {@link org.ehcache.Cache Cache}.
+ *
+ * @param <R> representation type
  */
-public interface CacheLoaderWriterConfiguration extends ServiceConfiguration<CacheLoaderWriterProvider> {
+public interface CacheLoaderWriterConfiguration<R> extends ServiceConfiguration<CacheLoaderWriterProvider, R> {
   /**
    * {@inheritDoc}
    */

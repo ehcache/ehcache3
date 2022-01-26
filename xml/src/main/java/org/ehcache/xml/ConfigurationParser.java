@@ -18,9 +18,10 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ConfigurationBuilder;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.BaseCacheType;
 import org.ehcache.xml.model.CacheDefinition;
@@ -29,7 +30,6 @@ import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheTemplateType;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.ConfigType;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.model.ObjectFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -50,7 +50,10 @@ import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -82,17 +85,20 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.lang.String.format;
 import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Spliterators.spliterator;
 import static java.util.function.Function.identity;
+import static java.util.regex.Pattern.quote;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.of;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.internal.util.ClassLoading.libraryServiceLoaderFor;
+import static org.ehcache.core.util.ClassLoading.servicesOfType;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 
@@ -150,16 +156,16 @@ public class ConfigurationParser {
 
   ConfigurationParser() throws IOException, SAXException, JAXBException, ParserConfigurationException {
     serviceCreationConfigurationParser = ConfigurationParser.<CacheManagerServiceConfigurationParser<?>>stream(
-      libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class))
+      servicesOfType(CacheManagerServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceCreationConfigurationParser::new));
 
     serviceConfigurationParser = ConfigurationParser.<CacheServiceConfigurationParser<?>>stream(
-      libraryServiceLoaderFor(CacheServiceConfigurationParser.class))
+      servicesOfType(CacheServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceConfigurationParser::new));
 
-    resourceConfigurationParser = stream(libraryServiceLoaderFor(CacheResourceConfigurationParser.class))
+    resourceConfigurationParser = stream(servicesOfType(CacheResourceConfigurationParser.class))
       .flatMap(p -> p.getResourceTypes().stream().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, p)))
       .collect(collectingAndThen(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a.getClass().isInstance(b) ? b : a),
         m -> new ResourceConfigurationParser(new HashSet<>(m.values()))));
@@ -245,8 +251,8 @@ public class ConfigurationParser {
     return new XmlConfiguration.Template() {
       @Override
       public <K, V> CacheConfigurationBuilder<K, V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resources) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-        checkTemplateTypeConsistency("key", keyType, template);
-        checkTemplateTypeConsistency("value", valueType, template);
+        checkTemplateTypeConsistency("key", classLoader, keyType, template);
+        checkTemplateTypeConsistency("value", classLoader, valueType, template);
 
         if ((resources == null || resources.getResourceTypeSet().isEmpty()) && template.getHeap() == null && template.getResources().isEmpty()) {
           throw new IllegalStateException("Template defines no resources, and none were provided");
@@ -261,13 +267,12 @@ public class ConfigurationParser {
     };
   }
 
-  private static <T> void checkTemplateTypeConsistency(String type, Class<T> providedType, CacheTemplate template) throws ClassNotFoundException {
-    ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
+  private static <T> void checkTemplateTypeConsistency(String type, ClassLoader classLoader, Class<T> providedType, CacheTemplate template) throws ClassNotFoundException {
     Class<?> templateType;
     if (type.equals("key")) {
-      templateType = getClassForName(template.keyType(), defaultClassLoader);
+      templateType = getClassForName(template.keyType(), classLoader);
     } else {
-      templateType = getClassForName(template.valueType(), defaultClassLoader);
+      templateType = getClassForName(template.valueType(), classLoader);
     }
 
     if(providedType == null || !templateType.isAssignableFrom(providedType)) {
@@ -293,12 +298,12 @@ public class ConfigurationParser {
     Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
     ConfigType jaxbModel = unmarshaller.unmarshal(document, configTypeClass).getValue();
 
-    ConfigurationBuilder managerBuilder = newConfigurationBuilder().withClassLoader(classLoader);
+    FluentConfigurationBuilder<?> managerBuilder = newConfigurationBuilder().withClassLoader(classLoader);
     managerBuilder = serviceCreationConfigurationParser.parseServiceCreationConfiguration(jaxbModel, classLoader, managerBuilder);
 
     for (CacheDefinition cacheDefinition : getCacheElements(jaxbModel)) {
       String alias = cacheDefinition.id();
-      if(managerBuilder.containsCache(alias)) {
+      if(managerBuilder.getCache(alias) != null) {
         throw new XmlConfigurationException("Two caches defined with the same alias: " + alias);
       }
 
@@ -324,7 +329,7 @@ public class ConfigurationParser {
       }
 
       cacheBuilder = parseServiceConfigurations(cacheBuilder, cacheClassLoader, cacheDefinition);
-      managerBuilder = managerBuilder.addCache(alias, cacheBuilder.build());
+      managerBuilder = managerBuilder.withCache(alias, cacheBuilder.build());
     }
 
     Map<String, XmlConfiguration.Template> templates = getTemplates(jaxbModel);
@@ -364,19 +369,28 @@ public class ConfigurationParser {
 
   public static class FatalErrorHandler implements ErrorHandler {
 
+    private static final Pattern ABSTRACT_TYPE_FAILURES = of("service-creation-configuration", "service-configuration", "resource")
+      .map(element -> quote(format("\"http://www.ehcache.org/v3\":%s", element)))
+      .collect(collectingAndThen(joining("|", "^\\Qcvc-complex-type.2.4.a\\E.*'\\{.*(?:", ").*\\}'.*$"), Pattern::compile));
+
     @Override
     public void warning(SAXParseException exception) throws SAXException {
-      throw exception;
+      fatalError(exception);
     }
 
     @Override
     public void error(SAXParseException exception) throws SAXException {
-      throw exception;
+      fatalError(exception);
     }
 
     @Override
     public void fatalError(SAXParseException exception) throws SAXException {
-      throw exception;
+      if (ABSTRACT_TYPE_FAILURES.matcher(exception.getMessage()).matches()) {
+        throw new XmlConfigurationException(
+          "Cannot confirm XML sub-type correctness. You might be missing client side libraries.", exception);
+      } else {
+        throw exception;
+      }
     }
   }
 
@@ -400,9 +414,18 @@ public class ConfigurationParser {
 
   public static String documentToText(Document xml) throws IOException, TransformerException {
     try (StringWriter writer = new StringWriter()) {
-      TRANSFORMER_FACTORY.newTransformer().transform(new DOMSource(xml), new StreamResult(writer));
+      transformer().transform(new DOMSource(xml), new StreamResult(writer));
       return writer.toString();
     }
+  }
+
+  private static Transformer transformer() throws TransformerConfigurationException {
+    Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
+    transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+    transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+    return transformer;
   }
 
   public static String urlToText(URL url, String encoding) throws IOException {
@@ -425,13 +448,13 @@ public class ConfigurationParser {
 
   public static Schema discoverSchema(Source ... fixedSources) throws SAXException, IOException {
     ArrayList<Source> schemaSources = new ArrayList<>(asList(fixedSources));
-    for (CacheManagerServiceConfigurationParser<?> p : libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
+    for (CacheManagerServiceConfigurationParser<?> p : servicesOfType(CacheManagerServiceConfigurationParser.class)) {
       schemaSources.add(p.getXmlSchema());
     }
-    for (CacheServiceConfigurationParser<?> p : libraryServiceLoaderFor(CacheServiceConfigurationParser.class)) {
+    for (CacheServiceConfigurationParser<?> p : servicesOfType(CacheServiceConfigurationParser.class)) {
       schemaSources.add(p.getXmlSchema());
     }
-    for (CacheResourceConfigurationParser p : libraryServiceLoaderFor(CacheResourceConfigurationParser.class)) {
+    for (CacheResourceConfigurationParser p : servicesOfType(CacheResourceConfigurationParser.class)) {
       schemaSources.add(p.getXmlSchema());
     }
     return newSchema(schemaSources.toArray(new Source[0]));

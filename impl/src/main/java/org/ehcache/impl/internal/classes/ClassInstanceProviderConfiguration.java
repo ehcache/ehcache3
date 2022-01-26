@@ -16,8 +16,6 @@
 
 package org.ehcache.impl.internal.classes;
 
-import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -27,11 +25,19 @@ import java.util.Map;
  *
  * @author Alex Snaps
  */
-public class ClassInstanceProviderConfiguration<K, T> {
+public class ClassInstanceProviderConfiguration<K, C extends ClassInstanceConfiguration<?>> {
 
-  private final Map<K, ClassInstanceConfiguration<T>> defaults = new LinkedHashMap<>();
+  private final Map<K, C> defaults;
 
-  public Map<K, ClassInstanceConfiguration<T>> getDefaults() {
+  public ClassInstanceProviderConfiguration() {
+    this.defaults = new LinkedHashMap<>();
+  }
+
+  public ClassInstanceProviderConfiguration(ClassInstanceProviderConfiguration<K, C> config) {
+    this.defaults = new LinkedHashMap<>(config.getDefaults());
+  }
+
+  public Map<K, C> getDefaults() {
     return defaults;
   }
 

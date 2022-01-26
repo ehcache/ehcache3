@@ -43,7 +43,7 @@ public interface WrapperStore<K, V> extends Store<K, V> {
      *                       to the ranking
      * @return a non-negative rank indicating the ability of a {@code WrapperStore} created by this {@code Provider}
      */
-    int wrapperStoreRank(Collection<ServiceConfiguration<?>> serviceConfigs);
+    int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs);
 
   }
 }

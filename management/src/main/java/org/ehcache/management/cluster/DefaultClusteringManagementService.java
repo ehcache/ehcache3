@@ -49,7 +49,7 @@ import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class, ClusteringService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
 
-  private final ClusteringManagementServiceConfiguration configuration;
+  private final ClusteringManagementServiceConfiguration<?> configuration;
 
   private volatile ManagementRegistryService managementRegistryService;
   private volatile CollectorService collectorService;
@@ -63,7 +63,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     this(new DefaultClusteringManagementServiceConfiguration());
   }
 
-  public DefaultClusteringManagementService(ClusteringManagementServiceConfiguration configuration) {
+  public DefaultClusteringManagementService(ClusteringManagementServiceConfiguration<?> configuration) {
     this.configuration = configuration == null ? new DefaultClusteringManagementServiceConfiguration() : configuration;
   }
 

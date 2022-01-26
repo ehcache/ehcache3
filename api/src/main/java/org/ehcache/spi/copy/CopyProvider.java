@@ -43,7 +43,7 @@ public interface CopyProvider extends Service {
    * @param <T> the type to copy to/from
    * @return a non {@code null} {@link Copier} instance
    */
-  <T> Copier<T> createKeyCopier(Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs);
+  <T> Copier<T> createKeyCopier(Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?, ?>... configs);
 
   /**
    * Creates a value {@link Copier} with the given parameters.
@@ -56,7 +56,7 @@ public interface CopyProvider extends Service {
    * @param <T> the type to copy to/from
    * @return a non {@code null} {@link Copier} instance
    */
-  <T> Copier<T> createValueCopier(Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs);
+  <T> Copier<T> createValueCopier(Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?, ?>... configs);
 
   /**
    * Releases the provided {@link Copier} instance.

@@ -158,6 +158,17 @@ class ConnectionState {
     }
   }
 
+  private boolean silentDestroyUtil() {
+    try {
+      silentDestroy();
+      return true;
+    } catch (ConnectionClosedException | ConnectionShutdownException e) {
+      LOGGER.info("Disconnected from the server", e);
+      reconnect();
+      return false;
+    }
+  }
+
   private void silentDestroy() {
     LOGGER.debug("Found a broken ClusterTierManager - trying to clean it up");
     try {
@@ -209,9 +220,9 @@ class ConnectionState {
   }
 
   public void destroyState(boolean healthyConnection) {
-    if (entityFactory != null && healthyConnection) {
+    if (entityFactory != null) {
       // proactively abandon any acquired read or write locks on a healthy connection
-      entityFactory.abandonAllHolds(entityIdentifier);
+      entityFactory.abandonAllHolds(entityIdentifier, healthyConnection);
     }
     entityFactory = null;
 
@@ -247,9 +258,10 @@ class ConnectionState {
           throw new CachePersistenceException("Could not connect to the cluster tier manager '" + entityIdentifier
                   + "'; retrieve operation timed out", e);
         } catch (DestroyInProgressException e) {
-          silentDestroy();
-          // Nothing left to do
-          break;
+          if (silentDestroyUtil()) {
+            // Nothing left to do
+            break;
+          }
         } catch (ConnectionClosedException | ConnectionShutdownException e) {
           reconnect();
         }
@@ -288,7 +300,7 @@ class ConnectionState {
         entity = entityFactory.retrieve(entityIdentifier, serviceConfiguration.getServerConfiguration());
         break;
       } catch (DestroyInProgressException e) {
-        silentDestroy();
+        silentDestroyUtil();
       } catch (EntityNotFoundException e) {
         //ignore - loop and try to create
       } catch (TimeoutException e) {
@@ -307,7 +319,6 @@ class ConnectionState {
       try {
         destroyState(false);
         reconnect();
-        retrieveEntity();
         connectionRecoveryListener.run();
         break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {

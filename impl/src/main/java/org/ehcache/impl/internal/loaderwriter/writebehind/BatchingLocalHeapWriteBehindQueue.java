@@ -73,7 +73,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
   private volatile Batch openBatch;
 
-  public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
     BatchingConfiguration batchingConfig = config.getBatchingConfiguration();

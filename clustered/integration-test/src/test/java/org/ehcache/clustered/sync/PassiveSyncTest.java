@@ -34,11 +34,9 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.google.code.tempusfugit.temporal.Duration.seconds;
-import static com.google.code.tempusfugit.temporal.Timeout.timeout;
-import static com.google.code.tempusfugit.temporal.WaitFor.waitOrTimeout;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
@@ -69,8 +67,7 @@ public class PassiveSyncTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/op-sync"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -90,10 +87,11 @@ public class PassiveSyncTest extends ClusteredTests {
       CLUSTER.getClusterControl().terminateActive();
       CLUSTER.getClusterControl().waitForActive();
 
-      // Sometimes the new passive believes there is a second connection and we have to wait for the full reconnect window before getting a result
-      waitOrTimeout(() -> "value-5".equals(cache.get(-5L)), timeout(seconds(130)));
+      for (long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(130); cache.get(0L) == null && System.nanoTime() < end; ) {
+        Thread.sleep(100);
+      }
 
-      for (long i = -4; i < 5; i++) {
+      for (long i = -5; i < 5; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }
     } finally {
@@ -109,8 +107,7 @@ public class PassiveSyncTest extends ClusteredTests {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
 
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,

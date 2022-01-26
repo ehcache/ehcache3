@@ -19,9 +19,12 @@ import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.junit.Test;
 import org.w3c.dom.Node;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
 
-import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
+import static org.junit.Assert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**
  * TxCacheManagerServiceConfigurationParserTest
@@ -38,7 +41,8 @@ public class TxCacheManagerServiceConfigurationParserTest {
     String inputString = "<tx:jta-tm " +
                          "transaction-manager-lookup-class = \"org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup\" " +
                          "xmlns:tx = \"http://www.ehcache.org/v3/tx\" />";
-    assertElement(inputString, retElement);
+    assertThat(retElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndAllAttributes)));
   }
 
 }

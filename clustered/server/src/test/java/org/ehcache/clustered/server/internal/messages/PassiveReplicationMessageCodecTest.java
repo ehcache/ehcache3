@@ -24,13 +24,12 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.
 import org.junit.Test;
 
 import static java.nio.ByteBuffer.wrap;
-import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.Matchers.matchesChain;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 
 public class PassiveReplicationMessageCodecTest {
@@ -39,7 +38,7 @@ public class PassiveReplicationMessageCodecTest {
 
   @Test
   public void testChainReplicationMessageCodec() {
-    Chain chain = getChain(false, createPayload(2L), createPayload(20L));
+    Chain chain = chainOf(createPayload(2L), createPayload(20L));
     ChainReplicationMessage chainReplicationMessage = new ChainReplicationMessage(2L, chain, 200L, 100L, 1L);
 
     byte[] encoded = codec.encode(chainReplicationMessage);
@@ -49,7 +48,7 @@ public class PassiveReplicationMessageCodecTest {
     assertThat(decodedMsg.getTransactionId(), is(chainReplicationMessage.getTransactionId()));
     assertThat(decodedMsg.getOldestTransactionId(), is(chainReplicationMessage.getOldestTransactionId()));
     assertThat(decodedMsg.getKey(), is(chainReplicationMessage.getKey()));
-    assertTrue(chainsEqual(decodedMsg.getChain(), chainReplicationMessage.getChain()));
+    assertThat(decodedMsg.getChain(), matchesChain(chainReplicationMessage.getChain()));
 
   }
 

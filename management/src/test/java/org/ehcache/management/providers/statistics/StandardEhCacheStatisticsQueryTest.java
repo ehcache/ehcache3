@@ -102,7 +102,7 @@ public class StandardEhCacheStatisticsQueryTest {
 
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources)
       .withEvictionAdvisor((key, value) -> key.equals(2L))
-      .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics to make sure they are there even when using only one tier
+      .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics to make sure they are there even when using only one tier
       .build();
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

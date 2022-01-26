@@ -27,7 +27,6 @@ import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityServi
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
@@ -38,6 +37,7 @@ import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.net.URI;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -90,7 +90,7 @@ public class LockRetentionDuringFailoverTest {
             .withLoaderWriter(loaderWriter)
             .build();
 
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().with(cluster(URI.create(STRIPE_URI)).autoCreate())
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().with(cluster(URI.create(STRIPE_URI)).autoCreate(c -> c))
             .withCache("cache-1", config)
             .build(true);
 

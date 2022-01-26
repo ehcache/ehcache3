@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.disk.factories;
 
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
@@ -26,6 +27,10 @@ import org.terracotta.offheapstore.disk.persistent.PersistentStorageEngine;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.util.Factory;
 
+import java.nio.IntBuffer;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
 import static org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION;
@@ -109,6 +114,30 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
         return evicted;
       } finally {
         lock.unlock();
+      }
+    }
+
+    @Override
+    protected Set<Entry<K, V>> createEntrySet() {
+      return new EntrySet();
+    }
+
+    private class EntrySet extends LockedEntrySet {
+      @Override
+      public Iterator<Entry<K, V>> iterator() {
+        readLock().lock();
+        try {
+          return new LockedEntryIterator() {
+            @Override
+            protected Map.Entry<K, V> create(IntBuffer entry) {
+              Map.Entry<K, V> entryObject = super.create(entry);
+              ((Store.ValueHolder<?>) entryObject.getValue()).get();
+              return entryObject;
+            }
+          };
+        } finally {
+          readLock().unlock();
+        }
       }
     }
   }

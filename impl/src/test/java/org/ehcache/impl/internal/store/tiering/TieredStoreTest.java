@@ -20,23 +20,26 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -60,7 +63,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -102,7 +105,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.get(1).get(), Matchers.equalTo("one"));
 
     verify(numberAuthoritativeTier, times(0)).getAndFault(any(Number.class));
   }
@@ -120,7 +123,7 @@ public class TieredStoreTest {
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
-    assertThat(tieredStore.get(1).get(), Matchers.<CharSequence>equalTo("one"));
+    assertThat(tieredStore.get(1).get(), Matchers.equalTo("one"));
 
     verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
     verify(numberAuthoritativeTier, times(1)).getAndFault(any(Number.class));
@@ -561,7 +564,7 @@ public class TieredStoreTest {
     barrier.await();
     t.join();
     verify(stringCachingTier, never()).getOrComputeIfAbsent(
-      ArgumentMatchers.<String>any(), ArgumentMatchers.<Function<String, Store.ValueHolder<String>>>any());
+      ArgumentMatchers.any(), ArgumentMatchers.any());
   }
 
   @Test
@@ -580,7 +583,7 @@ public class TieredStoreTest {
     Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
     when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
     when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
-      ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
+      ArgumentMatchers.any()))
         .thenReturn(stringCachingTier);
 
     SizedResourcePool offHeapPool = mock(SizedResourcePool.class);
@@ -589,7 +592,7 @@ public class TieredStoreTest {
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
     when(offHeapStoreProvider.createAuthoritativeTier(
-            any(Store.Configuration.class), ArgumentMatchers.<ServiceConfiguration<?>[]>any()))
+            any(Store.Configuration.class), ArgumentMatchers.any()))
         .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
@@ -604,6 +607,7 @@ public class TieredStoreTest {
     when(serviceProvider.getService(OffHeapStore.Provider.class)).thenReturn(offHeapStoreProvider);
     when(serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class)).thenReturn(authorities);
     when(serviceProvider.getServicesOfType(CachingTier.Provider.class)).thenReturn(cachingTiers);
+    when(serviceProvider.getService(StatisticsService.class)).thenReturn(new DefaultStatisticsService());
     tieredStoreProvider.start(serviceProvider);
 
     final Store<String, String> tieredStore = tieredStoreProvider.createStore(configuration);
@@ -615,7 +619,8 @@ public class TieredStoreTest {
   @Test
   public void testRank() throws Exception {
     TieredStore.Provider provider = new TieredStore.Provider();
-    ServiceLocator serviceLocator = dependencySet().with(provider).with(mock(DiskResourceService.class)).build();
+    ServiceLocator serviceLocator = dependencySet().with(provider).with(mock(DiskResourceService.class))
+      .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
     assertRank(provider, 0, ResourceType.Core.DISK);
@@ -669,7 +674,7 @@ public class TieredStoreTest {
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     Assert.assertThat(provider.rank(
       new HashSet<>(Arrays.asList(resources)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
+        Collections.emptyList()),
         Matchers.is(expectedRank));
   }
 
@@ -686,22 +691,22 @@ public class TieredStoreTest {
       }
 
       @Override
-      public long creationTime(TimeUnit unit) {
+      public long creationTime() {
         return 0;
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(TimeUnit unit) {
+      public long lastAccessTime() {
         return 0;
       }
 
