@@ -32,6 +32,7 @@ import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
@@ -164,7 +165,11 @@ public class CommonConfigCodec implements ConfigCodec {
     }
 
     return new ServerStoreConfiguration(poolAllocation, keyType, valueType, keySerializer, valueSerializer, consistency,
-            loaderWriterConfigured, writeBehindConfigured);
+            getNonNullBoolean(loaderWriterConfigured), getNonNullBoolean(writeBehindConfigured));
+  }
+
+  private static Boolean getNonNullBoolean(Boolean loaderWriterConfigured) {
+    return Optional.ofNullable(loaderWriterConfigured).orElse(false);
   }
 
   @Override
