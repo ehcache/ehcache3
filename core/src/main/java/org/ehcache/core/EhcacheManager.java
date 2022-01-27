@@ -318,26 +318,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     List<LifeCycled> lifeCycledList = new ArrayList<>();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = serviceLocator.getService(CacheLoaderWriterProvider.class);
-    CacheLoaderWriter<? super K, V> decorator ;
+    CacheLoaderWriter<? super K, V> loaderWriter;
     if(cacheLoaderWriterProvider != null) {
-      CacheLoaderWriter<? super K, V> loaderWriter;
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
-      WriteBehindConfiguration writeBehindConfiguration =
-          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations());
-      if(writeBehindConfiguration == null) {
-        decorator = loaderWriter;
-      } else {
-        WriteBehindProvider factory = serviceLocator.getService(WriteBehindProvider.class);
-        decorator = factory.createWriteBehindLoaderWriter(loaderWriter, writeBehindConfiguration);
-        if(decorator != null) {
-          lifeCycledList.add(new LifeCycledAdapter() {
-            @Override
-            public void close() {
-              factory.releaseWriteBehindLoaderWriter(decorator);
-            }
-          });
-        }
-      }
 
       if (loaderWriter != null) {
         lifeCycledList.add(new LifeCycledAdapter() {
@@ -348,10 +331,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         });
       }
     } else {
-      decorator = null;
+      loaderWriter = null;
     }
 
-    Store<K, V> store = getStore(alias, config, keyType, valueType, adjustedServiceConfigs, lifeCycledList, decorator);
+    Store<K, V> store = getStore(alias, config, keyType, valueType, adjustedServiceConfigs, lifeCycledList, loaderWriter);
 
 
     CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
@@ -367,12 +350,12 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     ResilienceStrategyProvider resilienceProvider = serviceLocator.getService(ResilienceStrategyProvider.class);
     ResilienceStrategy<K, V> resilienceStrategy;
-    if (decorator == null) {
+    if (loaderWriter == null) {
       resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store));
     } else {
-      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store), decorator);
+      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store), loaderWriter);
     }
-    InternalCache<K, V> cache = new Ehcache<>(config, store, resilienceStrategy, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias), decorator);
+    InternalCache<K, V> cache = new Ehcache<>(config, store, resilienceStrategy, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias), loaderWriter);
 
     CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {

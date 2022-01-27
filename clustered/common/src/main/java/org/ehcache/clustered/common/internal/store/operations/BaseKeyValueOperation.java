@@ -14,77 +14,104 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.codecs.CodecException;
+import org.ehcache.clustered.common.internal.store.operations.codecs.CodecException;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class RemoveOperation<K, V> implements Operation<K, V> {
+abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   private final K key;
+  private final LazyValueHolder<V> valueHolder;
+
+  //-ve values are expiry times
+  //+ve values are operation timestamps
   private final long timeStamp;
 
-  public RemoveOperation(final K key, final long timeStamp) {
+  BaseKeyValueOperation(K key, V value, long timeStamp) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
+    if(value == null) {
+      throw new NullPointerException("Value can not be null");
+    }
     this.key = key;
+    this.valueHolder = new LazyValueHolder<>(value);
     this.timeStamp = timeStamp;
   }
 
-  RemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer) {
+  BaseKeyValueOperation(BaseKeyValueOperation<K, V> copy, long timeStamp) {
+    this.key = copy.key;
+    this.valueHolder = copy.valueHolder;
+    this.timeStamp = timeStamp;
+  }
+
+  BaseKeyValueOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     OperationCode opCode = OperationCode.valueOf(buffer.get());
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
     this.timeStamp = buffer.getLong();
+    int keySize = buffer.getInt();
+    int maxLimit = buffer.limit();
+    buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
+    buffer.position(buffer.limit());
+    buffer.limit(maxLimit);
     try {
       this.key = keySerializer.read(keyBlob);
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
+    this.valueHolder = new LazyValueHolder<>(buffer.slice(), valueSerializer);
   }
 
   public K getKey() {
     return key;
   }
 
-  @Override
-  public OperationCode getOpCode() {
-    return OperationCode.REMOVE;
+  public V getValue() {
+    return valueHolder.getValue();
   }
 
   /**
-   * Remove operation applied on top of another operation does not care
-   * what the other operation is. The result is always gonna be null.
+   * Here we need to encode two objects of unknown size: the key and the value.
+   * Encoding should be done in such a way that the key and value can be read
+   * separately while decoding the bytes.
+   * So the way it is done here is by writing the size of the payload along with
+   * the payload. That is, the size of the key payload is written before the key
+   * itself. The value payload is written after that.
+   *
+   * While decoding, the size is read first and then reading the same number of
+   * bytes will get you the key payload. Whatever that is left is the value payload.
    */
-  @Override
-  public Result<K, V> apply(final Result<K, V> previousOperation) {
-    return null;
-  }
-
   @Override
   public ByteBuffer encode(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     ByteBuffer keyBuf = keySerializer.serialize(key);
+    ByteBuffer valueBuf = valueHolder.encode(valueSerializer);
 
     int size = BYTE_SIZE_BYTES +   // Operation type
+               INT_SIZE_BYTES +    // Size of the key payload
                LONG_SIZE_BYTES +   // Size of expiration time stamp
-               keyBuf.remaining();   // the key payload itself
+               keyBuf.remaining() + // the key payload itself
+               valueBuf.remaining();  // the value payload
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
+
     buffer.put(getOpCode().getValue());
     buffer.putLong(this.timeStamp);
+    buffer.putInt(keyBuf.remaining());
     buffer.put(keyBuf);
+    buffer.put(valueBuf);
     buffer.flip();
     return buffer;
   }
 
   @Override
   public String toString() {
-    return "{" + getOpCode() + "# key: " + key + "}";
+    return "{" + getOpCode() + "# key: " + key + ", value: " + getValue() + "}";
   }
 
   @Override
@@ -92,16 +119,18 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     if(obj == null) {
       return false;
     }
-    if(!(obj instanceof RemoveOperation)) {
+    if(!(obj instanceof BaseKeyValueOperation)) {
       return false;
     }
 
-    @SuppressWarnings("unchecked")
-    RemoveOperation<K, V> other = (RemoveOperation) obj;
+    BaseKeyValueOperation<?, ?> other = (BaseKeyValueOperation<?, ?>) obj;
     if(this.getOpCode() != other.getOpCode()) {
       return false;
     }
     if(!this.getKey().equals(other.getKey())) {
+      return false;
+    }
+    if(!this.getValue().equals(other.getValue())) {
       return false;
     }
     return true;
@@ -111,6 +140,7 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
   public int hashCode() {
     int hash = getOpCode().hashCode();
     hash = hash * 31 + key.hashCode();
+    hash = hash * 31 + getValue().hashCode();
     return hash;
   }
 
@@ -136,5 +166,4 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
       throw new RuntimeException("Expiry not available");
     }
   }
-
 }
