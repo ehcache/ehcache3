@@ -43,6 +43,16 @@ public class PooledExecutionServiceConfigurationBuilder implements Builder<Poole
     this.pools.addAll(other.pools);
   }
 
+  private PooledExecutionServiceConfigurationBuilder(PooledExecutionServiceConfiguration seed) {
+    seed.getPoolConfigurations().forEach((alias, config) -> {
+      Pool pool = new Pool(alias, config.minSize(), config.maxSize());
+      if (alias.equals(seed.getDefaultPoolAlias())) {
+        defaultPool = pool;
+      }
+      pools.add(pool);
+    });
+  }
+
   /**
    * Creates a new instance of {@code PooledExecutionServiceConfigurationBuilder}
    *
@@ -50,6 +60,15 @@ public class PooledExecutionServiceConfigurationBuilder implements Builder<Poole
    */
   public static PooledExecutionServiceConfigurationBuilder newPooledExecutionServiceConfigurationBuilder() {
     return new PooledExecutionServiceConfigurationBuilder();
+  }
+
+  /**
+   * Creates a seeded instance of {@code PooledExecutionServiceConfigurationBuilder}
+   *
+   * @return the builder
+   */
+  public static PooledExecutionServiceConfigurationBuilder newPooledExecutionServiceConfigurationBuilder(PooledExecutionServiceConfiguration seed) {
+    return new PooledExecutionServiceConfigurationBuilder(seed);
   }
 
   /**

@@ -23,6 +23,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -31,9 +32,12 @@ import java.util.Set;
  * {@link org.ehcache.spi.service.ServiceConfiguration} for the default {@link CacheEventListenerProvider}.
  * <p>
  * Enables configuring a {@link CacheEventListener} for a given cache.
+ * <p>
+ * This class overrides the default {@link ServiceConfiguration#compatibleWith(ServiceConfiguration)} implementation
+ * to allow for the configuration of multiple cache event listeners on the same cache.
  */
 public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfiguration<CacheEventListener<?, ?>>
-    implements CacheEventListenerConfiguration {
+    implements CacheEventListenerConfiguration<Void> {
 
   private final EnumSet<EventType> eventsToFireOn;
   private EventFiring eventFiringMode = EventFiring.ASYNCHRONOUS;
@@ -130,5 +134,10 @@ public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfigu
   @Override
   public EnumSet<EventType> fireOn() {
     return eventsToFireOn;
+  }
+
+  @Override
+  public boolean compatibleWith(ServiceConfiguration<?, ?> other) {
+    return true;
   }
 }

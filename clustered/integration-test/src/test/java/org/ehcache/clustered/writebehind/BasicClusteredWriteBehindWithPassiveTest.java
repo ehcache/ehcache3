@@ -18,21 +18,28 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.util.runners.Parallel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@RunWith(Parallel.class)
 public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBase {
 
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(
+      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build()
+  );
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cache;
@@ -46,14 +53,13 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     cacheManager = createCacheManager(CLUSTER.getConnectionURI());
-    cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
+    cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
   }
 
   @After
   public void tearDown() throws Exception {
     if (cacheManager != null) {
       cacheManager.close();
-      cacheManager.destroy();
     }
   }
 

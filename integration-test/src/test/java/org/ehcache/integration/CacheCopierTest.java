@@ -66,7 +66,7 @@ public class CacheCopierTest {
   @Test
   public void testCopyValueOnRead() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<>(PersonOnReadCopier.class, DefaultCopierConfiguration.Type.VALUE))
+        .withService(new DefaultCopierConfiguration<>(PersonOnReadCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -89,7 +89,7 @@ public class CacheCopierTest {
   @Test
   public void testCopyValueOnWrite() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<>(PersonOnWriteCopier.class, DefaultCopierConfiguration.Type.VALUE))
+        .withService(new DefaultCopierConfiguration<>(PersonOnWriteCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -131,8 +131,8 @@ public class CacheCopierTest {
   @Test
   public void testSerializingCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
-        .add(new DefaultSerializerConfiguration<>(PersonSerializer.class, DefaultSerializerConfiguration.Type.VALUE))
+        .withService(new DefaultCopierConfiguration<>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
+        .withService(new DefaultSerializerConfiguration<>(PersonSerializer.class, DefaultSerializerConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -155,7 +155,7 @@ public class CacheCopierTest {
   @Test
   public void testReadWriteCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<>(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
+        .withService(new DefaultCopierConfiguration<>(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);

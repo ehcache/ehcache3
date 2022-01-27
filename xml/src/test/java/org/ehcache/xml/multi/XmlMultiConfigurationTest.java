@@ -19,6 +19,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.XmlConfigurationTest;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
 import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
@@ -367,7 +368,7 @@ public class XmlMultiConfigurationTest {
   }
 
   @Test
-  public void testParseExtendedConfiguration() throws URISyntaxException {
+  public void testParseExtendedConfiguration() {
     XmlMultiConfiguration xmlMultiConfiguration = XmlMultiConfiguration.from(getClass().getResource("/configs/multi/extended.xml")).build();
 
     assertThat(xmlMultiConfiguration.configuration("foo"), notNullValue());
@@ -392,6 +393,11 @@ public class XmlMultiConfigurationTest {
         "</config>" +
         "</configuration>" +
         "</configurations>").ignoreWhitespace().ignoreComments());
+  }
+
+  @Test(expected = XmlConfigurationException.class)
+  public void testParseOrdinaryConfiguration() {
+    XmlMultiConfiguration.from(getClass().getResource("/configs/one-cache.xml")).build();
   }
 
   private static Configuration emptyConfiguration() {

@@ -62,8 +62,8 @@ public class DefaultCopierConfigurationParserTest {
   public void unparseServiceConfiguration() {
     @SuppressWarnings({"unchecked", "rawtypes"})
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
-      .add(new DefaultCopierConfiguration(DescriptionCopier.class, DefaultCopierConfiguration.Type.KEY))
-      .add(new DefaultCopierConfiguration(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
+      .withService(new DefaultCopierConfiguration(DescriptionCopier.class, DefaultCopierConfiguration.Type.KEY))
+      .withService(new DefaultCopierConfiguration(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
       .build();
 
     CacheType cacheType = new CacheType();
@@ -90,7 +90,7 @@ public class DefaultCopierConfigurationParserTest {
       new DefaultCopierConfiguration<>(personCopier, DefaultCopierConfiguration.Type.VALUE);
 
     CacheConfiguration<?, ?> cacheConfig = newCacheConfigurationBuilder(Description.class, Person.class, heap(10))
-      .add(config1).add(config2).build();
+      .withService(config1).withService(config2).build();
 
     CacheType cacheType = new CacheType();
     CacheEntryType keyType = new CacheEntryType();

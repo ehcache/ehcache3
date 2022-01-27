@@ -15,20 +15,22 @@
  */
 package org.ehcache.clustered.server.offheap;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.LongConsumer;
-import java.util.function.LongFunction;
-
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.KeySegmentMapper;
-import org.ehcache.clustered.server.ServerStoreEvictionListener;
+import org.ehcache.clustered.server.ServerStoreEventListener;
 import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
@@ -40,6 +42,8 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
 
   private final List<OffHeapChainMap<Long>> segments;
   private final KeySegmentMapper mapper;
+  private volatile ServerStoreEventListener listener;
+  private volatile boolean fireEvents;
 
   public OffHeapServerStore(List<OffHeapChainMap<Long>> segments, KeySegmentMapper mapper) {
     this.mapper = mapper;
@@ -86,7 +90,11 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     return maxSize;
   }
 
-  public void setEvictionListener(final ServerStoreEvictionListener listener) {
+  public void setEventListener(ServerStoreEventListener listener) {
+    if (this.listener != null) {
+      throw new IllegalStateException("ServerStoreEventListener instance already set");
+    }
+    this.listener = listener;
     OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = listener::onEviction;
     for (OffHeapChainMap<Long> segment : segments) {
       segment.setEvictionListener(chainMapEvictionListener);
@@ -100,19 +108,40 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
 
   @Override
   public void append(long key, ByteBuffer payLoad) {
+    LongConsumer lambda;
+    if (listener != null && fireEvents) {
+      lambda = (k) -> {
+        Chain beforeAppend = segmentFor(k).getAndAppend(k, payLoad);
+        listener.onAppend(beforeAppend, payLoad.duplicate());
+      };
+    } else {
+      lambda = (k) -> segmentFor(k).append(k, payLoad);
+    }
+
     try {
-      segmentFor(key).append(key, payLoad);
+      lambda.accept(key);
     } catch (OversizeMappingException e) {
-      consumeOversizeMappingException(key, (long k) -> segmentFor(k).append(k, payLoad));
+      consumeOversizeMappingException(key, lambda);
     }
   }
 
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
+    LongFunction<Chain> lambda;
+    if (listener != null && fireEvents) {
+      lambda = (k) -> {
+        Chain beforeAppend = segmentFor(k).getAndAppend(k, payLoad);
+        listener.onAppend(beforeAppend, payLoad.duplicate());
+        return beforeAppend;
+      };
+    } else {
+      lambda = (k) -> segmentFor(k).getAndAppend(k, payLoad);
+    }
+
     try {
-      return segmentFor(key).getAndAppend(key, payLoad);
+      return lambda.apply(key);
     } catch (OversizeMappingException e) {
-      return handleOversizeMappingException(key, (long k) -> segmentFor(k).getAndAppend(k, payLoad));
+      return handleOversizeMappingException(key, lambda);
     }
   }
 
@@ -337,4 +366,80 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
     return total;
   }
 
+  @Override
+  public Iterator<Chain> iterator() {
+    return new AggregateIterator<Chain>() {
+      @Override
+      protected Iterator<Chain> getNextIterator() {
+        return listIterator.next().iterator();
+      }
+    };
+  }
+
+  public void enableEvents(boolean enable) {
+    this.fireEvents = enable;
+  }
+
+  protected abstract class AggregateIterator<T> implements Iterator<T> {
+
+    protected final Iterator<OffHeapChainMap<Long>> listIterator;
+    protected Iterator<T>               currentIterator;
+
+    protected abstract Iterator<T> getNextIterator();
+
+    public AggregateIterator() {
+      listIterator = segments.iterator();
+      while (listIterator.hasNext()) {
+        currentIterator = getNextIterator();
+        if (currentIterator.hasNext()) {
+          return;
+        }
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (currentIterator == null) {
+        return false;
+      }
+
+      if (currentIterator.hasNext()) {
+        return true;
+      } else {
+        while (listIterator.hasNext()) {
+          currentIterator = getNextIterator();
+          if (currentIterator.hasNext()) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    @Override
+    public T next() {
+      if (currentIterator == null) {
+        throw new NoSuchElementException();
+      }
+
+      if (currentIterator.hasNext()) {
+        return currentIterator.next();
+      } else {
+        while (listIterator.hasNext()) {
+          currentIterator = getNextIterator();
+
+          if (currentIterator.hasNext()) {
+            return currentIterator.next();
+          }
+        }
+      }
+
+      throw new NoSuchElementException();
+    }
+
+    @Override
+    public void remove() {
+      currentIterator.remove();
+    }
+  }
 }

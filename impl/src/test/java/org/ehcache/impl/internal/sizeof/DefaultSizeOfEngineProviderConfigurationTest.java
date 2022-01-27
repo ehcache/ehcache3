@@ -22,12 +22,15 @@ import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.fail;
+
 /**
  * @author Abhilash
  *
  */
-
 public class DefaultSizeOfEngineProviderConfigurationTest {
 
   @Test
@@ -58,5 +61,17 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
     assertThat(configuration.getMaxObjectGraphSize(), equalTo(10l));
     assertThat(configuration.getMaxObjectSize(), equalTo(10l));
     assertThat(configuration.getUnit(), equalTo(MemoryUnit.B));
+  }
+
+  @Test
+  public void testDeriveDetachesCorrectly() {
+    DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(42L, MemoryUnit.B, 100L);
+
+    DefaultSizeOfEngineProviderConfiguration derived = configuration.build(configuration.derive());
+
+    assertThat(derived, is(not(sameInstance(configuration))));
+    assertThat(derived.getMaxObjectGraphSize(), is(configuration.getMaxObjectGraphSize()));
+    assertThat(derived.getMaxObjectSize(), is(configuration.getMaxObjectSize()));
+    assertThat(derived.getUnit(), is(configuration.getUnit()));
   }
 }

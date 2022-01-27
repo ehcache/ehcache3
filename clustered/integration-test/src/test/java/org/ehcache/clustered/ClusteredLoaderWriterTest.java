@@ -98,7 +98,7 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
                     .timeouts(TimeoutsBuilder.timeouts()
                                              .read(Duration.ofSeconds(30))
                                              .write(Duration.ofSeconds(30)))
-                    .autoCreate()
+                    .autoCreate(c -> c)
                     .build())
             .using(managementRegistry)
             .build(true);
@@ -118,7 +118,7 @@ public class ClusteredLoaderWriterTest extends ClusteredTests {
                             .heap(20)
                             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .withLoaderWriter(new TestCacheLoaderWriter(sor))
-            .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+            .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
             .withResilienceStrategy(new ThrowingResilienceStrategy<>())
             .build();
   }

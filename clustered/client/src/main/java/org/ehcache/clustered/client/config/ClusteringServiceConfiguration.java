@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.config;
 
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -33,11 +34,13 @@ import java.util.Properties;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.seededFrom;
+
 /**
  * Specifies the configuration for a {@link ClusteringService}.
  */
 public class ClusteringServiceConfiguration
-    implements ServiceCreationConfiguration<ClusteringService>,
+    implements ServiceCreationConfiguration<ClusteringService, ClusteringServiceConfigurationBuilder>,
     CacheManagerConfiguration<PersistentCacheManager>,
     HumanReadable {
 
@@ -364,5 +367,15 @@ public class ClusteringServiceConfiguration
       pools.append("        None.");
     }
     return pools.toString();
+  }
+
+  @Override
+  public ClusteringServiceConfigurationBuilder derive() {
+    return seededFrom(this);
+  }
+
+  @Override
+  public ClusteringServiceConfiguration build(ClusteringServiceConfigurationBuilder representation) {
+    return representation.build();
   }
 }

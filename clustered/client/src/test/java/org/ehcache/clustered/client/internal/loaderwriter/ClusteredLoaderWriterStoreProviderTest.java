@@ -18,7 +18,7 @@ package org.ehcache.clustered.client.internal.loaderwriter;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.internal.store.ClusteredStoreProviderTest;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -30,14 +30,14 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.HashSet;
 
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class ClusteredLoaderWriterStoreProviderTest {
 
-  private final CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = mock(CacheLoaderWriterConfiguration.class);
+  private final CacheLoaderWriterConfiguration<?> cacheLoaderWriterConfiguration = mock(CacheLoaderWriterConfiguration.class);
 
   @Test
   public void testRank() {

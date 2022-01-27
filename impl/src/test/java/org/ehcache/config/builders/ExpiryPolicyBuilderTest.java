@@ -19,6 +19,8 @@ package org.ehcache.config.builders;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.Test;
 
+import java.time.Duration;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -64,12 +66,40 @@ public class ExpiryPolicyBuilderTest {
 
   @Test
   public void testExpiration() {
-    java.time.Duration creation = java.time.Duration.ofSeconds(1L);
-    java.time.Duration access = java.time.Duration.ofSeconds(2L);
-    java.time.Duration update = java.time.Duration.ofSeconds(3L);
+    Duration creation = Duration.ofSeconds(1L);
+    Duration access = Duration.ofSeconds(2L);
+    Duration update = Duration.ofSeconds(3L);
     ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.expiry().create(creation).access(access).update(update).build();
     assertThat(expiry.getExpiryForCreation(this, this), equalTo(creation));
     assertThat(expiry.getExpiryForAccess(this, () -> this), equalTo(access));
     assertThat(expiry.getExpiryForUpdate(this, () -> this,this), equalTo(update));
+  }
+
+  @Test
+  public void testExpirationFunctions() {
+    Duration creation = Duration.ofSeconds(1L);
+    Duration access = Duration.ofSeconds(2L);
+    Duration update = Duration.ofSeconds(3L);
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.expiry()
+      .create((k, v) -> {
+        assertThat(k, equalTo(10L));
+        assertThat(v, equalTo(20L));
+        return creation;
+      })
+      .access((k, v) -> {
+        assertThat(k, equalTo(10L));
+        assertThat(v.get(), equalTo(20L));
+        return access;
+      })
+      .update((k, v1, v2) -> {
+        assertThat(k, equalTo(10L));
+        assertThat(v1.get(), equalTo(20L));
+        assertThat(v2, equalTo(30L));
+        return update;
+      })
+      .build();
+    assertThat(expiry.getExpiryForCreation(10L, 20L), equalTo(creation));
+    assertThat(expiry.getExpiryForAccess(10L, () -> 20L), equalTo(access));
+    assertThat(expiry.getExpiryForUpdate(10L, () -> 20L,30L), equalTo(update));
   }
 }

@@ -35,15 +35,6 @@ import java.util.Iterator;
 public interface Chain extends Iterable<Element> {
 
   /**
-   * Returns the iterator to iterate the {@link Chain} of
-   * {@link Element}s in backwards direction i.e. starting
-   * from last one.
-   *
-   * @return an Iterator.
-   */
-  Iterator<Element> reverseIterator();
-
-  /**
    * Returns true if Chain is empty else false.
    *
    * @return whether the Chain is empty

@@ -19,7 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.core.internal.util.CollectionUtil;
+import org.ehcache.core.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -30,7 +30,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.ContextManager;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -65,7 +64,6 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.expiry = expiry;
-    ContextManager.associate(delegate).withParent(this);
   }
 
   @Override
@@ -120,6 +118,9 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
         throw new StorePassThroughException(newCacheWritingException(e));
       }
 
+      // Here were a returning an actual value instead of null because the mappingFunction is called by a map.compute(). So we
+      // want the compute to actually set the value to the backend. However, the putIfAbsent should return null since there
+      // was no previous value. This is why we use put.accept(true). This will tell EhcacheBase: "Hey! A put was done, you should return null"
       put.accept(true);
       return value;
     };

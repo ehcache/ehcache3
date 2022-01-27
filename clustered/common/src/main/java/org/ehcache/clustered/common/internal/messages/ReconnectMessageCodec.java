@@ -33,11 +33,13 @@ public class ReconnectMessageCodec {
   private static final String HASH_INVALIDATION_IN_PROGRESS_FIELD = "hashInvalidationInProgress";
   private static final String CLEAR_IN_PROGRESS_FIELD = "clearInProgress";
   private static final String LOCKS_HELD_FIELD = "locksHeld";
+  private static final String EVENTS_ENABLED_FIELD = "eventsEnabled";
 
   private static final Struct CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT = newStructBuilder()
     .int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD, 20)
     .bool(CLEAR_IN_PROGRESS_FIELD, 30)
     .int64s(LOCKS_HELD_FIELD, 40)
+    .bool(EVENTS_ENABLED_FIELD, 50) // added in 10.5.0
     .build();
 
   public byte[] encode(ClusterTierReconnectMessage reconnectMessage) {
@@ -47,6 +49,7 @@ public class ReconnectMessageCodec {
     encoder.bool(CLEAR_IN_PROGRESS_FIELD, reconnectMessage.isClearInProgress());
     ArrayEncoder<Long, StructEncoder<Void>> locksHeldEncoder = encoder.int64s(LOCKS_HELD_FIELD);
     reconnectMessage.getLocksHeld().forEach(locksHeldEncoder::value);
+    encoder.bool(EVENTS_ENABLED_FIELD, reconnectMessage.isEventsEnabled());
     return encoder.encode().array();
   }
 
@@ -61,11 +64,9 @@ public class ReconnectMessageCodec {
     ArrayDecoder<Long, StructDecoder<Void>> locksHeldDecoder = decoder.int64s(LOCKS_HELD_FIELD);
     Set<Long> locks = decodeLongs(locksHeldDecoder);
 
-    ClusterTierReconnectMessage message = new ClusterTierReconnectMessage(hashes, locks, clearInProgress != null ? clearInProgress : false);
+    Boolean eventsEnabled = decoder.bool(EVENTS_ENABLED_FIELD);
 
-
-
-    return message;
+    return new ClusterTierReconnectMessage(hashes, locks, clearInProgress != null ? clearInProgress : false, eventsEnabled != null ? eventsEnabled : false);
   }
 
   private static Set<Long> decodeLongs(ArrayDecoder<Long, StructDecoder<Void>> decoder) {

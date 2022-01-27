@@ -19,15 +19,16 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.TestClientSourceId;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
+import static org.ehcache.clustered.Matchers.matchesChain;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,7 +42,7 @@ public class EhcacheSyncMessageCodecTest {
   @Test
   public void testDataSyncMessageEncodeDecode() throws Exception {
     Map<Long, Chain> chainMap = new HashMap<>();
-    Chain chain = getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L));
+    Chain chain = sequencedChainOf(createPayload(10L), createPayload(100L), createPayload(1000L));
     chainMap.put(1L, chain);
     chainMap.put(2L, chain);
     chainMap.put(3L, chain);
@@ -50,9 +51,9 @@ public class EhcacheSyncMessageCodecTest {
     EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, encodedMessage);
     Map<Long, Chain> decodedChainMap = decoded.getChainMap();
     assertThat(decodedChainMap).hasSize(3);
-    assertThat(chainsEqual(decodedChainMap.get(1L), chain)).isTrue();
-    assertThat(chainsEqual(decodedChainMap.get(2L), chain)).isTrue();
-    assertThat(chainsEqual(decodedChainMap.get(3L), chain)).isTrue();
+    Assert.assertThat(decodedChainMap.get(1L), matchesChain(chain));
+    Assert.assertThat(decodedChainMap.get(2L), matchesChain(chain));
+    Assert.assertThat(decodedChainMap.get(3L), matchesChain(chain));
   }
 
   @Test

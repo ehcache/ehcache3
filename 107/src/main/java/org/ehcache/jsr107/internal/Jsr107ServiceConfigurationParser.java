@@ -22,6 +22,7 @@ import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -39,6 +40,7 @@ import static java.lang.Boolean.parseBoolean;
 /**
  * @author Alex Snaps
  */
+@Component
 public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConfigurationParser<Jsr107Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
@@ -61,7 +63,7 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   }
 
   @Override
-  public ServiceCreationConfiguration<Jsr107Service> parseServiceCreationConfiguration(final Element fragment) {
+  public ServiceCreationConfiguration<Jsr107Service, ?> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
     boolean jsr107CompliantAtomics = true;
     ConfigurationElementState enableManagementAll = ConfigurationElementState.UNSPECIFIED;
     ConfigurationElementState enableStatisticsAll = ConfigurationElementState.UNSPECIFIED;
@@ -94,7 +96,7 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Jsr107Service> serviceCreationConfiguration) {
+  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Jsr107Service, ?> serviceCreationConfiguration) {
     throw new XmlConfigurationException("XML translation of JSR-107 cache elements are not supported");
   }
 

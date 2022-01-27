@@ -130,7 +130,7 @@ public class ConfigStatsManagementActivationTest {
     CacheManager cacheManager = provider.getCacheManager();
 
     CacheConfigurationBuilder<Long, String> configurationBuilder = newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .add(new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.ENABLED));
+        .withService(new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.ENABLED));
     Cache<Long, String> cache = cacheManager.createCache("test", Eh107Configuration.fromEhcacheCacheConfiguration(configurationBuilder));
 
     @SuppressWarnings("unchecked")

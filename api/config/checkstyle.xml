@@ -24,13 +24,6 @@
     <property name="fileExtensions" value="java"/>
   </module>
 
-  <!-- Allow suppression tags in the code e.g. CSOFF: AvoidStaticImport -->
-  <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="CSOFF\: ([\w\|]+)"/>
-    <property name="onCommentFormat" value="CSON\: ([\w\|]+)"/>
-    <property name="checkFormat" value="$1"/>
-  </module>
-
   <module name="SuppressionFilter">
     <property name="file" value="${projectDir}/config/checkstyle-suppressions.xml"/>
   </module>
@@ -41,7 +34,12 @@
   <module name="JavadocPackage"/>
 
   <module name="TreeWalker">
-    <module name="FileContentsHolder"/>
+    <!-- Allow suppression tags in the code e.g. CSOFF: AvoidStaticImport -->
+    <module name="SuppressionCommentFilter">
+      <property name="offCommentFormat" value="CSOFF\: ([\w\|]+)"/>
+      <property name="onCommentFormat" value="CSON\: ([\w\|]+)"/>
+      <property name="checkFormat" value="$1"/>
+    </module>
     <module name="JavadocType">
       <property name="scope" value="public"/>
     </module>

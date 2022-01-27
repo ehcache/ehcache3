@@ -1,5 +1,5 @@
 plugins {
-  id 'org.gretty' version '2.1.0' apply false
+  id 'org.gretty' apply false
 }
 
 subprojects {

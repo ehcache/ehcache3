@@ -15,6 +15,8 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.CachePersistenceException;
+import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.InternalCache;
@@ -113,7 +115,7 @@ class Eh107CacheManager implements CacheManager {
     CacheLoaderWriter<? super K, V> cacheLoaderWriter = cache.getCacheLoaderWriter();
 
     boolean storeByValueOnHeap = false;
-    for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
+    for (ServiceConfiguration<?, ?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration) serviceConfiguration;
         if(!copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))
@@ -324,8 +326,17 @@ class Eh107CacheManager implements CacheManager {
         chain(
           () -> enableManagement(cache, false),
           () -> enableStatistics(cache, false),
-          () -> cache.destroy(),
-          () -> ehCacheManager.removeCache(cache.getName())
+          () -> cache.closeInternal(),
+          () -> ehCacheManager.removeCache(cache.getName()),
+          () -> {
+            if (ehCacheManager instanceof PersistentCacheManager) {
+              try {
+                ((PersistentCacheManager) ehCacheManager).destroyCache(cache.getName());
+              } catch (CachePersistenceException t) {
+                throw new IOException(t);
+              }
+            }
+          }
         );
       } catch (Throwable t) {
         throw new CacheException(t);

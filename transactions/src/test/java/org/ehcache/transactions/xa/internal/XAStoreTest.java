@@ -18,17 +18,17 @@ package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
@@ -59,6 +59,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.mockito.Answers;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -91,12 +92,11 @@ import javax.transaction.xa.XAResource;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptySet;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
-import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -143,7 +143,7 @@ public class XAStoreTest {
       0, keySerializer, valueSerializer);
     testTimeSource = new TestTimeSource();
     eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
-    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     journal = new TransientJournal<>();
   }
 
@@ -693,7 +693,7 @@ public class XAStoreTest {
             .build(),
             0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-            .parse("10M"));
+            .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -883,7 +883,7 @@ public class XAStoreTest {
       .build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1059,7 +1059,7 @@ public class XAStoreTest {
       .build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1110,12 +1110,12 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
       null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1158,12 +1158,12 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1201,12 +1201,12 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1251,12 +1251,12 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1280,12 +1280,12 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1355,12 +1355,12 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
     OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser
-      .parse("10M"));
+      .parse("10M"), new DefaultStatisticsService());
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<>(onHeapStore, offHeapStore);
 
@@ -1426,7 +1426,7 @@ public class XAStoreTest {
       .heap(10, EntryUnit.ENTRIES)
       .build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
 
     final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
 
@@ -1453,14 +1453,15 @@ public class XAStoreTest {
       .with(provider)
       .with(Store.Provider.class)
       .with(mock(DiskResourceService.class))
+      .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS))
       .with(mock(TransactionManagerProvider.class)).build();
 
     serviceLocator.startAllServices();
 
-    Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.singleton(configuration);
+    Set<ServiceConfiguration<?, ?>> xaStoreConfigs = Collections.singleton(configuration);
     assertThat(provider.wrapperStoreRank(xaStoreConfigs), is(1));
 
-    Set<ServiceConfiguration<?>> emptyConfigs = emptySet();
+    Set<ServiceConfiguration<?, ?>> emptyConfigs = emptySet();
     assertThat(provider.wrapperStoreRank(emptyConfigs), is(0));
 
   }
@@ -1497,7 +1498,7 @@ public class XAStoreTest {
   }
 
   private XAStore<Long, String> getXAStore(Store<Long, SoftLock<String>> store) {
-    return new XAStore<>(Long.class, String.class, store, transactionManagerWrapper, testTimeSource, journal, testName.getMethodName());
+    return new XAStore<>(Long.class, String.class, store, transactionManagerWrapper, testTimeSource, journal, testName.getMethodName(), new DefaultStatisticsService());
   }
 
   static class TestTransactionManager implements TransactionManager {

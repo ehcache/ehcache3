@@ -21,7 +21,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEvents;
-import org.ehcache.core.internal.events.EventListenerWrapper;
+import org.ehcache.core.events.EventListenerWrapper;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;

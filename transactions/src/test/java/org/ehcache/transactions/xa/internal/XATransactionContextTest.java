@@ -349,10 +349,6 @@ public class XATransactionContextTest {
       public Object get() {
         return softLock1Ref.get();
       }
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
     });
     when(underlyingStore.putIfAbsent(eq(1L), isA(SoftLock.class), any(Consumer.class))).then(invocation -> {
       softLock1Ref.set((SoftLock) invocation.getArguments()[1]);
@@ -369,10 +365,6 @@ public class XATransactionContextTest {
       @Override
       public Object get() {
         return softLock2Ref.get();
-      }
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
       }
     });
     when(underlyingStore.replace(eq(2L), isA(SoftLock.class), isA(SoftLock.class))).then(invocation -> {
@@ -429,19 +421,11 @@ public class XATransactionContextTest {
 
     when(underlyingStore.get(1L)).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
       @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
-      @Override
       public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<>("un", timeSource.getTimeMillis()));
       }
     });
     when(underlyingStore.get(2L)).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
       @Override
       public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null);
@@ -498,20 +482,12 @@ public class XATransactionContextTest {
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L));
     when(underlyingStore.get(eq(1L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
       @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
-      @Override
       public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old1", new XAValueHolder<>("new1", timeSource
           .getTimeMillis()));
       }
     });
     when(underlyingStore.get(eq(2L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
       @Override
       public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null);
@@ -556,20 +532,12 @@ public class XATransactionContextTest {
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L));
     when(underlyingStore.get(eq(1L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
       @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
-      @Override
       public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old1", new XAValueHolder<>("new1", timeSource
           .getTimeMillis()));
       }
     });
     when(underlyingStore.get(eq(2L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
       @Override
       public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null);

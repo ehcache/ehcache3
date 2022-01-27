@@ -17,9 +17,7 @@ package org.ehcache.management;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.xml.XmlConfigurationTest;
 import org.junit.Test;
-import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 
@@ -35,11 +33,10 @@ public class ManagementRegistryServiceConfigurationParserIT {
 
   @Test
   public void testManagementRegistryXmlTranslationToString() {
-    URL resource = XmlConfigurationTest.class.getResource("/ehcache-management.xml");
+    URL resource = ManagementRegistryServiceConfigurationParserIT.class.getResource("/ehcache-management.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
-    assertThat(xmlConfig.toString(), isSimilarTo(Input.from(resource)).ignoreComments()
-      .ignoreWhitespace()
+    assertThat(xmlConfig.toString(), isSimilarTo(resource).ignoreComments().ignoreWhitespace()
       .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 }

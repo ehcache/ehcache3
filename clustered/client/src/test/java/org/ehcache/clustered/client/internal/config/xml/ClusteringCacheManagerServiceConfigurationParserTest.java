@@ -22,9 +22,8 @@ import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.spi.service.Service;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
@@ -38,6 +37,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
+import org.xmlunit.diff.DefaultNodeMatcher;
+import org.xmlunit.diff.ElementSelectors;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -52,14 +53,15 @@ import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.stream.StreamSource;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
-import static org.ehcache.xml.ConfigurationParserTestHelper.assertElement;
+import static java.util.Spliterators.spliterator;
+import static java.util.stream.StreamSupport.stream;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -67,8 +69,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 public class ClusteringCacheManagerServiceConfigurationParserTest {
 
@@ -84,17 +88,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
    */
   @Test
   public void testServiceLocator() throws Exception {
-    String expectedParser = ClusteringCacheManagerServiceConfigurationParser.class.getName();
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    ServiceLoader<CacheManagerServiceConfigurationParser<? extends Service>> parsers = (ServiceLoader)
-      ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class);
-
-    for (CacheManagerServiceConfigurationParser<?> parser : parsers) {
-      if (parser.getClass().getName().equals(expectedParser)) {
-        return;
-      }
-    }
-    fail("Expected parser not found");
+    assertThat(stream(spliterator(ClassLoading.servicesOfType(CacheManagerServiceConfigurationParser.class).iterator(), Long.MAX_VALUE, 0), false).map(Object::getClass).collect(Collectors.toList()),
+      hasItem(ClusteringCacheManagerServiceConfigurationParser.class));
   }
 
   /**
@@ -141,7 +136,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
@@ -175,7 +170,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
@@ -207,7 +202,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
 
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations =
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations =
       configuration.getServiceCreationConfigurations();
     assertThat(serviceCreationConfigurations, is(not(Matchers.empty())));
 
@@ -371,7 +366,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
     ClusteringServiceConfiguration clusteringServiceConfiguration =
       ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList) clusteringServiceConfiguration.getConnectionSource();
@@ -408,7 +403,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       };
 
     final Configuration configuration = new XmlConfiguration(makeConfig(config));
-    Collection<ServiceCreationConfiguration<?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
+    Collection<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = configuration.getServiceCreationConfigurations();
     ClusteringServiceConfiguration clusteringServiceConfiguration =
       ServiceUtils.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     ConnectionSource.ServerList connectionSource = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
@@ -429,10 +424,10 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     URI connectionUri = new URI("terracotta://localhost:9510/my-application");
     ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
       .timeouts(Timeouts.DEFAULT)
-      .autoCreate()
-      .defaultServerResource("main")
-      .resourcePool("primaryresource", 5, MemoryUnit.GB)
-      .resourcePool("secondaryresource", 10, MemoryUnit.GB, "optional")
+      .autoCreate(server -> server
+        .defaultServerResource("main")
+        .resourcePool("primaryresource", 5, MemoryUnit.GB)
+        .resourcePool("secondaryresource", 10, MemoryUnit.GB, "optional"))
       .build();
 
     ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
@@ -448,8 +443,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:shared-pool name = \"primaryresource\" unit = \"B\">5368709120</tc:shared-pool>" +
                          "<tc:shared-pool from = \"optional\" name = \"secondaryresource\" unit = \"B\">10737418240</tc:shared-pool>" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
-
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -457,8 +452,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     URI connectionUri = new URI("terracotta://localhost:9510/my-application");
     ClusteringServiceConfiguration serviceConfig = ClusteringServiceConfigurationBuilder.cluster(connectionUri)
       .timeouts(Timeouts.DEFAULT)
-      .expecting()
-      .defaultServerResource("main")
+      .expecting(server -> server.defaultServerResource("main"))
       .build();
 
 
@@ -473,7 +467,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:server-side-config auto-create = \"false\">" +
                          "<tc:default-resource from = \"main\"/>" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -493,7 +488,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
                          "<tc:server-side-config auto-create = \"false\">" +
                          "</tc:server-side-config></tc:cluster>";
-    assertElement(inputString, returnElement);
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   @Test
@@ -523,7 +519,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
                          "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
                          "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
                          "<tc:server-side-config auto-create = \"false\"/></tc:cluster>";
-    assertElement(inputString, returnElement);
+    assertThat(returnElement, isSimilarTo(inputString).ignoreComments().ignoreWhitespace()
+      .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
   }
 
   /**

@@ -22,7 +22,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 /**
  * {@link org.ehcache.spi.service.ServiceConfiguration} for the default {@link WriteBehindProvider}.
  */
-public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
+public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration<Void> {
 
   private final BatchingConfiguration batchingConfig;
   private final int concurrency;

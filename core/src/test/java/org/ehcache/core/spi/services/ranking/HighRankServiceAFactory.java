@@ -26,7 +26,7 @@ public class HighRankServiceAFactory implements ServiceFactory<RankServiceA> {
   }
 
   @Override
-  public RankServiceA create(ServiceCreationConfiguration<RankServiceA> configuration) {
+  public RankServiceA create(ServiceCreationConfiguration<RankServiceA, ?> configuration) {
     return new RankServiceA("high-rank");
   }
 

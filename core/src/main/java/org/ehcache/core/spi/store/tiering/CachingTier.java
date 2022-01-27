@@ -54,6 +54,20 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
   Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
 
   /**
+   * Either return the value holder currently in the caching tier, or return the provided default.
+   * <p>
+   * Note that in case of expired value holders, {@code null} will be returned and the mapping will be invalidated.
+   *
+   * @param key the key
+   * @param source the function that computes the default value when absent from this tier
+   *
+   * @return the value holder, or {@code null}
+   *
+   * @throws StoreAccessException if the mapping cannot be retrieved or stored
+   */
+  Store.ValueHolder<V> getOrDefault(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
+
+  /**
    * Removes a mapping, triggering the {@link InvalidationListener} if registered.
    *
    * @param key the key to remove
@@ -131,7 +145,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new caching tier
      */
-    <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link CachingTier}.
@@ -163,7 +177,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
      *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the caching tier
      *      can not handle the type specified in {@code resourceTypes}
      */
-    int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs);
+    int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
 }

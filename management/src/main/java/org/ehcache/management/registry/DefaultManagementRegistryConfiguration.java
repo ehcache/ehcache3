@@ -17,7 +17,7 @@ package org.ehcache.management.registry;
 
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
-import org.ehcache.management.providers.statistics.LatencyHistogramConfiguration;
+import org.ehcache.core.statistics.LatencyHistogramConfiguration;
 import org.terracotta.management.model.context.Context;
 
 import java.util.Arrays;

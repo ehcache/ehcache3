@@ -50,7 +50,7 @@ public class WriteBehindProviderFactoryTest {
   @Test
   public void testAddingWriteBehindConfigurationAtCacheLevel() {
     CacheManagerBuilder<CacheManager> cacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
-    WriteBehindConfiguration writeBehindConfiguration = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 1)
+    WriteBehindConfiguration<?> writeBehindConfiguration = WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 1)
         .concurrencyLevel(3)
         .queueSize(10)
         .build();
@@ -58,12 +58,12 @@ public class WriteBehindProviderFactoryTest {
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(100))
-            .add(writeBehindConfiguration)
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz))
+            .withService(writeBehindConfiguration)
+            .withService(new DefaultCacheLoaderWriterConfiguration(klazz))
             .build());
-    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+    Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     cacheManager.close();
   }
 
