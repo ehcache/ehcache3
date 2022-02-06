@@ -714,7 +714,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     static final int spread(int h) {
         // EHCACHE SPECIFIC
         // We modify the hash spread to help eviction sampling. Because, in a full hashmap, ordered numbers will be hashed as [ 1, 2, 3, e, e, e ] ('e' being empty)
-        // So everything is at the beginning of the map. Then, is the sampler starts randomly at index 2, it will find empty nodes all the
+        // So everything is at the beginning of the map. Then, if the sampler starts randomly at index 2, it will find empty nodes all the
         // way to the end and will then wrap at the beginning. Slow. To prevent that, we perform a rotate left which basically multiplies everything
         // by two but also wraps the last bit. The spreading will then be [ 1, e, 2, e, 3, e ] which will be much nicer for sampling and only be a tiny tiny
         // bit slower at access.
