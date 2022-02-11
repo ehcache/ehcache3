@@ -108,6 +108,7 @@ public class OverSizeMappingTest {
 
     private final Integer[] arr;
 
+    @SuppressWarnings("deprecation")
     private ObjectSizeGreaterThanN(int n) {
       arr = new Integer[n];
       for (int i = 0; i < arr.length; i++) {

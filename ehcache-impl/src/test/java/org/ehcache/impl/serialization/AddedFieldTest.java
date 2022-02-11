@@ -45,7 +45,7 @@ public class AddedFieldTest {
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_write.class, IncompatibleSerializable_write.class, Serializable_write.class);
-    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_write.class)).newInstance();
+    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_write.class)).getDeclaredConstructor().newInstance();
     ByteBuffer encodedA = serializer.serialize(a);
 
     pushTccl(createClassNameRewritingLoader(A_read.class, IncompatibleSerializable_read.class));
@@ -63,7 +63,7 @@ public class AddedFieldTest {
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(B_write.class, Externalizable_write.class);
-    Serializable a = (Serializable) loaderA.loadClass(newClassName(B_write.class)).newInstance();
+    Serializable a = (Serializable) loaderA.loadClass(newClassName(B_write.class)).getDeclaredConstructor().newInstance();
     ByteBuffer encodedA = serializer.serialize(a);
 
     pushTccl(createClassNameRewritingLoader(B_read.class));

@@ -39,7 +39,7 @@ public class AddedSuperClassTest {
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_2.class, AddedSuperClass_Hidden.class);
-    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_2.class)).newInstance();
+    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_2.class)).getDeclaredConstructor().newInstance();
     ByteBuffer encodedA = serializer.serialize(a);
 
     pushTccl(createClassNameRewritingLoader(A_1.class));
@@ -56,7 +56,7 @@ public class AddedSuperClassTest {
     serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_2.class, AddedSuperClass_Hidden.class);
-    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_2.class)).newInstance();
+    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_2.class)).getDeclaredConstructor().newInstance();
     ByteBuffer encodedA = serializer.serialize(a);
 
     pushTccl(createClassNameRewritingLoader(A_1.class, AddedSuperClass_Hidden.class));

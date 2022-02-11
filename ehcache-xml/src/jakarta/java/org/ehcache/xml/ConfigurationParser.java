@@ -56,6 +56,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -119,12 +120,12 @@ public class ConfigurationParser {
 
   ConfigurationParser() throws IOException, SAXException, JAXBException, ParserConfigurationException {
     serviceCreationConfigurationParser = ConfigurationParser.<CacheManagerServiceConfigurationParser<?>>stream(
-      servicesOfType(CacheManagerServiceConfigurationParser.class))
+        servicesOfType(CacheManagerServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceCreationConfigurationParser::new));
 
     serviceConfigurationParser = ConfigurationParser.<CacheServiceConfigurationParser<?>>stream(
-      servicesOfType(CacheServiceConfigurationParser.class))
+        servicesOfType(CacheServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceConfigurationParser::new));
 
@@ -139,7 +140,7 @@ public class ConfigurationParser {
 
   <K, V> CacheConfigurationBuilder<K, V> parseServiceConfigurations(CacheConfigurationBuilder<K, V> cacheBuilder,
                                                                     ClassLoader cacheClassLoader, CacheTemplate cacheDefinition)
-    throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    throws ReflectiveOperationException {
     cacheBuilder = CORE_CACHE_CONFIGURATION_PARSER.parseConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);
     return serviceConfigurationParser.parseConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);
   }
@@ -183,7 +184,7 @@ public class ConfigurationParser {
   private XmlConfiguration.Template parseTemplate(CacheTemplate template) {
     return new XmlConfiguration.Template() {
       @Override
-      public <K, V> CacheConfigurationBuilder<K, V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resources) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+      public <K, V> CacheConfigurationBuilder<K, V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resources) throws ReflectiveOperationException {
         checkTemplateTypeConsistency("key", classLoader, keyType, template);
         checkTemplateTypeConsistency("value", classLoader, valueType, template);
 
@@ -217,7 +218,7 @@ public class ConfigurationParser {
     return documentBuilder.parse(uri.toString());
   }
 
-  public XmlConfigurationWrapper documentToConfig(Document document, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws JAXBException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+  public XmlConfigurationWrapper documentToConfig(Document document, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws JAXBException, ReflectiveOperationException {
     Element root = document.getDocumentElement();
 
     QName rootName = new QName(root.getNamespaceURI(), root.getLocalName());

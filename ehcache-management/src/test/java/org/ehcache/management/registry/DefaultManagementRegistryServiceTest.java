@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 
+import org.assertj.core.api.Assertions;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
@@ -119,7 +120,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      Assertions.<Descriptor>assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
   }
 
@@ -149,7 +150,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_NO_STATS_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      Assertions.<Descriptor>assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
   }
 
@@ -181,7 +182,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(CACHE_DESCRIPTORS);
       allDescriptors.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "GAUGE"));
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      Assertions.<Descriptor>assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
   }
 
@@ -215,7 +216,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(DISK_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      Assertions.<Descriptor>assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
   }
 

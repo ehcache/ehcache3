@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.management;
 
+import org.assertj.core.api.Assertions;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -181,7 +182,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
     allDescriptors.addAll(CLUSTERED_DESCRIPTORS);
 
-    assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+    Assertions.<Descriptor>assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
   }
 
   @Test
@@ -211,9 +212,9 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // stats
 
-    assertThat(tierCapabilities[3].getDescriptors()).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS);
-    assertThat(managerCapabilities[2].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
-    assertThat(tierCapabilities[1].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
+    Assertions.<Descriptor>assertThat(tierCapabilities[3].getDescriptors()).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS);
+    Assertions.<Descriptor>assertThat(managerCapabilities[2].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
+    Assertions.<Descriptor>assertThat(tierCapabilities[1].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
 
     // ClusterTierManagerSettings
 
@@ -279,7 +280,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     assertThat(managerCapabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
 
-    assertThat(managerCapabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
+    Assertions.<Descriptor>assertThat(managerCapabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
   }
 
   @Test

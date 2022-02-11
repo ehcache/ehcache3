@@ -36,12 +36,12 @@ import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import java.util.AbstractMap;
@@ -80,6 +80,7 @@ import static org.mockito.Mockito.when;
 /**
  * Tests for {@link TieredStore}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public class TieredStoreTest {
 
   @Mock
@@ -90,11 +91,6 @@ public class TieredStoreTest {
   private CachingTier<String, String> stringCachingTier;
   @Mock
   private AuthoritativeTier<String, String> stringAuthoritativeTier;
-
-  @Before
-  public void setUp() throws Exception {
-    MockitoAnnotations.initMocks(this);
-  }
 
   @Test
   @SuppressWarnings("unchecked")
@@ -574,9 +570,6 @@ public class TieredStoreTest {
     when(resourcePools.getResourceTypeSet())
         .thenReturn(new HashSet<>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)));
 
-    SizedResourcePool heapPool = mock(SizedResourcePool.class);
-    when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.HEAP);
-    when(resourcePools.getPoolForResource(ResourceType.Core.HEAP)).thenReturn(heapPool);
     OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
     Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
     when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
@@ -584,9 +577,6 @@ public class TieredStoreTest {
       ArgumentMatchers.any()))
         .thenReturn(stringCachingTier);
 
-    SizedResourcePool offHeapPool = mock(SizedResourcePool.class);
-    when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.OFFHEAP);
-    when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
     when(offHeapStoreProvider.createAuthoritativeTier(
@@ -601,8 +591,6 @@ public class TieredStoreTest {
     Set<CachingTier.Provider> cachingTiers = new HashSet<>();
     cachingTiers.add(onHeapStoreProvider);
     ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
-    when(serviceProvider.getService(OnHeapStore.Provider.class)).thenReturn(onHeapStoreProvider);
-    when(serviceProvider.getService(OffHeapStore.Provider.class)).thenReturn(offHeapStoreProvider);
     when(serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class)).thenReturn(authorities);
     when(serviceProvider.getServicesOfType(CachingTier.Provider.class)).thenReturn(cachingTiers);
     when(serviceProvider.getService(StatisticsService.class)).thenReturn(new DefaultStatisticsService());

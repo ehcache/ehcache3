@@ -30,6 +30,7 @@ import org.ehcache.xml.model.ExpiryType;
 import org.ehcache.xml.model.ObjectFactory;
 import org.ehcache.xml.model.TimeTypeWithPropSubst;
 
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.util.stream.Stream;
@@ -43,7 +44,7 @@ import static org.ehcache.xml.XmlModel.convertToXmlTimeUnit;
 public class CoreCacheConfigurationParser {
 
   public <K, V> CacheConfigurationBuilder<K, V> parseConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
-                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ReflectiveOperationException {
     final Expiry parsedExpiry = cacheDefinition.expiry();
     if (parsedExpiry != null) {
       cacheBuilder = cacheBuilder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
@@ -57,8 +58,7 @@ public class CoreCacheConfigurationParser {
   }
 
   @SuppressWarnings({"unchecked", "deprecation"})
-  private static ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, Expiry parsedExpiry)
-    throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+  private static ExpiryPolicy<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, Expiry parsedExpiry) throws ReflectiveOperationException {
     if (parsedExpiry.isUserDef()) {
       try {
         return getInstanceOfName(parsedExpiry.type(), cacheClassLoader, ExpiryPolicy.class);
@@ -74,12 +74,12 @@ public class CoreCacheConfigurationParser {
     }
   }
 
-  static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+  static <T> T getInstanceOfName(String name, ClassLoader classLoader, Class<T> type) throws ClassNotFoundException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
     if (name == null) {
       return null;
     }
     Class<?> klazz = getClassForName(name, classLoader);
-    return klazz.asSubclass(type).newInstance();
+    return klazz.asSubclass(type).getDeclaredConstructor().newInstance();
   }
 
   public CacheType unparseConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {

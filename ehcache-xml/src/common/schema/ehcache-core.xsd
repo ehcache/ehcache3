@@ -17,7 +17,6 @@
 
 <xs:schema version="1.0" xmlns:ehcache="http://www.ehcache.org/v3" xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" jaxb:version="2.0"
-           xmlns:annox="http://annox.dev.java.net" jaxb:extensionBindingPrefixes="annox"
            elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
 
   <xs:annotation>
@@ -535,9 +534,6 @@
       <xs:appinfo>
         <jaxb:class/>
       </xs:appinfo>
-      <xs:appinfo>
-        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
-      </xs:appinfo>
     </xs:annotation>
   </xs:element>
   <xs:element name="offheap" type="ehcache:memory-type-with-prop-subst" substitutionGroup="ehcache:resource">
@@ -545,18 +541,12 @@
       <xs:appinfo>
         <jaxb:class/>
       </xs:appinfo>
-      <xs:appinfo>
-        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
-      </xs:appinfo>
     </xs:annotation>
   </xs:element>
   <xs:element name="disk" type="ehcache:persistable-memory-type-with-prop-subst" substitutionGroup="ehcache:resource">
     <xs:annotation>
       <xs:appinfo>
         <jaxb:class/>
-      </xs:appinfo>
-      <xs:appinfo>
-        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
       </xs:appinfo>
     </xs:annotation>
   </xs:element>

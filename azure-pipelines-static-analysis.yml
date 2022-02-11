@@ -20,10 +20,11 @@
 resources:
   repositories:
     - repository: templates
-      type: git   
+      type: git
       name: terracotta/terracotta
 
 jobs:
 - template: build-templates/gradle-common.yml@templates
   parameters:
+    jdkVersion: '1.11'
     gradleTasks: 'check'

@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
@@ -58,7 +59,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     } catch (NullPointerException e) {
       // Expected
     }
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -71,7 +72,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("key"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -101,7 +102,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertTrue(ehcache.containsKey("keyA"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -131,7 +132,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("missingKey"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**

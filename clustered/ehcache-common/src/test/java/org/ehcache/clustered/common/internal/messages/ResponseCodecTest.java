@@ -75,7 +75,7 @@ public class ResponseCodecTest {
 
   @Test
   public void testMapValueCodec() throws Exception {
-    Object subject = new Integer(10);
+    Object subject = 10;
     EhcacheEntityResponse mapValue = mapValue(subject);
     EhcacheEntityResponse.MapValue decoded =
         (EhcacheEntityResponse.MapValue) RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(mapValue));

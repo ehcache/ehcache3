@@ -42,8 +42,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.test.MockitoUtil;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.hamcrest.core.CombinableMatcher;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
+
+import java.util.Collection;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -379,8 +382,11 @@ public class CacheConfigurationBuilderTest {
 
     CacheConfigurationBuilder<Object, Object> newBuilder = oldBuilder.withService(newConfig);
 
-    assertThat(oldBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(oldConfig))).and(not(hasItem(sameInstance(newConfig)))));
-    assertThat(newBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(newConfig))).and(not(hasItem(sameInstance(oldConfig)))));
+    Matcher<Iterable<? super ServiceConfiguration<?, ?>>> hasOldConfig = hasItem(sameInstance(oldConfig));
+    Matcher<Iterable<? super ServiceConfiguration<?, ?>>> hasNewConfig = hasItem(sameInstance(newConfig));
+
+    assertThat(oldBuilder.build().getServiceConfigurations(), both(hasOldConfig).and(not(hasNewConfig)));
+    assertThat(newBuilder.build().getServiceConfigurations(), both(hasNewConfig).and(not(hasOldConfig)));
   }
 
   @Test
@@ -392,8 +398,11 @@ public class CacheConfigurationBuilderTest {
 
     CacheConfigurationBuilder<Object, Object> newBuilder = oldBuilder.withService(newConfig);
 
-    assertThat(oldBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(oldConfig))).and(not(hasItem(sameInstance(newConfig)))));
-    assertThat(newBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(oldConfig))).and(hasItem(sameInstance(newConfig))));
+    Matcher<Iterable<? super ServiceConfiguration<?, ?>>> hasOldConfig = hasItem(sameInstance(oldConfig));
+    Matcher<Iterable<? super ServiceConfiguration<?, ?>>> hasNewConfig = hasItem(sameInstance(newConfig));
+
+    assertThat(oldBuilder.build().getServiceConfigurations(), both(hasOldConfig).and(not(hasNewConfig)));
+    assertThat(newBuilder.build().getServiceConfigurations(), both(hasOldConfig).and(hasNewConfig));
   }
 
   @Test

@@ -65,7 +65,7 @@ public class ParsesConfigurationExtensionTest {
 
   @SuppressWarnings("rawtypes")
   @Test
-  public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
+  public void testXmlExample() throws ReflectiveOperationException {
     XmlConfiguration config = new XmlConfiguration(ParsesConfigurationExtensionTest.class.getResource("/ehcache-example.xml"));
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations()));
 

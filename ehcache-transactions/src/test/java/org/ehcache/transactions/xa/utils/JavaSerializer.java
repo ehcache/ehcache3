@@ -94,7 +94,7 @@ public class JavaSerializer<T> implements Serializer<T> {
     }
 
     @Override
-    protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+    protected Class<?> resolveClass(ObjectStreamClass desc) throws ClassNotFoundException {
       try {
         return Class.forName(desc.getName(), false, classLoader);
       } catch (ClassNotFoundException cnfe) {
@@ -106,8 +106,8 @@ public class JavaSerializer<T> implements Serializer<T> {
       }
     }
 
-    @Override
-    protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
+    @Override @SuppressWarnings("deprecation")
+    protected Class<?> resolveProxyClass(String[] interfaces) throws ClassNotFoundException {
       Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);

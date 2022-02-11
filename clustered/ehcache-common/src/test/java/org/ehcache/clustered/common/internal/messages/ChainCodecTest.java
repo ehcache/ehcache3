@@ -21,7 +21,6 @@ import org.ehcache.clustered.common.internal.store.Element;
 import org.junit.Test;
 import org.terracotta.runnel.encoding.StructEncoder;
 
-import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
 import java.util.Map;
@@ -114,7 +113,7 @@ public class ChainCodecTest {
     StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
     ChainCodec.encodeChainEntry(encoder, entry);
 
-    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder(encoder.encode().flip()));
 
 
     assertThat(decoded.getKey(), is(42L));
@@ -131,7 +130,7 @@ public class ChainCodecTest {
     StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
     ChainCodec.encodeChainEntry(encoder, entry);
 
-    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder(encoder.encode().flip()));
 
     assertThat(decoded.getKey(), is(43L));
     assertThat(decoded.getValue().isEmpty(), is(false));
@@ -149,7 +148,7 @@ public class ChainCodecTest {
     StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
     ChainCodec.encodeChainEntry(encoder, entry);
 
-    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder(encoder.encode().flip()));
 
     assertThat(decoded.getKey(), is(44L));
     assertThat(decoded.getValue().isEmpty(), is(false));
@@ -163,7 +162,7 @@ public class ChainCodecTest {
     StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
     ChainCodec.encodeChainEntry(encoder, entry);
 
-    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder(encoder.encode().flip()));
 
     assertThat(decoded.getKey(), is(45L));
     assertThat(decoded.getValue().isEmpty(), is(false));
@@ -179,7 +178,7 @@ public class ChainCodecTest {
     StructEncoder<Void> encoder = ChainCodec.CHAIN_ENTRY_STRUCT.encoder();
     ChainCodec.encodeChainEntry(encoder, entry);
 
-    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder((ByteBuffer) encoder.encode().flip()));
+    Map.Entry<Long, Chain> decoded = ChainCodec.decodeChainEntry(ChainCodec.CHAIN_ENTRY_STRUCT.decoder(encoder.encode().flip()));
 
     assertThat(decoded.getKey(), is(46L));
     assertThat(decoded.getValue().isEmpty(), is(true));

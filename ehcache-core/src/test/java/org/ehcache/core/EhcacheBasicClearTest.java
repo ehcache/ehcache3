@@ -32,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
@@ -50,7 +51,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
@@ -81,7 +82,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 

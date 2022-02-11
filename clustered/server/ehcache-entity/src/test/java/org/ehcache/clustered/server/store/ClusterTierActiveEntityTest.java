@@ -120,7 +120,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class ClusterTierActiveEntityTest {
@@ -859,7 +859,7 @@ public class ClusterTierActiveEntityTest {
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
     activeEntity.synchronizeKeyToPassive(syncChannel, 3);
 
-    verifyZeroInteractions(syncChannel);
+    verifyNoInteractions(syncChannel);
   }
 
   @Test
