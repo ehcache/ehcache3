@@ -85,19 +85,25 @@ class Eh107CacheManager implements CacheManager {
     for (Map.Entry<String, CacheConfiguration<?, ?>> entry : ehCacheManager.getRuntimeConfiguration().getCacheConfigurations().entrySet()) {
       String name = entry.getKey();
       CacheConfiguration<?, ?> config = entry.getValue();
-      caches.putIfAbsent(name, wrapEhcacheCache(name, config));
-    }
-    for (Map.Entry<String, Eh107Cache<?, ?>> namedCacheEntry : caches.entrySet()) {
-      Eh107Cache<?, ?> cache = namedCacheEntry.getValue();
-      if (!cache.isClosed()) {
-        Eh107Configuration<?, ?> configuration = cache.getConfiguration(Eh107Configuration.class);
-        if (configuration.isManagementEnabled()) {
-          enableManagement(cache, true);
+
+      if (!caches.containsKey(name)) {
+        Eh107Cache<?, ?> wrappedCache = wrapEhcacheCache(name, config);
+        if (caches.putIfAbsent(name, wrappedCache) == null) {
+          @SuppressWarnings("unchecked")
+          Eh107Configuration<?, ?> configuration = wrappedCache.getConfiguration(Eh107Configuration.class);
+          if (configuration.isManagementEnabled()) {
+            enableManagement(wrappedCache, true);
+          }
+          if (configuration.isStatisticsEnabled()) {
+            enableStatistics(wrappedCache, true);
+          }
         }
-        if (configuration.isStatisticsEnabled()) {
-          enableStatistics(cache, true);
-        }
+
       }
+    }
+
+    for (Eh107Cache<?, ?> wrappedCache : caches.values()) {
+      wrappedCache.isClosed();
     }
   }
 
