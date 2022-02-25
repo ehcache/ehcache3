@@ -18,20 +18,22 @@ package org.ehcache.transactions.xa.txmgr.provider;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+import javax.transaction.TransactionManager;
+
 import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 
 /**
  * Specialized {@link ServiceCreationConfiguration} for the {@link LookupTransactionManagerProvider}.
  */
-public class LookupTransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider, Class<? extends TransactionManagerLookup>> {
+public class LookupTransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider<TransactionManager>, Class<? extends TransactionManagerLookup<TransactionManager>>> {
 
-  private final Class<? extends TransactionManagerLookup> lookupClass;
+  private final Class<? extends TransactionManagerLookup<TransactionManager>> lookupClass;
 
   public LookupTransactionManagerProviderConfiguration(String className) throws ClassNotFoundException {
     this.lookupClass = uncheckedCast(Class.forName(className));
   }
 
-  public LookupTransactionManagerProviderConfiguration(Class<? extends TransactionManagerLookup> clazz) {
+  public LookupTransactionManagerProviderConfiguration(Class<? extends TransactionManagerLookup<TransactionManager>> clazz) {
     this.lookupClass = clazz;
   }
 
@@ -40,22 +42,22 @@ public class LookupTransactionManagerProviderConfiguration implements ServiceCre
    *
    * @return the transaction manager lookup class
    */
-  public Class<? extends TransactionManagerLookup> getTransactionManagerLookup() {
+  public Class<? extends TransactionManagerLookup<TransactionManager>> getTransactionManagerLookup() {
     return lookupClass;
   }
 
   @Override
-  public Class<TransactionManagerProvider> getServiceType() {
-    return TransactionManagerProvider.class;
+  public Class<TransactionManagerProvider<TransactionManager>> getServiceType() {
+    return uncheckedCast(TransactionManagerProvider.class);
   }
 
   @Override
-  public Class<? extends TransactionManagerLookup> derive() {
+  public Class<? extends TransactionManagerLookup<TransactionManager>> derive() {
     return getTransactionManagerLookup();
   }
 
   @Override
-  public LookupTransactionManagerProviderConfiguration build(Class<? extends TransactionManagerLookup> clazz) {
+  public LookupTransactionManagerProviderConfiguration build(Class<? extends TransactionManagerLookup<TransactionManager>> clazz) {
     return new LookupTransactionManagerProviderConfiguration(clazz);
   }
 }

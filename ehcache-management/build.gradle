@@ -26,24 +26,23 @@ publishing.publications.withType(MavenPublication) {
 }
 
 dependencies {
+  api project(':ehcache-core')
+  implementation project(':ehcache-impl')
   implementation "org.terracotta:statistics:$statisticVersion"
+
   // optional: if we want xml config
-  compileOnly project(':ehcache-xml')
+  compileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
 
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:ehcache-client')
   compileOnly "org.terracotta:entity-client-api:$terracottaApisVersion"
-  compileOnly ("org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion") {
+  compileOnlyApi ("org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion") {
     // This is to avoid stats lib being directly used.
     exclude group:'org.terracotta', module:'statistics'
   }
 
-  compileOnly project(':ehcache-api')
-  compileOnly project(':ehcache-core')
-  compileOnly project(':ehcache-impl')
   testImplementation "org.terracotta.management:management-registry:$terracottaPlatformVersion"
   testImplementation project(':ehcache-xml')
-  testImplementation project(':ehcache-impl')
   testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
   testImplementation testFixtures(project(':ehcache-xml'))
 }

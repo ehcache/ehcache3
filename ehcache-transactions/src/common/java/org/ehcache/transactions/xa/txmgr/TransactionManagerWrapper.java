@@ -15,24 +15,23 @@
  */
 package org.ehcache.transactions.xa.txmgr;
 
-import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
 
 /**
- * A wrapper of JTA {@link TransactionManager} implementation with added support for {@link XAResource} registration.
+ * A wrapper of JTA {@code TransactionManager} implementation with added support for {@link XAResource} registration.
  *
  * @author Ludovic Orban
  */
-public class TransactionManagerWrapper {
-  private final TransactionManager transactionManager;
+public class TransactionManagerWrapper<TM> {
+  private final TM transactionManager;
   private final XAResourceRegistry xaResourceRegistry;
 
-  public TransactionManagerWrapper(TransactionManager transactionManager, XAResourceRegistry xaResourceRegistry) {
+  public TransactionManagerWrapper(TM transactionManager, XAResourceRegistry xaResourceRegistry) {
     this.transactionManager = transactionManager;
     this.xaResourceRegistry = xaResourceRegistry;
   }
 
-  public TransactionManager getTransactionManager() {
+  public TM getTransactionManager() {
     return this.transactionManager;
   }
 

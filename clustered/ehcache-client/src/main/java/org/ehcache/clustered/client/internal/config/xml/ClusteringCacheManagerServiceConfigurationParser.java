@@ -26,9 +26,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.ehcache.xml.model.TimeTypeWithPropSubst;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -42,6 +40,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -50,16 +49,10 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.helpers.DefaultValidationEventHandler;
-
 import static java.lang.String.format;
-import static org.ehcache.xml.JaxbParsers.parsePropertyOrPositiveInteger;
-import static org.ehcache.xml.JaxbParsers.parsePropertyOrString;
-import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrPositiveInteger;
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
+import static org.ehcache.xml.ParsingUtil.parseStringWithProperties;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.
@@ -143,7 +136,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends Clustering
     } else if (connectionElement.isPresent()) {
       Element connection = connectionElement.get();
       final Attr urlAttribute = connection.getAttributeNode(URL_ATTRIBUTE_NAME);
-      final String urlValue = JaxbParsers.parseStringWithProperties(urlAttribute.getValue());
+      final String urlValue = parseStringWithProperties(urlAttribute.getValue());
       try {
         return ClusteringServiceConfigurationBuilder.cluster(new URI(urlValue));
       } catch (URISyntaxException e) {
@@ -166,19 +159,19 @@ public class ClusteringCacheManagerServiceConfigurationParser extends Clustering
             /*
              * <read-timeout> is an optional element
              */
-            timeoutsBuilder.read(processTimeout(item));
+            timeoutsBuilder.read(processTimeout((Element) item));
             break;
           case WRITE_TIMEOUT_ELEMENT_NAME:
             /*
              * <write-timeout> is an optional element
              */
-            timeoutsBuilder.write(processTimeout(item));
+            timeoutsBuilder.write(processTimeout((Element) item));
             break;
           case CONNECTION_TIMEOUT_ELEMENT_NAME:
             /*
              * <connection-timeout> is an optional element
              */
-            timeoutsBuilder.connection(processTimeout(item));
+            timeoutsBuilder.connection(processTimeout((Element) item));
             break;
           default:
             //skip
@@ -421,23 +414,19 @@ public class ClusteringCacheManagerServiceConfigurationParser extends Clustering
     return defaultResourceElement;
   }
 
-  private Duration processTimeout(Node timeoutNode) {
-    try {
-      // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
-      JAXBContext context = JAXBContext.newInstance(TimeTypeWithPropSubst.class);
-      Unmarshaller unmarshaller = context.createUnmarshaller();
-      unmarshaller.setEventHandler(new DefaultValidationEventHandler());
-      JAXBElement<TimeTypeWithPropSubst> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeTypeWithPropSubst.class);
-
-      TimeTypeWithPropSubst timeType = jaxbElement.getValue();
-      BigInteger amount = timeType.getValue();
-      if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
-        throw new XmlConfigurationException(format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
+  private Duration processTimeout(Element timeoutNode) {
+    BigInteger amount = parsePropertyOrPositiveInteger(timeoutNode.getTextContent());
+    if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
+      throw new XmlConfigurationException(
+        String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
           timeoutNode.getNodeName(), timeoutNode.getParentNode().getNodeName(), amount));
-      }
-      return Duration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
-    } catch (JAXBException e) {
-      throw new XmlConfigurationException(e);
+    }
+
+    Attr unitAttribute = timeoutNode.getAttributeNode("unit");
+    if (unitAttribute == null) {
+      return Duration.of(amount.longValue(), ChronoUnit.SECONDS);
+    } else {
+      return Duration.of(amount.longValue(), ChronoUnit.valueOf(unitAttribute.getValue().toUpperCase(Locale.ROOT)));
     }
   }
 }

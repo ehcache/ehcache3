@@ -35,8 +35,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Context holder of an in-flight XA transaction. Modifications to the {@link XAStore} are registered in an instance
- * of this class in the form of {@link Command}s and can then be applied to the {@link Store} backing the {@link XAStore}
+ * Context holder of an in-flight XA transaction. Modifications to the {@code XAStore} are registered in an instance
+ * of this class in the form of {@link Command}s and can then be applied to the {@link Store} backing the {@code XAStore}
  * in the form of {@link SoftLock}s.
  *
  * @author Ludovic Orban

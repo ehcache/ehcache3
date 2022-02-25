@@ -22,7 +22,6 @@ import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolI
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.CacheResourceConfigurationParser;
-import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
@@ -34,6 +33,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrPositiveInteger;
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
 
 /**
  * Provides a parser for the {@code /config/cache/resources} extension elements.
@@ -54,13 +56,13 @@ public class ClusteredResourceConfigurationParser extends ClusteringParser<Resou
     final String elementName = fragment.getLocalName();
     switch (elementName) {
       case SHARED_ELEMENT_NAME:
-        final String sharing = JaxbParsers.parsePropertyOrString(fragment.getAttribute(SHARING_ELEMENT_NAME));
+        final String sharing = parsePropertyOrString(fragment.getAttribute(SHARING_ELEMENT_NAME));
         return new SharedClusteredResourcePoolImpl(sharing);
 
       case DEDICATED_ELEMENT_NAME:
         // 'from' attribute is optional on 'clustered-dedicated' element
         final Attr fromAttr = fragment.getAttributeNode(FROM_ELEMENT_NAME);
-        final String from = (fromAttr == null ? null : JaxbParsers.parsePropertyOrString(fromAttr.getValue()));
+        final String from = (fromAttr == null ? null : parsePropertyOrString(fromAttr.getValue()));
 
         final String unitValue = fragment.getAttribute(UNIT_ELEMENT_NAME).toUpperCase();
         final MemoryUnit sizeUnits;
@@ -78,7 +80,7 @@ public class ClusteredResourceConfigurationParser extends ClusteringParser<Resou
         }
         final long size;
         try {
-          size = JaxbParsers.parsePropertyOrPositiveInteger(sizeValue).longValueExact();
+          size = parsePropertyOrPositiveInteger(sizeValue).longValueExact();
         } catch (NumberFormatException e) {
           throw new XmlConfigurationException(String.format("XML configuration element <%s> value '%s' is not valid", elementName, sizeValue), e);
         }

@@ -23,6 +23,8 @@ import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvid
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.osgi.service.component.annotations.Component;
 
+import javax.transaction.TransactionManager;
+
 /**
  * {@link ServiceFactory} for the default {@link TransactionManagerProvider}
  *
@@ -30,13 +32,13 @@ import org.osgi.service.component.annotations.Component;
  */
 @Component
 @ServiceFactory.RequiresConfiguration
-public class DefaultTransactionManagerProviderFactory implements ServiceFactory<TransactionManagerProvider> {
+public class DefaultTransactionManagerProviderFactory implements ServiceFactory<TransactionManagerProvider<TransactionManager>> {
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public TransactionManagerProvider create(ServiceCreationConfiguration<TransactionManagerProvider, ?> configuration) {
+  public TransactionManagerProvider<TransactionManager> create(ServiceCreationConfiguration<TransactionManagerProvider<TransactionManager>, ?> configuration) {
     return new LookupTransactionManagerProvider((LookupTransactionManagerProviderConfiguration) configuration);
   }
 
@@ -44,7 +46,7 @@ public class DefaultTransactionManagerProviderFactory implements ServiceFactory<
    * {@inheritDoc}
    */
   @Override
-  public Class<? extends TransactionManagerProvider> getServiceType() {
+  public Class<? extends TransactionManagerProvider<TransactionManager>> getServiceType() {
     return LookupTransactionManagerProvider.class;
   }
 }

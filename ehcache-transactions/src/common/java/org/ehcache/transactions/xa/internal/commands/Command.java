@@ -14,22 +14,27 @@
  * limitations under the License.
  */
 
-package org.ehcache.transactions.xa.txmgr.provider;
+package org.ehcache.transactions.xa.internal.commands;
 
-import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
+import org.ehcache.transactions.xa.internal.XAValueHolder;
 
 /**
- * Interface used by the {@link LookupTransactionManagerProvider} to lookup transaction managers to be used in XA
- * transactional caches.
- * <p>
- * Implementation are epxected to offer a no-arg constructor that will be used by Ehcache.
+ * A representation of in-flight transaction's modification to the mappings of a {@code XAStore}.
+ *
+ * @author Ludovic Orban
  */
-public interface TransactionManagerLookup {
+public interface Command<V> {
 
   /**
-   * Creates a new {@link TransactionManagerWrapper} on each invocation.
-   *
-   * @return the transaction manager wrapper to use
+   * Get the value to rollback to.
+   * @return the old value.
    */
-  TransactionManagerWrapper lookupTransactionManagerWrapper();
+  V getOldValue();
+
+  /**
+   * Get the value holder to commit.
+   * @return the new value holder.
+   */
+  XAValueHolder<V> getNewValueHolder();
+
 }

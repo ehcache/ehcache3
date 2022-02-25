@@ -23,12 +23,12 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
  *
  * @author Ludovic Orban
  */
-public interface TransactionManagerProvider extends Service {
+public interface TransactionManagerProvider<TM> extends Service {
 
   /**
    * Return an instance of {@link TransactionManagerWrapper}.
    * @return the {@link TransactionManagerWrapper}.
    */
-  TransactionManagerWrapper getTransactionManagerWrapper();
+  TransactionManagerWrapper<TM> getTransactionManagerWrapper();
 
 }

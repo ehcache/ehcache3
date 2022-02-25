@@ -79,6 +79,7 @@ import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
+import javax.transaction.TransactionManager;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
@@ -95,7 +96,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
   private final Store<K, SoftLock<V>> underlyingStore;
-  private final TransactionManagerWrapper transactionManagerWrapper;
+  private final TransactionManagerWrapper<TransactionManager> transactionManagerWrapper;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<>();
   private final TimeSource timeSource;
   private final Journal<K> journal;
@@ -104,7 +105,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   private final EhcacheXAResource<K, V> recoveryXaResource;
   private final StoreEventSourceWrapper<K, V> eventSourceWrapper;
 
-  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
+  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper<TransactionManager> transactionManagerWrapper,
                  TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId, StatisticsService statisticsService) {
     super(keyType, valueType, true, statisticsService);
     this.underlyingStore = underlyingStore;
@@ -765,7 +766,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   public static class Provider implements WrapperStore.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private volatile TransactionManagerProvider transactionManagerProvider;
+    private volatile TransactionManagerProvider<TransactionManager> transactionManagerProvider;
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
@@ -939,7 +940,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
       // create the XA store
       StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
-      TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
+      TransactionManagerWrapper<TransactionManager> transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
       Store<K, V> store = new XAStore<>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore,
         transactionManagerWrapper, timeSource, journal, uniqueXAResourceId, statisticsService);
 
@@ -1009,7 +1010,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
-      this.transactionManagerProvider = serviceProvider.getService(TransactionManagerProvider.class);
+      this.transactionManagerProvider = uncheckedCast(serviceProvider.getService(TransactionManagerProvider.class));
     }
 
     @Override

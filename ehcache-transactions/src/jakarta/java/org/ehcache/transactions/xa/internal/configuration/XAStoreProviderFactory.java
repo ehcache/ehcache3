@@ -13,23 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
 
+package org.ehcache.transactions.xa.internal.configuration;
+
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.transactions.xa.internal.XAStore;
+import org.osgi.service.component.annotations.Component;
 
 /**
- * The payload exception thrown by the cache when an {@link XAStore} has issues retrieving the transaction context.
- *
  * @author Ludovic Orban
  */
-public class XACacheException extends RuntimeException {
-  private static final long serialVersionUID = -6691335026252002011L;
-
-  public XACacheException(String message) {
-    super(message);
+@Component
+public class XAStoreProviderFactory implements ServiceFactory<XAStore.Provider> {
+  @Override
+  public XAStore.Provider create(ServiceCreationConfiguration<XAStore.Provider, ?> configuration) {
+    return new XAStore.Provider();
   }
 
-  public XACacheException(String message, Throwable cause) {
-    super(message, cause);
+  @Override
+  public Class<? extends XAStore.Provider> getServiceType() {
+    return XAStore.Provider.class;
   }
 }

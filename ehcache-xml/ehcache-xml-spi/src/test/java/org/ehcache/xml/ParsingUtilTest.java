@@ -27,22 +27,22 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
-public class JaxbParsersTest {
+public class ParsingUtilTest {
 
-  private static final String PROPERTY_PREFIX = JaxbParsersTest.class.getName() + ":";
+  private static final String PROPERTY_PREFIX = ParsingUtilTest.class.getName() + ":";
   @Rule public final TestName testName = new TestName();
 
   @Test
   public void testParsePropertyOrStringFromNullString() {
-    assertThrows(NullPointerException.class, () -> JaxbParsers.parsePropertyOrString(null));
+    assertThrows(NullPointerException.class, () -> ParsingUtil.parsePropertyOrString(null));
   }
 
   @Test
   public void testParsePropertyOrStringWithoutProperty() {
-    assertThat(JaxbParsers.parsePropertyOrString("${foobar"), is("${foobar"));
-    assertThat(JaxbParsers.parsePropertyOrString("foobar"), is("foobar"));
-    assertThat(JaxbParsers.parsePropertyOrString("foobar}"), is("foobar}"));
-    assertThat(JaxbParsers.parsePropertyOrString("$foobar"), is("$foobar"));
+    assertThat(ParsingUtil.parsePropertyOrString("${foobar"), is("${foobar"));
+    assertThat(ParsingUtil.parsePropertyOrString("foobar"), is("foobar"));
+    assertThat(ParsingUtil.parsePropertyOrString("foobar}"), is("foobar}"));
+    assertThat(ParsingUtil.parsePropertyOrString("$foobar"), is("$foobar"));
   }
 
   @Test
@@ -50,7 +50,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "barfoo");
     try {
-      assertThat(JaxbParsers.parsePropertyOrString("${" + property + "}"), is("barfoo"));
+      assertThat(ParsingUtil.parsePropertyOrString("${" + property + "}"), is("barfoo"));
     } finally {
       System.clearProperty(property);
     }
@@ -59,23 +59,23 @@ public class JaxbParsersTest {
   @Test
   public void testParsePropertyOrStringWithMissingProperty() {
     String property = PROPERTY_PREFIX + testName.getMethodName();
-    assertThrows(IllegalStateException.class, () -> JaxbParsers.parsePropertyOrString("${" + property + "}"));
+    assertThrows(IllegalStateException.class, () -> ParsingUtil.parsePropertyOrString("${" + property + "}"));
   }
 
   @Test
   public void testParsePropertyOrIntegerFromNullString() {
-    assertThrows(NullPointerException.class, () -> JaxbParsers.parsePropertyOrInteger(null));
+    assertThrows(NullPointerException.class, () -> ParsingUtil.parsePropertyOrInteger(null));
   }
 
   @Test
   public void testParsePropertyOrIntegerValidWithoutProperty() {
-    assertThat(JaxbParsers.parsePropertyOrInteger("123"), is(BigInteger.valueOf(123)));
-    assertThat(JaxbParsers.parsePropertyOrInteger("-123"), is(BigInteger.valueOf(-123)));
+    assertThat(ParsingUtil.parsePropertyOrInteger("123"), is(BigInteger.valueOf(123)));
+    assertThat(ParsingUtil.parsePropertyOrInteger("-123"), is(BigInteger.valueOf(-123)));
   }
 
   @Test
   public void testParsePropertyOrIntegerInvalidWithoutProperty() {
-    assertThrows(NumberFormatException.class, () -> JaxbParsers.parsePropertyOrInteger("foobar"));
+    assertThrows(NumberFormatException.class, () -> ParsingUtil.parsePropertyOrInteger("foobar"));
   }
 
   @Test
@@ -83,13 +83,13 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "123");
     try {
-      assertThat(JaxbParsers.parsePropertyOrInteger("${" + property + "}"), is(BigInteger.valueOf(123)));
+      assertThat(ParsingUtil.parsePropertyOrInteger("${" + property + "}"), is(BigInteger.valueOf(123)));
     } finally {
       System.clearProperty(property);
     }
     System.setProperty(property, "-123");
     try {
-      assertThat(JaxbParsers.parsePropertyOrInteger("${" + property + "}"), is(BigInteger.valueOf(-123)));
+      assertThat(ParsingUtil.parsePropertyOrInteger("${" + property + "}"), is(BigInteger.valueOf(-123)));
     } finally {
       System.clearProperty(property);
     }
@@ -100,7 +100,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "barfoo");
     try {
-      assertThrows(NumberFormatException.class, () -> JaxbParsers.parsePropertyOrInteger("${" + property + "}"));
+      assertThrows(NumberFormatException.class, () -> ParsingUtil.parsePropertyOrInteger("${" + property + "}"));
     } finally {
       System.clearProperty(property);
     }
@@ -109,28 +109,28 @@ public class JaxbParsersTest {
   @Test
   public void testParsePropertyOrIntegerWithMissingProperty() {
     String property = PROPERTY_PREFIX + testName.getMethodName();
-    assertThrows(IllegalStateException.class, () -> JaxbParsers.parsePropertyOrInteger("${" + property + "}"));
+    assertThrows(IllegalStateException.class, () -> ParsingUtil.parsePropertyOrInteger("${" + property + "}"));
   }
 
 
   @Test
   public void testParsePropertyOrPositiveIntegerFromNullString() {
-    assertThrows(NullPointerException.class, () -> JaxbParsers.parsePropertyOrPositiveInteger(null));
+    assertThrows(NullPointerException.class, () -> ParsingUtil.parsePropertyOrPositiveInteger(null));
   }
 
   @Test
   public void testParsePropertyOrPositiveIntegerValidWithoutProperty() {
-    assertThat(JaxbParsers.parsePropertyOrPositiveInteger("123"), is(BigInteger.valueOf(123)));
+    assertThat(ParsingUtil.parsePropertyOrPositiveInteger("123"), is(BigInteger.valueOf(123)));
   }
 
   @Test
   public void testParsePropertyOrPositiveIntegerInvalidWithoutProperty() {
-    assertThrows(NumberFormatException.class, () -> JaxbParsers.parsePropertyOrPositiveInteger("foobar"));
+    assertThrows(NumberFormatException.class, () -> ParsingUtil.parsePropertyOrPositiveInteger("foobar"));
   }
 
   @Test
   public void testParsePropertyOrPositiveIntegerOutOfRangeWithoutProperty() {
-    assertThrows(IllegalArgumentException.class, () -> JaxbParsers.parsePropertyOrPositiveInteger("0"));
+    assertThrows(IllegalArgumentException.class, () -> ParsingUtil.parsePropertyOrPositiveInteger("0"));
   }
 
   @Test
@@ -138,7 +138,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "123");
     try {
-      assertThat(JaxbParsers.parsePropertyOrPositiveInteger("${" + property + "}"), is(BigInteger.valueOf(123)));
+      assertThat(ParsingUtil.parsePropertyOrPositiveInteger("${" + property + "}"), is(BigInteger.valueOf(123)));
     } finally {
       System.clearProperty(property);
     }
@@ -149,7 +149,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "barfoo");
     try {
-      assertThrows(NumberFormatException.class, () -> JaxbParsers.parsePropertyOrPositiveInteger("${" + property + "}"));
+      assertThrows(NumberFormatException.class, () -> ParsingUtil.parsePropertyOrPositiveInteger("${" + property + "}"));
     } finally {
       System.clearProperty(property);
     }
@@ -160,7 +160,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "0");
     try {
-      assertThrows(IllegalArgumentException.class, () -> JaxbParsers.parsePropertyOrPositiveInteger("${" + property + "}"));
+      assertThrows(IllegalArgumentException.class, () -> ParsingUtil.parsePropertyOrPositiveInteger("${" + property + "}"));
     } finally {
       System.clearProperty(property);
     }
@@ -169,7 +169,7 @@ public class JaxbParsersTest {
   @Test
   public void testParsePropertyOrPositiveIntegerWithMissingProperty() {
     String property = PROPERTY_PREFIX + testName.getMethodName();
-    assertThrows(IllegalStateException.class, () -> JaxbParsers.parsePropertyOrPositiveInteger("${" + property + "}"));
+    assertThrows(IllegalStateException.class, () -> ParsingUtil.parsePropertyOrPositiveInteger("${" + property + "}"));
   }
 
   @Test
@@ -178,22 +178,22 @@ public class JaxbParsersTest {
 
   @Test
   public void testParsePropertyOrNonNegativeIntegerFromNullString() {
-    assertThrows(NullPointerException.class, () -> JaxbParsers.parsePropertyOrNonNegativeInteger(null));
+    assertThrows(NullPointerException.class, () -> ParsingUtil.parsePropertyOrNonNegativeInteger(null));
   }
 
   @Test
   public void testParsePropertyOrNonNegativeIntegerValidWithoutProperty() {
-    assertThat(JaxbParsers.parsePropertyOrNonNegativeInteger("123"), is(BigInteger.valueOf(123)));
+    assertThat(ParsingUtil.parsePropertyOrNonNegativeInteger("123"), is(BigInteger.valueOf(123)));
   }
 
   @Test
   public void testParsePropertyOrNonNegativeIntegerInvalidWithoutProperty() {
-    assertThrows(NumberFormatException.class, () -> JaxbParsers.parsePropertyOrNonNegativeInteger("foobar"));
+    assertThrows(NumberFormatException.class, () -> ParsingUtil.parsePropertyOrNonNegativeInteger("foobar"));
   }
 
   @Test
   public void testParsePropertyOrNonNegativeIntegerOutOfRangeWithoutProperty() {
-    assertThrows(IllegalArgumentException.class, () -> JaxbParsers.parsePropertyOrNonNegativeInteger("-1"));
+    assertThrows(IllegalArgumentException.class, () -> ParsingUtil.parsePropertyOrNonNegativeInteger("-1"));
   }
 
   @Test
@@ -201,7 +201,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "123");
     try {
-      assertThat(JaxbParsers.parsePropertyOrNonNegativeInteger("${" + property + "}"), is(BigInteger.valueOf(123)));
+      assertThat(ParsingUtil.parsePropertyOrNonNegativeInteger("${" + property + "}"), is(BigInteger.valueOf(123)));
     } finally {
       System.clearProperty(property);
     }
@@ -212,7 +212,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "barfoo");
     try {
-      assertThrows(NumberFormatException.class, () -> JaxbParsers.parsePropertyOrNonNegativeInteger("${" + property + "}"));
+      assertThrows(NumberFormatException.class, () -> ParsingUtil.parsePropertyOrNonNegativeInteger("${" + property + "}"));
     } finally {
       System.clearProperty(property);
     }
@@ -223,7 +223,7 @@ public class JaxbParsersTest {
     String property = PROPERTY_PREFIX + testName.getMethodName();
     System.setProperty(property, "-1");
     try {
-      assertThrows(IllegalArgumentException.class, () -> JaxbParsers.parsePropertyOrNonNegativeInteger("${" + property + "}"));
+      assertThrows(IllegalArgumentException.class, () -> ParsingUtil.parsePropertyOrNonNegativeInteger("${" + property + "}"));
     } finally {
       System.clearProperty(property);
     }
@@ -232,7 +232,7 @@ public class JaxbParsersTest {
   @Test
   public void testParsePropertyOrNonNegativeIntegerWithMissingProperty() {
     String property = PROPERTY_PREFIX + testName.getMethodName();
-    assertThrows(IllegalStateException.class, () -> JaxbParsers.parsePropertyOrNonNegativeInteger("${" + property + "}"));
+    assertThrows(IllegalStateException.class, () -> ParsingUtil.parsePropertyOrNonNegativeInteger("${" + property + "}"));
   }
 
   @Test
@@ -241,15 +241,15 @@ public class JaxbParsersTest {
 
   @Test
   public void testParseStringWithPropertiesFromNullString() {
-    assertThrows(NullPointerException.class, () -> JaxbParsers.parseStringWithProperties(null));
+    assertThrows(NullPointerException.class, () -> ParsingUtil.parseStringWithProperties(null));
   }
 
   @Test
   public void testParseStringWithPropertiesWithoutProperties() {
-    assertThat(JaxbParsers.parseStringWithProperties("foo${bar"), is("foo${bar"));
-    assertThat(JaxbParsers.parseStringWithProperties("foobar"), is("foobar"));
-    assertThat(JaxbParsers.parseStringWithProperties("foo}bar"), is("foo}bar"));
-    assertThat(JaxbParsers.parseStringWithProperties("foo$bar"), is("foo$bar"));
+    assertThat(ParsingUtil.parseStringWithProperties("foo${bar"), is("foo${bar"));
+    assertThat(ParsingUtil.parseStringWithProperties("foobar"), is("foobar"));
+    assertThat(ParsingUtil.parseStringWithProperties("foo}bar"), is("foo}bar"));
+    assertThat(ParsingUtil.parseStringWithProperties("foo$bar"), is("foo$bar"));
   }
 
   @Test
@@ -259,7 +259,7 @@ public class JaxbParsersTest {
     System.setProperty(foo, "foo");
     System.setProperty(bar, "bar");
     try {
-      assertThat(JaxbParsers.parseStringWithProperties("start:${" + foo + "}:middle:${" + bar + "}:end"), is("start:foo:middle:bar:end"));
+      assertThat(ParsingUtil.parseStringWithProperties("start:${" + foo + "}:middle:${" + bar + "}:end"), is("start:foo:middle:bar:end"));
     } finally {
       System.clearProperty(foo);
       System.clearProperty(bar);
@@ -273,7 +273,7 @@ public class JaxbParsersTest {
     assertThat(System.getProperty(bar), is(nullValue()));
     System.setProperty(foo, "foo");
     try {
-      assertThrows(IllegalStateException.class, () -> JaxbParsers.parseStringWithProperties("start:${" + foo + "}:middle:${" + bar + "}:end"));
+      assertThrows(IllegalStateException.class, () -> ParsingUtil.parseStringWithProperties("start:${" + foo + "}:middle:${" + bar + "}:end"));
     } finally {
       System.clearProperty(foo);
     }

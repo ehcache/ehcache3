@@ -18,7 +18,6 @@ package org.ehcache.management.registry;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -26,6 +25,7 @@ import org.w3c.dom.Element;
 import java.net.URI;
 
 import static java.util.Collections.singletonMap;
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
 
 public class ManagementRegistryServiceConfigurationParser extends BaseConfigParser<DefaultManagementRegistryConfiguration>
   implements CacheManagerServiceConfigurationParser<ManagementRegistryService, DefaultManagementRegistryConfiguration> {
@@ -61,7 +61,7 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
       for (Element tags : NodeListIterable.elements(fragment, NAMESPACE, TAGS_NAME)) {
         // tag
         for (Element tag : NodeListIterable.elements(tags, NAMESPACE, TAG_NAME)) {
-          String val = JaxbParsers.parsePropertyOrString(tag.getTextContent());
+          String val = parsePropertyOrString(tag.getTextContent());
           if (!val.isEmpty()) {
             registryConfiguration.addTag(val);
           }

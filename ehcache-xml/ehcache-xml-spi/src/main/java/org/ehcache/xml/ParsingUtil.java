@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 import static java.security.AccessController.doPrivileged;
 
-public class JaxbParsers {
+public class ParsingUtil {
 
   private static final Pattern SYSPROP = Pattern.compile("\\$\\{(?<property>[^{}]+)}");
   private static final Pattern PADDED_SYSPROP = Pattern.compile("\\s*" + SYSPROP.pattern() + "\\s*");

@@ -22,7 +22,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 
 /**
- * {@link SoftLock}s are the value containers stored in the underlying store by the {@link XAStore}.
+ * {@link SoftLock}s are the value containers stored in the underlying store by the {@code XAStore}.
  * A {@link SoftLock} contains three essential things:
  * <ul>
  * <li>The transaction ID responsible for inserting the {@link SoftLock}, or null if the transaction is terminated.</li>

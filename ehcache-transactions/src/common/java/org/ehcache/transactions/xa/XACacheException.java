@@ -13,29 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.ehcache.transactions.xa.internal.commands;
-
-import org.ehcache.transactions.xa.internal.XAValueHolder;
-import org.ehcache.transactions.xa.internal.XAStore;
+package org.ehcache.transactions.xa;
 
 /**
- * A representation of in-flight transaction's modification to the mappings of a {@link XAStore}.
+ * The payload exception thrown by the cache when an {@code XAStore} has issues retrieving the transaction context.
  *
  * @author Ludovic Orban
  */
-public interface Command<V> {
+public class XACacheException extends RuntimeException {
+  private static final long serialVersionUID = -6691335026252002011L;
 
-  /**
-   * Get the value to rollback to.
-   * @return the old value.
-   */
-  V getOldValue();
+  public XACacheException(String message) {
+    super(message);
+  }
 
-  /**
-   * Get the value holder to commit.
-   * @return the new value holder.
-   */
-  XAValueHolder<V> getNewValueHolder();
-
+  public XACacheException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

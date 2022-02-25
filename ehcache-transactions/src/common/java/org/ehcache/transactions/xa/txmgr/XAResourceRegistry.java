@@ -18,7 +18,7 @@ package org.ehcache.transactions.xa.txmgr;
 import javax.transaction.xa.XAResource;
 
 /**
- * Support for {@link XAResource} registration with {@link javax.transaction.TransactionManager} implementations.
+ * Support for {@link XAResource} registration with {@code TransactionManager} implementations.
  *
  * @author Ludovic Orban
  */
