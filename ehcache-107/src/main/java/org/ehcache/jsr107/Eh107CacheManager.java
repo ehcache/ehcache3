@@ -386,8 +386,10 @@ class Eh107CacheManager implements CacheManager {
 
   private void registerObject(Eh107MXBean bean) {
     try {
-      LOG.info("Registering Ehcache MBean {}", bean.getObjectName());
-      MBEAN_SERVER.registerMBean(bean, bean.getObjectName());
+      if (MBEAN_SERVER.queryMBeans(bean.getObjectName(), null).isEmpty()) {
+        LOG.info("Registering Ehcache MBean {}", bean.getObjectName());
+        MBEAN_SERVER.registerMBean(bean, bean.getObjectName());
+      }
     } catch (InstanceAlreadyExistsException e) {
       // ignore
     } catch (Exception e) {
