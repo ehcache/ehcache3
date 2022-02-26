@@ -1,0 +1,26 @@
+<config
+    xmlns='http://www.ehcache.org/v3'
+    xmlns:ehcache='http://www.ehcache.org/v3'>
+
+  <ehcache:default-serializers>
+    <ehcache:serializer type="java.lang.String">org.ehcache.impl.serialization.CompactJavaSerializer</ehcache:serializer>
+  </ehcache:default-serializers>
+
+  <cache alias="cache">
+    <key-type>java.lang.Long</key-type>
+    <value-type>java.lang.String</value-type>
+    <resources>
+      <heap unit="entries">20</heap>
+      <offheap unit="MB">1</offheap>
+    </resources>
+  </cache>
+
+  <cache alias="cache1">
+    <key-type serializer = "org.ehcache.jsr107.LongSerializer">java.lang.Long</key-type>
+    <value-type serializer = "org.ehcache.jsr107.StringSerializer">java.lang.String</value-type>
+    <resources>
+      <heap unit="entries">20</heap>
+      <offheap unit="MB">1</offheap>
+    </resources>
+  </cache>
+</config>

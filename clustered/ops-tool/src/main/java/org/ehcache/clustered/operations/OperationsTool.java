@@ -23,20 +23,17 @@ import java.util.Comparator;
 
 public class OperationsTool {
 
-  private static final Comparator<? super ParameterDescription> REQUIRED_FIRST = new Comparator<ParameterDescription>() {
-    @Override
-    public int compare(ParameterDescription a, ParameterDescription b) {
-      if (a.getParameter().required() == b.getParameter().required()) {
-        return a.getLongestName().compareTo(b.getLongestName());
-      } else if (a.getParameter().required()) {
-        return -1;
-      } else {
-        return 1;
-      }
+  private static final Comparator<? super ParameterDescription> REQUIRED_FIRST = (Comparator<ParameterDescription>) (a, b) -> {
+    if (a.getParameter().required() == b.getParameter().required()) {
+      return a.getLongestName().compareTo(b.getLongestName());
+    } else if (a.getParameter().required()) {
+      return -1;
+    } else {
+      return 1;
     }
   };
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     System.exit(innerMain(args));
   }
 

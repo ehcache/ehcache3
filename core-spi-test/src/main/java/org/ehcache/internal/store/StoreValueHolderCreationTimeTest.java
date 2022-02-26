@@ -28,7 +28,6 @@ import static org.hamcrest.core.Is.is;
 /**
  * Test the {@link Store.ValueHolder#creationTime(java.util.concurrent.TimeUnit)} contract of the
  * {@link Store.ValueHolder Store.ValueHolder} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -44,7 +43,7 @@ public class StoreValueHolderCreationTimeTest<K, V> extends SPIStoreTester<K, V>
       throws IllegalAccessException, InstantiationException {
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.createValue(1));
 
-    assertThat(valueHolder.creationTime(TimeUnit.MILLISECONDS), is(notNullValue()));
+    assertThat(valueHolder.creationTime(), is(notNullValue()));
   }
 
 }

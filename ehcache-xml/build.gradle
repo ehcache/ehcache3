@@ -1,0 +1,165 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+  id 'org.ehcache.build.internal-module'
+  id 'org.ehcache.build.plugins.variant'
+  id 'org.unbroken-dome.xjc'
+  id 'java-test-fixtures'
+}
+
+// Fix a minor bug in the XjcPlugin. Now it plays ball better with the dependency checker.
+configurations {
+  xjcClasspathGlobal {
+    canBeResolved = false
+  }
+  xjcCatalogResolutionGlobal {
+    canBeResolved = false
+  }
+}
+
+publishing.publications.withType(MavenPublication) {
+  pom {
+    name = 'Ehcache 3 XML Parsing module'
+    description = 'The module containing all XML parsing logic Ehcache 3'
+  }
+}
+
+components.java {
+  withVariantsFromConfiguration(configurations.testFixturesApiElements) { skip() }
+  withVariantsFromConfiguration(configurations.testFixturesRuntimeElements) { skip() }
+}
+
+variants {
+  variant('jakarta') {
+    withSeparateSource()
+    capability "org.ehcache.modules:ehcache-xml-provider:$version"
+    capability "org.ehcache.modules:ehcache-xml-jakarta:$version"
+  }
+}
+
+sourceSets {
+  main {
+    resources.source(xjcSchema)
+  }
+  jakarta {
+    resources.source(xjcSchema)
+  }
+}
+tasks.named('sourcesJar') {
+  filesMatching('*.xsd') {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  }
+}
+tasks.named('jakartaSourcesJar') {
+  filesMatching('*.xsd') {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  }
+}
+
+configurations {
+  [apiElements, runtimeElements]*.outgoing {
+    capability "org.ehcache.modules:ehcache-xml-provider:$version"
+    capability "org.ehcache.modules:ehcache-xml:$version"
+  }
+
+  xjcToolJakarta {
+    visible = false
+  }
+
+  jakartaTestRuntimeClasspath {
+    extendsFrom testRuntimeClasspath, jakartaRuntimeClasspath
+    exclude group:'javax.xml.bind', module:'jaxb-api'
+    resolutionStrategy.dependencySubstitution {
+      substitute module('org.glassfish.jaxb:jaxb-runtime:[2.2,3)') using module('org.glassfish.jaxb:jaxb-runtime:[3,4)')
+    }
+  }
+
+  lowerBoundTestRuntimeClasspath {
+    extendsFrom testRuntimeClasspath
+    resolutionStrategy.dependencySubstitution {
+      substitute module('org.glassfish.jaxb:jaxb-runtime') using module('com.sun.xml.bind:jaxb-impl:2.2.8-b01')
+    }
+  }
+}
+
+dependencies {
+  commonApi project(':ehcache-api')
+  commonImplementation project(':ehcache-core')
+  commonImplementation project(':ehcache-impl')
+
+  api 'javax.xml.bind:jaxb-api:[2.2,3)'
+  runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:[2.2,3)'
+
+  jakartaApi 'jakarta.xml.bind:jakarta.xml.bind-api:[3,4)'
+  jakartaRuntimeOnly 'org.glassfish.jaxb:jaxb-runtime:[3,4)'
+
+  testFixturesApi 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
+
+  xjcClasspathGlobal 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
+  xjcClasspathGlobal 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
+
+  xjcToolJakarta 'com.sun.xml.bind:jaxb-xjc:3.0.0-M4'
+  xjcToolJakarta 'com.sun.xml.bind:jaxb-impl:3.0.0-M4'
+
+  lowerBoundTestRuntimeClasspath 'com.sun.activation:javax.activation:1.2.0'
+}
+
+jar {
+  bnd (
+    'Export-Package': 'org.ehcache.xml, org.ehcache.xml.exceptions, org.ehcache.xml.model',
+    'Import-Package': "javax.xml.bind*;version=\"[2.2,3)\", *"
+  )
+}
+
+tasks.named('jakartaJar', Jar) {
+  bundle {
+    bnd (
+      'Export-Package': 'org.ehcache.xml, org.ehcache.xml.exceptions, org.ehcache.xml.model',
+      'Import-Package': "jakarta.xml.bind*;version=\"[3,4)\", *"
+    )
+  }
+}
+
+xjc {
+  extraArgs.add '-Xfluent-api'
+  extraArgs.add '-Xannotate'
+
+  // ehcache-multi.xsd references ehcache-core.xsd but we cannot control the order they get presented to XJC in.
+  // Turning off strict checks prevents failing on when seeing the resultant schema parsing issues.
+  strictCheck = false
+}
+
+xjcGenerateJakarta {
+  toolClasspath.setFrom configurations.xjcToolJakarta
+}
+
+tasks.register('lowerBoundTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  //remove the original runtime classpath
+  classpath -= configurations.testRuntimeClasspath
+  //add the classpath we want
+  classpath += configurations.lowerBoundTestRuntimeClasspath
+}
+
+tasks.register('jakartaTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  classpath = sourceSets.test.output + sourceSets.jakarta.output + configurations.jakartaTestRuntimeClasspath
+}
+
+tasks.named('check') {
+  dependsOn tasks.lowerBoundTest, tasks.jakartaTest
+}

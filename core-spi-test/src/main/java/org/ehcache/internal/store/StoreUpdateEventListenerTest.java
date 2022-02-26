@@ -19,8 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -29,9 +28,9 @@ import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * StoreCreationEventListenerTest
@@ -108,12 +107,7 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       K key = factory.createKey(125L);
       store.put(key, factory.createValue(125L));
       StoreEventListener<K, V> listener = addListener(store);
-      store.compute(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return factory.createValue(215L);
-        }
-      });
+      store.getAndCompute(key, (k, v) -> factory.createValue(215L));
       verifyListenerInteractions(listener);
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -126,6 +120,7 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   private StoreEventListener<K, V> addListener(Store<K, V> kvStore) {
+    @SuppressWarnings("unchecked")
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
 
     kvStore.getStoreEventSource().addEventListener(listener);

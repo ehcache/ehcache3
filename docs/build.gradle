@@ -14,40 +14,49 @@
  * limitations under the License.
  */
 
-buildscript {
-  repositories {
-    jcenter()
-  }
+import org.asciidoctor.gradle.jvm.AsciidoctorJBasePlugin
+import org.asciidoctor.gradle.jvm.AsciidoctorTask
 
-  dependencies {
-    classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.2'
-  }
+plugins {
+  id 'org.ehcache.build.conventions.base'
+  id 'org.asciidoctor.jvm.base'
 }
 
-apply plugin: 'org.asciidoctor.convert'
-
-/*
- * BEGIN https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
- */
-task copyResources(type: Copy) {
-  from ("css") {
-    include '**'
-  }
-  into("${buildDir}/asciidoc/user/css")
-}
-asciidoctor.dependsOn copyResources
-/*
- * END https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
- */
-
-asciidoctor {
-  separateOutputDirs = false;
+asciidoctorj {
+  safeMode 'UNSAFE'
   attributes 'skip-front-matter': 'true'
+  fatalWarnings ~/.*/
+  modules {
+    diagram.version '1.5.18'
+  }
+}
 
+def createCopyCssTask(def asciidocTask) {
+  return tasks.register("copy${asciidocTask.name}CSS", Sync) {
+    from ('css') {
+      include '**'
+    } into("${asciidocTask.outputDir}/css")
+  }
+}
+
+tasks.withType(AsciidoctorTask) {
+  group = AsciidoctorJBasePlugin.TASK_GROUP
   resources {
     from('fonts') {
       include '*'
-      into('./user/fonts')
-    }
+    } into('./fonts')
   }
+  dependsOn createCopyCssTask(it)
+}
+
+tasks.register('userDoc', AsciidoctorTask) {
+  description = 'Generate the user documentation'
+  sourceDir file('src/docs/asciidoc/user')
+  outputDir file("$buildDir/asciidoc/user")
+}
+
+tasks.register('developerDoc', AsciidoctorTask) {
+  description = 'Generate the developer documentation'
+  sourceDir file('src/docs/asciidoc/developer')
+  outputDir file("$buildDir/asciidoc/developer")
 }

@@ -20,7 +20,6 @@ import org.ehcache.spi.test.SPITester;
 
 /**
  * Parent class for all CachingTier tester classes.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

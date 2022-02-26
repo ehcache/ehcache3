@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Ludovic Orban
@@ -99,7 +99,7 @@ public class EvictionEhcacheTest {
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(2))
             .build());
 
-    Map<Integer, String> values = new HashMap<Integer, String>();
+    Map<Integer, String> values = new HashMap<>();
     values.put(1, "one");
     values.put(2, "two");
     values.put(3, "three");

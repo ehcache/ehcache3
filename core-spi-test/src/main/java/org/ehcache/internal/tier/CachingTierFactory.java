@@ -39,7 +39,7 @@ public interface CachingTierFactory<K, V> {
 
   Class<V> getValueType();
 
-  ServiceConfiguration<?>[] getServiceConfigurations();
+  ServiceConfiguration<?, ?>[] getServiceConfigurations();
 
   ServiceProvider<Service> getServiceProvider();
 
@@ -47,5 +47,5 @@ public interface CachingTierFactory<K, V> {
 
   V createValue(long seed);
 
-  void disposeOf(CachingTier tier);
+  void disposeOf(CachingTier<K, V> tier);
 }

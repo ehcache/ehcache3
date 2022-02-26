@@ -1,10 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE config
+[
+<!ENTITY cluster-uri SYSTEM "cluster-uri.xml">
+]
+>
 <ehcache:config
     xmlns:ehcache="http://www.ehcache.org/v3"
     xmlns:tc="http://www.ehcache.org/v3/clustered">
 
   <ehcache:service>
     <tc:cluster>
-      <tc:connection url="http://example.com:9540/myCacheManager?auto-create"/>
+      <tc:connection url="${cluster-uri}/testAutoCreatedCacheManagerUsingXml"/>
+      <tc:server-side-config client-mode="auto-create"/>
     </tc:cluster>
   </ehcache:service>
 

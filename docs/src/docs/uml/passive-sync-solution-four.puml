@@ -1,0 +1,78 @@
+@startuml
+
+title Passive Replication Proposal Three ('The Modified Clifford')
+
+participant "Client" as C
+participant "Active Server" as AS
+participant "Active Entity" as AE
+participant "Passive Server" as PS
+participant "Passive Entity" as PE
+
+[o->C: putIfAbsent(k, v)
+activate C
+C->AS: getAndAppend(putIfAbsent(k, v))
+activate AS
+AS->PS: begin()
+activate PS
+PS->AS: ack()
+deactivate PS
+
+C<<--AS: received
+
+AS->AE: getAndAppend(putIfAbsent(k, v))
+activate AE
+AE->AS: apply chain delta
+activate AS
+AS<--AE: chain
+deactivate AE
+C<<--AS: chain
+
+C->C: resolve
+
+AS->PS: apply chain delta
+activate PS
+PS->PE: apply chain delta
+activate PE
+AS<--PS: persisted
+note left
+//persisted// means "message recorded"
+which has to be fully recorded in the passive
+since the active and client are the same in this case
+end note
+deactivate PS
+
+AS->AE: apply chain delta
+activate AE
+note over AE
+ignored
+end note
+AS<--AE
+deactivate AE
+deactivate AS
+
+
+C<--AS
+deactivate AS
+[<--C
+deactivate C
+
+PE->PE: apply delta
+opt delta apply failure
+PE->PE: evict
+end opt
+PE -[#white]-> AE #layout
+deactivate PE
+
+C->>AS: replace(k.hash, chain, resolved)
+activate AS
+AS->AS: replace
+opt replace-success
+AS->>PS: replicateChain(active-state)
+activate PS
+deactivate PS
+end opt
+note over AS, PS
+Servers now forced back in sync
+end note
+deactivate AS
+@enduml

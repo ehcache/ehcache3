@@ -13,150 +13,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import scripts.*
 
-ext {
-  baseVersion = '3.0.0-SNAPSHOT'
-  offheapVersion = '2.2.1'
-  managementVersion = '2.3.0'
-  statisticVersion = '1.1.0'
-  jcacheVersion = '1.0.0'
-  slf4jVersion = '1.7.7'
-  sizeofVersion = '0.3.0'
-
-  utils = new Utils(baseVersion, logger)
-  isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
+plugins {
+  // This adds tasks to auto close or release nexus staging repos
+  // see https://github.com/Codearte/gradle-nexus-staging-plugin/
+  id 'io.codearte.nexus-staging'
+  //OWASP Security Vulnerability Detection
+  id 'org.owasp.dependencycheck'
 }
 
-buildscript {
-  repositories { jcenter() }
-  dependencies {
-    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
-  }
-}
-
-subprojects {
-  apply plugin: 'java'
-  apply plugin: 'eclipse'
-  apply plugin: 'checkstyle'
-  apply plugin: 'findbugs'
-  apply plugin: 'jacoco'
-
-  group = 'org.ehcache.modules'
-  version = baseVersion
-
-  archivesBaseName = "ehcache-${project.name}"
-
-  sourceCompatibility = 1.6
-  targetCompatibility = 1.6
-
-  repositories {
-    mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
-    mavenLocal()
-  }
-
-  sourceSets {
-    slowTest {
-      java.srcDir 'src/slow-test/java'
-      resources.srcDir 'src/slow-test/resources'
-      compileClasspath += sourceSets.test.compileClasspath
-      runtimeClasspath += sourceSets.test.runtimeClasspath
-    }
-  }
-
-  dependencies {
-    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
-      compile 'com.google.code.findbugs:annotations:3.0.0'
-    } else {
-      compile 'com.google.code.findbugs:annotations:2.0.3'
-    }
-    testCompile 'junit:junit:4.11', 'org.hamcrest:hamcrest-library:1.3', 'org.mockito:mockito-core:1.9.5'
-    testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
-  }
-
-  jar {
-    utils.fillManifest(manifest,"ehcache-${project.name}")
-    from "$rootDir/LICENSE"
-  }
-
-  test {
-    maxHeapSize = "512m"
-    systemProperty 'java.awt.headless', 'true'
-  }
-
-  task slowTest(type: Test) {
-    testClassesDir = sourceSets.slowTest.output.classesDir
-    classpath += sourceSets.slowTest.runtimeClasspath
-
-    binResultsDir file("$buildDir/slow-tests-results/binary/$name")
-    reports.junitXml.destination = "$buildDir/slow-tests-results"
-    reports.html.destination = "$buildDir/reports/slow-tests"
-  }
-
-  task sourceJar(type: Jar, dependsOn: classes) {
-    from sourceSets.main.allJava
-    classifier = 'sources'
-  }
-
-  javadoc {
-    title "$project.archivesBaseName $project.version API"
-    exclude '**/internal/**'
-  }
-
-  if (JavaVersion.current().isJava8Compatible()) {
-    allprojects {
-      tasks.withType(Javadoc) {
-        options.addStringOption('Xdoclint:none', '-quiet')
-      }
-    }
-  }
-
-  task javadocJar(type: Jar, dependsOn: javadoc) {
-    from javadoc.destinationDir
-    classifier = 'javadoc'
-  }
-
-  artifacts {
-    archives jar
-
-    archives javadocJar
-    archives sourceJar
-  }
-
-  checkstyle {
-    configFile = file("$rootDir/config/checkstyle.xml")
-    configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.7'
-  }
-
-  findbugs {
-    ignoreFailures = false
-    sourceSets = [sourceSets.main]
-    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
-      findbugs.toolVersion = '3.0.1'
-    } else {
-      findbugs.toolVersion = '2.0.3'
-    }
-  }
-
-  jacoco {
-    toolVersion = '0.7.1.201405082137'
-  }
-
-  jacocoTestReport {
-    reports {
-      xml.enabled false
-      csv.enabled false
-    }
-  }
+wrapper {
+  distributionType = Wrapper.DistributionType.ALL
 }
 
 allprojects {
-  tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
+  version = findProperty('overrideVersion') ?: ehcacheVersion
+}
+
+if (deployUrl.contains('nexus')) {
+  //internal terracotta config, shorten url for this plugin to end at local/
+  project.nexusStaging {
+    serverUrl = deployUrl.replaceAll(~/local\/.*$/, "local/")
+    packageGroup = 'Ehcache OS' //internal staging repository name
   }
-  tasks.withType(Javadoc) {
-    options.encoding = 'UTF-8'
+  ext {
+    deployUser = tcDeployUser
+    deployPwd = tcDeployPassword
   }
+} else {
+  project.nexusStaging {
+    packageGroup = 'org.ehcache' //Sonatype staging repository name
+  }
+  ext {
+    deployUser = sonatypeUser
+    deployPwd = sonatypePwd
+  }
+}
+
+nexusStaging {
+  username = project.ext.deployUser
+  password = project.ext.deployPwd
+  logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
+}
+
+tasks.named('closeAndReleaseRepository') {
+  // Disable automatic promotion for added safety
+  enabled = false;
+}
+
+assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
+
+dependencyCheck {
+  failBuildOnCVSS = 0
+  suppressionFile = 'config/owasp-supressions.xml'
+  skipConfigurations += ['checkstyle', 'spotbugs', 'xjcClasspath', 'jakartaXjcClasspath', 'commonXjcClasspath']
+  skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
+}
+tasks.register('check') {
+  dependsOn dependencyCheckAggregate
 }
