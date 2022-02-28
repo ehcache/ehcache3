@@ -21,19 +21,17 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.StateTransitionException;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -53,7 +51,7 @@ public abstract class CacheTest {
     Store<Object, Object> store = mock(Store.class);
 
     InternalCache ehcache = getCache(store);
-    assertThat(ehcache.getStatus(), CoreMatchers.is(Status.UNINITIALIZED));
+    assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     ehcache.init();
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
     ehcache.close();
@@ -295,9 +293,9 @@ public abstract class CacheTest {
     InternalCache<Object, Object> ehcache = getCache(store);
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
-    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.is(value));
-    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.is(value));
-    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foo"), is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foobar"), is(value));
+    assertThat(ehcache.putIfAbsent("foo", value), is(value));
   }
 
   @Test

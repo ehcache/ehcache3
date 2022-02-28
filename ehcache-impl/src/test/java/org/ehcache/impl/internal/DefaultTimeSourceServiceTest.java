@@ -23,8 +23,8 @@ import org.ehcache.core.spi.ServiceLocator;
 import org.junit.Test;
 
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 
 /**

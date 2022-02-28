@@ -17,28 +17,15 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
-import org.w3c.dom.Element;
 
-import java.io.IOException;
-import java.net.URI;
 import java.util.Set;
-
-import javax.xml.transform.Source;
 
 /**
  * Defines a handler for processing {@code /config/cache/resources} extension elements.
  *
  * @author Clifford W. Johnson
  */
-public interface CacheResourceConfigurationParser {
-
-  Source getXmlSchema() throws IOException;
-
-  URI getNamespace();
-
-  ResourcePool parseResourceConfiguration(Element fragment);
-
-  Element unparseResourcePool(ResourcePool resourcePool);
+public interface CacheResourceConfigurationParser extends Parser<ResourcePool> {
 
   Set<Class<? extends ResourcePool>> getResourceTypes();
 }

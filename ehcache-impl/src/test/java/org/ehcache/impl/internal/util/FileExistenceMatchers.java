@@ -21,7 +21,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
 import java.io.File;
-import java.io.FilenameFilter;
 
 /**
  * Matchers for file locks and existence in the persistence directory.

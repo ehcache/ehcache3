@@ -18,35 +18,33 @@ package org.ehcache.xml;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
+import java.util.Map;
+import java.util.function.Supplier;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
+
+import static java.util.Collections.singletonMap;
 
 /**
  *
  * @author cdennis
  */
-public class FooParser implements CacheServiceConfigurationParser<Service> {
+public class FooParser implements CacheServiceConfigurationParser<Service, ServiceConfiguration<Service, ?>> {
 
-  private static final URI NAMESPACE = URI.create("http://www.example.com/foo");
-  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/foo.xsd");
+  private static final String NAMESPACE = "http://www.example.com/foo";
 
   @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
+  public Map<URI, Supplier<Source>> getSchema() {
+    return singletonMap(URI.create(NAMESPACE), () -> new StreamSource(getClass().getResourceAsStream("/configs/foo.xsd")));
   }
 
   @Override
-  public ServiceConfiguration<Service, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceConfiguration<Service, ?> parse(Element fragment, ClassLoader classLoader) {
     return new FooConfiguration();
   }
 
@@ -56,18 +54,7 @@ public class FooParser implements CacheServiceConfigurationParser<Service> {
   }
 
   @Override
-  public Element unparseServiceConfiguration(ServiceConfiguration<Service, ?> serviceConfiguration) {
-    try {
-      Document document = XmlUtil.createAndGetDocumentBuilder().newDocument();
-      return document.createElementNS(NAMESPACE.toString(), "foo:foo");
-    } catch (SAXException | ParserConfigurationException | IOException e) {
-      throw new XmlConfigurationException(e);
-    }
+  public Element unparse(Document document, ServiceConfiguration<Service, ?> serviceConfiguration) {
+    return document.createElementNS(NAMESPACE, "foo:foo");
   }
-
-  @Override
-  public URI getNamespace() {
-    return NAMESPACE;
-  }
-
 }

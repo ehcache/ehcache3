@@ -23,7 +23,6 @@ import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
@@ -37,6 +36,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,24 +58,27 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.xml.DomUtil.createDocumentRoot;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
+import static org.ehcache.xml.XmlUtil.namespaceUniqueParsersOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.fail;
 
 public class ClusteringCacheManagerServiceConfigurationParserTest {
@@ -93,8 +96,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
    * {@link CacheManagerServiceConfigurationParser} instance.
    */
   @Test
-  public void testServiceLocator() throws Exception {
-    assertThat(stream(spliterator(ClassLoading.servicesOfType(CacheManagerServiceConfigurationParser.class).iterator(), Long.MAX_VALUE, 0), false).map(Object::getClass).collect(Collectors.toList()),
+  public void testServiceLocator() {
+    assertThat(stream(spliterator(namespaceUniqueParsersOfType(CacheManagerServiceConfigurationParser.class).iterator(), Long.MAX_VALUE, 0), false).map(Object::getClass).collect(Collectors.toList()),
       hasItem(ClusteringCacheManagerServiceConfigurationParser.class));
   }
 
@@ -105,7 +108,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
   @Test
   public void testSchema() throws Exception {
     final ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
-    final StreamSource schemaSource = (StreamSource) parser.getXmlSchema();
+    final StreamSource schemaSource = (StreamSource) parser.getSchema().values().iterator().next().get();
 
     final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     factory.setNamespaceAware(true);
@@ -116,7 +119,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     final Element schema = domBuilder.parse(schemaSource.getInputStream()).getDocumentElement();
     final Attr targetNamespaceAttr = schema.getAttributeNode("targetNamespace");
     assertThat(targetNamespaceAttr, is(not(nullValue())));
-    assertThat(targetNamespaceAttr.getValue(), is(parser.getNamespace().toString()));
+    assertThat(targetNamespaceAttr.getValue(), is(parser.getSchema().keySet().iterator().next().toString()));
   }
 
   @Test
@@ -262,8 +265,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
         "    <tc:cluster>",
         "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
         "      <tc:read-timeout unit=\"seconds\">"
-        + BigInteger.ONE.add(BigInteger.valueOf(Long.MAX_VALUE))
-        + "</tc:read-timeout>",
+          + BigInteger.ONE.add(BigInteger.valueOf(Long.MAX_VALUE))
+          + "</tc:read-timeout>",
         "    </tc:cluster>",
         "  </ehcache:service>",
         "",
@@ -732,18 +735,18 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       .build();
 
     ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
-    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+    Element returnElement = parser.unparse(createDocumentRoot(parser.getSchema().values()), serviceConfig);
 
     String inputString = "<tc:cluster xmlns:tc = \"http://www.ehcache.org/v3/clustered\">" +
-                         "<tc:connection url = \"terracotta://localhost:9510/my-application\"/>" +
-                         "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
-                         "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
-                         "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "<tc:server-side-config client-mode = \"auto-create\">" +
-                         "<tc:default-resource from = \"main\"/>" +
-                         "<tc:shared-pool name = \"primaryresource\" unit = \"B\">5368709120</tc:shared-pool>" +
-                         "<tc:shared-pool from = \"optional\" name = \"secondaryresource\" unit = \"B\">10737418240</tc:shared-pool>" +
-                         "</tc:server-side-config></tc:cluster>";
+      "<tc:connection url = \"terracotta://localhost:9510/my-application\"/>" +
+      "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
+      "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
+      "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
+      "<tc:server-side-config client-mode = \"auto-create\">" +
+      "<tc:default-resource from = \"main\"/>" +
+      "<tc:shared-pool name = \"primaryresource\" unit = \"B\">5368709120</tc:shared-pool>" +
+      "<tc:shared-pool from = \"optional\" name = \"secondaryresource\" unit = \"B\">10737418240</tc:shared-pool>" +
+      "</tc:server-side-config></tc:cluster>";
     assertThat(returnElement, isSameConfigurationAs(inputString));
   }
 
@@ -757,16 +760,16 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
 
     ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
-    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+    Element returnElement = parser.unparse(createDocumentRoot(parser.getSchema().values()), serviceConfig);
 
     String inputString = "<tc:cluster xmlns:tc = \"http://www.ehcache.org/v3/clustered\">" +
-                         "<tc:connection url = \"terracotta://localhost:9510/my-application\"/>" +
-                         "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
-                         "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
-                         "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "<tc:server-side-config client-mode = \"expecting\">" +
-                         "<tc:default-resource from = \"main\"/>" +
-                         "</tc:server-side-config></tc:cluster>";
+      "<tc:connection url = \"terracotta://localhost:9510/my-application\"/>" +
+      "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
+      "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
+      "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
+      "<tc:server-side-config client-mode = \"expecting\">" +
+      "<tc:default-resource from = \"main\"/>" +
+      "</tc:server-side-config></tc:cluster>";
     assertThat(returnElement, isSameConfigurationAs(inputString));
   }
 
@@ -778,19 +781,19 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       .build();
 
     ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
-    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+    Element returnElement = parser.unparse(createDocumentRoot(parser.getSchema().values()), serviceConfig);
 
     String inputString = "<tc:cluster xmlns:tc = \"http://www.ehcache.org/v3/clustered\">" +
-                         "<tc:connection url = \"terracotta://localhost:9510/my-application\"/>" +
-                         "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
-                         "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
-                         "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "</tc:cluster>";
+      "<tc:connection url = \"terracotta://localhost:9510/my-application\"/>" +
+      "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
+      "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
+      "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
+      "</tc:cluster>";
     assertThat(returnElement, isSameConfigurationAs(inputString));
   }
 
   @Test
-  public void testTranslateServiceCreationConfigurationWithInetSocketAddress() {
+  public void testTranslateServiceCreationConfigurationWithInetSocketAddress() throws IOException, ParserConfigurationException, SAXException {
 
     InetSocketAddress firstServer = InetSocketAddress.createUnresolved("100.100.100.100", 9510);
     InetSocketAddress secondServer = InetSocketAddress.createUnresolved("server-2", 0);
@@ -803,19 +806,19 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
 
     ClusteringCacheManagerServiceConfigurationParser parser = new ClusteringCacheManagerServiceConfigurationParser();
-    Element returnElement = parser.unparseServiceCreationConfiguration(serviceConfig);
+    Element returnElement = parser.unparse(createDocumentRoot(parser.getSchema().values()), serviceConfig);
 
     String inputString = "<tc:cluster xmlns:tc = \"http://www.ehcache.org/v3/clustered\">" +
-                         "<tc:cluster-connection cluster-tier-manager = \"my-application\">" +
-                         "<tc:server host = \"100.100.100.100\" port = \"9510\"/>" +
-                         "<tc:server host = \"server-2\"/>" +
-                         "<tc:server host = \"[::1]\"/>" +
-                         "<tc:server host = \"[fe80::1453:846e:7be4:15fe]\" port = \"9710\"/>" +
-                         "</tc:cluster-connection>" +
-                         "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
-                         "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
-                         "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
-                         "</tc:cluster>";
+      "<tc:cluster-connection cluster-tier-manager = \"my-application\">" +
+      "<tc:server host = \"100.100.100.100\" port = \"9510\"/>" +
+      "<tc:server host = \"server-2\"/>" +
+      "<tc:server host = \"[::1]\"/>" +
+      "<tc:server host = \"[fe80::1453:846e:7be4:15fe]\" port = \"9710\"/>" +
+      "</tc:cluster-connection>" +
+      "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
+      "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +
+      "<tc:connection-timeout unit = \"seconds\">150</tc:connection-timeout>" +
+      "</tc:cluster>";
     assertThat(returnElement, isSameConfigurationAs(inputString));
   }
 

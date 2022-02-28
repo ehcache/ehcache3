@@ -21,12 +21,10 @@ import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 
 /**

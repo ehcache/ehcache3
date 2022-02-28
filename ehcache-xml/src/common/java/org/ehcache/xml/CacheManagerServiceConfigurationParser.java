@@ -16,26 +16,14 @@
 
 package org.ehcache.xml;
 
-import java.io.IOException;
-import java.net.URI;
-import javax.xml.transform.Source;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.w3c.dom.Element;
 
 /**
  *
  * @author cdennis
  */
-public interface CacheManagerServiceConfigurationParser<T extends Service> {
-
-  Source getXmlSchema() throws IOException;
-
-  URI getNamespace();
-
-  ServiceCreationConfiguration<T, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader);
+public interface CacheManagerServiceConfigurationParser<T extends Service, C extends ServiceCreationConfiguration<T, ?>> extends Parser<C> {
 
   Class<T> getServiceType();
-
-  Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<T, ?> serviceCreationConfiguration);
 }

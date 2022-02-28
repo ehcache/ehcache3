@@ -17,18 +17,15 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
-import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
@@ -37,22 +34,15 @@ import javax.xml.transform.stream.StreamSource;
  */
 public class BazParser implements CacheResourceConfigurationParser {
 
-  private static final URI NAMESPACE = URI.create("http://www.example.com/baz");
-  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/baz.xsd");
+  private static final String NAMESPACE = "http://www.example.com/baz";
 
   @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
+  public Map<URI, Supplier<Source>> getSchema() {
+    return Collections.singletonMap(URI.create(NAMESPACE), () -> new StreamSource(getClass().getResourceAsStream("/configs/baz.xsd")));
   }
 
   @Override
-  public URI getNamespace() {
-    return NAMESPACE;
-  }
-
-
-  @Override
-  public ResourcePool parseResourceConfiguration(Element fragment) {
+  public ResourcePool parse(Element fragment, ClassLoader classLoader) {
     String elementName = fragment.getLocalName();
     if (elementName.equals("baz")) {
       return new BazResource();
@@ -61,13 +51,8 @@ public class BazParser implements CacheResourceConfigurationParser {
   }
 
   @Override
-  public Element unparseResourcePool(final ResourcePool resourcePool) {
-    try {
-      Document document = XmlUtil.createAndGetDocumentBuilder().newDocument();
-      return document.createElementNS(NAMESPACE.toString(), "baz:baz");
-    } catch (SAXException | ParserConfigurationException | IOException e) {
-      throw new XmlConfigurationException(e);
-    }
+  public Element unparse(Document target, ResourcePool resourcePool) {
+    return target.createElementNS(NAMESPACE, "baz:baz");
   }
 
   @Override

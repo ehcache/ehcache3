@@ -18,7 +18,7 @@ package org.ehcache.clustered.operations;
 import java.io.IOException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 public class OperationsToolTest {

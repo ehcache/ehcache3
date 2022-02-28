@@ -42,7 +42,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.test.MockitoUtil;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import static java.util.function.UnaryOperator.identity;
@@ -50,7 +49,18 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.junit.Assert.fail;
@@ -81,7 +91,7 @@ public class CacheConfigurationBuilderTest {
 
     CacheLoaderWriterConfiguration<?> cacheLoaderWriterConfiguration = ServiceUtils.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
-    assertThat(instance, Matchers.sameInstance(loaderWriter));
+    assertThat(instance, sameInstance(loaderWriter));
   }
 
   @Test
@@ -106,7 +116,7 @@ public class CacheConfigurationBuilderTest {
     DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.KEY));
     Object instance = serializerConfiguration.getInstance();
-    assertThat(instance, Matchers.sameInstance(keySerializer));
+    assertThat(instance, sameInstance(keySerializer));
   }
 
   @Test
@@ -144,7 +154,7 @@ public class CacheConfigurationBuilderTest {
     DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.VALUE));
     Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
-    assertThat(instance, Matchers.sameInstance(valueSerializer));
+    assertThat(instance, sameInstance(valueSerializer));
   }
 
   @Test
@@ -182,7 +192,7 @@ public class CacheConfigurationBuilderTest {
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
     Object instance = copierConfiguration.getInstance();
-    assertThat(instance, Matchers.sameInstance(keyCopier));
+    assertThat(instance, sameInstance(keyCopier));
   }
 
   @Test
@@ -194,7 +204,7 @@ public class CacheConfigurationBuilderTest {
 
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
-    assertThat(copierConfiguration.getClazz(), Matchers.sameInstance(SerializingCopier.class));
+    assertThat(copierConfiguration.getClazz(), sameInstance(SerializingCopier.class));
   }
 
   @Test
@@ -219,7 +229,7 @@ public class CacheConfigurationBuilderTest {
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
     Object instance = copierConfiguration.getInstance();
-    assertThat(instance, Matchers.sameInstance(valueCopier));
+    assertThat(instance, sameInstance(valueCopier));
   }
 
   @Test
@@ -231,7 +241,7 @@ public class CacheConfigurationBuilderTest {
 
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
-    assertThat(copierConfiguration.getClazz(), Matchers.sameInstance(SerializingCopier.class));
+    assertThat(copierConfiguration.getClazz(), sameInstance(SerializingCopier.class));
   }
 
   @Test
@@ -317,9 +327,9 @@ public class CacheConfigurationBuilderTest {
     assertThat(copy.getValueType(), equalTo(valueClass));
     assertThat(copy.getClassLoader(), equalTo(loader));
 
-    assertThat(copy.getEvictionAdvisor(), IsSame.sameInstance(eviction));
-    assertThat(copy.getExpiryPolicy(), IsSame.sameInstance(expiry));
-    assertThat(copy.getServiceConfigurations(), contains(IsSame.sameInstance(service)));
+    assertThat(copy.getEvictionAdvisor(), sameInstance(eviction));
+    assertThat(copy.getExpiryPolicy(), sameInstance(expiry));
+    assertThat(copy.getServiceConfigurations(), contains(sameInstance(service)));
   }
 
   @Test

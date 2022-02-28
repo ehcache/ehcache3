@@ -21,7 +21,7 @@ import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Test the {@link Store.ValueHolder#get(Object)} contract of the

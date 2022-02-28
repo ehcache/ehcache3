@@ -18,56 +18,70 @@ package org.ehcache.xml;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
+import java.net.URI;
+import java.net.URL;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Source;
+import static java.util.Collections.unmodifiableMap;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * BaseConfigParser - Base class providing functionality for translating service configurations to corresponding xml
  * document.
  */
-public abstract class BaseConfigParser<T> {
+public abstract class BaseConfigParser<T> implements Parser<T> {
+
   private final Class<T> typeParameterClass;
+  private final Map<URI, URL> namespaces;
 
   @SuppressWarnings("unchecked")
-  public BaseConfigParser() {
-    typeParameterClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+  public BaseConfigParser(Map<URI, URL> namespaces) {
+    this.typeParameterClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+    this.namespaces = unmodifiableMap(new LinkedHashMap<>(namespaces));
+    this.namespaces.keySet().forEach(Objects::requireNonNull);
+    this.namespaces.values().forEach(Objects::requireNonNull);
   }
 
-  public BaseConfigParser(Class<T> type) {
-    this.typeParameterClass = type;
+  @Override
+  public Map<URI, Supplier<Source>> getSchema() {
+    return namespaces.entrySet().stream().collect(toLinkedHashMap(Map.Entry::getKey, e -> () -> {
+      try {
+        return new StreamSource(e.getValue().openStream());
+      } catch (IOException ex) {
+        throw new XmlConfigurationException(ex);
+      }
+    }));
   }
 
   private T validateConfig(Object config) {
-    Objects.requireNonNull(config, "Configuration must not be null.");
     try {
-      return typeParameterClass.cast(config);
+      return typeParameterClass.cast(requireNonNull(config, "Configuration must not be null."));
     } catch (ClassCastException e) {
       throw new IllegalArgumentException("Invalid configuration parameter passed.", e);
     }
   }
 
-  private Document createDocument() {
-    try {
-      return XmlUtil.createDocumentRoot(getXmlSchema());
-    } catch (SAXException | ParserConfigurationException | IOException e) {
-      throw new XmlConfigurationException(e);
-    }
+  public final Element unparse(Document document, T config) {
+    return safeUnparse(document, validateConfig(config));
   }
 
-  protected Element unparseConfig(Object config) {
-    T mainConfig = validateConfig(config);
-    Document doc = createDocument();
-    Element rootElement = createRootElement(doc, mainConfig);
-    return rootElement;
+  protected abstract Element safeUnparse(Document doc, T config);
+
+  protected static <T, K, V> Collector<T, ?, LinkedHashMap<K, V>> toLinkedHashMap(
+    Function<? super T, ? extends K> keyMapper,
+    Function<? super T, ? extends V> valueMapper
+  ) {
+    return toMap(keyMapper, valueMapper,(u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); }, LinkedHashMap::new);
   }
-
-  protected abstract Element createRootElement(Document doc, T config);
-
-  protected abstract Source getXmlSchema() throws IOException;
 }

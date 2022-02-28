@@ -24,15 +24,15 @@ import java.util.HashMap;
 import java.util.Random;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.hamcrest.core.Is;
-import org.hamcrest.core.IsEqual;
-import org.hamcrest.core.IsNot;
-import org.hamcrest.core.IsSame;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 
 /**
  *
@@ -81,8 +81,8 @@ public class BasicSerializationTest {
 
     Class<?>[] out = (Class<?>[]) s.read(s.serialize(PRIMITIVE_CLASSES));
 
-    assertThat(out, IsNot.not(IsSame.sameInstance(PRIMITIVE_CLASSES)));
-    assertThat(out, IsEqual.equalTo(PRIMITIVE_CLASSES));
+    assertThat(out, not(sameInstance(PRIMITIVE_CLASSES)));
+    assertThat(out, equalTo(PRIMITIVE_CLASSES));
   }
 
   @Test
@@ -96,8 +96,8 @@ public class BasicSerializationTest {
 
     Object proxy = s.read(s.serialize((Serializable) Proxy.newProxyInstance(BasicSerializationTest.class.getClassLoader(), new Class<?>[]{Foo.class, Bar.class}, new Handler(foo, bar))));
 
-    assertThat(((Foo) proxy).foo(), Is.is(foo));
-    assertThat(((Bar) proxy).bar(), Is.is(bar));
+    assertThat(((Foo) proxy).foo(), is(foo));
+    assertThat(((Bar) proxy).bar(), is(bar));
   }
 
   interface Foo {

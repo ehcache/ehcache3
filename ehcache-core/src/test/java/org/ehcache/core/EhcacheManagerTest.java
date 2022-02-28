@@ -46,7 +46,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
-import org.hamcrest.CoreMatchers;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
@@ -63,13 +62,16 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -412,7 +414,7 @@ public class EhcacheManagerTest {
     verify(cacheLoaderWriterProvider).createCacheLoaderWriter("foo", fooConfig);
 
     manager.removeCache("bar");
-    verify(cacheLoaderWriterProvider, never()).releaseCacheLoaderWriter(anyString(), (CacheLoaderWriter<?, ?>)Mockito.any());
+    verify(cacheLoaderWriterProvider, never()).releaseCacheLoaderWriter(anyString(), Mockito.any());
     manager.removeCache("foo");
     verify(cacheLoaderWriterProvider).releaseCacheLoaderWriter(anyString(), fooLoaderWriter);
   }
@@ -511,9 +513,9 @@ public class EhcacheManagerTest {
     } catch (StateTransitionException e) {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
       final String message = e.getCause().getMessage();
-      assertThat(message, CoreMatchers.startsWith("Cache '"));
+      assertThat(message, startsWith("Cache '"));
       assertThat(message, containsString("' creation in "));
-      assertThat(message, CoreMatchers.endsWith(" failed."));
+      assertThat(message, endsWith(" failed."));
     }
     assertThat(caches.isEmpty(), is(true));
   }
@@ -563,7 +565,7 @@ public class EhcacheManagerTest {
       fail();
     } catch (StateTransitionException e) {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
-      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(thrown));
+      assertThat(e.getCause(), sameInstance(thrown));
     }
     assertThat(caches.contains("foobar"), is(true));
   }

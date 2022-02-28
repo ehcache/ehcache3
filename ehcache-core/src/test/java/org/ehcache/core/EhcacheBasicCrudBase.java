@@ -29,7 +29,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
@@ -661,7 +660,6 @@ public abstract class EhcacheBasicCrudBase {
       }
     }
 
-    @Factory
     public static Matcher<Number> equalTo(final Number expected) {
       return new StatisticMatcher(Number.class, expected);
     }

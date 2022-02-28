@@ -18,7 +18,6 @@ package org.ehcache.clustered.util;
 
 import org.ehcache.core.spi.store.Store;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.terracotta.context.ContextManager;
@@ -154,7 +153,6 @@ public class StatisticsTestUtils {
       }
     }
 
-    @Factory
     public static Matcher<Number> equalTo(final Number expected) {
       return new StatisticMatcher(Number.class, expected);
     }

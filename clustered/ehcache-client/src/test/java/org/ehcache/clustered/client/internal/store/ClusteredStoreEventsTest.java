@@ -67,7 +67,7 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;

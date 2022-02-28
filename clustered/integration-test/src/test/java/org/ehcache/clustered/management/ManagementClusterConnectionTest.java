@@ -24,7 +24,6 @@ import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -51,8 +50,9 @@ import static org.ehcache.testing.StandardCluster.leaseLength;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResources;
 import static org.ehcache.testing.StandardTimeouts.eventually;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
@@ -143,7 +143,7 @@ public class ManagementClusterConnectionTest {
                     .containsAll(Arrays.asList("webapp-1", "server-node-1")))
             .count();
 
-    assertThat(count, Matchers.equalTo(1L));
+    assertThat(count, equalTo(1L));
 
     String instanceId = getInstanceId();
 
@@ -158,7 +158,7 @@ public class ManagementClusterConnectionTest {
     Cache<String, String> cache = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     String initiate_reconnect = cache.get("initiate reconnect");
 
-    assertThat(initiate_reconnect, Matchers.nullValue());
+    assertThat(initiate_reconnect, nullValue());
 
     assertThat(() -> {
       try {

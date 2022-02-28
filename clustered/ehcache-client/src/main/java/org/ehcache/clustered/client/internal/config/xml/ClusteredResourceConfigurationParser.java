@@ -21,7 +21,6 @@ import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePo
 import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheResourceConfigurationParser;
 import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
@@ -31,48 +30,27 @@ import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.IOException;
-import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
-
-import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
-import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
-import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.TC_CLUSTERED_NAMESPACE_PREFIX;
-
 /**
  * Provides a parser for the {@code /config/cache/resources} extension elements.
  */
 @Component
-public class ClusteredResourceConfigurationParser extends BaseConfigParser<ResourcePool> implements CacheResourceConfigurationParser {
+public class ClusteredResourceConfigurationParser extends ClusteringParser<ResourcePool> implements CacheResourceConfigurationParser {
+
+  public static final String SHARING_ELEMENT_NAME = "sharing";
+  public static final String FROM_ELEMENT_NAME = "from";
+  public static final String UNIT_ELEMENT_NAME = "unit";
 
   private static final String CLUSTERED_ELEMENT_NAME = "clustered";
   private static final String DEDICATED_ELEMENT_NAME = "clustered-dedicated";
   private static final String SHARED_ELEMENT_NAME = "clustered-shared";
-  private static final String FROM_ELEMENT_NAME = "from";
-  private static final String UNIT_ELEMENT_NAME = "unit";
-  private static final String SHARING_ELEMENT_NAME = "sharing";
-
-  public ClusteredResourceConfigurationParser() {
-    super(ResourcePool.class);
-  }
 
   @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
-  }
-
-  @Override
-  public URI getNamespace() {
-    return NAMESPACE;
-  }
-
-  protected ResourcePool parseResourceConfig(final Element fragment) {
+  public ResourcePool parse(final Element fragment, ClassLoader classLoader) {
     final String elementName = fragment.getLocalName();
     switch (elementName) {
       case SHARED_ELEMENT_NAME:
@@ -108,33 +86,19 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
         return new DedicatedClusteredResourcePoolImpl(from, size, sizeUnits);
       case CLUSTERED_ELEMENT_NAME:
         return new ClusteredResourcePoolImpl();
+      default:
+        return null;
     }
-    return null;
   }
 
   @Override
-  public ResourcePool parseResourceConfiguration(final Element fragment) {
-    ResourcePool resourcePool = parseResourceConfig(fragment);
-    if (resourcePool != null) {
-      return resourcePool;
-    }
-    throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
-        fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
-  }
-
-  @Override
-  public Element unparseResourcePool(ResourcePool resourcePool) {
-    return unparseConfig(resourcePool);
-  }
-
-  @Override
-  protected Element createRootElement(Document doc, ResourcePool resourcePool) {
+  public Element safeUnparse(Document doc, ResourcePool resourcePool) {
     Element rootElement = null;
     if (ClusteredResourcePoolImpl.class == resourcePool.getClass()) {
-      rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTERED_ELEMENT_NAME);
+      rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTERED_ELEMENT_NAME);
     } else if (DedicatedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
       DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = (DedicatedClusteredResourcePoolImpl) resourcePool;
-      rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + DEDICATED_ELEMENT_NAME);
+      rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + DEDICATED_ELEMENT_NAME);
       if (dedicatedClusteredResourcePool.getFromResource() != null) {
         rootElement.setAttribute(FROM_ELEMENT_NAME, dedicatedClusteredResourcePool.getFromResource());
       }
@@ -142,7 +106,7 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
       rootElement.setTextContent(String.valueOf(dedicatedClusteredResourcePool.getSize()));
     } else if (SharedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
       SharedClusteredResourcePoolImpl sharedClusteredResourcePool = (SharedClusteredResourcePoolImpl) resourcePool;
-      rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + SHARED_ELEMENT_NAME);
+      rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + SHARED_ELEMENT_NAME);
       rootElement.setAttribute(SHARING_ELEMENT_NAME, sharedClusteredResourcePool.getSharedResourcePool());
     }
     return rootElement;
@@ -150,7 +114,10 @@ public class ClusteredResourceConfigurationParser extends BaseConfigParser<Resou
 
   @Override
   public Set<Class<? extends ResourcePool>> getResourceTypes() {
-    return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ClusteredResourcePoolImpl.class,
-      DedicatedClusteredResourcePoolImpl.class, SharedClusteredResourcePoolImpl.class)));
+    return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+      ClusteredResourcePoolImpl.class,
+      DedicatedClusteredResourcePoolImpl.class,
+      SharedClusteredResourcePoolImpl.class
+    )));
   }
 }
