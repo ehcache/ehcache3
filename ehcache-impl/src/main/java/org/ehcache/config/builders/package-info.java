@@ -17,4 +17,7 @@
 /**
  * Builders designed to help with programmatic configuration of Ehcache using a fluent API
  */
+@PublicApi
 package org.ehcache.config.builders;
+
+import org.ehcache.javadoc.PublicApi;

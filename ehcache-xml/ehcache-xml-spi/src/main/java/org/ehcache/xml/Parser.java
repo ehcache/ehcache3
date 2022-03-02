@@ -16,6 +16,7 @@
 
 package org.ehcache.xml;
 
+import org.ehcache.javadoc.PublicApi;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+@PublicApi
 public interface Parser<T> {
 
   Map<URI, Supplier<Source>> getSchema();

@@ -16,9 +16,12 @@
 
 package org.ehcache.xml.exceptions;
 
+import org.ehcache.javadoc.PublicApi;
+
 /**
  * Thrown to reflect an error in an XML configuration.
  */
+@PublicApi
 public class XmlConfigurationException extends RuntimeException {
   private static final long serialVersionUID = 4797841652996371653L;
 

@@ -17,6 +17,7 @@
 package org.ehcache.xml.multi;
 
 import org.ehcache.config.Configuration;
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.multi.model.Configurations;
@@ -59,6 +60,7 @@ import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 /**
  * A collection of multiple Ehcache configurations.
  */
+@PublicApi
 public class XmlMultiConfiguration {
 
   private static final URL MULTI_SCHEMA_URL = XmlMultiConfiguration.class.getResource("/ehcache-multi.xsd");

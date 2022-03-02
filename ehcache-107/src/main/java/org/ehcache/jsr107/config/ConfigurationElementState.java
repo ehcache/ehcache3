@@ -16,9 +16,12 @@
 
 package org.ehcache.jsr107.config;
 
+import org.ehcache.javadoc.PublicApi;
+
 /**
  * ConfigurationElementState
  */
+@PublicApi
 public enum ConfigurationElementState {
 
   /**

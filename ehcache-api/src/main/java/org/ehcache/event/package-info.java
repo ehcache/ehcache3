@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.event.CacheEvent CacheEvent} and related types.
  */
+@PublicApi
 package org.ehcache.event;
+
+import org.ehcache.javadoc.PublicApi;

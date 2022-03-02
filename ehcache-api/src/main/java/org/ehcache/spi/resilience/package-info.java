@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.resilience.ResilienceStrategy} API of a {@link org.ehcache.Cache Cache}.
  */
+@PublicApi
 package org.ehcache.spi.resilience;
+
+import org.ehcache.javadoc.PublicApi;

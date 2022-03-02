@@ -17,4 +17,7 @@
 /**
  * Package holding the {@code enum}s representing operations statistics results.
  */
+@PublicApi
 package org.ehcache.core.statistics;
+
+import org.ehcache.javadoc.PublicApi;

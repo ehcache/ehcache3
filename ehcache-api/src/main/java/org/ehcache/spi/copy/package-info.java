@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.copy.Copier Copier} SPI in Ehcache.
  */
+@PublicApi
 package org.ehcache.spi.copy;
+
+import org.ehcache.javadoc.PublicApi;

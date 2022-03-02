@@ -15,6 +15,7 @@
  */
 package org.ehcache.xml;
 
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -40,6 +41,7 @@ import static java.util.stream.Collectors.toMap;
  * BaseConfigParser - Base class providing functionality for translating service configurations to corresponding xml
  * document.
  */
+@PublicApi
 public abstract class BaseConfigParser<T> implements Parser<T> {
 
   private final Class<T> typeParameterClass;

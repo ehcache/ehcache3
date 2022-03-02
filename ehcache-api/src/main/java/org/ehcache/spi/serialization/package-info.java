@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.serialization.Serializer Serializer} SPI in Ehcache.
  */
+@PublicApi
 package org.ehcache.spi.serialization;
+
+import org.ehcache.javadoc.PublicApi;

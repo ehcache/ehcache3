@@ -18,4 +18,7 @@
  * Package for SPI related to the use of <a href="https://github.com/ehcache/sizeof">sizeof</a> in the on-heap
  * {@link org.ehcache.core.spi.store.Store store} in Ehcache
  */
+@PublicApi
 package org.ehcache.core.spi.store.heap;
+
+import org.ehcache.javadoc.PublicApi;

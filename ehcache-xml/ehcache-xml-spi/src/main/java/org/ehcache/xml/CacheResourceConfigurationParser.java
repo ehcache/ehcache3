@@ -17,6 +17,7 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
+import org.ehcache.javadoc.PublicApi;
 
 import java.util.Set;
 
@@ -25,6 +26,7 @@ import java.util.Set;
  *
  * @author Clifford W. Johnson
  */
+@PublicApi
 public interface CacheResourceConfigurationParser extends Parser<ResourcePool> {
 
   Set<Class<? extends ResourcePool>> getResourceTypes();

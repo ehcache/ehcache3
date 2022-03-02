@@ -15,11 +15,6 @@
  */
 
 /**
- * Package holding interfaces that relate to events, either at the {@link org.ehcache.CacheManager} level like
- * {@link org.ehcache.core.events.CacheManagerListener} or the {@link org.ehcache.event.CacheEvent} subsystem like
- * {@link org.ehcache.core.events.CacheEventDispatcher} and {@link org.ehcache.core.events.StoreEventDispatcher}.
+ * Annotations processed by the Gradle build to restrict the set of source files presented to Javadoc.
  */
-@PublicApi
-package org.ehcache.core.events;
-
-import org.ehcache.javadoc.PublicApi;
+package org.ehcache.javadoc;

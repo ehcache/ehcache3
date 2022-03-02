@@ -16,12 +16,14 @@
 
 package org.ehcache.xml;
 
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * CacheServiceConfigurationParser
  */
+@PublicApi
 public interface CacheServiceConfigurationParser<T extends Service, C extends ServiceConfiguration<T, ?>> extends Parser<C> {
 
   Class<T> getServiceType();

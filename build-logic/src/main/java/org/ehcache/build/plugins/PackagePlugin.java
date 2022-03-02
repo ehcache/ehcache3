@@ -127,17 +127,18 @@ public class PackagePlugin implements Plugin<Project> {
 
     ConfigurationBucketSet packageBuckets = ConfigurationBucketSet.bucketsFor(project, name, CONTENTS_KIND);
 
-    Configuration contentsRuntimeElements = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, RUNTIME_ELEMENTS_CONFIGURATION_NAME)), builder ->
+    Configuration contentsCompileClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, COMPILE_CLASSPATH_CONFIGURATION_NAME)), builder ->
+      builder.extendsFrom(packageBuckets.bucket(CONTENTS_KIND)).requiresJavaLibrariesAPI());
+    Configuration contentsRuntimeClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), builder ->
       builder.extendsFrom(packageBuckets.bucket(CONTENTS_KIND)).requiresJavaLibrariesRuntime());
-
-    Configuration contentSourcesElements = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, SOURCES_ELEMENTS_CONFIGURATION_NAME)), builder ->
+    Configuration contentsSourcesFiles = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, "sourcesFiles")), builder ->
       builder.extendsFrom(packageBuckets.bucket(CONTENTS_KIND)).requiresAttributes(refiner -> refiner.documentation(SOURCES)));
 
     TaskProvider<ShadowJar> shadowJar = project.getTasks().register(lower(camel(name, "jar")), ShadowJar.class, shadow -> {
       shadow.setGroup(BasePlugin.BUILD_GROUP);
       shadow.getArchiveClassifier().set(name);
 
-      shadow.setConfigurations(Collections.singletonList(contentsRuntimeElements));
+      shadow.setConfigurations(Collections.singletonList(contentsRuntimeClasspath));
       shadow.relocate("org.terracotta.statistics.", "org.ehcache.shadow.org.terracotta.statistics.");
       shadow.relocate("org.terracotta.offheapstore.", "org.ehcache.shadow.org.terracotta.offheapstore.");
       shadow.relocate("org.terracotta.context.", "org.ehcache.shadow.org.terracotta.context.");
@@ -152,7 +153,18 @@ public class PackagePlugin implements Plugin<Project> {
       shadow.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
     });
 
-    Provider<FileCollection> sourcesTree = project.provider(() -> contentSourcesElements.getResolvedConfiguration().getLenientConfiguration().getAllModuleDependencies().stream().flatMap(d -> d.getModuleArtifacts().stream())
+    Configuration apiElements = jvmPluginServices.createOutgoingElements(lower(camel(name, API_ELEMENTS_CONFIGURATION_NAME)), builder ->
+      builder.extendsFrom(packageBuckets.api()).extendsFrom(packageBuckets.compileOnlyApi()).published().providesApi().artifact(shadowJar));
+    configureDefaultTargetPlatform(apiElements, parseInt(Jvm.current().getJavaVersion().getMajorVersion()));
+    Configuration compileClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, COMPILE_CLASSPATH_CONFIGURATION_NAME)), builder ->
+      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.compileOnly()).requiresJavaLibrariesRuntime());
+    Configuration runtimeElements = jvmPluginServices.createOutgoingElements(lower(camel(name, RUNTIME_ELEMENTS_CONFIGURATION_NAME)), builder ->
+      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).published().providesRuntime().artifact(shadowJar));
+    configureDefaultTargetPlatform(runtimeElements, parseInt(Jvm.current().getJavaVersion().getMajorVersion()));
+    Configuration runtimeClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), builder ->
+      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).requiresJavaLibrariesRuntime());
+
+    Provider<FileCollection> sourcesTree = project.provider(() -> contentsSourcesFiles.getResolvedConfiguration().getLenientConfiguration().getAllModuleDependencies().stream().flatMap(d -> d.getModuleArtifacts().stream())
       .map(artifact -> {
         try {
           return Optional.of(artifact.getFile());
@@ -168,24 +180,25 @@ public class PackagePlugin implements Plugin<Project> {
       }).reduce(FileTree::plus).orElse(project.files().getAsFileTree()));
 
     TaskProvider<Sync> sources = project.getTasks().register(lower(camel(name, "sources")), Sync.class, sync -> {
-      sync.dependsOn(contentSourcesElements);
+      sync.dependsOn(contentsSourcesFiles);
       sync.from(sourcesTree, spec -> spec.exclude("META-INF/**", "LICENSE", "NOTICE"));
       sync.into(project.getLayout().getBuildDirectory().dir(lower(camel(name, "sources"))));
     });
-
     TaskProvider<Jar> sourcesJar = project.getTasks().register(lower(camel(name, "sourcesJar")), Jar.class, jar -> {
       jar.setGroup(BasePlugin.BUILD_GROUP);
       jar.from(sources);
       jar.from(shadowJar, spec -> spec.include("META-INF/**", "LICENSE", "NOTICE"));
       jar.getArchiveClassifier().set(kebab(name, "sources"));
     });
+    Configuration sourcesElements = jvmPluginServices.createOutgoingElements(lower(camel(name, SOURCES_ELEMENTS_CONFIGURATION_NAME)), builder ->
+      builder.published().artifact(sourcesJar).providesAttributes(attributes -> attributes.documentation(SOURCES).asJar()));
 
     TaskProvider<Javadoc> javadoc = project.getTasks().register(lower(camel(name,  "javadoc")), Javadoc.class, task -> {
       task.setGroup(JavaBasePlugin.DOCUMENTATION_GROUP);
       task.setTitle(project.getName() + " " + project.getVersion() + " API");
       task.source(sources);
       task.include("**/*.java");
-      task.setClasspath(contentsRuntimeElements);
+      task.setClasspath(contentsCompileClasspath.plus(compileClasspath));
       task.setDestinationDir(new File(project.getBuildDir(), "docs/" + lower(camel(name, "javadoc"))));
     });
     TaskProvider<Jar> javadocJar = project.getTasks().register(lower(camel(name, "javadocJar")), Jar.class, jar -> {
@@ -193,20 +206,6 @@ public class PackagePlugin implements Plugin<Project> {
       jar.from(javadoc);
       jar.getArchiveClassifier().set(kebab(name, "javadoc"));
     });
-
-    Configuration apiElements = jvmPluginServices.createOutgoingElements(lower(camel(name, API_ELEMENTS_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.api()).extendsFrom(packageBuckets.compileOnlyApi()).published().providesApi().artifact(shadowJar));
-    configureDefaultTargetPlatform(apiElements, parseInt(Jvm.current().getJavaVersion().getMajorVersion()));
-    Configuration compileClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, COMPILE_CLASSPATH_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.compileOnly()).requiresJavaLibrariesRuntime());
-    Configuration runtimeElements = jvmPluginServices.createOutgoingElements(lower(camel(name, RUNTIME_ELEMENTS_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).published().providesRuntime().artifact(shadowJar));
-    configureDefaultTargetPlatform(runtimeElements, parseInt(Jvm.current().getJavaVersion().getMajorVersion()));
-    Configuration runtimeClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).requiresJavaLibrariesRuntime());
-
-    Configuration sourcesElements = jvmPluginServices.createOutgoingElements(lower(camel(name, SOURCES_ELEMENTS_CONFIGURATION_NAME)), builder ->
-      builder.published().artifact(sourcesJar).providesAttributes(attributes -> attributes.documentation(SOURCES).asJar()));
     Configuration javadocElements = jvmPluginServices.createOutgoingElements(lower(camel(name, JAVADOC_ELEMENTS_CONFIGURATION_NAME)), builder ->
       builder.published().artifact(javadocJar).providesAttributes(attributes -> attributes.documentation(JAVADOC).asJar()));
 

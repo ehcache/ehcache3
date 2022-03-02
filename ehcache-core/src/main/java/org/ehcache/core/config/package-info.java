@@ -17,4 +17,7 @@
 /**
  * Package holding core configuration implementations and utilities.
  */
+@PublicApi
 package org.ehcache.core.config;
+
+import org.ehcache.javadoc.PublicApi;

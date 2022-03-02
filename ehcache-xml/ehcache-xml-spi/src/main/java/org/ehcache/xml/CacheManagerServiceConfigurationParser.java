@@ -16,6 +16,7 @@
 
 package org.ehcache.xml;
 
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
@@ -23,6 +24,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  *
  * @author cdennis
  */
+@PublicApi
 public interface CacheManagerServiceConfigurationParser<T extends Service, C extends ServiceCreationConfiguration<T, ?>> extends Parser<C> {
 
   Class<T> getServiceType();

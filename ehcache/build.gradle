@@ -116,34 +116,3 @@ tasks.named('jar') {
     instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
   }
 }
-
-tasks.withType(Javadoc).matching({ name.equals('spiJavadoc') }).configureEach {
-  exclude '**/core/**', '**/impl/**', '**/xml/**', '**/jsr107/**', '**/transactions/**', '**/management/**', '**/tck/**'
-}
-
-TaskProvider<Javadoc> spiJavadoc = tasks.register('spiJavadoc', Javadoc) {
-  title = "$project.archivesBaseName $project.version API & SPI";
-  source = tasks.javadoc.source
-  setClasspath(tasks.javadoc.classpath)
-  exclude "**/internal/**"
-  setDestinationDir project.file("$project.buildDir/docs/spi-javadoc")
-}
-
-TaskProvider<Jar> spiJavadocJar = project.getTasks().register('spiJavadocJar', Jar) {
-  from(spiJavadoc);
-  getArchiveClassifier().set("spi-javadoc");
-}
-Configuration spiJavadocElements = project.getConfigurations().create("spiJavadocElements", config -> {
-  config.setDescription("javadoc elements for SPI documentation.");
-  config.attributes(attributes -> {
-    attributes.attribute(Usage.USAGE_ATTRIBUTE, project.getObjects().named(Usage.class, JAVA_RUNTIME));
-    attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.getObjects().named(Category.class, DOCUMENTATION));
-    attributes.attribute(Bundling.BUNDLING_ATTRIBUTE, project.getObjects().named(Bundling.class, EXTERNAL));
-    attributes.attribute(DocsType.DOCS_TYPE_ATTRIBUTE, project.getObjects().named(DocsType.class, "spi-javadoc"));
-  });
-  config.getOutgoing().artifact(spiJavadocJar);
-});
-
-components.named('java', AdhocComponentWithVariants) {
-  addVariantsFromConfiguration(spiJavadocElements) {}
-}

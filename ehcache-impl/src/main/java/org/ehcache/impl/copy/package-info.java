@@ -17,4 +17,7 @@
 /**
  * Package for bundled implementation of {@link org.ehcache.spi.copy.Copier copiers}.
  */
+@PublicApi
 package org.ehcache.impl.copy;
+
+import org.ehcache.javadoc.PublicApi;

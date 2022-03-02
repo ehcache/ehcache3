@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.javadoc;
 
-/**
- * Package holding interfaces that relate to events, either at the {@link org.ehcache.CacheManager} level like
- * {@link org.ehcache.core.events.CacheManagerListener} or the {@link org.ehcache.event.CacheEvent} subsystem like
- * {@link org.ehcache.core.events.CacheEventDispatcher} and {@link org.ehcache.core.events.StoreEventDispatcher}.
- */
-@PublicApi
-package org.ehcache.core.events;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import org.ehcache.javadoc.PublicApi;
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.TYPE, ElementType.PACKAGE})
+public @interface PublicApi {
+}

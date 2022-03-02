@@ -16,6 +16,8 @@
 
 package org.ehcache.xml;
 
+import org.ehcache.javadoc.PublicApi;
+
 import java.math.BigInteger;
 import java.security.PrivilegedAction;
 import java.util.regex.Matcher;
@@ -23,6 +25,7 @@ import java.util.regex.Pattern;
 
 import static java.security.AccessController.doPrivileged;
 
+@PublicApi
 public class ParsingUtil {
 
   private static final Pattern SYSPROP = Pattern.compile("\\$\\{(?<property>[^{}]+)}");

@@ -18,4 +18,7 @@
  * Package holding the different SPI interfaces that enable a {@link org.ehcache.Cache} to be backed by multiple
  * {@link org.ehcache.core.spi.store.Store} stacked on each other.
  */
+@PublicApi
 package org.ehcache.core.spi.store.tiering;
+
+import org.ehcache.javadoc.PublicApi;

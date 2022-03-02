@@ -17,4 +17,7 @@
 /**
  * Package for the {@link org.ehcache.core.spi.store.Store} SPI and related types.
  */
+@PublicApi
 package org.ehcache.core.spi.store;
+
+import org.ehcache.javadoc.PublicApi;
