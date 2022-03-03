@@ -119,7 +119,7 @@ public final class ClusterWithManagement implements TestRule {
     NmsEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new NmsConfig());
 
     NmsService nmsService = new DefaultNmsService(tmsAgentEntity);
-    nmsService.setOperationTimeout(10, TimeUnit.SECONDS);
+    nmsService.setOperationTimeout(2, TimeUnit.MINUTES);
     return nmsService;
   }
 
