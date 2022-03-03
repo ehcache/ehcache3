@@ -16,7 +16,10 @@
 
 package org.ehcache.transactions.xa.txmgr.provider;
 
+import org.ehcache.transactions.xa.internal.TypeUtil;
 import org.junit.Test;
+
+import javax.transaction.TransactionManager;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -28,7 +31,9 @@ public class LookupTransactionManagerProviderConfigurationTest {
 
   @Test
   public void testDeriveDetachesCorrectly() {
-    LookupTransactionManagerProviderConfiguration configuration = new LookupTransactionManagerProviderConfiguration(mock(TransactionManagerLookup.class).getClass());
+    LookupTransactionManagerProviderConfiguration configuration = new LookupTransactionManagerProviderConfiguration(
+        TypeUtil.<Class<? extends TransactionManagerLookup<TransactionManager>>>uncheckedCast(
+          mock(TransactionManagerLookup.class).getClass()));
     LookupTransactionManagerProviderConfiguration derived = configuration.build(configuration.derive());
 
     assertThat(derived, is(not(sameInstance(configuration))));

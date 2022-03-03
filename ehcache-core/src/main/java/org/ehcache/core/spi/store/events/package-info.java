@@ -17,4 +17,7 @@
 /**
  * Package for the SPI types related to store eventing.
  */
+@PublicApi
 package org.ehcache.core.spi.store.events;
+
+import org.ehcache.javadoc.PublicApi;

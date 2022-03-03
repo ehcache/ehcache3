@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.expiry.ExpiryPolicy Expiry} API of a {@link org.ehcache.Cache Cache}.
  */
+@PublicApi
 package org.ehcache.expiry;
+
+import org.ehcache.javadoc.PublicApi;

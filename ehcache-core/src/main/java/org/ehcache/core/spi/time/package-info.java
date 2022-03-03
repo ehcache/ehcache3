@@ -17,4 +17,7 @@
 /**
  * Package holding SPI types abstracting the concept of time
  */
+@PublicApi
 package org.ehcache.core.spi.time;
+
+import org.ehcache.javadoc.PublicApi;

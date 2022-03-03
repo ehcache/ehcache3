@@ -34,32 +34,29 @@ publishing.publications.withType(MavenPublication) {
 }
 
 variants {
+  defaultVariant {
+    capability 'org.ehcache:ehcache'
+    capability 'org.ehcache.modules:ehcache-api'
+    capability 'org.ehcache.modules:ehcache-core'
+    capability 'org.ehcache.modules:ehcache-impl'
+    capability 'org.ehcache.modules:ehcache-107'
+    capability 'org.ehcache.modules:ehcache-107-provider'
+    capability 'org.ehcache.modules:ehcache-xml'
+    capability 'org.ehcache.modules:ehcache-xml-provider'
+  }
   variant('jakarta') {
-    capability "org.ehcache:ehcache-jakarta:$version"
-    capability "org.ehcache.modules:ehcache-api:$version"
-    capability "org.ehcache.modules:ehcache-core:$version"
-    capability "org.ehcache.modules:ehcache-impl:$version"
-    capability "org.ehcache.modules:ehcache-107-jakarta:$version"
-    capability "org.ehcache.modules:ehcache-107-provider:$version"
-    capability "org.ehcache.modules:ehcache-xml-jakarta:$version"
-    capability "org.ehcache.modules:ehcache-xml-provider:$version"
+    capability 'org.ehcache:ehcache-jakarta'
+    capability 'org.ehcache.modules:ehcache-api'
+    capability 'org.ehcache.modules:ehcache-core'
+    capability 'org.ehcache.modules:ehcache-impl'
+    capability 'org.ehcache.modules:ehcache-107-jakarta'
+    capability 'org.ehcache.modules:ehcache-107-provider'
+    capability 'org.ehcache.modules:ehcache-xml-jakarta'
+    capability 'org.ehcache.modules:ehcache-xml-provider'
   }
 }
 
 configurations {
-  [apiElements, runtimeElements].each {
-    it.outgoing {
-      capability "org.ehcache:ehcache:$version"
-      capability "org.ehcache.modules:ehcache-api:$version"
-      capability "org.ehcache.modules:ehcache-core:$version"
-      capability "org.ehcache.modules:ehcache-impl:$version"
-      capability "org.ehcache.modules:ehcache-107:$version"
-      capability "org.ehcache.modules:ehcache-107-provider:$version"
-      capability "org.ehcache.modules:ehcache-xml:$version"
-      capability "org.ehcache.modules:ehcache-xml-provider:$version"
-    }
-  }
-
   commonContents {
     exclude group:'org.glassfish.jaxb'
     exclude group:'org.slf4j'
@@ -118,35 +115,4 @@ tasks.named('jar') {
     instruction Constants.EXPORT_PACKAGE, '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*'
     instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
   }
-}
-
-tasks.withType(Javadoc).matching({ name.equals('spiJavadoc') }).configureEach {
-  exclude '**/core/**', '**/impl/**', '**/xml/**', '**/jsr107/**', '**/transactions/**', '**/management/**', '**/tck/**'
-}
-
-TaskProvider<Javadoc> spiJavadoc = tasks.register('spiJavadoc', Javadoc) {
-  title = "$project.archivesBaseName $project.version API & SPI";
-  source = tasks.javadoc.source
-  setClasspath(tasks.javadoc.classpath)
-  exclude "**/internal/**"
-  setDestinationDir project.file("$project.buildDir/docs/spi-javadoc")
-}
-
-TaskProvider<Jar> spiJavadocJar = project.getTasks().register('spiJavadocJar', Jar) {
-  from(spiJavadoc);
-  getArchiveClassifier().set("spi-javadoc");
-}
-Configuration spiJavadocElements = project.getConfigurations().create("spiJavadocElements", config -> {
-  config.setDescription("javadoc elements for SPI documentation.");
-  config.attributes(attributes -> {
-    attributes.attribute(Usage.USAGE_ATTRIBUTE, project.getObjects().named(Usage.class, JAVA_RUNTIME));
-    attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.getObjects().named(Category.class, DOCUMENTATION));
-    attributes.attribute(Bundling.BUNDLING_ATTRIBUTE, project.getObjects().named(Bundling.class, EXTERNAL));
-    attributes.attribute(DocsType.DOCS_TYPE_ATTRIBUTE, project.getObjects().named(DocsType.class, "spi-javadoc"));
-  });
-  config.getOutgoing().artifact(spiJavadocJar);
-});
-
-components.named('java', AdhocComponentWithVariants) {
-  addVariantsFromConfiguration(spiJavadocElements) {}
 }

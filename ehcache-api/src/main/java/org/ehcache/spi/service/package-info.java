@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.service.Service Service} SPI related in Ehcache.
  */
+@PublicApi
 package org.ehcache.spi.service;
+
+import org.ehcache.javadoc.PublicApi;

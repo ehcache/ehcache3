@@ -18,4 +18,7 @@
  * {@link org.ehcache.spi.persistence.PersistableResourceService PersistableResourceService} and other persistence
  * related SPI.
  */
+@PublicApi
 package org.ehcache.spi.persistence;
+
+import org.ehcache.javadoc.PublicApi;

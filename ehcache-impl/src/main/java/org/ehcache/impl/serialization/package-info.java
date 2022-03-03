@@ -17,4 +17,7 @@
 /**
  * Package for bundled implementations of {@link org.ehcache.spi.serialization.Serializer serializers}.
  */
+@PublicApi
 package org.ehcache.impl.serialization;
+
+import org.ehcache.javadoc.PublicApi;

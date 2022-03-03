@@ -16,12 +16,14 @@
 
 package org.ehcache.jsr107.config;
 
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Jsr107CacheConfiguration
  */
+@PublicApi
 public class Jsr107CacheConfiguration implements ServiceConfiguration<Jsr107Service, Void> {
 
   private final ConfigurationElementState statisticsEnabled;

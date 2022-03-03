@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter CacheLoaderWriter} SPI for a {@link org.ehcache.Cache Cache}.
  */
+@PublicApi
 package org.ehcache.spi.loaderwriter;
+
+import org.ehcache.javadoc.PublicApi;

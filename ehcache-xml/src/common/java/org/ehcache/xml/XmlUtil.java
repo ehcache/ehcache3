@@ -59,41 +59,6 @@ import static org.ehcache.core.util.ClassLoading.servicesOfType;
 
 public class XmlUtil {
 
-  private static final URL CORE_SCHEMA_URL = XmlUtil.class.getResource("/ehcache-core.xsd");
-
-  public static DocumentBuilder createAndGetDocumentBuilder(Collection<Source> schemaSources) throws SAXException, ParserConfigurationException {
-    DocumentBuilderFactory factory = createAndGetFactory(schemaSources);
-    DocumentBuilder documentBuilder = factory.newDocumentBuilder();
-    documentBuilder.setErrorHandler(new TransformationErrorHandler());
-    return documentBuilder;
-  }
-
-  public static DocumentBuilder createAndGetDocumentBuilder(Source schemaSource) throws SAXException, ParserConfigurationException, IOException {
-    List<Source> schemaSources = new ArrayList<>(2);
-    schemaSources.add(new StreamSource(CORE_SCHEMA_URL.openStream()));
-    schemaSources.add(schemaSource);
-    return createAndGetDocumentBuilder(schemaSources);
-  }
-
-  public static DocumentBuilder createAndGetDocumentBuilder() throws SAXException, ParserConfigurationException, IOException {
-    return createAndGetDocumentBuilder(new StreamSource(CORE_SCHEMA_URL.openStream()));
-  }
-
-  private static DocumentBuilderFactory createAndGetFactory(Collection<Source> schemaSources) throws SAXException {
-    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-    factory.setNamespaceAware(true);
-    factory.setIgnoringComments(true);
-    factory.setIgnoringElementContentWhitespace(true);
-    factory.setSchema(newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
-    return factory;
-  }
-
-  public static Document createDocumentRoot(Source schemaSource) throws IOException, SAXException, ParserConfigurationException {
-    DocumentBuilder domBuilder = createAndGetDocumentBuilder(schemaSource);
-    Document doc = domBuilder.newDocument();
-    return doc;
-  }
-
   public static Schema newSchema(Source... schemas) throws SAXException {
     SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
     try {
@@ -220,24 +185,6 @@ public class XmlUtil {
         }
       }
       throw new IllegalArgumentException("No element found for: " + lookup);
-    }
-  }
-
-  static class TransformationErrorHandler implements ErrorHandler {
-
-    @Override
-    public void warning(SAXParseException exception) throws SAXException {
-      throw exception;
-    }
-
-    @Override
-    public void error(SAXParseException exception) throws SAXException {
-      throw exception;
-    }
-
-    @Override
-    public void fatalError(SAXParseException exception) throws SAXException {
-      throw exception;
     }
   }
 

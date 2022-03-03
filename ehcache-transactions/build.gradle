@@ -1,3 +1,5 @@
+import org.ehcache.build.util.ConfigurationBucketSet
+
 /*
  * Copyright Terracotta, Inc.
  *
@@ -27,42 +29,71 @@ publishing.publications.withType(MavenPublication) {
 }
 
 variants {
-  variant('module') {
-    capability "org.ehcache:ehcache-transactions-provider:$version"
-    capability "org.ehcache:ehcache-transactions-modules:$version"
+  defaultVariant() {
+    traits 'javaee', 'uber'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions'
   }
-}
-
-configurations {
-  [apiElements, runtimeElements]*.outgoing {
-    capability "org.ehcache:ehcache-transactions-provider:$version"
-    capability "org.ehcache:ehcache-transactions:$version"
+  variant('jakarta') {
+    separateSource()
+    traits 'jakarta', 'uber'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions-jakarta'
+  }
+  variant('jakarta-module') {
+    sourcesFrom(sourceSets.jakarta)
+    traits 'jakarta', 'modular'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions-jakarta-modules'
+  }
+  variant('module') {
+    sourcesFrom(sourceSets.main)
+    traits 'javaee', 'modular'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions-modules'
   }
 }
 
 dependencies {
-  api group: 'javax.transaction', name: 'jta', version: '1.1'
-  api project(':ehcache')
-  implementation(group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+  commonImplementation "org.slf4j:slf4j-api:${slf4jVersion}"
+  commonCompileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+  commonIsolatedCompileOnly project(':ehcache-core')
+
+  modularTraitApi project(':ehcache-core')
+  modularTraitImplementation project(':ehcache-impl')
+  modularTraitCompileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
+
+  javaeeTraitApi 'javax.transaction:jta:[1.1,2)'
+  javaeeTraitImplementation('org.codehaus.btm:btm:2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+
+  jakartaTraitApi 'jakarta.transaction:jakarta.transaction-api:[2,3)'
+  jakartaTraitImplementation 'org.jboss.narayana.jta:narayana-jta-jakarta:5.12.5.Final'
+  jakartaTraitRuntimeOnly 'org.jboss.logging:jboss-logging:3.1.4.GA'
+
+  //uber, java-ee
+  api project(':ehcache')
+
+  //uber, jakarta
+  jakartaApi(project(':ehcache')) {
+    capabilities {
+      requireCapability('org.ehcache:ehcache-jakarta')
+    }
+  }
 
   testImplementation(project(':core-spi-test')) {
     exclude group:'org.ehcache.modules'
   }
-  testImplementation testFixtures(project(':ehcache-xml')) {
-    exclude group:'org.ehcache.modules', module:'ehcache-xml'
+  testImplementation(testFixtures(project(':ehcache-xml'))) {
+    exclude group:'org.ehcache.modules'
   }
-  testImplementation "org.terracotta:statistics:$statisticVersion"
+}
 
-  moduleApi group: 'javax.transaction', name: 'jta', version: '1.1'
-  moduleApi project(':ehcache-core')
-  moduleImplementation project(':ehcache-impl')
-  moduleImplementation project(':ehcache-xml')
-
-  moduleImplementation(group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
-    exclude group:'org.slf4j', module:'slf4j-api'
+configurations.all {
+  resolutionStrategy.dependencySubstitution {
+    substitute(module('jakarta.transaction:jakarta.transaction-api:2.0.0-RC1')).using(module('jakarta.transaction:jakarta.transaction-api:2.0.0'))
+      .because('Narayana has divergences in its transitive dependency set')
   }
 }
 
@@ -72,4 +103,36 @@ jar {
     'Export-Package': 'org.ehcache.transactions.xa.*',
     'Import-Package': 'bitronix.tm.*;resolution:=optional, javax.transaction.*;resolution:=optional, org.ehcache.xml.*;resolution:=optional, *',
   )
+}
+
+sourceSets {
+  jakartaTest {
+    java {
+      compileClasspath += sourceSets.jakarta.output
+      runtimeClasspath += sourceSets.jakarta.output
+    }
+  }
+}
+
+dependencies {
+  jakartaTestRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
+  jakartaTestImplementation "junit:junit:$junitVersion"
+  jakartaTestImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
+  jakartaTestImplementation "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
+}
+
+configurations {
+  jakartaTestImplementation.extendsFrom jakartaImplementation
+  jakartaTestRuntimeOnly.extendsFrom jakartaRuntimeOnly
+}
+
+def jakartaTest = tasks.register('jakartaTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  testClassesDirs = sourceSets.jakartaTest.output.classesDirs
+  classpath = sourceSets.jakartaTest.runtimeClasspath
+  systemProperty 'org.jboss.logging.provider', 'slf4j'
+}
+
+tasks.named('check') {
+  dependsOn jakartaTest
 }

@@ -26,7 +26,7 @@ pluginManagement {
   includeBuild 'build-logic'
 }
 
-include "ehcache-api", "ehcache-core", "ehcache-impl", "ehcache-107", "ehcache-xml",
+include "ehcache-api", "ehcache-core", "ehcache-impl", "ehcache-107", "ehcache-xml", "ehcache-xml:ehcache-xml-spi",
   "ehcache-management", "ehcache-transactions", "ehcache",
   "spi-tester", "core-spi-test",
   "clustered:ehcache-common-api", "clustered:ehcache-common",

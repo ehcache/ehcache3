@@ -19,4 +19,7 @@
  * {@link org.ehcache.core.events.CacheManagerListener} or the {@link org.ehcache.event.CacheEvent} subsystem like
  * {@link org.ehcache.core.events.CacheEventDispatcher} and {@link org.ehcache.core.events.StoreEventDispatcher}.
  */
+@PublicApi
 package org.ehcache.core.events;
+
+import org.ehcache.javadoc.PublicApi;

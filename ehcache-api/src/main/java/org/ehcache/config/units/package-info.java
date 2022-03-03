@@ -17,4 +17,7 @@
 /**
  * {@link org.ehcache.config.ResourceUnit ResourceUnit} implementations
  */
+@PublicApi
 package org.ehcache.config.units;
+
+import org.ehcache.javadoc.PublicApi;

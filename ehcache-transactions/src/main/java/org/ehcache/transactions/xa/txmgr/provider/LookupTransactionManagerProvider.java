@@ -20,6 +20,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 
+import javax.transaction.TransactionManager;
+
 /**
  * A {@link TransactionManagerProvider} implementation that resolves the {@link TransactionManagerWrapper} through the
  * {@link TransactionManagerLookup lookup class} provided through its {@link LookupTransactionManagerProviderConfiguration}.
@@ -36,10 +38,10 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
  * Note that in this scheme, the lookup instance is not expected to cache the {@code TransactionManagerWrapper}
  * unless it can be considered a singleton.
  */
-public class LookupTransactionManagerProvider implements TransactionManagerProvider {
+public class LookupTransactionManagerProvider implements TransactionManagerProvider<TransactionManager> {
 
-  private final TransactionManagerLookup lookup;
-  private volatile TransactionManagerWrapper transactionManagerWrapper;
+  private final TransactionManagerLookup<TransactionManager> lookup;
+  private volatile TransactionManagerWrapper<TransactionManager> transactionManagerWrapper;
 
   /**
    * Creates a new instance with the provided configuration.
@@ -63,7 +65,7 @@ public class LookupTransactionManagerProvider implements TransactionManagerProvi
    * {@inheritDoc}
    */
   @Override
-  public TransactionManagerWrapper getTransactionManagerWrapper() {
+  public TransactionManagerWrapper<TransactionManager> getTransactionManagerWrapper() {
     return transactionManagerWrapper;
   }
 

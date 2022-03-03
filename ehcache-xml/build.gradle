@@ -44,10 +44,14 @@ components.java {
 }
 
 variants {
+  defaultVariant() {
+    capability 'org.ehcache.modules:ehcache-xml-provider'
+    capability 'org.ehcache.modules:ehcache-xml'
+  }
   variant('jakarta') {
-    withSeparateSource()
-    capability "org.ehcache.modules:ehcache-xml-provider:$version"
-    capability "org.ehcache.modules:ehcache-xml-jakarta:$version"
+    separateSource()
+    capability 'org.ehcache.modules:ehcache-xml-provider'
+    capability 'org.ehcache.modules:ehcache-xml-jakarta'
   }
 }
 
@@ -71,11 +75,6 @@ tasks.named('jakartaSourcesJar') {
 }
 
 configurations {
-  [apiElements, runtimeElements]*.outgoing {
-    capability "org.ehcache.modules:ehcache-xml-provider:$version"
-    capability "org.ehcache.modules:ehcache-xml:$version"
-  }
-
   xjcToolJakarta {
     visible = false
   }
@@ -98,6 +97,7 @@ configurations {
 
 dependencies {
   commonApi project(':ehcache-api')
+  commonApi project(':ehcache-xml:ehcache-xml-spi')
   commonImplementation project(':ehcache-core')
   commonImplementation project(':ehcache-impl')
 

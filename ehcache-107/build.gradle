@@ -27,9 +27,13 @@ publishing.publications.withType(MavenPublication) {
 }
 
 variants {
+  defaultVariant() {
+    capability 'org.ehcache.modules:ehcache-107'
+    capability 'org.ehcache.modules:ehcache-107-provider'
+  }
   variant('jakarta') {
-    capability "org.ehcache.modules:ehcache-107-jakarta:$version"
-    capability "org.ehcache.modules:ehcache-107-provider:$version"
+    capability 'org.ehcache.modules:ehcache-107-jakarta'
+    capability 'org.ehcache.modules:ehcache-107-provider'
   }
 }
 
@@ -43,13 +47,6 @@ configurations {
           .because('CVE-2020-15250')
           .with(module('junit:junit:4.13.1'))
       }
-    }
-  }
-
-  [apiElements, runtimeElements].each {
-    it.outgoing {
-      capability "org.ehcache.modules:ehcache-107:$version"
-      capability "org.ehcache.modules:ehcache-107-provider:$version"
     }
   }
 }

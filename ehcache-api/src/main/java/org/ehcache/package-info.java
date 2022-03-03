@@ -18,4 +18,7 @@
  * Main Ehcache API, including {@link org.ehcache.CacheManager cache managers} and
  * {@link org.ehcache.Cache caches}.
  */
+@PublicApi
 package org.ehcache;
+
+import org.ehcache.javadoc.PublicApi;

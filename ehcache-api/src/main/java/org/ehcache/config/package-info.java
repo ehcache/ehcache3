@@ -18,4 +18,7 @@
  * {@link org.ehcache.config.Configuration CacheManager configuration},
  * {@link org.ehcache.config.CacheConfiguration Cache configuration} and other configuration classes.
  */
+@PublicApi
 package org.ehcache.config;
+
+import org.ehcache.javadoc.PublicApi;
