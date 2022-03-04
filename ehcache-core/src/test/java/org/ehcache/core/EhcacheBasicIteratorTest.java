@@ -39,7 +39,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -222,7 +221,6 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     doReturn(storeEntry).when(storeIterator).next();
 
     doReturn(storeIterator).when(this.store).iterator();
-    doReturn(valueHolder).when(this.store).get(eq("foo"));
 
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();

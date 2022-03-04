@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -94,7 +94,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.remove("key", "value"));
     verify(this.store).remove(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
@@ -114,7 +114,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     assertFalse(ehcache.remove("key", "value"));
     verify(this.store).remove(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
@@ -134,7 +134,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
 
     assertTrue(ehcache.remove("key", "value"));
     verify(this.store).remove(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
   }

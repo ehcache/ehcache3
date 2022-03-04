@@ -43,11 +43,13 @@ import org.ehcache.test.MockitoUtil;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.internal.stubbing.answers.Returns;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.both;
@@ -62,8 +64,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
-import static org.ehcache.test.MockitoUtil.mock;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 
 public class CacheConfigurationBuilderTest {
 
@@ -83,7 +86,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithLoaderWriter() throws Exception {
-    CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<Object, Object> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withLoaderWriter(loaderWriter)
@@ -97,7 +100,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithoutLoaderWriter() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withLoaderWriter(mock(CacheLoaderWriter.class))
+      .withLoaderWriter(uncheckedGenericMock(CacheLoaderWriter.class))
       .withoutLoaderWriter()
       .build();
 
@@ -106,7 +109,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithKeySerializer() throws Exception {
-    Serializer<Object> keySerializer = mock(Serializer.class);
+    Serializer<Object> keySerializer = uncheckedGenericMock(Serializer.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeySerializer(keySerializer)
@@ -135,7 +138,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithoutKeySerializer() throws Exception {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withKeySerializer(MockitoUtil.<Serializer<Object>>mock(Serializer.class))
+      .withKeySerializer(MockitoUtil.<Serializer<Object>>uncheckedGenericMock(Serializer.class))
       .withDefaultKeySerializer()
       .build();
 
@@ -144,7 +147,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithValueSerializer() throws Exception {
-    Serializer<Object> valueSerializer = mock(Serializer.class);
+    Serializer<Object> valueSerializer = uncheckedGenericMock(Serializer.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueSerializer(valueSerializer)
@@ -173,7 +176,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithoutValueSerializer() throws Exception {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withValueSerializer(MockitoUtil.<Serializer<Object>>mock(Serializer.class))
+      .withValueSerializer(MockitoUtil.<Serializer<Object>>uncheckedGenericMock(Serializer.class))
       .withDefaultValueSerializer()
       .build();
 
@@ -182,7 +185,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithKeyCopier() throws Exception {
-    Copier<Object> keyCopier = mock(Copier.class);
+    Copier<Object> keyCopier = uncheckedGenericMock(Copier.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeyCopier(keyCopier)
@@ -210,7 +213,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithoutKeyCopier() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withKeyCopier(MockitoUtil.<Copier<Object>>mock(Copier.class))
+      .withKeyCopier(MockitoUtil.<Copier<Object>>uncheckedGenericMock(Copier.class))
       .withoutKeyCopier()
       .build();
 
@@ -219,7 +222,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithValueCopier() throws Exception {
-    Copier<Object> valueCopier = mock(Copier.class);
+    Copier<Object> valueCopier = uncheckedGenericMock(Copier.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueCopier(valueCopier)
@@ -247,7 +250,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithoutValueCopier() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withValueCopier(MockitoUtil.<Copier<Object>>mock(Copier.class))
+      .withValueCopier(MockitoUtil.<Copier<Object>>uncheckedGenericMock(Copier.class))
       .withoutValueCopier()
       .build();
 
@@ -308,10 +311,8 @@ public class CacheConfigurationBuilderTest {
     Class<Integer> keyClass = Integer.class;
     Class<String> valueClass = String.class;
     ClassLoader loader = mock(ClassLoader.class);
-    @SuppressWarnings("unchecked")
-    EvictionAdvisor<Integer, String> eviction = mock(EvictionAdvisor.class);
-    @SuppressWarnings("unchecked")
-    ExpiryPolicy<Integer, String> expiry = mock(ExpiryPolicy.class);
+    EvictionAdvisor<Integer, String> eviction = uncheckedGenericMock(EvictionAdvisor.class);
+    ExpiryPolicy<Integer, String> expiry = uncheckedGenericMock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ServiceConfiguration<?, ?> service = mock(ServiceConfiguration.class);
 
     CacheConfiguration<Integer, String> configuration = newCacheConfigurationBuilder(Integer.class, String.class, heap(10))
@@ -334,7 +335,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithResilienceStrategyInstance() throws Exception {
-    ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<Object, Object> resilienceStrategy = uncheckedGenericMock(ResilienceStrategy.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
       .withResilienceStrategy(resilienceStrategy)
@@ -361,7 +362,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithDefaultResilienceStrategy() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withResilienceStrategy(mock(ResilienceStrategy.class))
+      .withResilienceStrategy(uncheckedGenericMock(ResilienceStrategy.class))
       .withDefaultResilienceStrategy()
       .build();
 

@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
-import static org.ehcache.test.MockitoUtil.mock;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasProperty;
@@ -62,6 +62,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -150,8 +151,7 @@ public class DefaultSerializationProviderTest {
     Class<Serializer<String>> serializerClass = getSerializerClass();
     configuration.addSerializerFor(String.class, serializerClass);
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(configuration);
-    @SuppressWarnings("unchecked")
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
     serializationProvider.start(serviceProvider);
     assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
     serializationProvider.stop();
@@ -202,8 +202,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateKeySerializerWithActualInstanceInServiceConfig() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    @SuppressWarnings("unchecked")
-    TestSerializer<String> serializer = mock(TestSerializer.class);
+    TestSerializer<String> serializer = uncheckedGenericMock(TestSerializer.class);
     DefaultSerializerConfiguration<String> config = new DefaultSerializerConfiguration<>(serializer, DefaultSerializerConfiguration.Type.KEY);
     Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);
@@ -212,8 +211,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    @SuppressWarnings("unchecked")
-    TestSerializer<String> serializer = mock(TestSerializer.class);
+    TestSerializer<String> serializer = uncheckedGenericMock(TestSerializer.class);
     DefaultSerializerConfiguration<String> config = new DefaultSerializerConfiguration<>(serializer, DefaultSerializerConfiguration.Type.KEY);
 
     Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
@@ -528,7 +526,7 @@ public class DefaultSerializationProviderTest {
   }
 
   private PersistableResourceService.PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifierMock() {
-    PersistableResourceService.PersistenceSpaceIdentifier<DiskResourceService> spaceIdentifier = mock(DiskResourceService.PersistenceSpaceIdentifier.class);
+    PersistableResourceService.PersistenceSpaceIdentifier<DiskResourceService> spaceIdentifier = uncheckedGenericMock(DiskResourceService.PersistenceSpaceIdentifier.class);
     when(spaceIdentifier.getServiceType()).thenReturn(DiskResourceService.class);
     return spaceIdentifier;
   }
@@ -536,8 +534,7 @@ public class DefaultSerializationProviderTest {
   private DefaultSerializationProvider getStartedProvider() throws CachePersistenceException {
     DefaultSerializationProvider defaultProvider = new DefaultSerializationProvider(null);
 
-    @SuppressWarnings("unchecked")
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
     DiskResourceService diskResourceService = mock(DiskResourceService.class);
     when(diskResourceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
           .thenReturn(() -> {

@@ -58,6 +58,7 @@ import java.util.function.Supplier;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.impl.internal.util.Matchers.holding;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -906,8 +907,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
       ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
-    @SuppressWarnings("unchecked")
-    CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
+    CachingTier.InvalidationListener<String, String> invalidationListener = uncheckedGenericMock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
 
     store.put("key", "value");
@@ -928,8 +928,7 @@ public abstract class BaseOnHeapStoreTest {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource,
       ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
-    @SuppressWarnings("unchecked")
-    CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
+    CachingTier.InvalidationListener<String, String> invalidationListener = uncheckedGenericMock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
 
     // Add an entry
@@ -939,8 +938,7 @@ public abstract class BaseOnHeapStoreTest {
     // Advance after expiration time
     timeSource.advanceTime(1);
 
-    @SuppressWarnings("unchecked")
-    final ValueHolder<String> vh = mock(ValueHolder.class);
+    final ValueHolder<String> vh = uncheckedGenericMock(ValueHolder.class);
     when(vh.get()).thenReturn("newvalue");
     when(vh.expirationTime()).thenReturn(2L);
 
@@ -1269,8 +1267,7 @@ public abstract class BaseOnHeapStoreTest {
     eventDispatcher = mock(StoreEventDispatcher.class);
     eventSink = mock(StoreEventSink.class);
     when(eventDispatcher.eventSink()).thenReturn(eventSink);
-    @SuppressWarnings("unchecked")
-    StoreEventListener<K, V> listener = mock(StoreEventListener.class);
+    StoreEventListener<K, V> listener = uncheckedGenericMock(StoreEventListener.class);
     return listener;
   }
 

@@ -52,7 +52,6 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
-import org.ehcache.test.MockitoUtil;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -88,6 +87,7 @@ import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -131,13 +131,12 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration<Long, String> cacheConfiguration = MockitoUtil.mock(CacheConfiguration.class);
+    CacheConfiguration<Long, String> cacheConfiguration = uncheckedGenericMock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
     PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
-      @SuppressWarnings("unchecked")
-      Store.Configuration<Long, String> storeConfig1 = MockitoUtil.mock(Store.Configuration.class);
+      Store.Configuration<Long, String> storeConfig1 = uncheckedGenericMock(Store.Configuration.class);
       when(storeConfig1.getKeyType()).thenReturn(Long.class);
       when(storeConfig1.getValueType()).thenReturn(String.class);
       when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -152,8 +151,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     }
 
     {
-      @SuppressWarnings("unchecked")
-      Store.Configuration<Long, Serializable> storeConfig2 = MockitoUtil.mock(Store.Configuration.class);
+      Store.Configuration<Long, Serializable> storeConfig2 = uncheckedGenericMock(Store.Configuration.class);
       when(storeConfig2.getKeyType()).thenReturn(Long.class);
       when(storeConfig2.getValueType()).thenReturn(Serializable.class);
       when(storeConfig2.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -182,13 +180,12 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration<?, ?> cacheConfiguration = MockitoUtil.mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
     PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
-      @SuppressWarnings("unchecked")
-      Store.Configuration<Long, Object[]> storeConfig1 = MockitoUtil.mock(Store.Configuration.class);
+      Store.Configuration<Long, Object[]> storeConfig1 = uncheckedGenericMock(Store.Configuration.class);
       when(storeConfig1.getKeyType()).thenReturn(Long.class);
       when(storeConfig1.getValueType()).thenReturn(Object[].class);
       when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -203,8 +200,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     }
 
     {
-      @SuppressWarnings("unchecked")
-      Store.Configuration<Long, Object[]> storeConfig2 = MockitoUtil.mock(Store.Configuration.class);
+      Store.Configuration<Long, Object[]> storeConfig2 = uncheckedGenericMock(Store.Configuration.class);
       when(storeConfig2.getKeyType()).thenReturn(Long.class);
       when(storeConfig2.getValueType()).thenReturn(Object[].class);
       when(storeConfig2.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -228,12 +224,11 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration<?, ?> cacheConfiguration = MockitoUtil.mock(CacheConfiguration.class);
+    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
     PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
-    @SuppressWarnings("unchecked")
-    Store.Configuration<Long, Object[]> storeConfig1 = MockitoUtil.mock(Store.Configuration.class);
+    Store.Configuration<Long, Object[]> storeConfig1 = uncheckedGenericMock(Store.Configuration.class);
     when(storeConfig1.getKeyType()).thenReturn(Long.class);
     when(storeConfig1.getValueType()).thenReturn(Object[].class);
     when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -358,7 +353,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   private FileBasedPersistenceContext getPersistenceContext() {
     try {
-      CacheConfiguration<?, ?> cacheConfiguration = MockitoUtil.mock(CacheConfiguration.class);
+      CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
       when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
       PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
       return diskResourceService.createPersistenceContextWithin(space, "store");

@@ -43,6 +43,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -241,8 +242,7 @@ public abstract class AbstractWriteBehindTestBase {
 
   @Test
   public void testBatchedDeletedKeyReturnsNull() throws Exception {
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -264,8 +264,7 @@ public abstract class AbstractWriteBehindTestBase {
   public void testUnBatchedDeletedKeyReturnsNull() throws Exception {
     Semaphore semaphore = new Semaphore(0);
 
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     doAnswer(invocation -> {
       semaphore.acquire();
@@ -293,8 +292,7 @@ public abstract class AbstractWriteBehindTestBase {
 
   @Test
   public void testBatchedOverwrittenKeyReturnsNewValue() throws Exception {
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -316,8 +314,7 @@ public abstract class AbstractWriteBehindTestBase {
   public void testUnBatchedOverwrittenKeyReturnsNewValue() throws Exception {
     final Semaphore semaphore = new Semaphore(0);
 
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     doAnswer(invocation -> {
       semaphore.acquire();
@@ -403,8 +400,7 @@ public abstract class AbstractWriteBehindTestBase {
   @Test
   public void testUnBatchedWriteBehindBlocksWhenFull() throws Exception {
     final Semaphore gate = new Semaphore(0);
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     doAnswer(invocation -> {
       gate.acquire();
       return null;

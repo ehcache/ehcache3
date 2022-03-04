@@ -35,11 +35,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class DefaultCacheLoaderWriterProviderTest {
 
@@ -108,11 +108,9 @@ public class DefaultCacheLoaderWriterProviderTest {
     configuration.addLoaderFor("cache", MyLoader.class);
     DefaultCacheLoaderWriterProvider loaderWriterProvider = new DefaultCacheLoaderWriterProvider(configuration);
 
-    @SuppressWarnings("unchecked")
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
     loaderWriterProvider.start(serviceProvider);
-    @SuppressWarnings("unchecked")
-    CacheConfiguration<Object, Object> cacheConfiguration = mock(CacheConfiguration.class);
+    CacheConfiguration<Object, Object> cacheConfiguration = uncheckedGenericMock(CacheConfiguration.class);
     assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), instanceOf(MyLoader.class));
 
     loaderWriterProvider.stop();

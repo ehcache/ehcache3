@@ -35,7 +35,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -94,7 +94,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
 
     ehcache.put("key", "value");
     verify(this.store).put(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }
@@ -135,7 +135,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
 
     ehcache.put("key", "value");
     verify(this.store).put(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }

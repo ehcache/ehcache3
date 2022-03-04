@@ -181,7 +181,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
     allDescriptors.addAll(CLUSTERED_DESCRIPTORS);
 
-    assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+    assertThat(descriptors).hasSameElementsAs(allDescriptors);
   }
 
   @Test
@@ -211,9 +211,9 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // stats
 
-    assertThat(tierCapabilities[3].getDescriptors()).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS);
-    assertThat(managerCapabilities[2].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
-    assertThat(tierCapabilities[1].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
+    assertThat(tierCapabilities[3].getDescriptors()).hasSameElementsAs(SERVER_STORE_DESCRIPTORS);
+    assertThat(managerCapabilities[2].getDescriptors()).hasSameElementsAs(POOL_DESCRIPTORS);
+    assertThat(tierCapabilities[1].getDescriptors()).hasSameElementsAs(POOL_DESCRIPTORS);
 
     // ClusterTierManagerSettings
 
@@ -279,7 +279,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     assertThat(managerCapabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
 
-    assertThat(managerCapabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
+    assertThat(managerCapabilities[1].getDescriptors()).hasSameElementsAs(OFFHEAP_RES_DESCRIPTORS);
   }
 
   @Test
@@ -409,13 +409,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       .filter(statistics -> statistics.getCapability().equals("PoolStatistics"))
       .flatMap(statistics -> statistics.getStatistics().keySet().stream())
       .collect(Collectors.toSet());
-    assertThat(poolDescriptors).containsOnlyElementsOf(POOL_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
+    assertThat(poolDescriptors).hasSameElementsAs(POOL_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
 
     Set<String> serverStoreDescriptors = serverStats.stream()
       .filter(statistics -> statistics.getCapability().equals("ServerStoreStatistics"))
       .flatMap(statistics -> statistics.getStatistics().keySet().stream())
       .collect(Collectors.toSet());
-    assertThat(serverStoreDescriptors).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
+    assertThat(serverStoreDescriptors).hasSameElementsAs(SERVER_STORE_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
 
     Set<String> offHeapResourceDescriptors = serverStats.stream()
       .filter(statistics -> statistics.getCapability().equals("OffHeapResourceStatistics"))

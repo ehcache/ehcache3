@@ -74,7 +74,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
-import static org.ehcache.test.MockitoUtil.mock;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -142,7 +143,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         final OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, timeSource, noOpEventDispatcher, offheapSize, new DefaultStatisticsService());
 
         try {
-          CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
+          CacheConfiguration<String, String> cacheConfiguration = uncheckedGenericMock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
           DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);

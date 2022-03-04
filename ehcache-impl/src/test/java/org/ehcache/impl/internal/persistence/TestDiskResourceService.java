@@ -35,7 +35,7 @@ import org.mockito.Mockito;
 
 import java.io.File;
 
-import static org.mockito.Mockito.mock;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 
 /**
  *
@@ -62,8 +62,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
     fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
     fileService.start(null);
     diskResourceService = new DefaultDiskResourceService();
-    @SuppressWarnings("unchecked")
-    ServiceProvider<Service> sp = mock(ServiceProvider.class);
+    ServiceProvider<Service> sp = uncheckedGenericMock(ServiceProvider.class);
     Mockito.when(sp.getService(LocalPersistenceService.class)).thenReturn(fileService);
     diskResourceService.start(sp);
   }

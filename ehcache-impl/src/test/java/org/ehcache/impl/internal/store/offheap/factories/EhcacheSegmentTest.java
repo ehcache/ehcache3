@@ -35,6 +35,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -131,8 +132,7 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testEvictionFiresEvent() {
-    @SuppressWarnings("unchecked")
-    EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener = mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class);
+    EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener = uncheckedGenericMock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class);
     EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegmentWithListener(evictionListener);
     try {
       segment.put("key", "value");

@@ -27,11 +27,11 @@ import org.junit.Test;
 import java.io.Closeable;
 import java.io.IOException;
 
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.mock;
 
 /**
  * Created by alsu on 20/08/15.
@@ -62,8 +62,7 @@ public class DefaultCopyProviderTest {
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
       SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY);
 
-    @SuppressWarnings("unchecked")
-    Serializer<Long> serializer = mock(Serializer.class);
+    Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
     assertThat(copyProvider.createKeyCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
   }
 
@@ -91,8 +90,7 @@ public class DefaultCopyProviderTest {
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
       SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
 
-    @SuppressWarnings("unchecked")
-    Serializer<Long> serializer = mock(Serializer.class);
+    Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
     assertThat(copyProvider.createValueCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
   }
 
@@ -102,8 +100,7 @@ public class DefaultCopyProviderTest {
     TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<>();
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
 
-    @SuppressWarnings("unchecked")
-    Serializer<Long> serializer = mock(Serializer.class);
+    Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
     assertThat(copyProvider.createKeyCopier(Long.class, serializer, config), sameInstance((Copier)testCloseableCopier));
 
     copyProvider.releaseCopier(testCloseableCopier);

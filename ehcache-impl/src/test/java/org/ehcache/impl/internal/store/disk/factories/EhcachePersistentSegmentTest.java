@@ -40,6 +40,7 @@ import java.io.IOException;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.impl.internal.store.disk.OffHeapDiskStore.persistent;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -140,8 +141,7 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testEvictionFiresEvent() throws IOException {
-    @SuppressWarnings("unchecked")
-    EvictionListener<String, String> evictionListener = mock(EvictionListener.class);
+    EvictionListener<String, String> evictionListener = uncheckedGenericMock(EvictionListener.class);
     EhcachePersistentSegment<String, String> segment = createTestSegmentWithListener(evictionListener);
     try {
       segment.put("key", "value");

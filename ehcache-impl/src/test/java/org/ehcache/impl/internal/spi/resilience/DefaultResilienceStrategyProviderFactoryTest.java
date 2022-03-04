@@ -23,24 +23,25 @@ import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.junit.Test;
 
-import static org.ehcache.test.MockitoUtil.mock;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 public class DefaultResilienceStrategyProviderFactoryTest {
 
   @Test
   public void testNullGivesValidFactory() {
     ResilienceStrategyProvider provider = new DefaultResilienceStrategyProviderFactory().create(null);
-    assertThat(provider.createResilienceStrategy("test", mock(CacheConfiguration.class), mock(RecoveryStore.class)), notNullValue());
+    assertThat(provider.createResilienceStrategy("test", uncheckedGenericMock(CacheConfiguration.class), uncheckedGenericMock(RecoveryStore.class)), notNullValue());
   }
 
   @Test
   public void testWrongConfigTypeFails() {
     try {
-      new DefaultResilienceStrategyProviderFactory().create(mock(ServiceCreationConfiguration.class));
+      new DefaultResilienceStrategyProviderFactory().create(uncheckedGenericMock(ServiceCreationConfiguration.class));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -55,6 +56,6 @@ public class DefaultResilienceStrategyProviderFactoryTest {
     configuration.setDefaultResilienceStrategy(resilienceStrategy);
     ResilienceStrategyProvider provider = new DefaultResilienceStrategyProviderFactory().create(configuration);
 
-    assertThat(provider.createResilienceStrategy("foo", mock(CacheConfiguration.class), mock(RecoveryStore.class)), sameInstance(resilienceStrategy));
+    assertThat(provider.createResilienceStrategy("foo", uncheckedGenericMock(CacheConfiguration.class), uncheckedGenericMock(RecoveryStore.class)), sameInstance(resilienceStrategy));
   }
 }

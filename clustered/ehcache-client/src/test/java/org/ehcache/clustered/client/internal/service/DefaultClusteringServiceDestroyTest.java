@@ -26,8 +26,9 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.spi.service.MaintainableService;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
@@ -45,15 +46,18 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 /**
  * DefaultClusteringServiceDestroyTest
  */
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultClusteringServiceDestroyTest {
 
   @Mock
@@ -67,7 +71,6 @@ public class DefaultClusteringServiceDestroyTest {
 
   @Before
   public void setUp() {
-    MockitoAnnotations.initMocks(this);
     MockConnectionService.mockConnection = connection;
   }
 
@@ -167,7 +170,6 @@ public class DefaultClusteringServiceDestroyTest {
     when(getEntityRef(ClusterTierManagerClientEntity.class)).thenReturn(managerEntityRef);
     ClusterTierManagerClientEntity managerEntity = mock(ClusterTierManagerClientEntity.class);
     when(managerEntityRef.fetchEntity(null)).thenReturn(managerEntity);
-    doThrow(new DestroyInProgressException("destroying")).when(managerEntity).validate(any());
 
     Set<String> stores = new HashSet<>();
     stores.add("store1");
@@ -191,18 +193,20 @@ public class DefaultClusteringServiceDestroyTest {
 
   private void mockLockForWriteLockSuccess() throws org.terracotta.exception.EntityNotProvidedException, org.terracotta.exception.EntityNotFoundException, org.terracotta.exception.EntityVersionMismatchException {
     when(connection.<VoltronReadWriteLockClient, Object, Void>getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
-    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class);
+    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class, withSettings().lenient());
     when(lockEntityRef.fetchEntity(null)).thenReturn(lockClient);
 
     when(lockClient.tryLock(LockMessaging.HoldType.WRITE)).thenReturn(true);
+    doNothing().when(lockClient).lock(LockMessaging.HoldType.WRITE);
   }
 
   private void mockLockForReadLockSuccess() throws org.terracotta.exception.EntityNotProvidedException, org.terracotta.exception.EntityNotFoundException, org.terracotta.exception.EntityVersionMismatchException {
     when(connection.<VoltronReadWriteLockClient, Object, Void>getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
-    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class);
+    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class, withSettings().lenient());
     when(lockEntityRef.fetchEntity(null)).thenReturn(lockClient);
 
     when(lockClient.tryLock(LockMessaging.HoldType.READ)).thenReturn(true);
+    doNothing().when(lockClient).lock(LockMessaging.HoldType.READ);
   }
 
   private <E extends Entity> EntityRef<E, Object, Void> getEntityRef(Class<E> value) throws org.terracotta.exception.EntityNotProvidedException {

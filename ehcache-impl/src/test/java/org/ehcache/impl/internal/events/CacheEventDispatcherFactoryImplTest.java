@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.fail;
@@ -45,8 +46,7 @@ public class CacheEventDispatcherFactoryImplTest {
 
   @Test
   public void testConfigurationOfThreadPoolAlias() {
-    @SuppressWarnings("unchecked")
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
     when(serviceProvider.getService(ExecutionService.class)).thenReturn(mock(ExecutionService.class));
     CacheEventDispatcherFactoryImpl factory = new CacheEventDispatcherFactoryImpl();
     factory.start(serviceProvider);
@@ -69,8 +69,7 @@ public class CacheEventDispatcherFactoryImplTest {
     CacheEventDispatcherFactoryImpl cacheEventDispatcherFactory = new CacheEventDispatcherFactoryImpl();
     cacheEventDispatcherFactory.start(serviceProvider);
 
-    @SuppressWarnings("unchecked")
-    Store<Object, Object> store = mock(Store.class);
+    Store<Object, Object> store = uncheckedGenericMock(Store.class);
     try {
       cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
       fail("expected IllegalArgumentException");
