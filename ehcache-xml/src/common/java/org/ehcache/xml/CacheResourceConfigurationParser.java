@@ -17,7 +17,6 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourceType;
 import org.w3c.dom.Element;
 
 import java.io.IOException;

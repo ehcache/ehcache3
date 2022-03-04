@@ -33,12 +33,8 @@ import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ObjectFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXNotRecognizedException;
-import org.xml.sax.SAXParseException;
 
-import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -59,7 +55,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -71,22 +66,18 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Spliterators.spliterator;
 import static java.util.function.Function.identity;
-import static java.util.regex.Pattern.quote;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
@@ -96,26 +87,13 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.core.util.ClassLoading.servicesOfType;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
+import static org.ehcache.xml.XmlUtil.newSchema;
 
 /**
  * Provides support for parsing a cache configuration expressed in XML.
  */
 public class ConfigurationParser {
 
-  public static Schema newSchema(Source... schemas) throws SAXException {
-    SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-    try {
-      /*
-       * Our schema is accidentally not XSD 1.1 compatible. Since Saxon incorrectly (imho) defaults to XSD 1.1 for
-       * `XMLConstants.W3C_XML_SCHEMA_NS_URI` we force it back to 1.0.
-       */
-      schemaFactory.setProperty("http://saxon.sf.net/feature/xsd-version", "1.0");
-    } catch (SAXNotRecognizedException e) {
-      //not saxon
-    }
-    schemaFactory.setErrorHandler(new FatalErrorHandler());
-    return schemaFactory.newSchema(schemas);
-  }
   private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
   private static final QName CORE_SCHEMA_ROOT_NAME;
@@ -321,46 +299,6 @@ public class ConfigurationParser {
     return document;
   }
 
-  public static class FatalErrorHandler implements ErrorHandler {
-
-    private static final Collection<Pattern> ABSTRACT_TYPE_FAILURES;
-    static {
-      ObjectFactory objectFactory = new ObjectFactory();
-      List<QName> abstractTypes = asList(
-        objectFactory.createServiceCreationConfiguration(null).getName(),
-        objectFactory.createServiceConfiguration(null).getName(),
-        objectFactory.createResource(null).getName());
-
-      ABSTRACT_TYPE_FAILURES = asList(
-        //Xerces
-        abstractTypes.stream().map(element -> quote(format("\"%s\":%s", element.getNamespaceURI(), element.getLocalPart())))
-          .collect(collectingAndThen(joining("|", "^\\Qcvc-complex-type.2.4.a\\E.*'\\{.*(?:", ").*\\}'.*$"), Pattern::compile)),
-        //Saxon
-        abstractTypes.stream().map(element -> quote(element.getLocalPart()))
-          .collect(collectingAndThen(joining("|", "^.*\\QThe content model does not allow element\\E.*(?:", ").*"), Pattern::compile)));
-    }
-
-    @Override
-    public void warning(SAXParseException exception) throws SAXException {
-      fatalError(exception);
-    }
-
-    @Override
-    public void error(SAXParseException exception) throws SAXException {
-      fatalError(exception);
-    }
-
-    @Override
-    public void fatalError(SAXParseException exception) throws SAXException {
-      if (ABSTRACT_TYPE_FAILURES.stream().anyMatch(pattern -> pattern.matcher(exception.getMessage()).matches())) {
-        throw new XmlConfigurationException(
-          "Cannot confirm XML sub-type correctness. You might be missing client side libraries.", exception);
-      } else {
-        throw exception;
-      }
-    }
-  }
-
   public static class XmlConfigurationWrapper {
     private final Configuration configuration;
     private final Map<String, XmlConfiguration.Template> templates;
@@ -409,7 +347,7 @@ public class ConfigurationParser {
     factory.setIgnoringElementContentWhitespace(true);
     factory.setSchema(schema);
     DocumentBuilder documentBuilder = factory.newDocumentBuilder();
-    documentBuilder.setErrorHandler(new FatalErrorHandler());
+    documentBuilder.setErrorHandler(new XmlUtil.FatalErrorHandler());
     return documentBuilder;
   }
 

@@ -21,46 +21,44 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.xml.CoreServiceConfigurationParser;
-import org.ehcache.xml.model.CacheTemplate;
-import org.ehcache.xml.model.CacheType;
 
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
-class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfiguration<?, ?>> implements CoreServiceConfigurationParser {
+class SimpleCoreServiceConfigurationParser<TEMPLATE, CACHE, IN, OUT, U extends ServiceConfiguration<?, ?>> implements CoreServiceConfigurationParser<TEMPLATE, CACHE> {
 
-  private final Function<CacheTemplate, IN> extractor;
+  private final Function<TEMPLATE, IN> extractor;
   private final Parser<IN, U> parser;
 
   private final Class<U> configType;
 
-  private final Function<CacheType, OUT> getter;
-  private final BiConsumer<CacheType, OUT> setter;
+  private final Function<CACHE, OUT> getter;
+  private final BiConsumer<CACHE, OUT> setter;
   private final Function<U, OUT> unparser;
   private final BinaryOperator<OUT> merger;
 
   SimpleCoreServiceConfigurationParser(Class<U> configType,
-                                       Function<CacheTemplate, IN> extractor, Function<IN, U> parser,
-                                       Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> unparser) {
+                                       Function<TEMPLATE, IN> extractor, Function<IN, U> parser,
+                                       Function<CACHE, OUT> getter, BiConsumer<CACHE, OUT> setter, Function<U, OUT> unparser) {
     this(configType, extractor, (config, loader) -> parser.apply(config), getter, setter, unparser, (a, b) -> { throw new IllegalStateException(); });
   }
 
   SimpleCoreServiceConfigurationParser(Class<U> configType,
-                                       Function<CacheTemplate, IN> extractor, Function<IN, U> parser,
-                                       Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> unparser, BinaryOperator<OUT> merger) {
+                                       Function<TEMPLATE, IN> extractor, Function<IN, U> parser,
+                                       Function<CACHE, OUT> getter, BiConsumer<CACHE, OUT> setter, Function<U, OUT> unparser, BinaryOperator<OUT> merger) {
     this(configType, extractor, (config, loader) -> parser.apply(config), getter, setter, unparser, merger);
   }
 
   SimpleCoreServiceConfigurationParser(Class<U> configType,
-                                       Function<CacheTemplate, IN> extractor, Parser<IN, U> parser,
-                                       Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> unparser) {
+                                       Function<TEMPLATE, IN> extractor, Parser<IN, U> parser,
+                                       Function<CACHE, OUT> getter, BiConsumer<CACHE, OUT> setter, Function<U, OUT> unparser) {
     this(configType, extractor, parser, getter, setter, unparser, (a, b) -> { throw new IllegalStateException(); });
   }
 
   SimpleCoreServiceConfigurationParser(Class<U> configType,
-                                       Function<CacheTemplate, IN> extractor, Parser<IN, U> parser,
-                                       Function<CacheType, OUT> getter, BiConsumer<CacheType, OUT> setter, Function<U, OUT> unparser, BinaryOperator<OUT> merger) {
+                                       Function<TEMPLATE, IN> extractor, Parser<IN, U> parser,
+                                       Function<CACHE, OUT> getter, BiConsumer<CACHE, OUT> setter, Function<U, OUT> unparser, BinaryOperator<OUT> merger) {
     this.configType = configType;
     this.extractor = extractor;
     this.parser = parser;
@@ -72,7 +70,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
   }
 
   @Override
-  public final <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader, CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
+  public final <K, V> CacheConfigurationBuilder<K, V> parseServiceConfiguration(TEMPLATE cacheDefinition, ClassLoader cacheClassLoader, CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     IN config = extractor.apply(cacheDefinition);
     if (config != null) {
       U configuration = parser.parse(config, cacheClassLoader);
@@ -84,7 +82,7 @@ class SimpleCoreServiceConfigurationParser<IN, OUT, U extends ServiceConfigurati
   }
 
   @Override
-  public CacheType unparseServiceConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
+  public CACHE unparseServiceConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CACHE cacheType) {
     U serviceConfig = ServiceUtils.findSingletonAmongst(configType, cacheConfiguration.getServiceConfigurations());
     if (serviceConfig == null) {
       return cacheType;

@@ -42,7 +42,7 @@ import static java.util.function.Function.identity;
 
 public class ServiceCreationConfigurationParser {
 
-  static final Collection<CoreServiceCreationConfigurationParser> CORE_SERVICE_CREATION_CONFIGURATION_PARSERS = asList(
+  static final Collection<CoreServiceCreationConfigurationParser<ConfigType>> CORE_SERVICE_CREATION_CONFIGURATION_PARSERS = asList(
     new DefaultCopyProviderConfigurationParser(),
     new DefaultSerializationProviderConfigurationParser(),
     new OffHeapDiskStoreProviderConfigurationParser(),
@@ -60,7 +60,7 @@ public class ServiceCreationConfigurationParser {
   }
 
   FluentConfigurationBuilder<?> parseServiceCreationConfiguration(ConfigType configRoot, ClassLoader classLoader, FluentConfigurationBuilder<?> managerBuilder) throws ClassNotFoundException {
-    for (CoreServiceCreationConfigurationParser parser : CORE_SERVICE_CREATION_CONFIGURATION_PARSERS) {
+    for (CoreServiceCreationConfigurationParser<ConfigType> parser : CORE_SERVICE_CREATION_CONFIGURATION_PARSERS) {
       managerBuilder = parser.parseServiceCreationConfiguration(configRoot, classLoader, managerBuilder);
     }
 
@@ -82,7 +82,7 @@ public class ServiceCreationConfigurationParser {
 
 
   ConfigType unparseServiceCreationConfiguration(Configuration configuration, ConfigType configType) {
-    for (CoreServiceCreationConfigurationParser parser : CORE_SERVICE_CREATION_CONFIGURATION_PARSERS) {
+    for (CoreServiceCreationConfigurationParser<ConfigType> parser : CORE_SERVICE_CREATION_CONFIGURATION_PARSERS) {
       parser.unparseServiceCreationConfiguration(configuration, configType);
     }
 

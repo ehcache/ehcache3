@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.provider;
 
-import org.ehcache.config.Configuration;
-import org.ehcache.config.FluentConfigurationBuilder;
+import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.xml.model.ConfigType;
 
-public interface CoreServiceCreationConfigurationParser {
+public class WriteBehindProviderConfigurationParser extends ThreadPoolServiceCreationConfigurationParser<WriteBehindProviderConfiguration> {
 
-  FluentConfigurationBuilder<?> parseServiceCreationConfiguration(ConfigType root, ClassLoader classLoader, FluentConfigurationBuilder<?> builder) throws ClassNotFoundException;
-
-  ConfigType unparseServiceCreationConfiguration(Configuration configuration, ConfigType root);
+  public WriteBehindProviderConfigurationParser() {
+    super(WriteBehindProviderConfiguration.class, ConfigType::getWriteBehind, ConfigType::setWriteBehind,
+      WriteBehindProviderConfiguration::new, WriteBehindProviderConfiguration::getThreadPoolAlias);
+  }
 }
