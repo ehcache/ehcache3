@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 import static java.util.Collections.reverse;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Stream.generate;
 import static org.ehcache.xml.XmlUtil.mergePartialOrderings;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -38,27 +39,18 @@ public class XmlUtilTest {
   @Test
   public void testPartialOrderingLogic() {
     randomly(random -> {
-      List<Integer> fullOrdering = unmodifiableList(random.ints().distinct().limit(random.nextInt(100)).boxed().collect(toList()));
+      List<Integer> fullOrdering = unmodifiableList(random.ints().distinct().limit(10 + random.nextInt(90)).boxed().collect(toList()));
 
-      int orderings = random.nextInt(10);
+      int orderings = 1 + random.nextInt(9);
 
-      Collection<List<Integer>> partialOrderings = new ArrayList<>();
-      for (int i = 0; i < orderings; i++) {
-        List<Integer> ordering = new ArrayList<>();
-        for (Integer value : fullOrdering) {
-          if (random.nextFloat() < 0.10) {
-            ordering.add(value);
-          }
-        }
-        partialOrderings.add(unmodifiableList(ordering));
-      }
+      Collection<List<Integer>> partialOrderings = generate(
+        () -> fullOrdering.stream().filter(e -> random.nextFloat() < 0.30).collect(toList())
+      ).filter(ordering -> ordering.size() > 1).limit(orderings).collect(toList());
 
       List<Integer> reconstructed = mergePartialOrderings(partialOrderings);
 
       assertThat(reconstructed, allOf(partialOrderings.stream()
-        .filter(o -> !o.isEmpty())
-        .map(o -> containsInRelativeOrder(o.toArray()))
-        .collect(toList())));
+        .map(o -> containsInRelativeOrder(o.toArray())).collect(toList())));
     });
   }
 
@@ -74,20 +66,13 @@ public class XmlUtilTest {
   @Test
   public void testPartialOrderingLogicOnInconsistentOrderings() {
     randomly(random -> {
-      List<Integer> fullOrdering = unmodifiableList(random.ints().distinct().limit(random.nextInt(100)).boxed().collect(toList()));
+      List<Integer> fullOrdering = unmodifiableList(random.ints().distinct().limit(10 + random.nextInt(90)).boxed().collect(toList()));
 
       int orderings = 1 + random.nextInt(9);
 
-      Collection<List<Integer>> partialOrderings = new ArrayList<>();
-      for (int i = 0; i < orderings; i++) {
-        List<Integer> ordering = new ArrayList<>();
-        for (Integer value : fullOrdering) {
-          if (random.nextFloat() < 0.10) {
-            ordering.add(value);
-          }
-        }
-        partialOrderings.add(unmodifiableList(ordering));
-      }
+      Collection<List<Integer>> partialOrderings = generate(
+        () -> fullOrdering.stream().filter(e -> random.nextFloat() < 0.30).collect(toList())
+      ).filter(ordering -> ordering.size() > 1).limit(orderings).collect(toList());
 
       List<Integer> conflictedOrdering = new ArrayList<>(partialOrderings.stream().findAny().orElseThrow(AssertionError::new));
       reverse(conflictedOrdering);
