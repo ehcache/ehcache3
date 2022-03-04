@@ -34,32 +34,29 @@ publishing.publications.withType(MavenPublication) {
 }
 
 variants {
+  defaultVariant {
+    capability 'org.ehcache:ehcache'
+    capability 'org.ehcache.modules:ehcache-api'
+    capability 'org.ehcache.modules:ehcache-core'
+    capability 'org.ehcache.modules:ehcache-impl'
+    capability 'org.ehcache.modules:ehcache-107'
+    capability 'org.ehcache.modules:ehcache-107-provider'
+    capability 'org.ehcache.modules:ehcache-xml'
+    capability 'org.ehcache.modules:ehcache-xml-provider'
+  }
   variant('jakarta') {
-    capability "org.ehcache:ehcache-jakarta:$version"
-    capability "org.ehcache.modules:ehcache-api:$version"
-    capability "org.ehcache.modules:ehcache-core:$version"
-    capability "org.ehcache.modules:ehcache-impl:$version"
-    capability "org.ehcache.modules:ehcache-107-jakarta:$version"
-    capability "org.ehcache.modules:ehcache-107-provider:$version"
-    capability "org.ehcache.modules:ehcache-xml-jakarta:$version"
-    capability "org.ehcache.modules:ehcache-xml-provider:$version"
+    capability 'org.ehcache:ehcache-jakarta'
+    capability 'org.ehcache.modules:ehcache-api'
+    capability 'org.ehcache.modules:ehcache-core'
+    capability 'org.ehcache.modules:ehcache-impl'
+    capability 'org.ehcache.modules:ehcache-107-jakarta'
+    capability 'org.ehcache.modules:ehcache-107-provider'
+    capability 'org.ehcache.modules:ehcache-xml-jakarta'
+    capability 'org.ehcache.modules:ehcache-xml-provider'
   }
 }
 
 configurations {
-  [apiElements, runtimeElements].each {
-    it.outgoing {
-      capability "org.ehcache:ehcache:$version"
-      capability "org.ehcache.modules:ehcache-api:$version"
-      capability "org.ehcache.modules:ehcache-core:$version"
-      capability "org.ehcache.modules:ehcache-impl:$version"
-      capability "org.ehcache.modules:ehcache-107:$version"
-      capability "org.ehcache.modules:ehcache-107-provider:$version"
-      capability "org.ehcache.modules:ehcache-xml:$version"
-      capability "org.ehcache.modules:ehcache-xml-provider:$version"
-    }
-  }
-
   commonContents {
     exclude group:'org.glassfish.jaxb'
     exclude group:'org.slf4j'

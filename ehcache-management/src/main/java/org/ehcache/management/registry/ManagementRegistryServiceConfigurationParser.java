@@ -16,26 +16,21 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
+import static java.util.Collections.singletonMap;
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
 
-public class ManagementRegistryServiceConfigurationParser extends BaseConfigParser<DefaultManagementRegistryConfiguration> implements CacheManagerServiceConfigurationParser<ManagementRegistryService> {
+public class ManagementRegistryServiceConfigurationParser extends BaseConfigParser<DefaultManagementRegistryConfiguration>
+  implements CacheManagerServiceConfigurationParser<ManagementRegistryService, DefaultManagementRegistryConfiguration> {
 
   private static final String NAMESPACE = "http://www.ehcache.org/v3/management";
-  private static final URI NAMESPACE_URI = URI.create(NAMESPACE);
-  private static final URL XML_SCHEMA = ManagementRegistryServiceConfigurationParser.class.getResource("/ehcache-management-ext.xsd");
   private static final String MANAGEMENT_NAMESPACE_PREFIX = "mgm:";
   private static final String MANAGEMENT_ELEMENT_NAME = "management";
   private static final String CACHE_MANAGER_ATTRIBUTE_NAME = "cache-manager-alias";
@@ -43,36 +38,30 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
   private static final String TAGS_NAME = "tags";
   private static final String TAG_NAME = "tag";
 
-  @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
+  public ManagementRegistryServiceConfigurationParser() {
+    super(singletonMap(URI.create(NAMESPACE), ManagementRegistryServiceConfigurationParser.class.getResource("/ehcache-management-ext.xsd")));
   }
 
   @Override
-  public URI getNamespace() {
-    return NAMESPACE_URI;
-  }
-
-  @Override
-  public ServiceCreationConfiguration<ManagementRegistryService, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
-    if ("management".equals(fragment.getLocalName())) {
+  public DefaultManagementRegistryConfiguration parse(Element fragment, ClassLoader classLoader) {
+    if (MANAGEMENT_ELEMENT_NAME.equals(fragment.getLocalName())) {
       DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration();
 
       // ATTR: cache-manager-alias
-      if (fragment.hasAttribute("cache-manager-alias")) {
-        registryConfiguration.setCacheManagerAlias(attr(fragment, "cache-manager-alias"));
+      if (fragment.hasAttribute(CACHE_MANAGER_ATTRIBUTE_NAME)) {
+        registryConfiguration.setCacheManagerAlias(attr(fragment, CACHE_MANAGER_ATTRIBUTE_NAME));
       }
 
       // ATTR: collector-executor-alias
-      if (fragment.hasAttribute("collector-executor-alias")) {
-        registryConfiguration.setCollectorExecutorAlias(attr(fragment, "collector-executor-alias"));
+      if (fragment.hasAttribute(COLLECTOR_EXECUTOR_ATTRIBUTE_NAME)) {
+        registryConfiguration.setCollectorExecutorAlias(attr(fragment, COLLECTOR_EXECUTOR_ATTRIBUTE_NAME));
       }
 
       // tags
-      for (Element tags : NodeListIterable.elements(fragment, NAMESPACE, "tags")) {
+      for (Element tags : NodeListIterable.elements(fragment, NAMESPACE, TAGS_NAME)) {
         // tag
-        for (Element tag : NodeListIterable.elements(tags, NAMESPACE, "tag")) {
-          String val = JaxbParsers.parsePropertyOrString(tag.getTextContent());
+        for (Element tag : NodeListIterable.elements(tags, NAMESPACE, TAG_NAME)) {
+          String val = parsePropertyOrString(tag.getTextContent());
           if (!val.isEmpty()) {
             registryConfiguration.addTag(val);
           }
@@ -83,8 +72,8 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
 
     } else {
       throw new XmlConfigurationException(String.format(
-          "XML configuration element <%s> in <%s> is not supported",
-          fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
+        "XML configuration element <%s> in <%s> is not supported",
+        fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
 
@@ -99,12 +88,7 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<ManagementRegistryService, ?> serviceCreationConfiguration) {
-    return unparseConfig(serviceCreationConfiguration);
-  }
-
-  @Override
-  protected Element createRootElement(Document doc, DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration) {
+  public Element safeUnparse(Document doc, DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration) {
     Element rootElement = doc.createElementNS(NAMESPACE,MANAGEMENT_NAMESPACE_PREFIX + MANAGEMENT_ELEMENT_NAME);
     rootElement.setAttribute(CACHE_MANAGER_ATTRIBUTE_NAME, defaultManagementRegistryConfiguration.getCacheManagerAlias());
     rootElement.setAttribute(COLLECTOR_EXECUTOR_ATTRIBUTE_NAME, defaultManagementRegistryConfiguration.getCollectorExecutorAlias());
@@ -114,9 +98,9 @@ public class ManagementRegistryServiceConfigurationParser extends BaseConfigPars
 
   private void processManagementTags(Document doc, Element parent, DefaultManagementRegistryConfiguration defaultManagementRegistryConfiguration) {
     if (!defaultManagementRegistryConfiguration.getTags().isEmpty()) {
-      Element tagsName = doc.createElement(MANAGEMENT_NAMESPACE_PREFIX + TAGS_NAME);
+      Element tagsName = doc.createElementNS(NAMESPACE, MANAGEMENT_NAMESPACE_PREFIX + TAGS_NAME);
       for (String tag : defaultManagementRegistryConfiguration.getTags()) {
-        Element tagName = doc.createElement(MANAGEMENT_NAMESPACE_PREFIX + TAG_NAME);
+        Element tagName = doc.createElementNS(NAMESPACE, MANAGEMENT_NAMESPACE_PREFIX + TAG_NAME);
         tagName.setTextContent(tag);
         tagsName.appendChild(tagName);
       }

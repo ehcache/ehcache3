@@ -42,11 +42,11 @@ import static org.ehcache.testing.StandardCluster.clusterPath;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsIn.isIn;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.any;
-import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.Matchers.any;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.fail;
 
 public class ClusteredIterationTest {
@@ -121,7 +121,7 @@ public class ClusteredIterationTest {
       } catch (NoSuchElementException e) {
         //expected
       }
-      foundKeys.forEach(k -> assertThat(k, isIn(initialKeySet)));
+      foundKeys.forEach(k -> assertThat(k, is(in(initialKeySet))));
     }
   }
 

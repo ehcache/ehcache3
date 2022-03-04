@@ -16,19 +16,24 @@
 
 package org.ehcache.transactions.xa.txmgr.provider;
 
+import org.ehcache.transactions.xa.internal.TypeUtil;
 import org.junit.Test;
 
+import javax.transaction.TransactionManager;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 
 public class LookupTransactionManagerProviderConfigurationTest {
 
   @Test
   public void testDeriveDetachesCorrectly() {
-    LookupTransactionManagerProviderConfiguration configuration = new LookupTransactionManagerProviderConfiguration(mock(TransactionManagerLookup.class).getClass());
+    LookupTransactionManagerProviderConfiguration configuration = new LookupTransactionManagerProviderConfiguration(
+        TypeUtil.<Class<? extends TransactionManagerLookup<TransactionManager>>>uncheckedCast(
+          mock(TransactionManagerLookup.class).getClass()));
     LookupTransactionManagerProviderConfiguration derived = configuration.build(configuration.derive());
 
     assertThat(derived, is(not(sameInstance(configuration))));

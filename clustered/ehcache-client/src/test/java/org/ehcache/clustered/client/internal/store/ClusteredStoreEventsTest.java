@@ -67,7 +67,7 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -344,7 +344,7 @@ public class ClusteredStoreEventsTest {
   @Test
   public void testOnInvalidateHash_chainFiresEvictedEvents() {
     Chain evictedChain = ChainUtils.chainOf(op(new PutOperation<>(1L, "one", testTimeSource.getTimeMillis())), op(new PutOperation<>(2L, "two", testTimeSource.getTimeMillis())));
-    serverCallback.onInvalidateHash(1L, evictedChain);
+    serverCallback.onEvictInvalidateHash(1L, evictedChain);
 
     verify(storeEventSink).evicted(eq(1L), argThat(supplies("one")));
     verify(storeEventSink).evicted(eq(2L), argThat(supplies("two")));
@@ -353,7 +353,7 @@ public class ClusteredStoreEventsTest {
 
   @Test
   public void testOnInvalidateHash_noChainFiresNoEvent() {
-    serverCallback.onInvalidateHash(1L, null);
+    serverCallback.onEvictInvalidateHash(1L, null);
 
     verifyNoMoreInteractions(storeEventSink);
   }

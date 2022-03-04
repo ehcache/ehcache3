@@ -49,9 +49,9 @@ import java.util.Set;
 
 import static java.util.Collections.singleton;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;

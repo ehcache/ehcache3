@@ -50,8 +50,8 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.hamcrest.core.IsNull.nullValue;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 public class ClusteredEventsTest {

@@ -29,16 +29,18 @@ import org.ehcache.xml.provider.DefaultSizeOfEngineProviderConfigurationParser;
 import org.ehcache.xml.provider.OffHeapDiskStoreProviderConfigurationParser;
 import org.ehcache.xml.provider.PooledExecutionServiceConfigurationParser;
 import org.ehcache.xml.provider.WriteBehindProviderConfigurationParser;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toMap;
-import static java.util.function.Function.identity;
+import static org.ehcache.xml.XmlUtil.findMatchingNodeInDocument;
 
 public class ServiceCreationConfigurationParser {
 
@@ -53,35 +55,36 @@ public class ServiceCreationConfigurationParser {
     new WriteBehindProviderConfigurationParser()
   );
 
-  private final Map<Class<?>, CacheManagerServiceConfigurationParser<?>> extensionParsers;
+  private final Map<Class<?>, CacheManagerServiceConfigurationParser<?, ?>> extensionParsers;
 
-  public ServiceCreationConfigurationParser(Map<Class<?>, CacheManagerServiceConfigurationParser<?>> extensionParsers) {
+  public ServiceCreationConfigurationParser(Map<Class<?>, CacheManagerServiceConfigurationParser<?, ?>> extensionParsers) {
     this.extensionParsers = extensionParsers;
   }
 
-  FluentConfigurationBuilder<?> parseServiceCreationConfiguration(ConfigType configRoot, ClassLoader classLoader, FluentConfigurationBuilder<?> managerBuilder) throws ClassNotFoundException {
+  FluentConfigurationBuilder<?> parse(Document document, ConfigType configRoot, ClassLoader classLoader, FluentConfigurationBuilder<?> managerBuilder) throws ClassNotFoundException {
     for (CoreServiceCreationConfigurationParser<ConfigType> parser : CORE_SERVICE_CREATION_CONFIGURATION_PARSERS) {
       managerBuilder = parser.parseServiceCreationConfiguration(configRoot, classLoader, managerBuilder);
     }
 
-    Map<URI, CacheManagerServiceConfigurationParser<?>> parsers = extensionParsers.values().stream().
-     collect(toMap(CacheManagerServiceConfigurationParser::getNamespace, identity()));
+    Map<URI, ? extends CacheManagerServiceConfigurationParser<?, ?>> parsers = extensionParsers.values().stream()
+      .flatMap(parser -> parser.getTargetNamespaces().stream().map(ns -> new AbstractMap.SimpleImmutableEntry<>(ns, parser)))
+      .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+
     for (ServiceType serviceType : configRoot.getService()) {
-      Element element = serviceType.getServiceCreationConfiguration();
+      Element element = (Element) findMatchingNodeInDocument(document, serviceType.getServiceCreationConfiguration()).cloneNode(true);
       URI namespace = URI.create(element.getNamespaceURI());
-      CacheManagerServiceConfigurationParser<?> cacheManagerServiceConfigurationParser = parsers.get(namespace);
+      CacheManagerServiceConfigurationParser<?, ?> cacheManagerServiceConfigurationParser = parsers.get(namespace);
       if(cacheManagerServiceConfigurationParser == null) {
         throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
       }
-      ServiceCreationConfiguration<?, ?> serviceConfiguration = cacheManagerServiceConfigurationParser.parseServiceCreationConfiguration(element, classLoader);
+      ServiceCreationConfiguration<?, ?> serviceConfiguration = cacheManagerServiceConfigurationParser.parse(element, classLoader);
       managerBuilder = managerBuilder.withService(serviceConfiguration);
     }
 
     return managerBuilder;
   }
 
-
-  ConfigType unparseServiceCreationConfiguration(Configuration configuration, ConfigType configType) {
+  ConfigType unparse(Document target, Configuration configuration, ConfigType configType) {
     for (CoreServiceCreationConfigurationParser<ConfigType> parser : CORE_SERVICE_CREATION_CONFIGURATION_PARSERS) {
       parser.unparseServiceCreationConfiguration(configuration, configType);
     }
@@ -93,7 +96,7 @@ public class ServiceCreationConfigurationParser {
       if (parser != null) {
         ServiceType serviceType = new ServiceType();
         @SuppressWarnings("unchecked")
-        Element element = parser.unparseServiceCreationConfiguration(config);
+        Element element = parser.unparse(target, config);
         serviceType.setServiceCreationConfiguration(element);
         services.add(serviceType);
       }

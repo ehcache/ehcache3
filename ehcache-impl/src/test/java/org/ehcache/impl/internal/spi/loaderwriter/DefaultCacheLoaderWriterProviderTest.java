@@ -28,8 +28,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -37,9 +35,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class DefaultCacheLoaderWriterProviderTest {
@@ -99,7 +98,7 @@ public class DefaultCacheLoaderWriterProviderTest {
             .build());
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
+    assertThat(serviceConfiguration, hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
     cacheManager.close();
   }
 
@@ -114,12 +113,12 @@ public class DefaultCacheLoaderWriterProviderTest {
     loaderWriterProvider.start(serviceProvider);
     @SuppressWarnings("unchecked")
     CacheConfiguration<Object, Object> cacheConfiguration = mock(CacheConfiguration.class);
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), CoreMatchers.instanceOf(MyLoader.class));
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), instanceOf(MyLoader.class));
 
     loaderWriterProvider.stop();
     loaderWriterProvider.start(serviceProvider);
 
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), CoreMatchers.instanceOf(MyLoader.class));
+    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), instanceOf(MyLoader.class));
   }
 
   public static class MyLoader implements CacheLoaderWriter<Object, Object> {

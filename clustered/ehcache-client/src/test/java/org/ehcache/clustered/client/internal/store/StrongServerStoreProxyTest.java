@@ -36,8 +36,8 @@ import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.matchesChain;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -52,15 +52,21 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.STRONG, true);
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.STRONG, false);
 
-    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store1EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
     final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
-    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2AppendInvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Long> store2EvictInvalidatedHashes = new CopyOnWriteArrayList<>();
     final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity1, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
-        store1InvalidatedHashes.add(hash);
+      public void onAppendInvalidateHash(long hash) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+        store1EvictInvalidatedHashes.add(hash);
       }
 
       @Override
@@ -80,8 +86,13 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     });
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testServerSideEvictionFiresInvalidations", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
-        store2InvalidatedHashes.add(hash);
+      public void onAppendInvalidateHash(long hash) {
+        store2AppendInvalidatedHashes.add(hash);
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+        store2EvictInvalidatedHashes.add(hash);
       }
 
       @Override
@@ -105,24 +116,22 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     }
 
     int evictionCount = 0;
-    int entryCount = 0;
     for (int i = 0; i < ITERATIONS; i++) {
       Chain elements1 = serverStoreProxy1.get(i);
       Chain elements2 = serverStoreProxy2.get(i);
       assertThat(elements2, matchesChain(elements2));
-      if (!elements1.isEmpty()) {
-        entryCount++;
-      } else {
+      if (elements1.isEmpty()) {
         evictionCount++;
       }
     }
 
     // there has to be server-side evictions, otherwise this test is useless
-    assertThat(store1InvalidatedHashes.size(), greaterThan(0));
-    // test that each time the server evicted, the originating client got notified
-    assertThat(store1InvalidatedHashes.size(), is(ITERATIONS - entryCount));
-    // test that each time the server evicted, the other client got notified on top of normal invalidations
-    assertThat(store2InvalidatedHashes.size(), is(ITERATIONS + evictionCount));
+    assertThat(evictionCount, greaterThan(0));
+    // test that each time the server evicted, the all the clients got notified
+    assertThat(store1EvictInvalidatedHashes.size(), is(evictionCount));
+    assertThat(store2EvictInvalidatedHashes.size(), is(evictionCount));
+    // test that each time the client mutated, the other client got notified
+    assertThat(store2AppendInvalidatedHashes.size(), is(ITERATIONS));
     assertThat(store1InvalidatedAll.get(), is(false));
     assertThat(store2InvalidatedAll.get(), is(false));
   }
@@ -138,8 +147,13 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithAppend", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
         invalidatedHash.set(hash);
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+        fail("should not be called");
       }
 
       @Override
@@ -175,7 +189,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentHashInvalidationListenerWithAppend", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
         if (!invalidating.compareAndSet(false, true)) {
           fail("Both threads entered the listener concurrently");
         }
@@ -186,6 +200,11 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
         }
         invalidating.set(false);
         latch.countDown();
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+        fail("should not be called");
       }
 
       @Override
@@ -234,8 +253,13 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testHashInvalidationListenerWithGetAndAppend", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
         invalidatedHash.set(hash);
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+        fail("should not be called");
       }
 
       @Override
@@ -270,7 +294,12 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAllInvalidationListener", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAllInvalidationListener", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
+        throw new AssertionError("Should not be called");
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
         throw new AssertionError("Should not be called");
       }
 
@@ -306,7 +335,12 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testConcurrentAllInvalidationListener", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
+        throw new AssertionError("Should not be called");
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
         throw new AssertionError("Should not be called");
       }
 
@@ -364,8 +398,13 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
         clientEntity1.fireDisconnectionEvent();
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+        fail("should not be called");
       }
 
       @Override
@@ -401,7 +440,12 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
+        throw new AssertionError("Should not be called");
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
         throw new AssertionError("Should not be called");
       }
 

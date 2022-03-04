@@ -21,9 +21,9 @@ import org.junit.Test;
 
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class DefaultCacheLoaderWriterConfigurationTest {
 

@@ -29,16 +29,18 @@ import org.ehcache.xml.service.DefaultSerializerConfigurationParser;
 import org.ehcache.xml.service.DefaultSizeOfEngineConfigurationParser;
 import org.ehcache.xml.service.DefaultWriteBehindConfigurationParser;
 import org.ehcache.xml.service.OffHeapDiskStoreConfigurationParser;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.net.URI;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
+import static org.ehcache.xml.XmlUtil.findMatchingNodeInDocument;
 
 public class ServiceConfigurationParser {
 
@@ -54,33 +56,36 @@ public class ServiceConfigurationParser {
     new DefaultCacheEventListenerConfigurationParser()
   );
 
-  private final Map<Class<?>, CacheServiceConfigurationParser<?>> extensionParsers;
+  private final Map<Class<?>, CacheServiceConfigurationParser<?, ?>> extensionParsers;
 
-  public ServiceConfigurationParser(Map<Class<?>, CacheServiceConfigurationParser<?>> extensionParsers) {
+  public ServiceConfigurationParser(Map<Class<?>, CacheServiceConfigurationParser<?, ?>> extensionParsers) {
     this.extensionParsers = extensionParsers;
   }
 
-  public <K, V> CacheConfigurationBuilder<K, V> parseConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
-                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
+  public <K, V> CacheConfigurationBuilder<K, V> parse(Document document, CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
+                                                      CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException {
     for (CoreServiceConfigurationParser<CacheTemplate, CacheType> coreServiceConfigParser : CORE_SERVICE_CONFIGURATION_PARSERS) {
       cacheBuilder = coreServiceConfigParser.parseServiceConfiguration(cacheDefinition, cacheClassLoader, cacheBuilder);
     }
 
-    Map<URI, CacheServiceConfigurationParser<?>> parsers = extensionParsers.values().stream().
-      collect(toMap(CacheServiceConfigurationParser::getNamespace, identity()));
+    Map<URI, ? extends CacheServiceConfigurationParser<?, ?>> parsers = extensionParsers.values().stream()
+      .flatMap(parser -> parser.getTargetNamespaces().stream().map(ns -> new AbstractMap.SimpleImmutableEntry<>(ns, parser)))
+      .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+
     for (Element element : cacheDefinition.serviceConfigExtensions()) {
-      URI namespace = URI.create(element.getNamespaceURI());
-      final CacheServiceConfigurationParser<?> xmlConfigurationParser = parsers.get(namespace);
+      Element typedElement = (Element) findMatchingNodeInDocument(document, element).cloneNode(true);
+      URI namespace = URI.create(typedElement.getNamespaceURI());
+      final CacheServiceConfigurationParser<?, ?> xmlConfigurationParser = parsers.get(namespace);
       if(xmlConfigurationParser == null) {
         throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
       }
-      cacheBuilder = cacheBuilder.withService(xmlConfigurationParser.parseServiceConfiguration(element, cacheClassLoader));
+      cacheBuilder = cacheBuilder.withService(xmlConfigurationParser.parse(typedElement, cacheClassLoader));
     }
 
     return cacheBuilder;
   }
 
-  CacheType unparseServiceConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
+  CacheType unparse(Document target, CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
     for (CoreServiceConfigurationParser<CacheTemplate, CacheType> parser : CORE_SERVICE_CONFIGURATION_PARSERS) {
       parser.unparseServiceConfiguration(cacheConfiguration, cacheType);
     }
@@ -91,7 +96,7 @@ public class ServiceConfigurationParser {
       CacheServiceConfigurationParser parser = extensionParsers.get(config.getServiceType());
       if (parser != null) {
         @SuppressWarnings("unchecked")
-        Element element = parser.unparseServiceConfiguration(config);
+        Element element = parser.unparse(target, config);
         serviceConfigs.add(element);
       }
     });

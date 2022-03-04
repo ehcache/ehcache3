@@ -31,7 +31,6 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
 
 import java.nio.ByteBuffer;
@@ -45,11 +44,13 @@ import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -57,12 +58,11 @@ import static org.mockito.Mockito.verify;
 
 public abstract class AbstractChainResolverTest {
 
-  private static OperationsCodec<Long, String> codec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
+  private static final OperationsCodec<Long, String> codec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
 
   protected abstract ChainResolver<Long, String> createChainResolver(ExpiryPolicy<? super Long, ? super String> expiryPolicy, OperationsCodec<Long, String> codec);
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testResolveMaintainsOtherKeysInOrder() {
     PutOperation<Long, String> expected = new PutOperation<>(1L, "Suresh", 0L);
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
@@ -781,11 +781,6 @@ public abstract class AbstractChainResolverTest {
   }
 
   <T> T argThat(Matcher<? super T> matches) {
-    return ArgumentMatchers.argThat(new ArgumentMatcher<T>() {
-      @Override
-      public boolean matches(T argument) {
-        return matches.matches(argument);
-      }
-    });
+    return ArgumentMatchers.argThat(matches::matches);
   }
 }

@@ -1,0 +1,16 @@
+plugins {
+  id 'org.ehcache.build.internal-module'
+}
+
+dependencies {
+  api project(':ehcache-api')
+  implementation project(':ehcache-core')
+}
+
+jar {
+  bnd (
+    'Export-Package': 'org.ehcache.xml.*',
+    'Import-Package': "*"
+  )
+}
+

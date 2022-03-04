@@ -27,8 +27,8 @@ import java.nio.ByteBuffer;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.BYTE_SIZE_BYTES;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.LONG_SIZE_BYTES;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 

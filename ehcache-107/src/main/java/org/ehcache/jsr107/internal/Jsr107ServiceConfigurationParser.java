@@ -20,20 +20,14 @@ import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.jsr107.Jsr107Service;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
 import java.util.HashMap;
-
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
 
 import static java.lang.Boolean.parseBoolean;
 
@@ -41,10 +35,8 @@ import static java.lang.Boolean.parseBoolean;
  * @author Alex Snaps
  */
 @Component
-public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConfigurationParser<Jsr107Service> {
+public class Jsr107ServiceConfigurationParser extends Jsr107Parser<Jsr107Configuration> implements CacheManagerServiceConfigurationParser<Jsr107Service, Jsr107Configuration> {
 
-  private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
-  private static final URL XML_SCHEMA = Jsr107ServiceConfigurationParser.class.getResource("/ehcache-107-ext.xsd");
   private static final String ENABLE_MANAGEMENT_ALL_ATTRIBUTE = "enable-management";
   private static final String JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE = "jsr-107-compliant-atomics";
   private static final String ENABLE_STATISTICS_ALL_ATTRIBUTE = "enable-statistics";
@@ -53,17 +45,7 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   private static final String TEMPLATE_NAME_ATTRIBUTE = "template";
 
   @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
-  }
-
-  @Override
-  public URI getNamespace() {
-    return NAMESPACE;
-  }
-
-  @Override
-  public ServiceCreationConfiguration<Jsr107Service, ?> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
+  public Jsr107Configuration parse(final Element fragment, ClassLoader classLoader) {
     boolean jsr107CompliantAtomics = true;
     ConfigurationElementState enableManagementAll = ConfigurationElementState.UNSPECIFIED;
     ConfigurationElementState enableStatisticsAll = ConfigurationElementState.UNSPECIFIED;
@@ -96,7 +78,7 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Jsr107Service, ?> serviceCreationConfiguration) {
+  public Element safeUnparse(Document target, Jsr107Configuration serviceCreationConfiguration) {
     throw new XmlConfigurationException("XML translation of JSR-107 cache elements are not supported");
   }
 

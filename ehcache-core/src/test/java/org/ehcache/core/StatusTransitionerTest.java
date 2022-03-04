@@ -30,9 +30,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -45,7 +46,7 @@ public class StatusTransitionerTest {
   @Test
   public void testTransitionsToLowestStateOnFailure() {
     StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
-    assertThat(transitioner.currentStatus(), CoreMatchers.is(Status.UNINITIALIZED));
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     transitioner.init().failed(new Throwable());
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     transitioner.init().succeeded();
@@ -158,7 +159,7 @@ public class StatusTransitionerTest {
       transitioner.init().succeeded();
       fail();
     } catch (StateTransitionException e) {
-      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(toBeThrown));
+      assertThat(e.getCause(), sameInstance(toBeThrown));
     }
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     reset(mock);
@@ -168,7 +169,7 @@ public class StatusTransitionerTest {
       transitioner.close().succeeded();
       fail();
     } catch (StateTransitionException e) {
-      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(toBeThrown));
+      assertThat(e.getCause(), sameInstance(toBeThrown));
     }
   }
 
@@ -185,12 +186,12 @@ public class StatusTransitionerTest {
     transitioner.addHook(first);
     transitioner.addHook(second);
     transitioner.init().succeeded();
-    assertThat(order.get(0), CoreMatchers.<LifeCycled>sameInstance(first));
-    assertThat(order.get(1), CoreMatchers.<LifeCycled>sameInstance(second));
+    assertThat(order.get(0), sameInstance(first));
+    assertThat(order.get(1), sameInstance(second));
     order.clear();
     transitioner.close().succeeded();
-    assertThat(order.get(0), CoreMatchers.<LifeCycled>sameInstance(second));
-    assertThat(order.get(1), CoreMatchers.<LifeCycled>sameInstance(first));
+    assertThat(order.get(0), sameInstance(second));
+    assertThat(order.get(1), sameInstance(first));
   }
 
   @Test

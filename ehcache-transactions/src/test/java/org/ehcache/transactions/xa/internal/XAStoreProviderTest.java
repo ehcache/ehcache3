@@ -35,6 +35,7 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.junit.Test;
 
+import javax.transaction.TransactionManager;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -55,7 +56,7 @@ public class XAStoreProviderTest {
     JournalProvider journalProvider = mock(JournalProvider.class);
     when(journalProvider.getJournal(null, null)).thenReturn(mock(Journal.class));
 
-    TransactionManagerProvider transactionManagerProvider = mock(TransactionManagerProvider.class);
+    TransactionManagerProvider<TransactionManager> transactionManagerProvider = mock(TransactionManagerProvider.class);
     when(transactionManagerProvider.getTransactionManagerWrapper()).thenReturn(mock(TransactionManagerWrapper.class));
 
     ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);

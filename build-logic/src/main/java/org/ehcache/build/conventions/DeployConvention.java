@@ -87,6 +87,7 @@ public class DeployConvention implements Plugin<Project> {
             creds.setUsername(project.property("deployUser").toString());
             creds.setPassword(project.property("deployPwd").toString());
           });
+          maven.setAllowInsecureProtocol(true);
         } else {
           maven.setName("sonatype-nexus-snapshot");
           maven.setUrl("https://oss.sonatype.org/content/repositories/snapshots");

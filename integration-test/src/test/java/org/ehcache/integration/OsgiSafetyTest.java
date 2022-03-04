@@ -20,7 +20,7 @@ import org.ehcache.core.osgi.SafeOsgi;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 public class OsgiSafetyTest {

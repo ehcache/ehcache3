@@ -27,7 +27,8 @@ publishing.publications.withType(MavenPublication) {
 
 dependencies {
   api project(':ehcache-impl')
-  api project(':ehcache-xml')
+
+  compileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
 
   implementation project(':clustered:ehcache-common')
   implementation "org.terracotta:entity-client-api:$terracottaApisVersion"

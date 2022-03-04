@@ -25,7 +25,6 @@ import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -34,9 +33,10 @@ import java.util.Map;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThrows;
 
 /**
@@ -61,7 +61,7 @@ public class WriteBehindProviderFactoryTest {
             .build());
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, hasItem(instanceOf(WriteBehindConfiguration.class)));
     cacheManager.close();
   }
 

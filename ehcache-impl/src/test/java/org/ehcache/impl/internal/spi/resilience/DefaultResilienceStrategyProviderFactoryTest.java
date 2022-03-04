@@ -25,8 +25,8 @@ import org.junit.Test;
 
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 
 public class DefaultResilienceStrategyProviderFactoryTest {

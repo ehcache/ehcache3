@@ -90,5 +90,5 @@ include::{sourcedir310}/ehcache-107/src/main/resources/ehcache-107-ext.xsd[lines
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir310}/ehcache-transactions/src/main/resources/ehcache-tx-ext.xsd[lines=18..-1]
+include::{sourcedir310}/ehcache-transactions/src/common/resources/ehcache-tx-ext.xsd[lines=18..-1]
 ----

@@ -51,7 +51,7 @@ import static org.ehcache.xml.XmlConfiguration.PrettyClassFormat.when;
  */
 public class XmlConfiguration implements Configuration {
 
-  public static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+  public static final URL CORE_SCHEMA_URL = requireNonNull(XmlConfiguration.class.getResource("/ehcache-core.xsd"));
 
   private final URL source;
   private final Document document;
@@ -265,7 +265,6 @@ public class XmlConfiguration implements Configuration {
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  @SuppressWarnings("unchecked")
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
@@ -299,7 +298,6 @@ public class XmlConfiguration implements Configuration {
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  @SuppressWarnings("unchecked")
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
@@ -334,7 +332,6 @@ public class XmlConfiguration implements Configuration {
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  @SuppressWarnings("unchecked")
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
@@ -395,11 +392,11 @@ public class XmlConfiguration implements Configuration {
       try {
         return forName(n, false, l);
       } catch (ClassNotFoundException e) {
-        int innerSeperator = n.lastIndexOf(".");
-        if (innerSeperator == -1) {
+        int innerSeparator = n.lastIndexOf(".");
+        if (innerSeparator == -1) {
           throw e;
         } else {
-          return forName(n.substring(0, innerSeperator) + "$" + n.substring(innerSeperator + 1), false, l);
+          return forName(n.substring(0, innerSeparator) + "$" + n.substring(innerSeparator + 1), false, l);
         }
       }
     }),

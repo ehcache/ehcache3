@@ -115,7 +115,7 @@ public class XAStoreTest {
   @SuppressWarnings("unchecked")
   private final Class<SoftLock<String>> valueClass = (Class) SoftLock.class;
   private final TestTransactionManager testTransactionManager = new TestTransactionManager();
-  private TransactionManagerWrapper transactionManagerWrapper;
+  private TransactionManagerWrapper<TransactionManager> transactionManagerWrapper;
   private OnHeapStore<Long, SoftLock<String>> onHeapStore;
   private Journal<Long> journal;
   private TestTimeSource testTimeSource;
@@ -129,7 +129,7 @@ public class XAStoreTest {
 
   @Before
   public void setUp() {
-    transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    transactionManagerWrapper = new TransactionManagerWrapper<>(testTransactionManager, new NullXAResourceRegistry());
     classLoader = ClassLoader.getSystemClassLoader();
     keySerializer = new JavaSerializer<>(classLoader);
     valueSerializer = new JavaSerializer<>(classLoader);

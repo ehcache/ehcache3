@@ -18,39 +18,31 @@ package org.ehcache.xml;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Supplier;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 /**
  * BarParser
  */
-public class BarParser implements CacheManagerServiceConfigurationParser<Service> {
+public class BarParser implements CacheManagerServiceConfigurationParser<Service, ServiceCreationConfiguration<Service, ?>> {
 
-  private static final URI NAMESPACE = URI.create("http://www.example.com/bar");
-  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/bar.xsd");
+  private static final String NAMESPACE = "http://www.example.com/bar";
 
   @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
+  public Map<URI, Supplier<Source>> getSchema() {
+    return Collections.singletonMap(URI.create(NAMESPACE), () -> new StreamSource(getClass().getResourceAsStream("/configs/bar.xsd")));
   }
 
   @Override
-  public URI getNamespace() {
-    return NAMESPACE;
-  }
-
-  @Override
-  public ServiceCreationConfiguration<Service, ?> parseServiceCreationConfiguration(Element fragment, ClassLoader classLoader) {
+  public ServiceCreationConfiguration<Service, ?> parse(Element fragment, ClassLoader classLoader) {
     return new BarConfiguration();
   }
 
@@ -60,12 +52,7 @@ public class BarParser implements CacheManagerServiceConfigurationParser<Service
   }
 
   @Override
-  public Element unparseServiceCreationConfiguration(ServiceCreationConfiguration<Service, ?> serviceCreationConfiguration) {
-    try {
-      Document document = XmlUtil.createAndGetDocumentBuilder().newDocument();
-      return document.createElementNS(NAMESPACE.toString(), "bar:bar");
-    } catch (SAXException | ParserConfigurationException | IOException e) {
-      throw new XmlConfigurationException(e);
-    }
+  public Element unparse(Document target, ServiceCreationConfiguration<Service, ?> serviceCreationConfiguration) {
+    return target.createElementNS(NAMESPACE, "bar:bar");
   }
 }

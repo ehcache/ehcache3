@@ -16,99 +16,76 @@
 package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.config.builders.ServerSideConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.config.Builder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.ehcache.xml.model.TimeTypeWithPropSubst;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.TypeInfo;
 
-
-import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.helpers.DefaultValidationEventHandler;
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
-
-import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
-import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
-import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.TC_CLUSTERED_NAMESPACE_PREFIX;
-import static org.ehcache.xml.XmlModel.convertToJavaTimeUnit;
+import static java.lang.String.format;
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrPositiveInteger;
+import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
+import static org.ehcache.xml.ParsingUtil.parseStringWithProperties;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.
- *
- * @see ClusteredCacheConstants#XSD
  */
 @Component
-public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfigParser<ClusteringServiceConfiguration> implements CacheManagerServiceConfigurationParser<ClusteringService> {
+public class ClusteringCacheManagerServiceConfigurationParser extends ClusteringParser<ClusteringServiceConfiguration>
+  implements CacheManagerServiceConfigurationParser<ClusteringService, ClusteringServiceConfiguration> {
 
-  public static final String CLUSTER_ELEMENT_NAME = "cluster";
   public static final String CONNECTION_ELEMENT_NAME = "connection";
   public static final String CLUSTER_CONNECTION_ELEMENT_NAME = "cluster-connection";
-  public static final String CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME = "cluster-tier-manager";
-  public static final String SERVER_ELEMENT_NAME = "server";
-  public static final String HOST_ATTRIBUTE_NAME = "host";
-  public static final String PORT_ATTRIBUTE_NAME = "port";
-  public static final String READ_TIMEOUT_ELEMENT_NAME = "read-timeout";
-  public static final String WRITE_TIMEOUT_ELEMENT_NAME = "write-timeout";
-  public static final String CONNECTION_TIMEOUT_ELEMENT_NAME = "connection-timeout";
-  public static final String URL_ATTRIBUTE_NAME = "url";
-  public static final String DEFAULT_RESOURCE_ELEMENT_NAME = "default-resource";
-  public static final String SHARED_POOL_ELEMENT_NAME = "shared-pool";
-  public static final String SERVER_SIDE_CONFIG = "server-side-config";
-  public static final String AUTO_CREATE_ATTRIBUTE_NAME = "auto-create";
-  public static final String CLIENT_MODE_ATTRIBUTE_NAME = "client-mode";
-  public static final String UNIT_ATTRIBUTE_NAME = "unit";
-  public static final String NAME_ATTRIBUTE_NAME = "name";
-  public static final String FROM_ATTRIBUTE_NAME = "from";
-  public static final String DEFAULT_UNIT_ATTRIBUTE_VALUE = "seconds";
+  public static final String SERVER_SIDE_CONFIG_ELEMENT_NAME = "server-side-config";
 
-  public ClusteringCacheManagerServiceConfigurationParser() {
-    super(ClusteringServiceConfiguration.class);
-  }
-
-  @Override
-  public Source getXmlSchema() throws IOException {
-    return new StreamSource(XML_SCHEMA.openStream());
-  }
-
-  @Override
-  public URI getNamespace() {
-    return NAMESPACE;
-  }
+  private static final String CLUSTER_ELEMENT_NAME = "cluster";
+  private static final String CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME = "cluster-tier-manager";
+  private static final String SERVER_ELEMENT_NAME = "server";
+  private static final String HOST_ATTRIBUTE_NAME = "host";
+  private static final String PORT_ATTRIBUTE_NAME = "port";
+  private static final String READ_TIMEOUT_ELEMENT_NAME = "read-timeout";
+  private static final String WRITE_TIMEOUT_ELEMENT_NAME = "write-timeout";
+  private static final String CONNECTION_TIMEOUT_ELEMENT_NAME = "connection-timeout";
+  private static final String URL_ATTRIBUTE_NAME = "url";
+  private static final String DEFAULT_RESOURCE_ELEMENT_NAME = "default-resource";
+  private static final String SHARED_POOL_ELEMENT_NAME = "shared-pool";
+  private static final String AUTO_CREATE_ATTRIBUTE_NAME = "auto-create";
+  private static final String CLIENT_MODE_ATTRIBUTE_NAME = "client-mode";
+  private static final String UNIT_ATTRIBUTE_NAME = "unit";
+  private static final String NAME_ATTRIBUTE_NAME = "name";
+  private static final String FROM_ATTRIBUTE_NAME = "from";
+  private static final String DEFAULT_UNIT_ATTRIBUTE_VALUE = "seconds";
 
   /**
-   * Complete interpretation of the top-level elements defined in <code>{@value ClusteredCacheConstants#XSD}</code>.
-   * This method is called only for those elements from the namespace set by {@link ClusteredCacheConstants#NAMESPACE}.
+   * Complete interpretation of the top-level elements defined in <code>{@link ClusteringParser#NAMESPACE}</code>.
+   * This method is called only for those elements from that namespace.
    * <p>
    * This method presumes the element presented is valid according to the XSD.
    *
@@ -117,115 +94,172 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
    * @return a {@link org.ehcache.clustered.client.config.ClusteringServiceConfiguration ClusteringServiceConfiguration}
    */
   @Override
-  public ServiceCreationConfiguration<ClusteringService, ?> parseServiceCreationConfiguration(final Element fragment, ClassLoader classLoader) {
-
+  public ClusteringServiceConfiguration parse(final Element fragment, ClassLoader classLoader) {
     if (CLUSTER_ELEMENT_NAME.equals(fragment.getLocalName())) {
+      return parseServerBehavior(parseConnection(fragment)
+        .timeouts(parseTimeouts(fragment)), fragment).build();
+    } else {
+      throw new XmlConfigurationException(format("XML configuration element <%s> in <%s> is not supported",
+        fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
+    }
+  }
 
-      ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig serverConfig = null;
-      URI connectionUri = null;
+  protected ClusteringServiceConfigurationBuilder parseConnection(Element cluster) {
+    Optional<Element> connectionElement = childElementOf(cluster, element ->
+      (element.getNamespaceURI().equals(NAMESPACE) && element.getLocalName().equals(CONNECTION_ELEMENT_NAME))
+        || element.getSchemaTypeInfo().isDerivedFrom(NAMESPACE, "connection-spec", TypeInfo.DERIVATION_EXTENSION)
+    );
+    Optional<Element> clusterConnectionElement = childElementOf(cluster, element ->
+      (element.getNamespaceURI().equals(NAMESPACE) && element.getLocalName().equals(CLUSTER_CONNECTION_ELEMENT_NAME))
+        || element.getSchemaTypeInfo().isDerivedFrom(NAMESPACE, "cluster-connection-spec", TypeInfo.DERIVATION_EXTENSION)
+    );
+
+    if (clusterConnectionElement.isPresent()) {
+      Element clusterConnection = clusterConnectionElement.get();
+      String clusterTierManager = parsePropertyOrString(clusterConnection.getAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME));
       List<InetSocketAddress> serverAddresses = new ArrayList<>();
-      String clusterTierManager = null;
-      Duration getTimeout = null, putTimeout = null, connectionTimeout = null;
-      final NodeList childNodes = fragment.getChildNodes();
-      for (int i = 0; i < childNodes.getLength(); i++) {
-        final Node item = childNodes.item(i);
-        if (Node.ELEMENT_NODE == item.getNodeType()) {
-          switch (item.getLocalName()) {
-            case CONNECTION_ELEMENT_NAME:
-              /*
-               * <connection> is a required element in the XSD
-               */
-              final Attr urlAttribute = ((Element)item).getAttributeNode(URL_ATTRIBUTE_NAME);
-              final String urlValue = JaxbParsers.parseStringWithProperties(urlAttribute.getValue());
-              try {
-                connectionUri = new URI(urlValue);
-              } catch (URISyntaxException e) {
-                throw new XmlConfigurationException(
-                  String.format("Value of %s attribute on XML configuration element <%s> in <%s> is not a valid URI - '%s'",
-                    urlAttribute.getName(), item.getNodeName(), fragment.getTagName(), connectionUri), e);
-              }
-
-              break;
-            case CLUSTER_CONNECTION_ELEMENT_NAME:
-              clusterTierManager = JaxbParsers.parsePropertyOrString(((Element)item).getAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME));
-              final NodeList serverNodes = item.getChildNodes();
-              for (int j = 0; j < serverNodes.getLength(); j++) {
-                final Node serverNode = serverNodes.item(j);
-                final String host = JaxbParsers.parsePropertyOrString(((Element)serverNode).getAttributeNode(HOST_ATTRIBUTE_NAME).getValue().trim());
-                final Attr port = ((Element)serverNode).getAttributeNode(PORT_ATTRIBUTE_NAME);
-                InetSocketAddress address;
-                if (port == null) {
-                  address = InetSocketAddress.createUnresolved(host, 0);
-                } else {
-                  String portString = JaxbParsers.parsePropertyOrString(port.getValue());
-                  address = InetSocketAddress.createUnresolved(host, Integer.parseInt(portString));
-                }
-                serverAddresses.add(address);
-              }
-
-              break;
-            case READ_TIMEOUT_ELEMENT_NAME:
-              /*
-               * <read-timeout> is an optional element
-               */
-              getTimeout = processTimeout(fragment, item);
-
-              break;
-            case WRITE_TIMEOUT_ELEMENT_NAME:
-              /*
-               * <write-timeout> is an optional element
-               */
-              putTimeout = processTimeout(fragment, item);
-
-              break;
-            case CONNECTION_TIMEOUT_ELEMENT_NAME:
-              /*
-               * <connection-timeout> is an optional element
-               */
-              connectionTimeout = processTimeout(fragment, item);
-
-              break;
-            case SERVER_SIDE_CONFIG:
-              /*
-               * <server-side-config> is an optional element
-               */
-              serverConfig = processServerSideConfig((Element) item);
-              break;
-            default:
-              throw new XmlConfigurationException(
-                String.format("Unknown XML configuration element <%s> in <%s>",
-                  item.getNodeName(), fragment.getTagName()));
-          }
+      final NodeList serverNodes = clusterConnection.getElementsByTagNameNS(NAMESPACE, SERVER_ELEMENT_NAME);
+      for (int j = 0; j < serverNodes.getLength(); j++) {
+        final Node serverNode = serverNodes.item(j);
+        final String host = parsePropertyOrString(((Element) serverNode).getAttributeNode(HOST_ATTRIBUTE_NAME).getValue().trim());
+        final Attr port = ((Element) serverNode).getAttributeNode(PORT_ATTRIBUTE_NAME);
+        InetSocketAddress address;
+        if (port == null) {
+          address = InetSocketAddress.createUnresolved(host, 0);
+        } else {
+          String portString = parsePropertyOrString(port.getValue());
+          address = InetSocketAddress.createUnresolved(host, Integer.parseInt(portString));
         }
+        serverAddresses.add(address);
       }
-
+      return ClusteringServiceConfigurationBuilder.cluster(serverAddresses, clusterTierManager);
+    } else if (connectionElement.isPresent()) {
+      Element connection = connectionElement.get();
+      final Attr urlAttribute = connection.getAttributeNode(URL_ATTRIBUTE_NAME);
+      final String urlValue = parseStringWithProperties(urlAttribute.getValue());
       try {
-        ConnectionSource connectionSource;
-        if (connectionUri != null) {
-          connectionSource = new ConnectionSource.ClusterUri(connectionUri);
-        } else {
-          connectionSource = new ConnectionSource.ServerList(serverAddresses, clusterTierManager);
-        }
+        return ClusteringServiceConfigurationBuilder.cluster(new URI(urlValue));
+      } catch (URISyntaxException e) {
+        throw new XmlConfigurationException(format("Value of %s attribute on XML configuration element <%s> in <%s> is not a valid URI - '%s'",
+          urlAttribute.getName(), connection.getNodeName(), connection.getParentNode().getNodeName(), urlValue), e);
+      }
+    } else {
+      throw new AssertionError("Validation Leak!");
+    }
+  }
 
-        Timeouts timeouts = getTimeouts(getTimeout, putTimeout, connectionTimeout);
-
-        if (serverConfig == null) {
-          return new ClusteringServiceConfiguration(connectionSource, timeouts, ClientMode.CONNECT, null, new Properties());
-        } else {
-          ServerSideConfiguration serverSideConfiguration;
-          if (serverConfig.defaultServerResource == null) {
-            serverSideConfiguration = new ServerSideConfiguration(serverConfig.pools);
-          } else {
-            serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
-          }
-          return new ClusteringServiceConfiguration(connectionSource, timeouts, serverConfig.clientMode, serverSideConfiguration, new Properties());
+  protected Builder<? extends Timeouts> parseTimeouts(Element cluster) {
+    NodeList childNodes = cluster.getChildNodes();
+    TimeoutsBuilder timeoutsBuilder = TimeoutsBuilder.timeouts();
+    for (int i = 0; i < childNodes.getLength(); i++) {
+      final Node item = childNodes.item(i);
+      if (Node.ELEMENT_NODE == item.getNodeType()) {
+        switch (item.getLocalName()) {
+          case READ_TIMEOUT_ELEMENT_NAME:
+            /*
+             * <read-timeout> is an optional element
+             */
+            timeoutsBuilder.read(processTimeout((Element) item));
+            break;
+          case WRITE_TIMEOUT_ELEMENT_NAME:
+            /*
+             * <write-timeout> is an optional element
+             */
+            timeoutsBuilder.write(processTimeout((Element) item));
+            break;
+          case CONNECTION_TIMEOUT_ELEMENT_NAME:
+            /*
+             * <connection-timeout> is an optional element
+             */
+            timeoutsBuilder.connection(processTimeout((Element) item));
+            break;
+          default:
+            //skip
         }
-      } catch (IllegalArgumentException e) {
-        throw new XmlConfigurationException(e);
       }
     }
-    throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
-      fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
+    return timeoutsBuilder;
+  }
+
+  protected ClusteringServiceConfigurationBuilder parseServerBehavior(ClusteringServiceConfigurationBuilder builder, Element cluster) {
+    Optional<Element> serverSideConfigElement = childElementOf(cluster, element ->
+      (element.getNamespaceURI().equals(NAMESPACE) && element.getLocalName().equals(SERVER_SIDE_CONFIG_ELEMENT_NAME))
+        || element.getSchemaTypeInfo().isDerivedFrom(NAMESPACE, "server-side-config-spec", TypeInfo.DERIVATION_EXTENSION)
+    );
+
+    if (serverSideConfigElement.isPresent()) {
+      Element serverSideConfig = serverSideConfigElement.get();
+      String autoCreateAttr = serverSideConfig.getAttribute(AUTO_CREATE_ATTRIBUTE_NAME);
+      String clientModeAttr = serverSideConfig.getAttribute(CLIENT_MODE_ATTRIBUTE_NAME);
+
+      if (clientModeAttr.isEmpty()) {
+        if (!autoCreateAttr.isEmpty()) {
+          if (Boolean.parseBoolean(autoCreateAttr)) {
+            return builder.autoCreate(parseServerConfig(serverSideConfig));
+          } else {
+            return builder.expecting(parseServerConfig(serverSideConfig));
+          }
+        } else {
+          return builder;
+        }
+      } else if (autoCreateAttr.isEmpty()) {
+        clientModeAttr = parsePropertyOrString(clientModeAttr);
+        switch (clientModeAttr) {
+          case "expecting":
+            return builder.expecting(parseServerConfig(serverSideConfig));
+          case "auto-create":
+            return builder.autoCreate(parseServerConfig(serverSideConfig));
+          case "auto-create-on-reconnect":
+            return builder.autoCreateOnReconnect(parseServerConfig(serverSideConfig));
+          default:
+            throw new AssertionError("Validation Leak!");
+        }
+      } else {
+        throw new XmlConfigurationException("Cannot define both '" + AUTO_CREATE_ATTRIBUTE_NAME + "' and '" + CLIENT_MODE_ATTRIBUTE_NAME + "' attributes");
+      }
+    } else {
+      return builder;
+    }
+  }
+
+  private UnaryOperator<ServerSideConfigurationBuilder> parseServerConfig(Element serverSideConfig) {
+    Function<ServerSideConfigurationBuilder, ServerSideConfigurationBuilder> builder = Function.identity();
+
+
+    Optional<Element> defaultResourceElement = optionalSingleton(Element.class, serverSideConfig.getElementsByTagNameNS(NAMESPACE, DEFAULT_RESOURCE_ELEMENT_NAME));
+
+    if (defaultResourceElement.isPresent()) {
+      String defaultServerResource = parsePropertyOrString(defaultResourceElement.get().getAttribute(FROM_ATTRIBUTE_NAME));
+      builder = builder.andThen(b -> b.defaultServerResource(defaultServerResource));
+    }
+
+    NodeList sharedPoolElements = serverSideConfig.getElementsByTagNameNS(NAMESPACE, SHARED_POOL_ELEMENT_NAME);
+    for (int i = 0; i < sharedPoolElements.getLength(); i++) {
+      final Element pool = (Element) sharedPoolElements.item(i);
+      String poolName = pool.getAttribute(NAME_ATTRIBUTE_NAME);     // required
+      Attr fromAttr = pool.getAttributeNode(FROM_ATTRIBUTE_NAME);   // optional
+      String fromResource = (fromAttr == null ? null : fromAttr.getValue());
+      Attr unitAttr = pool.getAttributeNode(UNIT_ATTRIBUTE_NAME);   // optional - default 'B'
+      String unit = (unitAttr == null ? "B" : unitAttr.getValue());
+      MemoryUnit memoryUnit = MemoryUnit.valueOf(unit.toUpperCase(Locale.ENGLISH));
+
+      String quantityValue = pool.getTextContent();
+      long quantity;
+      try {
+        quantity = parsePropertyOrPositiveInteger(quantityValue).longValueExact();
+      } catch (NumberFormatException e) {
+        throw new XmlConfigurationException("Magnitude of value specified for <shared-pool name=\""
+          + poolName + "\"> is too large");
+      }
+
+      if (fromResource == null) {
+        builder = builder.andThen(b -> b.resourcePool(poolName, quantity, memoryUnit));
+      } else {
+        builder = builder.andThen(b -> b.resourcePool(poolName, quantity, memoryUnit, parsePropertyOrString(fromResource)));
+      }
+    }
+
+    return builder::apply;
   }
 
   @Override
@@ -233,26 +267,15 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
     return ClusteringService.class;
   }
 
-  /**
-   * Translates a {@link ServiceCreationConfiguration} to an xml element
-   *
-   * @param serviceCreationConfiguration
-   */
-  @Override
-  public Element unparseServiceCreationConfiguration(final ServiceCreationConfiguration<ClusteringService, ?> serviceCreationConfiguration) {
-    Element rootElement = unparseConfig(serviceCreationConfiguration);
-    return rootElement;
-  }
-
   private Element createRootUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_ELEMENT_NAME);
     Element urlElement = createUrlElement(doc, clusteringServiceConfiguration);
     rootElement.appendChild(urlElement);
     return rootElement;
   }
 
   protected Element createUrlElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element urlElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + CONNECTION_ELEMENT_NAME);
+    Element urlElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CONNECTION_ELEMENT_NAME);
     urlElement.setAttribute(URL_ATTRIBUTE_NAME, clusteringServiceConfiguration.getClusterUri().toString());
     return urlElement;
   }
@@ -262,10 +285,10 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
       throw new IllegalArgumentException("When connection URL is null, source of connection MUST be of type ConnectionSource.ServerList.class");
     }
     ConnectionSource.ServerList servers = (ConnectionSource.ServerList)clusteringServiceConfiguration.getConnectionSource();
-    Element rootElement = doc.createElementNS(getNamespace().toString(), TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_ELEMENT_NAME);
+    Element rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_ELEMENT_NAME);
     Element connElement = createConnectionElementWrapper(doc, clusteringServiceConfiguration);
     servers.getServers().forEach(server -> {
-      Element serverElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + SERVER_ELEMENT_NAME);
+      Element serverElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + SERVER_ELEMENT_NAME);
       serverElement.setAttribute(HOST_ATTRIBUTE_NAME, server.getHostName());
       /*
       If port is greater than 0, set the attribute. Otherwise, do not set. Default value will be taken.
@@ -280,23 +303,23 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   protected Element createConnectionElementWrapper(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element connElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_CONNECTION_ELEMENT_NAME);
+    Element connElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTER_CONNECTION_ELEMENT_NAME);
     connElement.setAttribute(CLUSTER_TIER_MANAGER_ATTRIBUTE_NAME, clusteringServiceConfiguration.getConnectionSource()
       .getClusterTierManager());
     return connElement;
   }
 
   @Override
-  protected Element createRootElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
+  public Element safeUnparse(Document target, ClusteringServiceConfiguration clusteringServiceConfiguration) {
     Element rootElement;
     if (clusteringServiceConfiguration.getConnectionSource() instanceof ConnectionSource.ClusterUri) {
-      rootElement = createRootUrlElement(doc, clusteringServiceConfiguration);
+      rootElement = createRootUrlElement(target, clusteringServiceConfiguration);
     } else {
-      rootElement = createServerElement(doc, clusteringServiceConfiguration);
+      rootElement = createServerElement(target, clusteringServiceConfiguration);
     }
 
-    processTimeUnits(doc, rootElement, clusteringServiceConfiguration);
-    Element serverSideConfigurationElem = processServerSideElements(doc, clusteringServiceConfiguration);
+    processTimeUnits(target, rootElement, clusteringServiceConfiguration);
+    Element serverSideConfigurationElem = processServerSideElements(target, clusteringServiceConfiguration);
     if (serverSideConfigurationElem != null) {
       rootElement.appendChild(serverSideConfigurationElem);
     }
@@ -322,11 +345,11 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   private Element createTimeoutElement(Document doc, String timeoutName, Duration timeout) {
     Element retElement;
     if (READ_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
-      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + READ_TIMEOUT_ELEMENT_NAME);
+      retElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + READ_TIMEOUT_ELEMENT_NAME);
     } else if (WRITE_TIMEOUT_ELEMENT_NAME.equals(timeoutName)) {
-      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + WRITE_TIMEOUT_ELEMENT_NAME);
+      retElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + WRITE_TIMEOUT_ELEMENT_NAME);
     } else {
-      retElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + CONNECTION_TIMEOUT_ELEMENT_NAME);
+      retElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CONNECTION_TIMEOUT_ELEMENT_NAME);
     }
     retElement.setAttribute(UNIT_ATTRIBUTE_NAME, DEFAULT_UNIT_ATTRIBUTE_VALUE);
     retElement.setTextContent(Long.toString(timeout.getSeconds()));
@@ -362,7 +385,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createServerSideConfigurationElement(Document doc, ClusteringServiceConfiguration clusteringServiceConfiguration) {
-    Element serverSideConfigurationElem = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + SERVER_SIDE_CONFIG);
+    Element serverSideConfigurationElem = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + SERVER_SIDE_CONFIG_ELEMENT_NAME);
     serverSideConfigurationElem.setAttribute(CLIENT_MODE_ATTRIBUTE_NAME, clusteringServiceConfiguration.getClientMode()
       .name().toLowerCase(Locale.ROOT).replace('_', '-'));
     return serverSideConfigurationElem;
@@ -370,7 +393,7 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
 
 
   private Element createSharedPoolElement(Document doc, String poolName, ServerSideConfiguration.Pool pool) {
-    Element poolElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + SHARED_POOL_ELEMENT_NAME);
+    Element poolElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + SHARED_POOL_ELEMENT_NAME);
     poolElement.setAttribute(NAME_ATTRIBUTE_NAME, poolName);
     String from = pool.getServerResource();
     if (from != null) {
@@ -386,108 +409,24 @@ public class ClusteringCacheManagerServiceConfigurationParser extends BaseConfig
   }
 
   private Element createDefaultServerResourceElement(Document doc, String defaultServerResource) {
-    Element defaultResourceElement = doc.createElement(TC_CLUSTERED_NAMESPACE_PREFIX + DEFAULT_RESOURCE_ELEMENT_NAME);
+    Element defaultResourceElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + DEFAULT_RESOURCE_ELEMENT_NAME);
     defaultResourceElement.setAttribute(FROM_ATTRIBUTE_NAME, defaultServerResource);
     return defaultResourceElement;
   }
 
-  private ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig processServerSideConfig(Element serverSideConfigElement) {
-    ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig serverSideConfig = new ClusteringCacheManagerServiceConfigurationParser.ServerSideConfig();
+  private Duration processTimeout(Element timeoutNode) {
+    BigInteger amount = parsePropertyOrPositiveInteger(timeoutNode.getTextContent());
+    if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
+      throw new XmlConfigurationException(
+        String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
+          timeoutNode.getNodeName(), timeoutNode.getParentNode().getNodeName(), amount));
+    }
 
-    String autoCreateAttr = serverSideConfigElement.getAttribute(AUTO_CREATE_ATTRIBUTE_NAME);
-    String clientModeAttr = serverSideConfigElement.getAttribute(CLIENT_MODE_ATTRIBUTE_NAME);
-    if (clientModeAttr.isEmpty()) {
-      if (!autoCreateAttr.isEmpty()) {
-        serverSideConfig.clientMode = Boolean.parseBoolean(autoCreateAttr) ? ClientMode.AUTO_CREATE : ClientMode.EXPECTING;
-      }
-    } else if (autoCreateAttr.isEmpty()) {
-      clientModeAttr = JaxbParsers.parsePropertyOrString(clientModeAttr);
-      serverSideConfig.clientMode = ClientMode.valueOf(clientModeAttr.toUpperCase(Locale.ROOT).replace('-', '_'));
+    Attr unitAttribute = timeoutNode.getAttributeNode("unit");
+    if (unitAttribute == null) {
+      return Duration.of(amount.longValue(), ChronoUnit.SECONDS);
     } else {
-      throw new XmlConfigurationException("Cannot define both '" + AUTO_CREATE_ATTRIBUTE_NAME + "' and '" + CLIENT_MODE_ATTRIBUTE_NAME + "' attributes");
+      return Duration.of(amount.longValue(), ChronoUnit.valueOf(unitAttribute.getValue().toUpperCase(Locale.ROOT)));
     }
-
-    final NodeList serverSideNodes = serverSideConfigElement.getChildNodes();
-    for (int i = 0; i < serverSideNodes.getLength(); i++) {
-      final Node item = serverSideNodes.item(i);
-      if (Node.ELEMENT_NODE == item.getNodeType()) {
-        String nodeLocalName = item.getLocalName();
-        if (DEFAULT_RESOURCE_ELEMENT_NAME.equals(nodeLocalName)) {
-          serverSideConfig.defaultServerResource = JaxbParsers.parsePropertyOrString(((Element)item).getAttribute(FROM_ATTRIBUTE_NAME));
-
-        } else if (SHARED_POOL_ELEMENT_NAME.equals(nodeLocalName)) {
-          Element sharedPoolElement = (Element)item;
-          String poolName = sharedPoolElement.getAttribute(NAME_ATTRIBUTE_NAME);     // required
-          Attr fromAttr = sharedPoolElement.getAttributeNode(FROM_ATTRIBUTE_NAME);   // optional
-          String fromResource = (fromAttr == null ? null : fromAttr.getValue());
-          Attr unitAttr = sharedPoolElement.getAttributeNode(UNIT_ATTRIBUTE_NAME);   // optional - default 'B'
-          String unit = (unitAttr == null ? "B" : unitAttr.getValue());
-          MemoryUnit memoryUnit = MemoryUnit.valueOf(unit.toUpperCase(Locale.ENGLISH));
-
-          String quantityValue = sharedPoolElement.getFirstChild().getNodeValue();
-          long quantity;
-          try {
-            quantity = JaxbParsers.parsePropertyOrPositiveInteger(quantityValue).longValueExact();
-          } catch (NumberFormatException e) {
-            throw new XmlConfigurationException("Magnitude of value specified for <shared-pool name=\""
-                                                + poolName + "\"> is too large");
-          }
-
-          ServerSideConfiguration.Pool poolDefinition;
-          if (fromResource == null) {
-            poolDefinition = new ServerSideConfiguration.Pool(memoryUnit.toBytes(quantity));
-          } else {
-            poolDefinition = new ServerSideConfiguration.Pool(memoryUnit.toBytes(quantity), JaxbParsers.parsePropertyOrString(fromResource));
-          }
-
-          if (serverSideConfig.pools.put(poolName, poolDefinition) != null) {
-            throw new XmlConfigurationException("Duplicate definition for <shared-pool name=\"" + poolName + "\">");
-          }
-        }
-      }
-    }
-    return serverSideConfig;
-  }
-
-  private Duration processTimeout(Element parentElement, Node timeoutNode) {
-    try {
-      // <xxx-timeout> are direct subtype of ehcache:time-type; use JAXB to interpret it
-      JAXBContext context = JAXBContext.newInstance(TimeTypeWithPropSubst.class);
-      Unmarshaller unmarshaller = context.createUnmarshaller();
-      unmarshaller.setEventHandler(new DefaultValidationEventHandler());
-      JAXBElement<TimeTypeWithPropSubst> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeTypeWithPropSubst.class);
-
-      TimeTypeWithPropSubst timeType = jaxbElement.getValue();
-      BigInteger amount = timeType.getValue();
-      if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
-        throw new XmlConfigurationException(
-          String.format("Value of XML configuration element <%s> in <%s> exceeds allowed value - %s",
-            timeoutNode.getNodeName(), parentElement.getTagName(), amount));
-      }
-      return Duration.of(amount.longValue(), convertToJavaTimeUnit(timeType.getUnit()));
-
-    } catch (JAXBException e) {
-      throw new XmlConfigurationException(e);
-    }
-  }
-
-  private Timeouts getTimeouts(Duration getTimeout, Duration putTimeout, Duration connectionTimeout) {
-    TimeoutsBuilder builder = TimeoutsBuilder.timeouts();
-    if (getTimeout != null) {
-      builder.read(getTimeout);
-    }
-    if (putTimeout != null) {
-      builder.write(putTimeout);
-    }
-    if (connectionTimeout != null) {
-      builder.connection(connectionTimeout);
-    }
-    return builder.build();
-  }
-
-  private static final class ServerSideConfig {
-    private ClientMode clientMode = ClientMode.CONNECT;
-    private String defaultServerResource = null;
-    private final Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
   }
 }

@@ -57,8 +57,8 @@ import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.fail;
 
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;

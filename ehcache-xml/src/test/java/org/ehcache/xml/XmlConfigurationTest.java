@@ -44,11 +44,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
-import org.hamcrest.core.IsCollectionContaining;
-import org.hamcrest.core.IsEqual;
-import org.hamcrest.core.IsNull;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -92,21 +88,22 @@ import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.core.util.ClassLoading.getDefaultClassLoader;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
-import static org.hamcrest.CoreMatchers.either;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.isIn;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.hamcrest.core.IsSame.sameInstance;
-import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -165,7 +162,7 @@ public class XmlConfigurationTest {
     URL resource = XmlConfigurationTest.class.getResource("/configs/one-service.xml");
     Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
 
-    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), hasItems(instanceOf(BarConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
   }
 
@@ -176,14 +173,14 @@ public class XmlConfigurationTest {
 
     assertThat(config.getServiceCreationConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
   }
 
   @Test
   public void testAllExtensions() {
     URL resource = XmlConfigurationTest.class.getResource("/configs/all-extensions.xml");
     Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
-    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), hasItem(instanceOf(BarConfiguration.class)));
     CacheConfiguration<?, ?> cacheConfiguration = config.getCacheConfigurations().get("fancy");
     assertThat(cacheConfiguration.getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
     assertThat(cacheConfiguration.getResourcePools().getResourceTypeSet(), hasItem(instanceOf(BazResource.Type.class)));
@@ -196,7 +193,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations(), hasSize(0));
     assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
 
@@ -235,7 +232,7 @@ public class XmlConfigurationTest {
     assertThat(expiry, is(value));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiryPolicy();
-    assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
+    assertThat(expiry, instanceOf(com.pany.ehcache.MyExpiry.class));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("deprecatedClass").getExpiryPolicy();
     assertThat(expiry.getExpiryForCreation(null, null), is(Duration.ofSeconds(42)));
@@ -413,10 +410,10 @@ public class XmlConfigurationTest {
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaultSerializers().size(), is(4));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), Matchers.equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), Matchers.equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), Matchers.equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?, ?>> orderedServiceConfigurations = new ArrayList<>(xmlConfig.getCacheConfigurations()
@@ -427,7 +424,7 @@ public class XmlConfigurationTest {
     Iterator<ServiceConfiguration<?, ?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration<?> keySerializationProviderConfiguration = (DefaultSerializerConfiguration<?>) it.next();
-    assertThat(keySerializationProviderConfiguration.getType(), isIn(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE }));
+    assertThat(keySerializationProviderConfiguration.getType(), is(in(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE })));
   }
 
   @Test
@@ -530,11 +527,11 @@ public class XmlConfigurationTest {
 
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class).build().getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     for (ServiceConfiguration<?, ?> configuration : serviceConfiguration) {
       if(configuration instanceof WriteBehindConfiguration) {
@@ -622,19 +619,19 @@ public class XmlConfigurationTest {
   @Test
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
     NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock()));
-    assertThat(thrown, hasProperty("message", Matchers.is("The url can not be null")));
+    assertThat(thrown, hasProperty("message", is("The url can not be null")));
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
     NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock()));
-    assertThat(thrown, hasProperty("message", Matchers.is("The classLoader can not be null")));
+    assertThat(thrown, hasProperty("message", is("The classLoader can not be null")));
   }
 
   @Test
   public void testNullCacheClassLoaderMapInConstructorThrowsNPE() throws Exception {
     NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null));
-    assertThat(thrown, hasProperty("message", Matchers.is("The cacheClassLoaders map can not be null")));
+    assertThat(thrown, hasProperty("message", is("The cacheClassLoaders map can not be null")));
   }
 
   @Test
@@ -733,7 +730,7 @@ public class XmlConfigurationTest {
     ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     try {
       for (Future<Configuration> c : service.invokeAll(nCopies(10, parserTask))) {
-        assertThat(c.get(), IsNull.notNullValue());
+        assertThat(c.get(), notNullValue());
       }
     } finally {
       service.shutdown();
@@ -768,57 +765,57 @@ public class XmlConfigurationTest {
 
   @Test
   public void testPrimitiveNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("boolean", getDefaultClassLoader()), IsEqual.equalTo(Boolean.TYPE));
-    assertThat(getClassForName("byte", getDefaultClassLoader()), IsEqual.equalTo(Byte.TYPE));
-    assertThat(getClassForName("short", getDefaultClassLoader()), IsEqual.equalTo(Short.TYPE));
-    assertThat(getClassForName("int", getDefaultClassLoader()), IsEqual.equalTo(Integer.TYPE));
-    assertThat(getClassForName("long", getDefaultClassLoader()), IsEqual.equalTo(Long.TYPE));
-    assertThat(getClassForName("char", getDefaultClassLoader()), IsEqual.equalTo(Character.TYPE));
-    assertThat(getClassForName("float", getDefaultClassLoader()), IsEqual.equalTo(Float.TYPE));
-    assertThat(getClassForName("double", getDefaultClassLoader()), IsEqual.equalTo(Double.TYPE));
+    assertThat(getClassForName("boolean", getDefaultClassLoader()), equalTo(Boolean.TYPE));
+    assertThat(getClassForName("byte", getDefaultClassLoader()), equalTo(Byte.TYPE));
+    assertThat(getClassForName("short", getDefaultClassLoader()), equalTo(Short.TYPE));
+    assertThat(getClassForName("int", getDefaultClassLoader()), equalTo(Integer.TYPE));
+    assertThat(getClassForName("long", getDefaultClassLoader()), equalTo(Long.TYPE));
+    assertThat(getClassForName("char", getDefaultClassLoader()), equalTo(Character.TYPE));
+    assertThat(getClassForName("float", getDefaultClassLoader()), equalTo(Float.TYPE));
+    assertThat(getClassForName("double", getDefaultClassLoader()), equalTo(Double.TYPE));
   }
 
   @Test
   public void testPrimitiveArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("boolean[]", getDefaultClassLoader()), IsEqual.equalTo(boolean[].class));
-    assertThat(getClassForName("byte[]", getDefaultClassLoader()), IsEqual.equalTo(byte[].class));
-    assertThat(getClassForName("short[]", getDefaultClassLoader()), IsEqual.equalTo(short[].class));
-    assertThat(getClassForName("int[]", getDefaultClassLoader()), IsEqual.equalTo(int[].class));
-    assertThat(getClassForName("long[]", getDefaultClassLoader()), IsEqual.equalTo(long[].class));
-    assertThat(getClassForName("char[]", getDefaultClassLoader()), IsEqual.equalTo(char[].class));
-    assertThat(getClassForName("float[]", getDefaultClassLoader()), IsEqual.equalTo(float[].class));
-    assertThat(getClassForName("double[]", getDefaultClassLoader()), IsEqual.equalTo(double[].class));
+    assertThat(getClassForName("boolean[]", getDefaultClassLoader()), equalTo(boolean[].class));
+    assertThat(getClassForName("byte[]", getDefaultClassLoader()), equalTo(byte[].class));
+    assertThat(getClassForName("short[]", getDefaultClassLoader()), equalTo(short[].class));
+    assertThat(getClassForName("int[]", getDefaultClassLoader()), equalTo(int[].class));
+    assertThat(getClassForName("long[]", getDefaultClassLoader()), equalTo(long[].class));
+    assertThat(getClassForName("char[]", getDefaultClassLoader()), equalTo(char[].class));
+    assertThat(getClassForName("float[]", getDefaultClassLoader()), equalTo(float[].class));
+    assertThat(getClassForName("double[]", getDefaultClassLoader()), equalTo(double[].class));
   }
 
   @Test
   public void testMultiDimensionPrimitiveArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("byte[][][][]", getDefaultClassLoader()), IsEqual.equalTo(byte[][][][].class));
-    assertThat(getClassForName("short[][][][]", getDefaultClassLoader()), IsEqual.equalTo(short[][][][].class));
-    assertThat(getClassForName("int[][][][]", getDefaultClassLoader()), IsEqual.equalTo(int[][][][].class));
-    assertThat(getClassForName("long[][][][]", getDefaultClassLoader()), IsEqual.equalTo(long[][][][].class));
-    assertThat(getClassForName("char[][][][]", getDefaultClassLoader()), IsEqual.equalTo(char[][][][].class));
-    assertThat(getClassForName("float[][][][]", getDefaultClassLoader()), IsEqual.equalTo(float[][][][].class));
-    assertThat(getClassForName("double[][][][]", getDefaultClassLoader()), IsEqual.equalTo(double[][][][].class));
+    assertThat(getClassForName("byte[][][][]", getDefaultClassLoader()), equalTo(byte[][][][].class));
+    assertThat(getClassForName("short[][][][]", getDefaultClassLoader()), equalTo(short[][][][].class));
+    assertThat(getClassForName("int[][][][]", getDefaultClassLoader()), equalTo(int[][][][].class));
+    assertThat(getClassForName("long[][][][]", getDefaultClassLoader()), equalTo(long[][][][].class));
+    assertThat(getClassForName("char[][][][]", getDefaultClassLoader()), equalTo(char[][][][].class));
+    assertThat(getClassForName("float[][][][]", getDefaultClassLoader()), equalTo(float[][][][].class));
+    assertThat(getClassForName("double[][][][]", getDefaultClassLoader()), equalTo(double[][][][].class));
   }
 
   @Test
   public void testArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.lang.String[]", getDefaultClassLoader()), IsEqual.equalTo(String[].class));
+    assertThat(getClassForName("java.lang.String[]", getDefaultClassLoader()), equalTo(String[].class));
   }
 
   @Test
   public void testMultiDimensionArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.lang.String[][][][]", getDefaultClassLoader()), IsEqual.equalTo(String[][][][].class));
+    assertThat(getClassForName("java.lang.String[][][][]", getDefaultClassLoader()), equalTo(String[][][][].class));
   }
 
   @Test
   public void testInnerClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.util.Map.Entry", getDefaultClassLoader()), IsEqual.equalTo(Map.Entry.class));
+    assertThat(getClassForName("java.util.Map.Entry", getDefaultClassLoader()), equalTo(Map.Entry.class));
   }
 
   @Test
   public void testInnerClassNameArrayConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.util.Map.Entry[]", getDefaultClassLoader()), IsEqual.equalTo(Map.Entry[].class));
+    assertThat(getClassForName("java.util.Map.Entry[]", getDefaultClassLoader()), equalTo(Map.Entry[].class));
   }
 
   @Test

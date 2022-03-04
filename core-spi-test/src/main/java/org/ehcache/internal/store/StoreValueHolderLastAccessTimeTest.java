@@ -19,11 +19,9 @@ package org.ehcache.internal.store;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.SPITest;
 
-import java.util.concurrent.TimeUnit;
-
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.core.Is.is;
 
 /**
  * Test the {@link Store.ValueHolder#lastAccessTime(java.util.concurrent.TimeUnit)} contract of the

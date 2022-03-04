@@ -175,8 +175,8 @@ if [ $is_major ]; then
   cp ehcache-107/src/main/resources/ehcache-107-ext.xsd $site_dir/schema/ehcache-107-ext-${major_version}.xsd
   cp clustered/ehcache-client/src/main/resources/ehcache-clustered-ext.xsd $site_dir/schema/ehcache-clustered-ext.xsd
   cp clustered/ehcache-client/src/main/resources/ehcache-clustered-ext.xsd $site_dir/schema/ehcache-clustered-ext-${major_version}.xsd
-  cp ehcache-transactions/src/main/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext.xsd
-  cp ehcache-transactions/src/main/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext-${major_version}.xsd
+  cp ehcache-transactions/src/common/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext.xsd
+  cp ehcache-transactions/src/common/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext-${major_version}.xsd
 fi
 
 echo "Copy the javadoc from Maven central"
