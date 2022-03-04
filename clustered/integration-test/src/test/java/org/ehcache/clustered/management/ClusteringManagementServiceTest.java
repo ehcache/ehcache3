@@ -18,6 +18,7 @@ package org.ehcache.clustered.management;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.hamcrest.MatcherAssert;
 import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -43,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
@@ -133,15 +136,20 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
   public void test_A_topology() throws Exception {
-    Cluster cluster = nmsService.readTopology();
+    Cluster cluster = CLUSTER.getNmsService().readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());
     //System.out.println(json);
   }
 
   @Test
   public void test_A_client_tags_exposed() throws Exception {
-    String[] tags = readTopology().getClient(ehcacheClientIdentifier).get().getTags().toArray(new String[0]);
-    assertThat(tags).containsOnly("server-node-1", "webapp-1");
+    MatcherAssert.assertThat(() -> {
+      try {
+        return readTopology().getClient(ehcacheClientIdentifier).get().getTags().toArray(new String[0]);
+      } catch (Exception e) {
+        throw new AssertionError(e);
+      }
+    }, eventually().matches(arrayContainingInAnyOrder("server-node-1", "webapp-1")));
   }
 
   @Test
@@ -262,7 +270,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // tms entity
 
-    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(tmsServerEntityIdentifier)).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+    managerCapabilities = readTopology().activeServerEntityStream().filter(serverEntity -> serverEntity.is(CLUSTER.getTmsServerEntityIdentifier())).findFirst().get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(managerCapabilities.length).isEqualTo(3);
 
     assertThat(managerCapabilities[0].getName()).isEqualTo("OffHeapResourceSettings");
@@ -294,10 +302,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     if (cluster.serverStream().count() == 2) {
       waitForAllNotifications(
         "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED",
-        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED"); // passive server
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "CLIENT_REGISTRY_AVAILABLE"); // passive server
     } else {
       waitForAllNotifications(
-        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED");
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED", "CLIENT_REGISTRY_AVAILABLE");
     }
   }
 
@@ -305,7 +313,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   public void test_F_notifs_on_remove_cache() throws Exception {
     cacheManager.removeCache("cache-2");
 
-    waitForAllNotifications("CACHE_REMOVED", "SERVER_ENTITY_UNFETCHED");
+    waitForAllNotifications("CACHE_REMOVED", "SERVER_ENTITY_UNFETCHED", "CLIENT_REGISTRY_AVAILABLE");
   }
 
   @Test
@@ -373,7 +381,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       .map(ContextualStatistics::getCapability)
       .collect(Collectors.toCollection(TreeSet::new));
 
-    assertThat(capabilities).containsOnly("PoolStatistics", "ServerStoreStatistics", "OffHeapResourceStatistics");
+    assertThat(capabilities).contains("PoolStatistics", "ServerStoreStatistics", "OffHeapResourceStatistics");
 
     // ensure we collect stats from all registered objects (pools and stores)
 

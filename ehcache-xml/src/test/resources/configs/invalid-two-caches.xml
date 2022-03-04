@@ -1,0 +1,11 @@
+<config xmlns='http://www.ehcache.org/v3'>
+
+  <cache alias="foo">
+    <heap unit="entries">2000</heap>
+  </cache>
+
+  <cache alias="foo">
+    <heap unit="entries">2000</heap>
+  </cache>
+
+</config>

@@ -48,10 +48,9 @@ import static org.ehcache.core.osgi.EhcacheActivator.OSGI_LOADING;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
-import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.options;
@@ -63,17 +62,15 @@ public class SimpleOsgiTest {
   @Configuration
   public Option[] individualModules() {
     return options(
-      gradleBundle("org.ehcache.modules:api"),
-      gradleBundle("org.ehcache.modules:core"),
-      gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
+      gradleBundle("org.ehcache.modules:ehcache-api"),
+      gradleBundle("org.ehcache.modules:ehcache-core"),
+      gradleBundle("org.ehcache.modules:ehcache-impl"),
+      gradleBundle("org.ehcache.modules:ehcache-xml"), jaxbConfiguration(),
 
-      gradleBundle("org.terracotta.management:management-model"),
-      gradleBundle("org.terracotta.management:sequence-generator"),
-
-      wrappedGradleBundle("org.terracotta:statistics"),
-      wrappedGradleBundle("org.ehcache:sizeof"),
-      wrappedGradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:statistics"),
+      gradleBundle("org.ehcache:sizeof"),
+      gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("SimpleOsgiTest", "individualModules")
     );
@@ -82,7 +79,7 @@ public class SimpleOsgiTest {
   @Configuration
   public Option[] uberJarWithOsgiServiceLoading() {
     return options(
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
 
       baseConfiguration("SimpleOsgiTest", "uberJarWithOsgiServiceLoading")
     );
@@ -93,7 +90,7 @@ public class SimpleOsgiTest {
     return options(
       frameworkProperty(OSGI_LOADING).value("false"),
 
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
 
       baseConfiguration("SimpleOsgiTest", "uberJarWithJdkServiceLoading")
     );

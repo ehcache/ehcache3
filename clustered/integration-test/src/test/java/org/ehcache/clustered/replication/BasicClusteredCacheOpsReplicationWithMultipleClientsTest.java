@@ -18,7 +18,6 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -39,13 +38,10 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -57,24 +53,20 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.LongStream;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 /**
  * The point of this test is to assert proper data read after fail-over handling.
  */
 @RunWith(ParallelParameterized.class)
-public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends ClusteredTests {
-
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
 
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;
@@ -90,7 +82,9 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
   public Consistency cacheConsistency;
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build());
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+    .withServerHeap(512)
+    .withServiceFragment(offheapResource("primary-server-resource", 16)).build());
 
   @Rule
   public final TestName testName = new TestName();
@@ -98,8 +92,6 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm-replication"))
@@ -140,6 +132,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
       }
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
@@ -179,6 +172,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
       }
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
@@ -219,6 +213,7 @@ public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest extends Cl
 
     cache1.clear();
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     if (cacheConsistency == Consistency.STRONG) {

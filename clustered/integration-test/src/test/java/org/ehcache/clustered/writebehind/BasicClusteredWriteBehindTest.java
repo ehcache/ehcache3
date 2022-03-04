@@ -26,16 +26,17 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+
 
 public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
 
@@ -46,7 +47,7 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
 
   @ClassRule
   public static Cluster CLUSTER =
-      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cache;
@@ -56,7 +57,6 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
 
     cacheManager = createCacheManager(CLUSTER.getConnectionURI());
     cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);

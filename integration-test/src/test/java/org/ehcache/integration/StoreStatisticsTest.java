@@ -45,9 +45,9 @@ import java.util.Set;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;

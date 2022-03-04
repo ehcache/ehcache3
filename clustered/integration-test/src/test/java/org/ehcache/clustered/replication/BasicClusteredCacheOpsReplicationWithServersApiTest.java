@@ -18,7 +18,6 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
@@ -34,37 +33,33 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicClusteredCacheOpsReplicationWithServersApiTest extends ClusteredTests {
-  private static final String CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
+
+public class BasicClusteredCacheOpsReplicationWithServersApiTest {
 
   private static PersistentCacheManager CACHE_MANAGER;
   private static Cache<Long, String> CACHE1;
   private static Cache<Long, String> CACHE2;
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster(2).in(new File("build/cluster")).withServiceFragment(CONFIG).build();
+  public static Cluster CLUSTER = newCluster(2).in(clusterPath())
+    .withServerHeap(512)
+    .withServiceFragment(offheapResource("primary-server-resource", 16)).build();
 
   @Before
   public void setUp() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
@@ -116,6 +111,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
       x.remove(4L);
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(x -> {

@@ -23,7 +23,7 @@
   <ehcache:service>
     <tc:cluster>
       <tc:connection url="${cluster-uri}/jcache-tck"/>
-      <tc:server-side-config auto-create="true"/>
+      <tc:server-side-config client-mode="auto-create"/>
     </tc:cluster>
   </ehcache:service>
 

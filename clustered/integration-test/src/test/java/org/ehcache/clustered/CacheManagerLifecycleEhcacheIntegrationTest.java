@@ -53,27 +53,22 @@ import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests {
-
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
   private static Connection ASSERTION_CONNECTION;
 
   @BeforeClass
   public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
     ASSERTION_CONNECTION = CLUSTER.newConnection();
   }
 
@@ -185,6 +180,10 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
       @Override
       public void close() throws IOException {
         //no-op
+      }
+
+      public boolean isValid() {
+        return true;
       }
     };
   }

@@ -32,8 +32,8 @@ import org.hamcrest.Matcher;
 import java.time.Duration;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;

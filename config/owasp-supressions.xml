@@ -5,18 +5,49 @@
     They are then flagged as being vulnerable to https://nvd.nist.gov/vuln/detail/CVE-2019-11065.
   -->
   <suppress>
-    <notes><![CDATA[file name: Ehcache modules are not Gradle!]]></notes>
+    <notes>Ehcache modules are not Gradle!</notes>
     <packageUrl regex="true">^pkg:maven/org\.ehcache.*@.*$</packageUrl>
     <cve>CVE-2019-11065</cve>
   </suppress>
   <suppress>
-    <notes><![CDATA[file name: Ehcache modules are not Gradle!]]></notes>
+    <notes>Ehcache modules are not Gradle!</notes>
     <packageUrl regex="true">^pkg:maven/org\.ehcache.*@.*$</packageUrl>
     <cve>CVE-2019-15052</cve>
   </suppress>
   <suppress>
-    <notes><![CDATA[file name: Ehcache modules are not Gradle!]]></notes>
+    <notes>Ehcache modules are not Gradle!</notes>
     <packageUrl regex="true">^pkg:maven/org\.ehcache.*@.*$</packageUrl>
     <cve>CVE-2019-16370</cve>
+  </suppress>
+  <suppress>
+    <notes>TC Tripwire is unrelated to the other Tripwire</notes>
+    <packageUrl regex="true">^pkg:maven/org\.terracotta/tc\-tripwire\-plugin@.*$</packageUrl>
+    <cpe>cpe:/a:tripwire:tripwire</cpe>
+  </suppress>
+  <suppress>
+    <notes>BND isn't Eclipse</notes>
+    <packageUrl regex="true">^pkg:maven/biz\.aQute\.bnd/biz\.aQute\.bndlib@.*$</packageUrl>
+    <cpe>cpe:/a:eclipse:eclipse_ide</cpe>
+  </suppress>
+  <suppress>
+    <notes>Ehcache 3 builds require Java 8+ : 4.13.1 is safe</notes>
+    <packageUrl>pkg:maven/junit/junit@4.13.1</packageUrl>
+    <vulnerabilityName>CVE-2020-15250</vulnerabilityName>
+  </suppress>
+
+  <suppress>
+    <notes>PAX URL Aether repackages httpclient and isn't (yet) fixed</notes>
+    <sha1>db40edda8b95d880d2a810560fd5e46eb4fa6909</sha1>
+    <cve>CVE-2020-13956</cve>
+  </suppress>
+  <suppress>
+    <notes>PAX URL Aether repackages commons-io and isn't (yet) fixed</notes>
+    <sha1>5060835593e5b6ed18c82fc2e782f0a3c30a00b1</sha1>
+    <cve>CVE-2021-29425</cve>
+  </suppress>
+  <suppress>
+    <notes>PAX Exame JUnit4 doesn't have a 4.13.1 depending release</notes>
+    <packageUrl regex="true">^pkg:maven/org\.ops4j\.pax\.exam/pax\-exam\-junit4@.*$</packageUrl>
+    <cve>CVE-2020-15250</cve>
   </suppress>
 </suppressions>

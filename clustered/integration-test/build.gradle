@@ -14,61 +14,67 @@
  * limitations under the License.
  */
 
+plugins {
+  id 'org.ehcache.build.conventions.java'
+}
+
 configurations {
   serverLibs
 }
 
 dependencies {
-  testCompile project(':clustered:client')
-  testCompile project(':clustered:common')
-  testCompile project(':impl')
-  testCompile project(':xml')
-  testCompile project(':107')
-  testCompile "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  testCompile "org.terracotta:runnel:$terracottaPlatformVersion"
-  testCompile "org.terracotta:lease-api:$terracottaPlatformVersion"
-  testCompile("javax.cache:cache-tests:$jcacheTckVersion") {
+  testImplementation project(':clustered:ehcache-client')
+  testImplementation project(':clustered:ehcache-common')
+  testImplementation project(':ehcache-impl')
+  testImplementation project(':ehcache-xml')
+  testImplementation project(':ehcache-107')
+  testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion") {
     exclude group:'junit', module:'junit'
   }
-  testCompile("javax.cache:cache-tests:$jcacheTckVersion:tests") {
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     exclude group:'junit', module:'junit'
   }
 
-  testImplementation project(':management')
-  testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
-  testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
-  testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
-  testImplementation "org.awaitility:awaitility:3.1.6"
-
-  testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
-  testRuntimeOnly project(':clustered:clustered-dist')
-
-  testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
-  testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
-
-  serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {
-    exclude group:'org.terracotta.management.dist', module:'mnm-common'
-  }
+  testImplementation project(':ehcache-management')
+  testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+  testImplementation "org.terracotta:galvan-platform-support:$terracottaPlatformVersion"
+  testImplementation "javax.cache:cache-api:$jcacheVersion"
 }
 
-task unzipKit(type: Copy) {
-  dependsOn project(':clustered:clustered-dist').distZip
-  from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
+task unzipKit(type: Sync) {
+  dependsOn project(':clustered:ehcache-clustered').distZip
+  from zipTree(project(':clustered:ehcache-clustered').distZip.archivePath)
   into 'build/ehcache-kit'
 }
 
-task copyServerLibs(type: Copy) {
+task copyServerLibs(type: Sync) {
   dependsOn unzipKit
   from project.configurations.serverLibs
-  into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
+  into "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit/server/plugins/lib"
 }
 
 test {
+  maxHeapSize = '512m'
+  maxParallelForks = 8
   dependsOn copyServerLibs
   environment 'JAVA_HOME', testJava.javaHome
   //If this directory does not exist, tests will fail with a cryptic assert failure
-  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }
 
+configurations.all {
+  resolutionStrategy {
+    dependencySubstitution {
+      substitute(module('junit:junit:4.12'))
+        .because('CVE-2020-15250')
+        .with(module('junit:junit:4.13.1'))
+    }
+  }
+}

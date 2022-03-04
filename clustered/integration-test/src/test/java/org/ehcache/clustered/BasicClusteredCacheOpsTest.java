@@ -33,7 +33,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,31 +42,21 @@ import java.util.Set;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicClusteredCacheOpsTest extends ClusteredTests {
-
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+public class BasicClusteredCacheOpsTest {
 
   @ClassRule
-  public static Cluster CLUSTER =
-      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
 
   @Test
   public void basicCacheCRUD() throws Exception {

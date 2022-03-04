@@ -29,27 +29,21 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.Arrays;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class OversizedCacheOpsTest extends ClusteredTests {
-
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">2</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+public class OversizedCacheOpsTest {
 
   @ClassRule
-  public static Cluster CLUSTER =
-      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 2)).build();
 
   @Test
   public void overSizedCacheOps() throws Exception {

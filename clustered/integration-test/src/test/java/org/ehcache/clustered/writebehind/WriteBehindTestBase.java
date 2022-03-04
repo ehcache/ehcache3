@@ -18,7 +18,6 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
@@ -43,17 +42,13 @@ import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class WriteBehindTestBase extends ClusteredTests {
+public class WriteBehindTestBase {
 
-  static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
+  static final String RESOURCE_CONFIG = offheapResource("primary-server-resource", 64);
 
   static final long KEY = 1L;
 

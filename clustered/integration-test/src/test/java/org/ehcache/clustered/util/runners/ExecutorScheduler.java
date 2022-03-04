@@ -16,33 +16,47 @@
 package org.ehcache.clustered.util.runners;
 
 import org.junit.runners.model.RunnerScheduler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public class ExecutorScheduler implements RunnerScheduler {
 
-  public final ExecutorService executor;
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExecutorScheduler.class);
 
-  public ExecutorScheduler(ExecutorService executor) {
-    this.executor = executor;
+  public final Supplier<ExecutorService> executorSupplier;
+  public final AtomicReference<ExecutorService> executor = new AtomicReference<>();
+
+  public ExecutorScheduler(Supplier<ExecutorService> executorSupplier) {
+    this.executorSupplier = executorSupplier;
   }
 
   @Override
   public void schedule(Runnable childStatement) {
-    executor.execute(childStatement);
+    ExecutorService executorService;
+    while ((executorService = executor.get()) == null && !executor.compareAndSet(null, (executorService = executorSupplier.get()))) {
+      executorService.shutdown();
+    }
+    executorService.execute(childStatement);
   }
 
   @Override
   public void finished() {
-    executor.shutdown();
+    ExecutorService departing = executor.getAndSet(null);
+    departing.shutdown();
     try {
-      if (!executor.awaitTermination(1, TimeUnit.DAYS)) {
+      if (!departing.awaitTermination(1, TimeUnit.DAYS)) {
         throw new AssertionError(new TimeoutException());
       }
     } catch (InterruptedException e) {
-      throw new AssertionError(e);
+      List<Runnable> runnables = departing.shutdownNow();
+      LOGGER.warn("Forcibly terminating execution of scheduled test tasks due to interrupt (" + runnables.size() + " tasks remain unscheduled)");
     }
   }
 }

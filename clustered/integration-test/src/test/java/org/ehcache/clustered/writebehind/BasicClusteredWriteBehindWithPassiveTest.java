@@ -25,20 +25,18 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 @RunWith(Parallel.class)
 public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBase {
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(
-      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build()
+      newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build()
   );
 
   private PersistentCacheManager cacheManager;
@@ -49,8 +47,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     super.setUp();
 
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     cacheManager = createCacheManager(CLUSTER.getConnectionURI());
     cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
@@ -71,8 +67,8 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
 
     assertValue(cache, "9");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(cache, "9");
     checkValueFromLoaderWriter(String.valueOf(9));
@@ -99,8 +95,8 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     cache.put(KEY, "new value");
     assertValue(cache, "new value");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
 
     assertValue(cache, "new value");
     checkValueFromLoaderWriter("new value");

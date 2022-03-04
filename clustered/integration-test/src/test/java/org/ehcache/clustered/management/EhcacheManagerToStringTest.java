@@ -36,9 +36,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
 
 public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest {
 
@@ -82,7 +82,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
 
   @Test
   public void clusteredToString() throws Exception {
-    URI uri = CLUSTER.getConnectionURI().resolve("/my-server-entity-2");
+    URI uri = CLUSTER.getCluster().getConnectionURI().resolve("/my-server-entity-2");
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       // cluster config

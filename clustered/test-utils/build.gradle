@@ -1,4 +1,8 @@
+plugins {
+  id 'org.ehcache.build.conventions.java-library'
+}
+
 dependencies {
-  compile project(':clustered:common')
-  compile "org.hamcrest:hamcrest-core:$hamcrestVersion"
+  api project(':clustered:ehcache-common')
+  api "org.hamcrest:hamcrest-core:$hamcrestVersion"
 }

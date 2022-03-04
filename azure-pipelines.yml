@@ -20,8 +20,30 @@
 resources:
   repositories:
     - repository: templates
-      type: git   
+      type: git
       name: terracotta/terracotta
 
 jobs:
-- template: build-templates/gradle-common.yml@templates  
+- template: build-templates/gradle-common.yml@templates
+  parameters:
+    jdkVersion: '1.8'
+    jobName: 'LinuxJava8'
+
+- template: build-templates/gradle-common.yml@templates
+  parameters:
+    jdkVersion: '1.8'
+    options: '-PtestVM=java11Home'
+    jobName: 'LinuxJava11'
+
+- template: build-templates/gradle-common.yml@templates
+  parameters:
+    vmImage: 'windows-latest'
+    jdkVersion: '1.8'
+    jobName: 'WindowsJava8'
+
+- template: build-templates/gradle-common.yml@templates
+  parameters:
+    vmImage: 'windows-latest'
+    jdkVersion: '1.8'
+    options: '-PtestVM=java11Home'
+    jobName: 'WindowsJava11'

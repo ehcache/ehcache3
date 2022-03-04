@@ -17,7 +17,6 @@ package org.ehcache.clustered.management;
 
 import org.ehcache.clustered.util.BeforeAll;
 import org.junit.FixMethodOrder;
-import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -27,15 +26,8 @@ public class AfterFailoverManagementServiceTest extends ClusteringManagementServ
   @Override
   public void beforeAllTests() throws Exception {
     super.beforeAllTests();
-
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
-
-    createNmsService();
-
-    initIdentifiers();
-
-    sendManagementCallOnEntityToCollectStats();
+    CLUSTER.getCluster().getClusterControl().terminateActive();
+    CLUSTER.getCluster().getClusterControl().waitForActive();
+    CLUSTER.startCollectingServerEntityStats();
   }
-
 }
