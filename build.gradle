@@ -54,6 +54,9 @@ nexusStaging {
   username = project.ext.deployUser
   password = project.ext.deployPwd
   logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
+  // Sonatype is often very slow in these operations:
+  delayBetweenRetriesInMillis = (findProperty('delayBetweenRetriesInMillis') ?: '10000') as int
+  numberOfRetries = (findProperty('numberOfRetries') ?: '100') as int
 }
 
 tasks.named('closeAndReleaseRepository') {
