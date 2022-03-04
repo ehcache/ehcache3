@@ -192,7 +192,7 @@ public class ClusteredWriteBehindTest {
 
     ArgumentCaptor<Chain> chainArgumentCaptor = ArgumentCaptor.forClass(Chain.class);
 
-    clusteredWriteBehind.flushWriteBehindQueue(null, 1L);
+    clusteredWriteBehind.scheduleWriteOf(1L);
 
     Map<Long, List<String>> records = cacheLoaderWriter.getRecords();
 

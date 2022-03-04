@@ -71,7 +71,7 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     CLUSTER.getClusterControl().terminateActive();
 
     assertValue(cache, "9");
-    checkValueFromLoaderWriter(cache, String.valueOf(9));
+    checkValueFromLoaderWriter(String.valueOf(9));
   }
 
   @Test
@@ -99,6 +99,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     CLUSTER.getClusterControl().terminateActive();
 
     assertValue(cache, "new value");
-    checkValueFromLoaderWriter(cache,"new value");
+    checkValueFromLoaderWriter("new value");
   }
 }

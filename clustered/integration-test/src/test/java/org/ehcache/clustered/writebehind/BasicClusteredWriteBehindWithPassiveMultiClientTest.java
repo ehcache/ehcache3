@@ -91,6 +91,6 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
     assertValue(client1, "The one one from client2");
     assertValue(client2, "The one one from client2");
 
-    checkValueFromLoaderWriter(client1, "The one one from client2");
+    checkValueFromLoaderWriter("The one one from client2");
   }
 }

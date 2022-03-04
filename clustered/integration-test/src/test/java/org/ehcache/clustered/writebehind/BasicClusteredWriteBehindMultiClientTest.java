@@ -82,6 +82,6 @@ public class BasicClusteredWriteBehindMultiClientTest extends WriteBehindTestBas
     client2.put(KEY, "The one from client2");
     client2.put(KEY, "The one one from client2");
 
-    checkValueFromLoaderWriter(client1, "The one one from client2");
+    checkValueFromLoaderWriter("The one one from client2");
   }
 }

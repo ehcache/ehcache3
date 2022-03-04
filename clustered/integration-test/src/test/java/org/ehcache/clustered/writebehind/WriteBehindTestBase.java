@@ -37,6 +37,8 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -50,8 +52,6 @@ public class WriteBehindTestBase {
 
   static final long KEY = 1L;
 
-  private static final String FLUSH_QUEUE_MARKER = "FLUSH_QUEUE";
-
   @Rule
   public final TestName testName = new TestName();
 
@@ -62,32 +62,22 @@ public class WriteBehindTestBase {
     loaderWriter = new RecordingLoaderWriter<>();
   }
 
-  void checkValueFromLoaderWriter(Cache<Long, String> cache,
-                                  String expected) throws Exception {
-    tryFlushingUpdatesToSOR(cache);
+  void checkValueFromLoaderWriter(String expected) throws Exception {
+    long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(2);
 
-    Map<Long, List<String>> records = loaderWriter.getRecords();
-    List<String> keyRecords = records.get(KEY);
+    do {
+      try {
+        Map<Long, List<String>> records = loaderWriter.getRecords();
+        List<String> keyRecords = records.get(KEY);
 
-    int index = keyRecords.size() - 1;
-    while (index >= 0 && keyRecords.get(index) != null && keyRecords.get(index).equals(FLUSH_QUEUE_MARKER)) {
-      index--;
-    }
-
-    assertThat(keyRecords.get(index), is(expected));
-  }
-
-  private void tryFlushingUpdatesToSOR(Cache<Long, String> cache) throws Exception {
-    int retryCount = 1000;
-    while (retryCount-- != 0) {
-      cache.put(KEY, FLUSH_QUEUE_MARKER);
-      Thread.sleep(100);
-      String loadedValue = loaderWriter.load(KEY);
-      if (loadedValue != null && loadedValue.equals(FLUSH_QUEUE_MARKER)) {
-        return;
+        assertThat(keyRecords.get(keyRecords.size() - 1), is(expected));
+        break;
+      } catch (Throwable t) {
+        if (System.nanoTime() > deadline) {
+          throw (TimeoutException) new TimeoutException("Timeout waiting for writer").initCause(t);
+        }
       }
-    }
-    throw new AssertionError("Couldn't flush updates to SOR after " + retryCount + " tries");
+    } while (true);
   }
 
   void assertValue(Cache<Long, String> cache, String value) {
