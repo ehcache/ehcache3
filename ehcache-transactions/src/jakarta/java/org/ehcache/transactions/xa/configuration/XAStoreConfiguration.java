@@ -15,12 +15,14 @@
  */
 package org.ehcache.transactions.xa.configuration;
 
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
  * @author Ludovic Orban
  */
+@PublicApi
 public class XAStoreConfiguration implements ServiceConfiguration<XAStore.Provider, String> {
 
   private final String uniqueXAResourceId;

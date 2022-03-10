@@ -18,6 +18,7 @@ package org.ehcache.transactions.xa.txmgr.btm;
 
 import bitronix.tm.TransactionManagerServices;
 
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerLookup;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import javax.transaction.TransactionManager;
 /**
  * @author Ludovic Orban
  */
+@PublicApi
 // tag::BitronixLookup[]
 public class BitronixTransactionManagerLookup implements TransactionManagerLookup<TransactionManager> { // <1>
 

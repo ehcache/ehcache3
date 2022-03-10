@@ -17,6 +17,7 @@
 package org.ehcache.transactions.xa.txmgr.narayana;
 
 import jakarta.transaction.TransactionManager;
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerLookup;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Ludovic Orban
  */
+@PublicApi
 public class NarayanaTransactionManagerLookup implements TransactionManagerLookup<TransactionManager> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NarayanaTransactionManagerLookup.class);
