@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Loaders and Writers
-ifndef::sourcedir39[]
+ifndef::sourcedir310[]
 include::{includedir}/common.adoc[]
-endif::sourcedir39[]
+endif::sourcedir310[]
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
@@ -74,7 +74,7 @@ After this time has elapsed, the batch is processed even if incomplete.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir39}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+include::{sourcedir310}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
 ----
 
 <1> We register a sample `CacheLoaderWriter` that knows about the mapping ("41L" maps to "zero").
@@ -86,7 +86,7 @@ The returned mapping will populate the cache and be returned to the caller.
 
 [source%nowrap,java,indent=0]
 ----
-include::{sourcedir39}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+include::{sourcedir310}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
 <1> For write-behind you need a configured `CacheLoaderWriter`.
