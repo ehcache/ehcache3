@@ -15,11 +15,14 @@
  */
 package org.ehcache.transactions.xa;
 
+import org.ehcache.javadoc.PublicApi;
+
 /**
  * The payload exception thrown by the cache when an {@code XAStore} has issues retrieving the transaction context.
  *
  * @author Ludovic Orban
  */
+@PublicApi
 public class XACacheException extends RuntimeException {
   private static final long serialVersionUID = -6691335026252002011L;
 

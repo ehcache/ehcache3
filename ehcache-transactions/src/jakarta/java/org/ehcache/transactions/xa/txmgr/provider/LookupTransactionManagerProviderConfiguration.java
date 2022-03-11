@@ -17,6 +17,7 @@
 package org.ehcache.transactions.xa.txmgr.provider;
 
 import jakarta.transaction.TransactionManager;
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
@@ -24,6 +25,7 @@ import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
 /**
  * Specialized {@link ServiceCreationConfiguration} for the {@link LookupTransactionManagerProvider}.
  */
+@PublicApi
 public class LookupTransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider<TransactionManager>, Class<? extends TransactionManagerLookup<TransactionManager>>> {
 
   private final Class<? extends TransactionManagerLookup<TransactionManager>> lookupClass;
