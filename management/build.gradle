@@ -37,6 +37,11 @@ dependencies {
   testImplementation "org.terracotta.management:management-registry:$terracottaPlatformVersion"
   testImplementation project(':xml')
   testImplementation project(':impl')
-  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+  /*
+   * Jackson BOMs are broken in a bunch of ways. One day we might be able to use the constraints provided through the
+   * platform dependencies, today is not that day.
+   */
+  testImplementation enforcedPlatform("com.fasterxml.jackson:jackson-bom:$jacksonVersion")
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation testFixtures(project(':xml'))
 }
