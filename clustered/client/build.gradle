@@ -42,7 +42,7 @@ dependencies {
   testImplementation project(':clustered:test-utils')
   testImplementation "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
   testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
-  testImplementation "org.terracotta.internal:common:$terracottaCoreVersion"
+  testImplementation "org.terracotta.internal:common-spi:$terracottaCoreVersion"
   testImplementation "org.terracotta:passthrough-leased-connection-api:$terracottaPlatformVersion"
   testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
