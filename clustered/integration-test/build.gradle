@@ -47,7 +47,10 @@ dependencies {
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
   testRuntimeOnly project(':clustered:clustered-dist')
 
-  testImplementation (group:'org.terracotta', name:'galvan-platform-support', version: terracottaPlatformVersion)
+  testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
+  testImplementation("org.terracotta:galvan-platform-support:$terracottaPlatformVersion") {
+    exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
+  }
   testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 }
 
