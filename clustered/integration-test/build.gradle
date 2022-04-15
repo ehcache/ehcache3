@@ -47,7 +47,10 @@ dependencies {
    */
   testImplementation enforcedPlatform("com.fasterxml.jackson:jackson-bom:$jacksonVersion")
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
-  testImplementation "org.terracotta:galvan-platform-support:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
+  testImplementation("org.terracotta:galvan-platform-support:$terracottaPlatformVersion") {
+    exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
+  }
   testImplementation "javax.cache:cache-api:$jcacheVersion"
 }
 
