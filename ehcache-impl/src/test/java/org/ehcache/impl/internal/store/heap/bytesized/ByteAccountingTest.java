@@ -43,19 +43,25 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
 import java.util.Arrays;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -64,7 +70,13 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  * @author Abhilash
  *
  */
+@Ignore
 public class ByteAccountingTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   private static final SizeOfEngine SIZE_OF_ENGINE = new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE);
 

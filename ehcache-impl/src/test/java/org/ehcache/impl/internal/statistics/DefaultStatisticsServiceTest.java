@@ -42,8 +42,7 @@ public class DefaultStatisticsServiceTest {
   public void before() {
     CacheConfigurationBuilder<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .heap(1, MB));
+        ResourcePoolsBuilder.heap(1000));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .using(service)
