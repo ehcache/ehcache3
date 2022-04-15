@@ -45,7 +45,7 @@ public class BasicSerializationTest {
     StatefulSerializer<Serializable> test = new CompactJavaSerializer<>(null);
     test.init(new TransientStateRepository());
 
-    String input = "";
+    String input = "foo";
     String result = (String) test.read(test.serialize(input));
     Assert.assertNotNull(result);
     Assert.assertNotSame(input, result);
