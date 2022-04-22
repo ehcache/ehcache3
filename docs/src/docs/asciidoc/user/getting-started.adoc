@@ -8,6 +8,26 @@ ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
+== Getting Ehcache
+
+From Maven
+
+    <dependencies>
+        <dependency>
+          <groupId>org.ehcache</groupId>
+          <artifactId>ehcache</artifactId>
+          <version>3.10.0</version>
+        </dependency>
+    </dependencies>
+
+From Gradle
+
+    org.ehcache:ehcache:3.10.0
+
+ehcache-xml and ehcache modules requires jaxb dependency at runtime, So If you are using java 1.9+ version then you should make jaxb dependency available at runtime.
+
+Prefer version for jaxb dependency : [2.2,3) means: greater than or equal to 2.2 but less than 3
+
 == Configuring Ehcache
 
 In order to start using Ehcache, you will need to configure your first `CacheManager` and `Cache`.
