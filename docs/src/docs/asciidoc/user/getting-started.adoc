@@ -10,7 +10,7 @@ endif::notBuildingForSite[]
 
 == Getting Ehcache
 
-==== From Maven
+=== From Maven
 
 Add the following to the <dependencies> section in your pom.xml:
 
@@ -23,7 +23,7 @@ Add the following to the <dependencies> section in your pom.xml:
 </dependency>
 ----
 
-==== From Gradle
+=== From Gradle
 
 Add the following to the dependencies section of your build.gradle:
 
@@ -41,7 +41,7 @@ ehcache-xml and ehcache modules requires jaxb dependency. So If you are using jd
 
 Here are the jaxb dependency co-ordinates :
 
-==== From Maven
+=== From Maven
 
 [source,xml]
 ----
@@ -57,7 +57,7 @@ Here are the jaxb dependency co-ordinates :
 </dependency>
 ----
 
-==== From Gradle
+=== From Gradle
 
 [source,groovy]
 ----
