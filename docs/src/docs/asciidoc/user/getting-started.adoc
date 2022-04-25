@@ -10,23 +10,62 @@ endif::notBuildingForSite[]
 
 == Getting Ehcache
 
-From Maven
+==== From Maven
 
-    <dependencies>
-        <dependency>
-          <groupId>org.ehcache</groupId>
-          <artifactId>ehcache</artifactId>
-          <version>3.10.0</version>
-        </dependency>
-    </dependencies>
+Add the following to the <dependencies> section in your pom.xml:
 
-From Gradle
+[source,xml]
+----
+<dependency>
+    <groupId>org.ehcache</groupId>
+    <artifactId>ehcache</artifactId>
+    <version>3.10.0</version>
+</dependency>
+----
 
-    org.ehcache:ehcache:3.10.0
+==== From Gradle
 
-ehcache-xml and ehcache modules requires jaxb dependency at runtime, So If you are using java 1.9+ version then you should make jaxb dependency available at runtime.
+Add the following to the dependencies section of your build.gradle:
 
-Prefer version for jaxb dependency : [2.2,3) means: greater than or equal to 2.2 but less than 3
+[source,groovy]
+----
+dependencies {
+  implementation 'org.ehcache:ehcache:3.10.0'
+}
+----
+
+ehcache-xml and ehcache modules requires jaxb dependency. So If you are using jdk-9+ version then you should make jaxb dependency available at runtime.
+
+1. We depend on a version range, Version for jaxb dependency should range between 2.2.0 - 3.0.0
+2. We have upgraded the jaxb api to jakarta version
+
+Here are the jaxb dependency co-ordinates :
+
+==== From Maven
+
+[source,xml]
+----
+<dependency>
+    <groupId>jakarta.xml.bind</groupId>
+    <artifactId>jakarta.xml.bind-api</artifactId>
+    <version>2.3.2</version>
+</dependency>
+<dependency>
+    <groupId>org.glassfish.jaxb</groupId>
+    <artifactId>jaxb-runtime</artifactId>
+    <version>2.3.2</version>
+</dependency>
+----
+
+==== From Gradle
+
+[source,groovy]
+----
+dependencies {
+    implementation "jakarta.xml.bind:jakarta.xml.bind-api:2.3.2"
+    implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
+}
+----
 
 == Configuring Ehcache
 
