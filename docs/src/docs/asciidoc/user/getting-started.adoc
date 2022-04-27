@@ -10,6 +10,8 @@ endif::notBuildingForSite[]
 
 == Getting Ehcache
 
+The latest version of Ehcache 3.10.0 has been released to maven central under the following coordinates:
+
 === From Maven
 
 Add the following to the <dependencies> section in your pom.xml:
@@ -33,27 +35,36 @@ dependencies {
   implementation 'org.ehcache:ehcache:3.10.0'
 }
 ----
+Ehcache 3 adds support for the Jakarta EE namespaced versions of the JTA (for the transactions module) and JAXB (for parsing Ehcache XML files) APIs.
 
-ehcache-xml and ehcache modules requires jaxb dependency. So If you are using jdk-9+ version then you should make jaxb dependency available at runtime.
+1.  *JAXB Dependencies*
+2.  *Jakarta Variants*
 
-1. We depend on a version range, Version for jaxb dependency should range between 2.2.0 - 3.0.0
-2. We have upgraded the jaxb api to jakarta version
 
-Here are the jaxb dependency co-ordinates :
+*JAXB Dependencies*
+
+The modules ehcache-xml and ehcache have a dependency upon JAXB.  If you are using JDK-9 or greater than you need to ensure the JAXB dependency is available at runtime.
+
+Please note:
+
+The JAXB dependency declared by Ehcache is with the version range 2.2.0 - 3.0.0.  You will probably want to specify a particular version, in order to get consistent builds of your components.
+
+
+*Jakarta Variants*
+
+If your deployment environment has moved to the new Jakarta EE namespaced APIs then you will want to choose the Jakarta namesapced Ehcache variants.
+
+Here are the Jakarta variant JAXB dependency co-ordinates :
 
 === From Maven
 
 [source,xml]
 ----
 <dependency>
-    <groupId>jakarta.xml.bind</groupId>
-    <artifactId>jakarta.xml.bind-api</artifactId>
-    <version>2.3.2</version>
-</dependency>
-<dependency>
-    <groupId>org.glassfish.jaxb</groupId>
-    <artifactId>jaxb-runtime</artifactId>
-    <version>2.3.2</version>
+  <groupId>org.ehcache</groupId>
+  <artifactId>ehcache</artifactId>
+  <version>3.10.0</version>
+  <!-- <classifier>jakarta</classifier> -->
 </dependency>
 ----
 
@@ -61,10 +72,24 @@ Here are the jaxb dependency co-ordinates :
 
 [source,groovy]
 ----
-dependencies {
-    implementation "jakarta.xml.bind:jakarta.xml.bind-api:2.3.2"
-    implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
+implementation('org.ehcache:ehcache:3.10.0') {
+//  capabilities {
+//    requireCapability('org.ehcache:ehcache-jakarta')
+//  }
 }
+----
+
+In a maven build the POM contents does not capture the dependencies of the Jakarta variant. You will need to manually add a dependency on a suitable JAXB runtime.
+Ehcache will work with any Jakarta JAXB runtime in the range:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.glassfish.jaxb</groupId>
+    <artifactId>jaxb-runtime</artifactId>
+    <version>[2.2,3)</version>
+    <scope>runtime</scope>
+</dependency>
 ----
 
 == Configuring Ehcache
