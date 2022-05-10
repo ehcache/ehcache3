@@ -57,12 +57,15 @@ public abstract class AbstractCacheCalculationTest extends AbstractCalculationTe
     return Arrays.asList(new Object[][] {
       //1 tier
       { newResourcePoolsBuilder().heap(1, MB) },
+      { newResourcePoolsBuilder().heap(100, ENTRIES) },
       { newResourcePoolsBuilder().offheap(1, MB) },
       { newResourcePoolsBuilder().disk(1, MB) },
 
       //2 tiers
       { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB) },
+      { newResourcePoolsBuilder().heap(1, ENTRIES).offheap(2, MB) },
       { newResourcePoolsBuilder().heap(1, MB).disk(2, MB) },
+      { newResourcePoolsBuilder().heap(1, ENTRIES).disk(2, MB) },
 
       //3 tiers
       { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB) },

@@ -23,19 +23,13 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
-
-import java.io.IOException;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class OffHeapDiskStoreProviderConfigurationParserTest {
 
   @Test
-  public void parseServiceCreationConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
+  public void parseServiceCreationConfiguration() {
     Configuration xmlConfig = new XmlConfiguration(getClass().getResource("/configs/resources-caches.xml"));
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);

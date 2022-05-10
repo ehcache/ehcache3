@@ -155,7 +155,7 @@ public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void descriptorOffHeapTest() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder().heap(5, MB).offheap(10, MB))
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(5000).offheap(10, MB))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -179,7 +179,6 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
-      allDescriptors.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "GAUGE"));
 
       assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
