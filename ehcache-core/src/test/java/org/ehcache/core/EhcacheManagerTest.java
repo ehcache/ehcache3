@@ -34,6 +34,7 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventListenerProvider;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.LoggingService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.core.util.TestCacheConfig;
@@ -104,6 +105,7 @@ public class EhcacheManagerTest {
       mock(CacheEventDispatcherFactory.class),
       mock(CacheEventListenerProvider.class),
       mock(LocalPersistenceService.class),
+      mock(LoggingService.class),
       mock(ResilienceStrategyProvider.class)));
   }
 
@@ -130,6 +132,7 @@ public class EhcacheManagerTest {
         cacheEventNotificationListenerServiceProvider,
         mock(CacheEventListenerProvider.class),
         mock(LocalPersistenceService.class),
+        mock(LoggingService.class),
         mock(ResilienceStrategyProvider.class)));
     cacheManager.init();
 
@@ -683,6 +686,7 @@ public class EhcacheManagerTest {
         cacheEventNotificationListenerServiceProvider,
         mock(CacheEventListenerProvider.class),
         mock(LocalPersistenceService.class),
+        mock(LoggingService.class),
         mock(ResilienceStrategyProvider.class)
     ));
     cacheManager.init();
@@ -730,6 +734,7 @@ public class EhcacheManagerTest {
         cacheEventNotificationListenerServiceProvider,
         mock(CacheEventListenerProvider.class),
         mock(LocalPersistenceService.class),
+        mock(LoggingService.class),
         mock(ResilienceStrategyProvider.class)
     ));
     cacheManager.init();
@@ -764,6 +769,7 @@ public class EhcacheManagerTest {
         mock(CacheEventDispatcherFactory.class),
         mock(CacheEventListenerProvider.class),
         mock(LocalPersistenceService.class),
+        mock(LoggingService.class),
         mock(ResilienceStrategyProvider.class)
     ));
 
@@ -800,6 +806,7 @@ public class EhcacheManagerTest {
         mock(CacheEventDispatcherFactory.class),
         mock(CacheEventListenerProvider.class),
         mock(LocalPersistenceService.class),
+        mock(LoggingService.class),
         mock(ResilienceStrategyProvider.class)
     ));
 
@@ -865,7 +872,7 @@ public class EhcacheManagerTest {
                                      WriteBehindProvider decoratorLoaderWriterProvider,
                                      Store.Provider storeProvider,
                                      CacheEventDispatcherFactory cenlProvider) {
-    return new ArrayList<>(Arrays.asList(cacheLoaderWriterProvider, storeProvider, decoratorLoaderWriterProvider, cenlProvider, mock(CacheEventListenerProvider.class), mock(ResilienceStrategyProvider.class)));
+    return new ArrayList<>(Arrays.asList(cacheLoaderWriterProvider, storeProvider, decoratorLoaderWriterProvider, cenlProvider, mock(CacheEventListenerProvider.class), mock(ResilienceStrategyProvider.class),mock(LoggingService.class)));
   }
 
   static class NoSuchService implements Service {
