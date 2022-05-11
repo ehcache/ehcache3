@@ -25,6 +25,7 @@ import org.junit.runners.Parameterized;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
 
 /**
@@ -57,6 +58,7 @@ public abstract class AbstractTierCalculationTest extends AbstractCalculationTes
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
       { "OnHeap", newResourcePoolsBuilder().heap(1, MB) },
+      { "OnHeap", newResourcePoolsBuilder().heap(1000, ENTRIES) },
       { "OffHeap", newResourcePoolsBuilder().offheap(1, MB) },
       { "Disk", newResourcePoolsBuilder().disk(1, MB) },
     });

@@ -156,8 +156,7 @@ public class GettingStarted {
     try {
       // tag::clusteredCacheTieredExample[]
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .heap(2, MemoryUnit.MB) // <1>
+          ResourcePoolsBuilder.heap(200) // <1>
               .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))) // <2>
           .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
           .build();

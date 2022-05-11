@@ -105,7 +105,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
       .withCache("cache-shared", CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class, String.class,
         newResourcePoolsBuilder()
-          .heap(1, MemoryUnit.MB)
+          .heap(10, EntryUnit.ENTRIES)
           .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a")))
         .build())
       .build(true)) {
