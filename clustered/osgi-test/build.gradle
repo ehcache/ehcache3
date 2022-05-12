@@ -37,34 +37,32 @@ dependencies {
   osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   osgiModule "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
   osgiModule "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
-  osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
+  osgiModule 'org.apache.felix:org.apache.felix.scr:2.2.0'
   osgiModule 'com.sun.activation:javax.activation:1.2.0'
-  osgiModule 'org.glassfish.hk2:osgi-resource-locator:1.0.2'
+  osgiModule 'org.osgi:org.osgi.util.promise:1.2.0'
+  osgiModule 'org.glassfish.hk2:osgi-resource-locator:2.4.0'
 
   testImplementation project(':osgi-test')
-  testImplementation 'org.osgi:osgi.core:6.0.0'
 }
 
 configurations.all {
   resolutionStrategy {
     dependencySubstitution {
-      substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
-        .because('https://github.com/codehaus-plexus/plexus-utils/issues/3' +
-          ' and https://github.com/codehaus-plexus/plexus-utils/issues/4')
-        .with(module('org.ops4j.pax.url:pax-url-aether:2.6.3'))
-      substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
-        .because('https://ops4j1.jira.com/browse/PAXURL-341')
-        .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
-      substitute(module('org.ops4j.pax.url:pax-url-link:2.4.5'))
-        .because('https://ops4j1.jira.com/browse/PAXURL-341')
-        .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
-
-      substitute(module('biz.aQute.bnd:bndlib:2.4.0'))
-        .because('Java 9 Stuff')
-        .with(module('biz.aQute.bnd:biz.aQute.bndlib:5.2.0'))
+      substitute(module('org.ops4j.base:ops4j-base-store:1.5.0'))
+        .using(module('org.ops4j.base:ops4j-base-store:1.5.1'))
+        .because('Dependency divergence in org.ops4j.pax.exam:pax-exam-spi:4.13.5')
       substitute(module('junit:junit:4.12'))
+        .using(module('junit:junit:4.13.1'))
         .because('CVE-2020-15250')
-        .with(module('junit:junit:4.13.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-classpath:2.6.8'))
+        .using(module('org.ops4j.pax.url:pax-url-classpath:2.6.11'))
+      substitute(module('org.ops4j.pax.url:pax-url-link:2.6.8'))
+        .using(module('org.ops4j.pax.url:pax-url-link:2.6.11'))
+      substitute(module('org.osgi:org.osgi.util.function:1.1.0'))
+        .using(module('org.osgi:org.osgi.util.function:1.2.0'))
+        .because('Dependency divergence in org.osgi:org.osgi.util.promise:1.2.0')
+      substitute(module('biz.aQute.bnd:bndlib:2.4.0'))
+        .using(module('biz.aQute.bnd:biz.aQute.bndlib:6.1.0'))
     }
   }
 }
@@ -73,7 +71,7 @@ sourceSets {
   test {
     // Needed for PaxExam which makes the dynamic bundle load content of a single dir
     // matching the package of the test class
-    output.resourcesDir = java.outputDir
+    output.resourcesDir = java.classesDirectory
   }
 }
 

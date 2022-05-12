@@ -34,12 +34,14 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 
 /**
  * Tiering
@@ -183,6 +185,8 @@ public class Tiering {
 
   @Test
   public void byteSizedTieredCache() {
+    Assume.assumeThat(Integer.parseInt(System.getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+
     // tag::byteSizedTieredCache[]
     CacheConfiguration<Long, String> usesConfiguredInCacheConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
       ResourcePoolsBuilder.newResourcePoolsBuilder()

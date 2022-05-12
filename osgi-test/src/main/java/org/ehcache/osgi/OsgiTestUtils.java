@@ -49,6 +49,8 @@ public class OsgiTestUtils {
       gradleBundle("org.slf4j:slf4j-api"),
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
+      gradleBundle("org.osgi:org.osgi.util.promise"),
+      gradleBundle("org.osgi:org.osgi.util.function"),
       systemProperty("pax.exam.osgi.unresolved.fail").value("true"),
       cleanCaches(true),
       workingDirectory(join(File.separator, "build", "osgi-container", join(File.separator, path))),

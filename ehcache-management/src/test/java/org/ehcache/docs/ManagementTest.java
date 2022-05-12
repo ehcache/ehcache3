@@ -58,7 +58,7 @@ public class ManagementTest {
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration); // <2>
 
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, MemoryUnit.MB).offheap(2, MemoryUnit.MB))
+        ResourcePoolsBuilder.heap(100).offheap(2, MemoryUnit.MB))
         .build();
 
       cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

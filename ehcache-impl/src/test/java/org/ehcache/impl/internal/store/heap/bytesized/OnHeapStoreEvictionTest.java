@@ -25,12 +25,23 @@ import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.junit.BeforeClass;
 
 import java.io.Serializable;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assume.assumeThat;
 
 public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.heap.OnHeapStoreEvictionTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
