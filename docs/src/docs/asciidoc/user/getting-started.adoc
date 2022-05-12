@@ -14,49 +14,7 @@ The latest version of Ehcache 3.10.0 has been released to maven central under th
 
 === From Maven
 
-Add the following to the <dependencies> section in your pom.xml:
-
-[source,xml]
-----
-<dependency>
-    <groupId>org.ehcache</groupId>
-    <artifactId>ehcache</artifactId>
-    <version>3.10.0</version>
-</dependency>
-----
-
-=== From Gradle
-
-Add the following to the dependencies section of your build.gradle:
-
-[source,groovy]
-----
-dependencies {
-  implementation 'org.ehcache:ehcache:3.10.0'
-}
-----
-Ehcache 3 adds support for the Jakarta EE namespaced versions of the JTA (for the transactions module) and JAXB (for parsing Ehcache XML files) APIs.
-
-1.  *JAXB Dependencies*
-2.  *Jakarta Variants*
-
-
-*JAXB Dependencies*
-
-The modules ehcache-xml and ehcache have a dependency upon JAXB.  If you are using JDK-9 or greater than you need to ensure the JAXB dependency is available at runtime.
-
-Please note:
-
-The JAXB dependency declared by Ehcache is with the version range 2.2.0 - 3.0.0.  You will probably want to specify a particular version, in order to get consistent builds of your components.
-
-
-*Jakarta Variants*
-
-If your deployment environment has moved to the new Jakarta EE namespaced APIs then you will want to choose the Jakarta namesapced Ehcache variants.
-
-Here are the Jakarta variant JAXB dependency co-ordinates :
-
-=== From Maven
+Add the following to the `<dependencies>` section in your `pom.xml`:
 
 [source,xml]
 ----
@@ -64,32 +22,86 @@ Here are the Jakarta variant JAXB dependency co-ordinates :
   <groupId>org.ehcache</groupId>
   <artifactId>ehcache</artifactId>
   <version>3.10.0</version>
-  <!-- <classifier>jakarta</classifier> -->
 </dependency>
 ----
 
 === From Gradle
 
+Add the following to the dependencies section of your `build.gradle`:
+
 [source,groovy]
 ----
-implementation('org.ehcache:ehcache:3.10.0') {
-//  capabilities {
-//    requireCapability('org.ehcache:ehcache-jakarta')
-//  }
+dependencies {
+  implementation 'org.ehcache:ehcache:3.10.0'
 }
 ----
 
-In a maven build the POM contents does not capture the dependencies of the Jakarta variant. You will need to manually add a dependency on a suitable JAXB runtime.
-Ehcache will work with any Jakarta JAXB runtime in the range:
+=== JAXB Dependencies
+
+Ehcache uses JAXB to parse its XML configuration files. For out-of-the-box functionality it depends on the JAXB
+reference implementation using a version range: `org.glassfish.jaxb:jaxb-runtime:[2.2,3)`.
+If you require a repeatable build you will need to depend on an explicit version within this range.
+If you wish to use an alternate implementation of JAXB then you may need to manually exclude this dependency.
+
+NOTE: If you are using Java 8, or Java 9 (with `--add-modules java.xml.bind`) then you may safely exclude this
+dependency in favor of the implementation provided by the JRE.
+
+=== Jakarta Variants
+
+Ehcache 3.10 adds support for the Jakarta EE namespaced versions of the JAXB APIs.
+If you have moved to the new Jakarta EE namespaced APIs then you may want to choose to use the matching Ehcache variants.
+
+==== From Maven
+
+Add the following to the `<dependencies>` section in your `pom.xml`:
 
 [source,xml]
 ----
 <dependency>
+  <groupId>org.ehcache</groupId>
+  <artifactId>ehcache</artifactId>
+  <version>3.10.0</version>
+  <classifier>jakarta</classifier>
+</dependency>
+----
+
+[WARNING]
+====
+The Maven POM cannot capture the dependencies of the Jakarta variant.
+You will also need to manually add the appropriate dependencies:
+[source,xml]
+----
+<dependencies>
+  <dependency>
+    <groupId>javax.cache</groupId>
+    <artifactId>cache-api</artifactId>
+    <version>1.1.0</version>
+  </dependency>
+  <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>1.7.25</version>
+  </dependency>
+  <dependency>
     <groupId>org.glassfish.jaxb</groupId>
     <artifactId>jaxb-runtime</artifactId>
-    <version>[2.2,3)</version>
-    <scope>runtime</scope>
-</dependency>
+    <version>[3,4)</version>
+  </dependency>
+</dependencies>
+----
+====
+
+==== From Gradle
+
+Add the following to the dependencies section of your `build.gradle`:
+
+[source,groovy]
+----
+implementation('org.ehcache:ehcache:3.10.0') {
+  capabilities {
+    requireCapability('org.ehcache:ehcache-jakarta')
+  }
+}
 ----
 
 == Configuring Ehcache
