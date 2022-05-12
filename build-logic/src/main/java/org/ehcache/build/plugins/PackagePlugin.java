@@ -155,12 +155,12 @@ public class PackagePlugin implements Plugin<Project> {
 
     Configuration apiElements = jvmPluginServices.createOutgoingElements(lower(camel(name, API_ELEMENTS_CONFIGURATION_NAME)), builder ->
       builder.extendsFrom(packageBuckets.api()).extendsFrom(packageBuckets.compileOnlyApi()).published().providesApi().artifact(shadowJar));
-    configureDefaultTargetPlatform(apiElements, parseInt(Jvm.current().getJavaVersion().getMajorVersion()));
+    configureDefaultTargetPlatform(apiElements, 8);
     Configuration compileClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, COMPILE_CLASSPATH_CONFIGURATION_NAME)), builder ->
       builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.compileOnly()).requiresJavaLibrariesRuntime());
     Configuration runtimeElements = jvmPluginServices.createOutgoingElements(lower(camel(name, RUNTIME_ELEMENTS_CONFIGURATION_NAME)), builder ->
       builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).published().providesRuntime().artifact(shadowJar));
-    configureDefaultTargetPlatform(runtimeElements, parseInt(Jvm.current().getJavaVersion().getMajorVersion()));
+    configureDefaultTargetPlatform(runtimeElements, 8);
     Configuration runtimeClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), builder ->
       builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).requiresJavaLibrariesRuntime());
 

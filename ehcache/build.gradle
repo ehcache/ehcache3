@@ -92,7 +92,7 @@ dependencies {
       requireCapability 'org.ehcache.modules:ehcache-xml-jakarta'
     }
   }
-  jakartaRuntimeOnly 'org.glassfish.jaxb:jaxb-runtime:[3,4)'
+  jakartaRuntimeOnly 'org.glassfish.jaxb:jaxb-runtime:[3,3.1)'
 }
 
 tasks.named('jakartaJar') {

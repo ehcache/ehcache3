@@ -31,6 +31,7 @@ import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
@@ -52,6 +53,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assume.assumeThat;
 
+@Ignore("https://github.com/ehcache/ehcache3/issues/3013")
 public class DuplicateTest {
 
   private PersistentCacheManager cacheManager;

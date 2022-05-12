@@ -13,7 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@PublicApi
-package org.ehcache.clustered.client.config;
+package org.ehcache.core.spi.service;
 
-import org.ehcache.javadoc.PublicApi;
+import org.ehcache.spi.service.Service;
+import org.slf4j.Logger;
+
+public interface LoggingService extends Service {
+
+  Context withContext(String key, String value);
+
+  Logger getLogger(Class<?> klazz);
+
+  @FunctionalInterface
+  interface Context extends AutoCloseable {
+
+    @Override
+    void close();
+  }
+}
