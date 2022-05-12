@@ -38,13 +38,24 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.terracotta.statistics.StatisticsManager;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assume.assumeThat;
 
 public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   private StoreFactory<String, String> storeFactory;
   private static final int MAGIC_NUM = 500;

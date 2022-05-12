@@ -21,18 +21,29 @@ import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.spi.copy.Copier;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
 
 /**
  * @author Abhilash
  *
  */
 public class DefaultSizeOfEngineTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   @Test
   public void testMaxObjectGraphSizeExceededException() {

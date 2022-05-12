@@ -25,7 +25,10 @@ import org.assertj.core.api.AbstractCharSequenceAssert;
 import org.assertj.core.api.AbstractMapAssert;
 import org.assertj.core.api.AbstractObjectAssert;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.MemoryUnit;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestWatcher;
@@ -33,7 +36,12 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assume.assumeThat;
 
 public abstract class AbstractCalculationTest {
 
@@ -54,6 +62,10 @@ public abstract class AbstractCalculationTest {
 
   protected AbstractCalculationTest(ResourcePoolsBuilder poolBuilder) {
     this.resources = poolBuilder.build();
+    SizedResourcePool heapResource = resources.getPoolForResource(ResourceType.Core.HEAP);
+    if (heapResource != null && heapResource.getUnit() instanceof MemoryUnit) {
+      assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+    }
   }
 
   /**

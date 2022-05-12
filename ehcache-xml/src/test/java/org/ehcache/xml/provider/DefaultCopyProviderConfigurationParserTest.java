@@ -25,26 +25,21 @@ import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.CopierType;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import com.pany.ehcache.copier.Description;
 import com.pany.ehcache.copier.DescriptionCopier;
 import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.copier.PersonCopier;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DefaultCopyProviderConfigurationParserTest {
 
   @Test
-  public void parseServiceCreationConfiguration() throws SAXException, JAXBException, ParserConfigurationException, IOException, ClassNotFoundException {
+  public void parseServiceCreationConfiguration() {
     Configuration xmlConfig = new XmlConfiguration(getClass().getResource("/configs/cache-copiers.xml"));
 
     assertThat(xmlConfig.getServiceCreationConfigurations()).hasSize(1);
