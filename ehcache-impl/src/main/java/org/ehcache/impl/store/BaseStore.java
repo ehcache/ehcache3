@@ -18,6 +18,7 @@ package org.ehcache.impl.store;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
+import org.ehcache.core.spi.service.LoggingService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.StatisticType;
 import org.ehcache.core.spi.store.Store;
@@ -26,7 +27,9 @@ import org.ehcache.core.statistics.OperationStatistic;
 import org.ehcache.core.statistics.ZeroOperationStatistic;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
+import org.slf4j.Logger;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -101,9 +104,11 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
 
 
   @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
+  @ServiceDependencies(LoggingService.class)
   protected static abstract class BaseStoreProvider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
+    private volatile LoggingService loggingService;
 
     protected  <K, V, S extends Enum<S>, T extends Enum<T>> OperationStatistic<T> createTranslatedStatistic(BaseStore<K, V> store, String statisticName, Map<T, Set<S>> translation, String targetName) {
       return getStatisticsService()
@@ -114,6 +119,7 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
+      this.loggingService = serviceProvider.getService(LoggingService.class);
     }
 
     @Override
@@ -123,6 +129,10 @@ public abstract class BaseStore<K, V> implements Store<K, V> {
 
     protected ServiceProvider<Service> getServiceProvider() {
       return this.serviceProvider;
+    }
+
+    protected Logger getLogger(Class<?> klazz) {
+      return loggingService.getLogger(klazz);
     }
 
     protected abstract ResourceType<?> getResourceType();
