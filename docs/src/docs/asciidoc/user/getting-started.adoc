@@ -8,6 +8,92 @@ ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
+== Getting Ehcache
+
+The latest version of Ehcache 3.10.0 has been released to maven central under the following coordinates:
+
+=== From Gradle
+
+Add the following to the dependencies section of your `build.gradle`:
+
+[source,groovy]
+----
+dependencies {
+  implementation 'org.ehcache:ehcache:3.10.0'
+}
+----
+
+=== From Maven
+
+Add the following to the `<dependencies>` section in your `pom.xml`:
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.ehcache</groupId>
+  <artifactId>ehcache</artifactId>
+  <version>3.10.0</version>
+</dependency>
+----
+
+=== JAXB Dependencies
+
+Ehcache uses JAXB to parse its XML configuration files. For out-of-the-box functionality it depends on the JAXB
+reference implementation using a version range: `org.glassfish.jaxb:jaxb-runtime:[2.2,3)`.
+If you require a repeatable build you will need to depend on an explicit version within this range.
+If you wish to use an alternate implementation of JAXB then you may need to manually exclude this dependency.
+
+NOTE: If you are using Java 8, or Java 9 (with `--add-modules java.xml.bind`) then you may safely exclude this
+dependency in favor of the implementation provided by the JRE.
+
+=== Jakarta Variants
+
+Ehcache 3.10 adds support for the Jakarta EE namespaced versions of the JAXB APIs.
+If you have moved to the new Jakarta EE namespaced APIs then you may want to choose to use the matching Ehcache variants.
+
+==== From Gradle
+
+Add the following to the dependencies section of your `build.gradle`:
+
+[source,groovy]
+----
+implementation('org.ehcache:ehcache:3.10.0') {
+  capabilities {
+    requireCapability('org.ehcache:ehcache-jakarta')
+  }
+}
+----
+
+==== From Maven
+
+WARNING: The Maven POM cannot express the dependencies of the Jakarta variant. You will need to manually correct the
+dependencies as shown below.
+
+Add the following to the `<dependencies>` section in your `pom.xml`:
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.ehcache</groupId>
+  <artifactId>ehcache</artifactId>
+  <version>3.10.0</version>
+  <classifier>jakarta</classifier>
+
+  <exclusions>
+    <exclusion>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-runtime</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+<dependency>
+  <groupId>org.glassfish.jaxb</groupId>
+  <artifactId>jaxb-runtime</artifactId>
+  <version>[3,3.1)</version>
+</dependency>
+
+----
+
 == Configuring Ehcache
 
 In order to start using Ehcache, you will need to configure your first `CacheManager` and `Cache`.
