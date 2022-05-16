@@ -26,6 +26,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
@@ -72,7 +73,6 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -116,7 +116,7 @@ import static org.ehcache.core.exceptions.StorePassThroughException.handleExcept
  */
 public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingTier<K, V> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
+  private final Logger logger = EhcachePrefixLoggerFactory.getLogger(OnHeapStore.class);
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -165,7 +165,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         ResourcePools configuredPools = (ResourcePools)event.getOldValue();
         if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=
             configuredPools.getPoolForResource(ResourceType.Core.HEAP).getSize()) {
-          LOG.info("Updating size to: {}", updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
+          logger.info("Updating size to: {}", updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
           SizedResourcePool pool = updatedPools.getPoolForResource(ResourceType.Core.HEAP);
           if (pool.getUnit() instanceof MemoryUnit) {
             capacity = ((MemoryUnit)pool.getUnit()).toBytes(pool.getSize());
@@ -967,7 +967,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     for (Entry<K, OnHeapValueHolder<V>> entry : removed) {
       notifyInvalidation(entry.getKey(), entry.getValue());
     }
-    LOG.debug("CLIENT: onheap store removed all with hash {}", intHash);
+    logger.debug("CLIENT: onheap store removed all with hash {}", intHash);
     invalidateAllWithHashObserver.end(CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.SUCCESS);
   }
 
@@ -1445,7 +1445,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       holder = makeValue(key, newValue, now, expirationTime, this.valueCopier);
       eventSink.updated(key, oldValue, newValue);
     } catch (LimitExceededException e) {
-      LOG.warn(e.getMessage());
+      logger.warn(e.getMessage());
       eventSink.removed(key, oldValue);
     }
     return holder;
@@ -1466,7 +1466,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       holder = makeValue(key, value, now, expirationTime, this.valueCopier);
       eventSink.created(key, value);
     } catch (LimitExceededException e) {
-      LOG.warn(e.getMessage());
+      logger.warn(e.getMessage());
     }
     return holder;
   }
@@ -1483,7 +1483,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     try{
       return cloneValueHolder(key, valueHolder, now, expiration, true);
     } catch (LimitExceededException e) {
-      LOG.warn(e.getMessage());
+      logger.warn(e.getMessage());
       invalidateInGetOrComputeIfAbsent(backEnd, key, valueHolder, fault, now, expiration);
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
       return null;
@@ -1534,7 +1534,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     try {
       return evictionAdvisor.adviseAgainstEviction(key, value);
     } catch (Exception e) {
-      LOG.error("Exception raised while running eviction advisor " +
+      logger.error("Exception raised while running eviction advisor " +
           "- Eviction will assume entry is NOT advised against eviction", e);
       return false;
     }
@@ -1620,6 +1620,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   @OptionalServiceDependencies("org.ehcache.core.spi.service.Statis" +
     "ticsService")
   public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider {
+
+    private final Logger logger = EhcachePrefixLoggerFactory.getLogger(Provider.class);
 
     private final Map<Store<?, ?>, List<Copier<?>>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final Map<OnHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
@@ -1740,7 +1742,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       try {
         resource.invalidateAll();
       } catch (StoreAccessException e) {
-        LOG.warn("Invalidation failure while releasing caching tier", e);
+        logger.warn("Invalidation failure while releasing caching tier", e);
       }
       releaseStore((Store<?, ?>) resource);
     }

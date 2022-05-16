@@ -57,7 +57,7 @@ public class CacheConfigurationChangeListenerTest {
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
     this.config = new TestCacheConfig<>(Object.class, Object.class, createResourcePools(2L));
     this.cache = new Ehcache<>(config, store, resilienceStrategy, eventNotifier,
-      LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"), loaderWriter);
+      loaderWriter);
     cache.init();
     this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();
   }

@@ -23,7 +23,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -203,7 +202,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
 
   @SuppressWarnings("unchecked")
   private Ehcache<String, String> getEhcache(CacheConfiguration<String, String> config) {
-    final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;

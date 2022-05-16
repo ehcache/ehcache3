@@ -24,7 +24,6 @@ import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
 import org.mockito.internal.stubbing.answers.Returns;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -109,7 +108,7 @@ public class EhcacheBulkMethodsTest {
     when(cacheConfig.getExpiryPolicy()).thenReturn(mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null))));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     ResilienceStrategy<Number, CharSequence> resilienceStrategy = mock(ResilienceStrategy.class);
-    return new Ehcache<>(cacheConfig, store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
+    return new Ehcache<>(cacheConfig, store, resilienceStrategy, cacheEventDispatcher);
   }
 
   static <K, V> Map.Entry<K, V> entry(final K key, final V value) {

@@ -22,7 +22,6 @@ import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -140,8 +139,7 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    */
   @SuppressWarnings("unchecked")
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
-      .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;

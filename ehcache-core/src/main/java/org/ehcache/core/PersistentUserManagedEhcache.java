@@ -33,7 +33,6 @@ import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -48,9 +47,8 @@ import java.util.Set;
  */
 public class PersistentUserManagedEhcache<K, V> implements PersistentUserManagedCache<K, V> {
 
-  private final StatusTransitioner statusTransitioner;
   private final Logger logger;
-  private final InternalCache<K,V> cache;
+  private final Ehcache<K,V> cache;
   private final DiskResourceService diskPersistenceService;
   private final String id;
 
@@ -65,9 +63,8 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * @param id an id for this cache
    */
   public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy, DiskResourceService diskPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
-    this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
-    this.statusTransitioner = new StatusTransitioner(logger);
-    this.cache = new Ehcache<>(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, statusTransitioner, cacheLoaderWriter);
+    this.logger = EhcachePrefixLoggerFactory.getLogger(PersistentUserManagedEhcache.class);
+    this.cache = new Ehcache<>(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, cacheLoaderWriter);
     this.diskPersistenceService = diskPersistenceService;
     this.id = id;
   }
@@ -77,7 +74,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    */
   @Override
   public void destroy() throws CachePersistenceException {
-    StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    StatusTransitioner.Transition st = cache.statusTransitioner.maintenance();
     try {
       st.succeeded();
     } catch (Throwable t) {
@@ -89,7 +86,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   }
 
   void create() {
-    statusTransitioner.checkMaintenance();
+    cache.statusTransitioner.checkMaintenance();
     try {
       if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         destroy();
@@ -101,7 +98,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   }
 
   void destroyInternal() throws CachePersistenceException {
-    statusTransitioner.checkMaintenance();
+    cache.statusTransitioner.checkMaintenance();
     diskPersistenceService.destroy(id);
   }
 
@@ -133,7 +130,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    */
   @Override
   public Status getStatus() {
-    return statusTransitioner.currentStatus();
+    return cache.statusTransitioner.currentStatus();
   }
 
   /**
@@ -252,6 +249,6 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * Adds a hook to lifecycle transitions.
    */
   public void addHook(LifeCycled lifeCycled) {
-    statusTransitioner.addHook(lifeCycled);
+    cache.statusTransitioner.addHook(lifeCycled);
   }
 }

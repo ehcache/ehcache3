@@ -32,17 +32,12 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 final class StatusTransitioner {
 
-  private final AtomicReference<InternalStatus.Transition> currentState;
+  private final AtomicReference<InternalStatus.Transition> currentState = new AtomicReference<>(InternalStatus.initial());
   private volatile Thread maintenanceLease;
-  private final Logger logger;
+  private final Logger logger = EhcachePrefixLoggerFactory.getLogger(StatusTransitioner.class);
 
   private final CopyOnWriteArrayList<LifeCycled> hooks = new CopyOnWriteArrayList<>();
   private final CopyOnWriteArrayList<StateChangeListener> listeners = new CopyOnWriteArrayList<>();
-
-  StatusTransitioner(Logger logger) {
-    this.currentState = new AtomicReference<>(InternalStatus.initial());
-    this.logger = logger;
-  }
 
   Status currentStatus() {
     return currentState.get().get().toPublicStatus();
