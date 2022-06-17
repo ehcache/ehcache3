@@ -99,7 +99,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<>();
   private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<>();
 
-  private final StatusTransitioner statusTransitioner = new StatusTransitioner(LOGGER);
+  private final StatusTransitioner statusTransitioner = new StatusTransitioner();
   private final String simpleName;
   protected final ServiceLocator serviceLocator;
 
@@ -306,93 +306,98 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return cache;
   }
 
+  @SuppressWarnings("try")
   <K, V> InternalCache<K, V> createNewEhcache(String alias, CacheConfiguration<K, V> config,
                                         Class<K> keyType, Class<V> valueType) {
-    Collection<ServiceConfiguration<?, ?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
 
-    List<ServiceConfiguration<?, ?>> unknownServiceConfigs = new ArrayList<>();
-    for (ServiceConfiguration<?, ?> serviceConfig : adjustedServiceConfigs) {
-      if (!serviceLocator.knowsServiceFor(serviceConfig)) {
-        unknownServiceConfigs.add(serviceConfig);
+    try (EhcachePrefixLoggerFactory.Context ignored = EhcachePrefixLoggerFactory.withContext("cache-alias", alias)) {
+
+      Collection<ServiceConfiguration<?, ?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
+
+      List<ServiceConfiguration<?, ?>> unknownServiceConfigs = new ArrayList<>();
+      for (ServiceConfiguration<?, ?> serviceConfig : adjustedServiceConfigs) {
+        if (!serviceLocator.knowsServiceFor(serviceConfig)) {
+          unknownServiceConfigs.add(serviceConfig);
+        }
       }
-    }
-    if (!unknownServiceConfigs.isEmpty()) {
-      throw new IllegalStateException("Cannot find service(s) that can handle following configuration(s) : " + unknownServiceConfigs);
-    }
-
-    List<LifeCycled> lifeCycledList = new ArrayList<>();
-
-    CacheLoaderWriterProvider cacheLoaderWriterProvider = serviceLocator.getService(CacheLoaderWriterProvider.class);
-    CacheLoaderWriter<? super K, V> loaderWriter;
-    if(cacheLoaderWriterProvider != null) {
-      loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
-
-      if (loaderWriter != null) {
-        lifeCycledList.add(new LifeCycledAdapter() {
-          @Override
-          public void close() throws Exception {
-            cacheLoaderWriterProvider.releaseCacheLoaderWriter(alias, loaderWriter);
-          }
-        });
+      if (!unknownServiceConfigs.isEmpty()) {
+        throw new IllegalStateException("Cannot find service(s) that can handle following configuration(s) : " + unknownServiceConfigs);
       }
-    } else {
-      loaderWriter = null;
-    }
 
-    Store<K, V> store = getStore(alias, config, keyType, valueType, adjustedServiceConfigs, lifeCycledList, loaderWriter);
+      List<LifeCycled> lifeCycledList = new ArrayList<>();
 
+      CacheLoaderWriterProvider cacheLoaderWriterProvider = serviceLocator.getService(CacheLoaderWriterProvider.class);
+      CacheLoaderWriter<? super K, V> loaderWriter;
+      if (cacheLoaderWriterProvider != null) {
+        loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
 
-    CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
-    CacheEventDispatcher<K, V> evtService =
-        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration<?, ?>[adjustedServiceConfigs.size()]));
-    lifeCycledList.add(new LifeCycledAdapter() {
-      @Override
-      public void close() {
-        cenlProvider.releaseCacheEventDispatcher(evtService);
-      }
-    });
-    evtService.setStoreEventSource(store.getStoreEventSource());
-
-    ResilienceStrategyProvider resilienceProvider = serviceLocator.getService(ResilienceStrategyProvider.class);
-    ResilienceStrategy<K, V> resilienceStrategy;
-    if (loaderWriter == null) {
-      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store));
-    } else {
-      resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store), loaderWriter);
-    }
-    InternalCache<K, V> cache = new Ehcache<>(config, store, resilienceStrategy, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias), loaderWriter);
-
-    CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
-    if (evntLsnrFactory != null) {
-      @SuppressWarnings("unchecked")
-      Collection<CacheEventListenerConfiguration<?>> evtLsnrConfigs =
-          ServiceUtils.<Class<CacheEventListenerConfiguration<?>>>findAmongst((Class) CacheEventListenerConfiguration.class, config.getServiceConfigurations());
-      for (CacheEventListenerConfiguration<?> lsnrConfig: evtLsnrConfigs) {
-        CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
-        if (lsnr != null) {
-          cache.getRuntimeConfiguration().registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
-              lsnrConfig.fireOn());
-          lifeCycledList.add(new LifeCycled() {
-            @Override
-            public void init() {
-              // no-op for now
-            }
-
+        if (loaderWriter != null) {
+          lifeCycledList.add(new LifeCycledAdapter() {
             @Override
             public void close() throws Exception {
-              evntLsnrFactory.releaseEventListener(lsnr);
+              cacheLoaderWriterProvider.releaseCacheLoaderWriter(alias, loaderWriter);
             }
           });
         }
+      } else {
+        loaderWriter = null;
       }
-      evtService.setListenerSource(cache);
-    }
 
-    for (LifeCycled lifeCycled : lifeCycledList) {
-      cache.addHook(lifeCycled);
-    }
+      Store<K, V> store = getStore(alias, config, keyType, valueType, adjustedServiceConfigs, lifeCycledList, loaderWriter);
 
-    return cache;
+
+      CacheEventDispatcherFactory cenlProvider = serviceLocator.getService(CacheEventDispatcherFactory.class);
+      CacheEventDispatcher<K, V> evtService =
+        cenlProvider.createCacheEventDispatcher(store, adjustedServiceConfigs.toArray(new ServiceConfiguration<?, ?>[adjustedServiceConfigs.size()]));
+      lifeCycledList.add(new LifeCycledAdapter() {
+        @Override
+        public void close() {
+          cenlProvider.releaseCacheEventDispatcher(evtService);
+        }
+      });
+      evtService.setStoreEventSource(store.getStoreEventSource());
+
+      ResilienceStrategyProvider resilienceProvider = serviceLocator.getService(ResilienceStrategyProvider.class);
+      ResilienceStrategy<K, V> resilienceStrategy;
+      if (loaderWriter == null) {
+        resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store));
+      } else {
+        resilienceStrategy = resilienceProvider.createResilienceStrategy(alias, config, new DefaultRecoveryStore<>(store), loaderWriter);
+      }
+      InternalCache<K, V> cache = new Ehcache<>(config, store, resilienceStrategy, evtService, loaderWriter);
+
+      CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
+      if (evntLsnrFactory != null) {
+        @SuppressWarnings("unchecked")
+        Collection<CacheEventListenerConfiguration<?>> evtLsnrConfigs =
+          ServiceUtils.<Class<CacheEventListenerConfiguration<?>>>findAmongst((Class) CacheEventListenerConfiguration.class, config.getServiceConfigurations());
+        for (CacheEventListenerConfiguration<?> lsnrConfig : evtLsnrConfigs) {
+          CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
+          if (lsnr != null) {
+            cache.getRuntimeConfiguration().registerCacheEventListener(lsnr, lsnrConfig.orderingMode(), lsnrConfig.firingMode(),
+              lsnrConfig.fireOn());
+            lifeCycledList.add(new LifeCycled() {
+              @Override
+              public void init() {
+                // no-op for now
+              }
+
+              @Override
+              public void close() throws Exception {
+                evntLsnrFactory.releaseEventListener(lsnr);
+              }
+            });
+          }
+        }
+        evtService.setListenerSource(cache);
+      }
+
+      for (LifeCycled lifeCycled : lifeCycledList) {
+        cache.addHook(lifeCycled);
+      }
+
+      return cache;
+    }
   }
 
   /**

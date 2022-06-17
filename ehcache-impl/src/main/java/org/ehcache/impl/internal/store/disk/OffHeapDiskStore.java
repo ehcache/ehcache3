@@ -21,6 +21,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.OperationStatistic;
@@ -40,7 +41,6 @@ import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -54,7 +54,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.Persistent;
 import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
@@ -90,7 +89,7 @@ import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
  */
 public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
+  private final Logger logger = EhcachePrefixLoggerFactory.getLogger(OffHeapDiskStore.class);
 
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
@@ -202,14 +201,14 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       long dataTimestampFromFile = dataFile.lastModified();
       long delta = dataTimestampFromFile - dataTimestampFromIndex;
       if (delta < 0) {
-        LOGGER.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
+        logger.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
           dataFile.getName(), -delta);
       } else if (delta > TimeUnit.SECONDS.toMillis(1)) {
-        LOGGER.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
+        logger.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
           dataFile.getName(), delta);
         return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } else if (delta > 0) {
-        LOGGER.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
+        logger.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
           dataFile.getName(), delta);
       }
 
@@ -237,8 +236,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw e;
       }
     } catch (Exception e) {
-      LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
-      LOGGER.debug("Exception during recovery", e);
+      logger.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
+      logger.debug("Exception during recovery", e);
       return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
     }
   }

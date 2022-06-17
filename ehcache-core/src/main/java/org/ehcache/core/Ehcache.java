@@ -60,25 +60,24 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
   /**
    * Creates a new {@code Ehcache} based on the provided parameters.
    *
-   * @param configuration the cache configuration
-   * @param store the store to use
+   * @param configuration   the cache configuration
+   * @param store           the store to use
    * @param eventDispatcher the event dispatcher
-   * @param logger the logger
    */
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
-                 CacheEventDispatcher<K, V> eventDispatcher, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, new StatusTransitioner(logger), null);
+                 CacheEventDispatcher<K, V> eventDispatcher) {
+    this(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, null);
   }
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
-          CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
-    super(runtimeConfiguration, store, resilienceStrategy, eventDispatcher, logger, statusTransitioner);
+          CacheEventDispatcher<K, V> eventDispatcher, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+    super(runtimeConfiguration, store, resilienceStrategy, eventDispatcher);
     this.cacheLoaderWriter = cacheLoaderWriter;
   }
 
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
-                 CacheEventDispatcher<K, V> eventDispatcher, Logger logger, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
-    super(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, new StatusTransitioner(logger));
+                 CacheEventDispatcher<K, V> eventDispatcher, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
+    super(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher);
     this.cacheLoaderWriter = cacheLoaderWriter;
   }
 

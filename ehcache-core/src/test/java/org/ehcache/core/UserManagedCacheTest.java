@@ -25,7 +25,6 @@ import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -42,12 +41,12 @@ public class UserManagedCacheTest {
   public void testUserManagedCacheDelegatesLifecycleCallsToStore() throws Exception {
     final Store store = mock(Store.class);
     CacheConfiguration<Object, Object> config = mock(CacheConfiguration.class);
-    Ehcache ehcache = new Ehcache(config, store, mock(ResilienceStrategy.class), mock(CacheEventDispatcher.class), LoggerFactory.getLogger(Ehcache.class + "testUserManagedCacheDelegatesLifecycleCallsToStore"));
+    Ehcache ehcache = new Ehcache(config, store, mock(ResilienceStrategy.class), mock(CacheEventDispatcher.class));
     assertCacheDelegatesLifecycleCallsToStore(ehcache);
 
     Ehcache ehcacheWithLoaderWriter = new Ehcache(config, store, mock(ResilienceStrategy.class),
-        mock(CacheEventDispatcher.class), LoggerFactory.getLogger(Ehcache.class + "testUserManagedCacheDelegatesLifecycleCallsToStore"),
-            mock(CacheLoaderWriter.class));
+        mock(CacheEventDispatcher.class),
+      mock(CacheLoaderWriter.class));
     assertCacheDelegatesLifecycleCallsToStore(ehcacheWithLoaderWriter);
   }
 
@@ -64,10 +63,10 @@ public class UserManagedCacheTest {
   public void testUserManagedEhcacheFailingTransitionGoesToLowestStatus() throws Exception {
     final Store store = mock(Store.class);
     CacheConfiguration<Object, Object> config = mock(CacheConfiguration.class);
-    Ehcache ehcache = new Ehcache(config, store, mock(ResilienceStrategy.class), mock(CacheEventDispatcher.class), LoggerFactory.getLogger(Ehcache.class + "testUserManagedEhcacheFailingTransitionGoesToLowestStatus"));
+    Ehcache ehcache = new Ehcache(config, store, mock(ResilienceStrategy.class), mock(CacheEventDispatcher.class));
     assertFailingTransitionGoesToLowestStatus(ehcache);
     Ehcache ehcacheWithLoaderWriter = new Ehcache(config, store, mock(ResilienceStrategy.class),
-        mock(CacheEventDispatcher.class), LoggerFactory.getLogger(Ehcache.class + "testUserManagedCacheDelegatesLifecycleCallsToStore"), mock(CacheLoaderWriter.class));
+        mock(CacheEventDispatcher.class), mock(CacheLoaderWriter.class));
     assertFailingTransitionGoesToLowestStatus(ehcacheWithLoaderWriter);
   }
 

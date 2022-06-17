@@ -21,6 +21,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.OperationStatistic;
@@ -33,19 +34,16 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
@@ -129,7 +127,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
   public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, LowerCachingTier.Provider {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
+    private final Logger logger = EhcachePrefixLoggerFactory.getLogger(Provider.class);
 
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<>());
     private final Map<OffHeapStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
@@ -285,7 +283,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
         } catch (StoreAccessException cae) {
           lastFailure = cae;
           failureCount++;
-          LOGGER.warn("Error flushing '{}' to lower tier", key, cae);
+          logger.warn("Error flushing '{}' to lower tier", key, cae);
         }
       }
       if (lastFailure != null) {
