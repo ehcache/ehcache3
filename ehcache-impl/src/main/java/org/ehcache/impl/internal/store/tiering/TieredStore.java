@@ -27,6 +27,7 @@ import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -383,6 +384,8 @@ public class TieredStore<K, V> implements Store<K, V> {
     Throwable cause = ce.getCause();
     if (cause instanceof StorePassThroughException) {
       throw (StoreAccessException) cause.getCause();
+    }if(cause instanceof SerializerException){
+      throw new StoreAccessException("SerializerException wrapped in StoreAccessException", cause);
     }
     if (cause instanceof Error) {
       throw (Error) cause;
