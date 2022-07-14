@@ -32,6 +32,7 @@ import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
@@ -153,6 +154,24 @@ public class TieredStoreTest {
       fail("We should get an Error");
     } catch (RuntimeException e) {
       assertSame(error, e);
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testGetThrowsSerializerException() throws Exception {
+    SerializerException serializerException = new SerializerException();
+    StoreAccessException error = new StoreAccessException("SerializerException wrapped in StoreAccessException", serializerException);
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(error);
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+
+    try {
+      tieredStore.get(1);
+      fail("We should get an Error");
+    } catch (StoreAccessException e) {
+      assertSame(serializerException, e.getCause());
+      assertEquals("SerializerException wrapped in StoreAccessException", e.getMessage());
     }
   }
 
@@ -413,6 +432,23 @@ public class TieredStoreTest {
       tieredStore.computeIfAbsent(1, n -> null);
       fail("We should get an Error");
     } catch (Error e) {
+      assertSame(error, e);
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testComputeIfAbsentThrowsRuntimeException() throws Exception {
+
+    RuntimeException error = new RuntimeException();
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessException(error));
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+
+    try {
+      tieredStore.computeIfAbsent(1, n -> null);
+      fail("We should get an Error");
+    } catch (RuntimeException e) {
       assertSame(error, e);
     }
   }
