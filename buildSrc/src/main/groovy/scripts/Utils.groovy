@@ -100,6 +100,6 @@ class Utils {
     def java = Jvm.forHome(home).javaExecutable
     def versionCommand = "$java -version".execute()
     def version = JavaVersion.toVersion((versionCommand.err.text =~ /\w+ version "(.+)"/)[0][1])
-    return Jvm.discovered(home, version)
+    return Jvm.discovered(home, null, version)
   }
 }
