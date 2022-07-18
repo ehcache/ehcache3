@@ -131,8 +131,8 @@ subprojects {
 
   dependencies {
     implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    compileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
-    testCompileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
+    compileOnly "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}"
+    testCompileOnly "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}"
     testImplementation "junit:junit:$junitVersion"
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
@@ -188,15 +188,24 @@ subprojects {
 
   spotbugs {
     ignoreFailures = false
-    sourceSets = [sourceSets.main]
-
   }
 
-  // Spotbugs itself has a divergence in it's slf4j dependencies.
-  // This version is independent of the version we use.
   configurations.spotbugs.resolutionStrategy {
+    // Spotbugs itself has a divergence in it's slf4j dependencies.
+    // This version is independent of the version we use.
     force 'org.slf4j:slf4j-api:1.8.0-beta4'
+
+    // Spotbugs vs transitive dependencies diverge
+    force 'org.apache.commons:commons-lang3:3.10'
   }
+
+  // Don't run spotbugs over test classes
+  tasks.withType(com.github.spotbugs.snom.SpotBugsTask) { task ->
+    if (task.getName().contains("Test")) {
+      task.setEnabled(false)
+    }
+  }
+
   spotbugsMain {
     reports {
       // Switch from xml to html by changing these flags
