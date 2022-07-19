@@ -22,4 +22,14 @@ subprojects {
     runtimeOnly 'ch.qos.logback:logback-classic:1.2.3'
     runtimeOnly 'com.h2database:h2:1.4.196'
   }
+
+  configurations.all {
+    resolutionStrategy {
+      dependencySubstitution {
+        substitute(module('org.slf4j:slf4j-api'))
+          .because('org.gretty:gretty-runner-jetty declares a very old version of slf4j')
+          .with(module('org.slf4j:slf4j-api:' + project.property('slf4jVersion')))
+      }
+    }
+  }
 }
