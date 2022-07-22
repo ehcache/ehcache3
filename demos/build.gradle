@@ -6,10 +6,6 @@ subprojects {
   apply plugin: 'war'
   apply plugin: 'org.gretty'
 
-  repositories {
-    jcenter()
-  }
-
   gretty {
     httpPort = 8080
     contextPath = '/'
@@ -19,7 +15,7 @@ subprojects {
   dependencies {
     implementation project(':impl')
     implementation 'javax.servlet:javax.servlet-api:3.1.0'
-    runtimeOnly 'ch.qos.logback:logback-classic:1.2.3'
+    runtimeOnly 'ch.qos.logback:logback-classic:1.2.11'
     runtimeOnly 'com.h2database:h2:1.4.196'
   }
 
@@ -29,6 +25,48 @@ subprojects {
         substitute(module('org.slf4j:slf4j-api'))
           .because('org.gretty:gretty-runner-jetty declares a very old version of slf4j')
           .with(module('org.slf4j:slf4j-api:' + project.property('slf4jVersion')))
+      }
+    }
+  }
+
+  /*
+   * This substitution is solely to permit the 'dependencies' task to complete normally --
+   * the Jetty 8 environment provided by gretty is not used in this module.
+   */
+  configurations.named('grettyRunnerJetty8') {
+    resolutionStrategy {
+      dependencySubstitution {
+        substitute(module('org.eclipse.jetty.orbit:javax.servlet.jsp:2.1.0.v201105211820'))
+          .because('gretty plug-in pulls in older version for Jetty8')
+          .with(module('org.eclipse.jetty.orbit:javax.servlet.jsp:2.2.0.v201112011158'))
+      }
+    }
+  }
+
+  /*
+   * This substitution is solely to permit the 'dependencies' task to complete normally --
+   * the Jetty 9.3 environment provided by gretty is not used in this module.
+   */
+  configurations.named('grettyRunnerJetty93') {
+    resolutionStrategy {
+      dependencySubstitution {
+        substitute(module('org.eclipse.jetty.toolchain:jetty-schemas:3.1.M0'))
+          .because('gretty plug-in pulls in older version for Jetty9.3')
+          .with(module('org.eclipse.jetty.toolchain:jetty-schemas:3.1'))
+      }
+    }
+  }
+
+  /*
+   * This substitution is solely to permit the 'dependencies' task to complete normally --
+   * the grettyStarter grettyStarter task is not used in this module.
+   */
+  configurations.named('grettyStarter') {
+    resolutionStrategy {
+      dependencySubstitution {
+        substitute(module('commons-cli:commons-cli:1.3.1'))
+          .because('gretty plug-in pulls in older version; promoted to the version used by org.codehaus.groovy:groovy-cli-commons')
+          .with(module('commons-cli:commons-cli:1.4'))
       }
     }
   }
