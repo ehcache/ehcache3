@@ -82,7 +82,7 @@ class EhDistribute implements Plugin<Project> {
       from(project.jar) {
         include 'META-INF/**', 'LICENSE', 'NOTICE'
       }
-      duplicatesStrategy = 'fail'
+      duplicatesStrategy = 'exclude'
     }
 
     project.signing {
