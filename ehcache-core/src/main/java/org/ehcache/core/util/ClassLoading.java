@@ -28,8 +28,10 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.Arrays.asList;
 import static java.util.Collections.enumeration;
 import static java.util.Collections.list;
 import static java.util.stream.Collectors.toList;
@@ -64,6 +66,36 @@ public class ClassLoading {
   @SuppressWarnings("unchecked")
   public static ClassLoader delegationChain(ClassLoader ... loaders) {
     return doPrivileged((PrivilegedAction<ClassLoader>) () -> new ChainedClassLoader(of(loaders).<Supplier<ClassLoader>>map(l -> () -> l).collect(toList())));
+  }
+
+  public static double classDistance(Class<?> a, Class<?> b) {
+    if (a.isAssignableFrom(b)) {
+      if (a.isInterface()) {
+        double depth = 0.5;
+        for (Class<?> t = b; asList(t.getInterfaces()).contains(a); t = b.getSuperclass()) {
+          depth++;
+        }
+        return depth;
+      } else {
+        double depth = 0;
+        for (Class<?> t = b; !a.equals(t); t = b.getSuperclass()) {
+          depth++;
+        }
+        return depth;
+      }
+    } else if (b.isAssignableFrom(a)) {
+      return classDistance(b, a);
+    } else {
+      return Double.POSITIVE_INFINITY;
+    }
+  };
+
+  private static Stream<Class<?>> classHierarchy(Class<?> klazz) {
+    if (Object.class.equals(klazz)) {
+      return Stream.of(Object.class);
+    } else {
+      return Stream.concat(Stream.of(klazz), classHierarchy(klazz.getSuperclass()));
+    }
   }
 
   private static class ChainedClassLoader extends ClassLoader {
