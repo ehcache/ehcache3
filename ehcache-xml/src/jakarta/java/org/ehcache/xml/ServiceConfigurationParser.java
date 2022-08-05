@@ -26,7 +26,6 @@ import org.ehcache.xml.service.DefaultCacheLoaderWriterConfigurationParser;
 import org.ehcache.xml.service.DefaultCopierConfigurationParser;
 import org.ehcache.xml.service.DefaultResilienceStrategyConfigurationParser;
 import org.ehcache.xml.service.DefaultSerializerConfigurationParser;
-import org.ehcache.xml.service.DefaultSizeOfEngineConfigurationParser;
 import org.ehcache.xml.service.DefaultWriteBehindConfigurationParser;
 import org.ehcache.xml.service.OffHeapDiskStoreConfigurationParser;
 import org.w3c.dom.Document;
@@ -44,12 +43,13 @@ import static org.ehcache.xml.XmlUtil.findMatchingNodeInDocument;
 
 public class ServiceConfigurationParser {
 
+  @SuppressWarnings("deprecation")
   static final Collection<CoreServiceConfigurationParser<CacheTemplate, CacheType>> CORE_SERVICE_CONFIGURATION_PARSERS = asList(
     new DefaultSerializerConfigurationParser(),
     new DefaultCopierConfigurationParser(),
     new DefaultCacheLoaderWriterConfigurationParser(),
     new DefaultResilienceStrategyConfigurationParser(),
-    new DefaultSizeOfEngineConfigurationParser(),
+    new org.ehcache.xml.service.DefaultSizeOfEngineConfigurationParser(),
     new DefaultWriteBehindConfigurationParser(),
     new OffHeapDiskStoreConfigurationParser(),
     new DefaultCacheEventDispatcherConfigurationParser(),

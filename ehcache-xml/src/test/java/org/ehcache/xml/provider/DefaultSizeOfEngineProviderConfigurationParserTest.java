@@ -19,7 +19,6 @@ package org.ehcache.xml.provider;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
@@ -28,6 +27,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Deprecated
 public class DefaultSizeOfEngineProviderConfigurationParserTest {
 
   @Test
@@ -38,9 +38,9 @@ public class DefaultSizeOfEngineProviderConfigurationParserTest {
 
 
     ServiceCreationConfiguration<?, ?> configuration = xmlConfig.getServiceCreationConfigurations().iterator().next();
-    assertThat(configuration).isExactlyInstanceOf(DefaultSizeOfEngineProviderConfiguration.class);
+    assertThat(configuration).isExactlyInstanceOf(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration.class);
 
-    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = (DefaultSizeOfEngineProviderConfiguration) configuration;
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = (org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration) configuration;
     assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize()).isEqualTo(200);
     assertThat(sizeOfEngineProviderConfig.getMaxObjectSize()).isEqualTo(100000);
   }
@@ -49,7 +49,7 @@ public class DefaultSizeOfEngineProviderConfigurationParserTest {
   public void unparseServiceCreationConfiguration() {
     ConfigType configType = new ConfigType();
     Configuration config = ConfigurationBuilder.newConfigurationBuilder()
-      .withService(new DefaultSizeOfEngineProviderConfiguration(123, MemoryUnit.MB, 987)).build();
+      .withService(new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(123, MemoryUnit.MB, 987)).build();
     configType = new DefaultSizeOfEngineProviderConfigurationParser().unparseServiceCreationConfiguration(config, configType);
 
     SizeofType heapStore = configType.getHeapStore();

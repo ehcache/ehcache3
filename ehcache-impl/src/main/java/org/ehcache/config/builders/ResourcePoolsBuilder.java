@@ -26,6 +26,7 @@ import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;

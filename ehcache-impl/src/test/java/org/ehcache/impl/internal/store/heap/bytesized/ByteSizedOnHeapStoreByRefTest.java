@@ -26,7 +26,6 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByRefTest;
 import org.ehcache.core.spi.time.TimeSource;
@@ -42,6 +41,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assume.assumeThat;
 
+@Deprecated
 public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
 
   private static final int MAGIC_NUM = 500;
@@ -116,7 +116,7 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
         return null;
       }
     }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-      new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), (StoreEventDispatcher<K, V>) eventDispatcher, new DefaultStatisticsService());
+      new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), (StoreEventDispatcher<K, V>) eventDispatcher, new DefaultStatisticsService());
   }
 
 }

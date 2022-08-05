@@ -26,7 +26,6 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
@@ -285,6 +284,7 @@ public class CacheConfigurationBuilderTest {
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.is(MemoryUnit.MB));
   }
 
+  @Deprecated
   @Test
   public void testSizeOf() {
     CacheConfigurationBuilder<String, String> builder = newCacheConfigurationBuilder(String.class, String.class, heap(10));
@@ -292,7 +292,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
     CacheConfiguration<String, String> configuration = builder.build();
 
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertThat(sizeOfEngineConfiguration, notNullValue());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectSize(), 10);
     assertEquals(sizeOfEngineConfiguration.getUnit(), MemoryUnit.B);
@@ -301,7 +301,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(1000);
     configuration = builder.build();
 
-    sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
 
   }
@@ -498,6 +498,7 @@ public class CacheConfigurationBuilderTest {
     assertThat(cacheConfiguration.getServiceConfigurations(), not(hasItem(instanceOf(OffHeapDiskStoreConfiguration.class))));
   }
 
+  @Deprecated
   @Test
   public void testWithSizeOfConfig() {
     CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder(Object.class, Object.class, heap(10));
@@ -505,7 +506,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(42L);
     {
       CacheConfiguration<Object, Object> cacheConfiguration = builder.build();
-      DefaultSizeOfEngineConfiguration config = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration config = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
       assertThat(config.getMaxObjectGraphSize(), is(42L));
       assertThat(config.getMaxObjectSize(), is(Long.MAX_VALUE));
       assertThat(config.getUnit(), is(MemoryUnit.B));
@@ -514,7 +515,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectSize(1024L, MemoryUnit.KB);
     {
       CacheConfiguration<Object, Object> cacheConfiguration = builder.build();
-      DefaultSizeOfEngineConfiguration config = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration config = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
       assertThat(config.getMaxObjectGraphSize(), is(42L));
       assertThat(config.getMaxObjectSize(), is(1024L));
       assertThat(config.getUnit(), is(MemoryUnit.KB));
@@ -523,13 +524,14 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(43L);
     {
       CacheConfiguration<Object, Object> cacheConfiguration = builder.build();
-      DefaultSizeOfEngineConfiguration config = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration config = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
       assertThat(config.getMaxObjectGraphSize(), is(43L));
       assertThat(config.getMaxObjectSize(), is(1024L));
       assertThat(config.getUnit(), is(MemoryUnit.KB));
     }
   }
 
+  @Deprecated
   @Test
   public void testWithDefaultSizeOfSettings() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
@@ -538,7 +540,7 @@ public class CacheConfigurationBuilderTest {
       .withDefaultSizeOfSettings()
       .build();
 
-    assertThat(cacheConfiguration.getServiceConfigurations(), not(hasItem(instanceOf(DefaultSizeOfEngineConfiguration.class))));
+    assertThat(cacheConfiguration.getServiceConfigurations(), not(hasItem(instanceOf(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class))));
   }
 
   static class CustomResilience<K, V> extends RobustResilienceStrategy<K, V> {
