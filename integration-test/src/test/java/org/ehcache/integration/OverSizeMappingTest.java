@@ -42,6 +42,7 @@ import static org.junit.Assume.assumeThat;
  * @author Abhilash
  *
  */
+@Deprecated
 public class OverSizeMappingTest {
 
   @BeforeClass

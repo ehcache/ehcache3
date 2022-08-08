@@ -17,8 +17,6 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
-import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -37,7 +35,7 @@ import static org.hamcrest.Matchers.instanceOf;
  * @author Abhilash
  *
  */
-
+@Deprecated
 public class DefaultSizeOfEngineProviderFactoryTest {
 
   @BeforeClass
@@ -48,8 +46,8 @@ public class DefaultSizeOfEngineProviderFactoryTest {
   @Test
   public void testNullConfiguration() {
     DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
-    SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
-    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(MemoryUnit.B, mock(ServiceConfiguration.class));
+    org.ehcache.core.spi.store.heap.SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
+    org.ehcache.core.spi.store.heap.SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(MemoryUnit.B, mock(ServiceConfiguration.class));
     assertThat(sizeOfEngineProvider, notNullValue());
     assertThat(sizeOfEngine, notNullValue());
     assertThat(sizeOfEngine, instanceOf(DefaultSizeOfEngine.class));
@@ -58,8 +56,8 @@ public class DefaultSizeOfEngineProviderFactoryTest {
   @Test
   public void testNoopSizeOfEngineConfig() {
     DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
-    SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
-    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(null, mock(ServiceConfiguration.class));
+    org.ehcache.core.spi.store.heap.SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
+    org.ehcache.core.spi.store.heap.SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(null, mock(ServiceConfiguration.class));
     assertThat(sizeOfEngineProvider, notNullValue());
     assertThat(sizeOfEngine, notNullValue());
     assertThat(sizeOfEngine, instanceOf(NoopSizeOfEngine.class));

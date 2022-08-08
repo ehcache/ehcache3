@@ -20,6 +20,7 @@ package org.ehcache.core.spi.store.heap;
  * This exception is thrown when {@link SizeOfEngine} reaches one of the limits defined in configuration while sizing
  * the object on heap.
  */
+@Deprecated
 public class LimitExceededException extends Exception {
 
   private static final long serialVersionUID = -4689090295854830331L;

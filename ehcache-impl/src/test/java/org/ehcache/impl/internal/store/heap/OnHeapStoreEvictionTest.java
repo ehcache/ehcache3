@@ -35,7 +35,6 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -187,7 +186,8 @@ public class OnHeapStoreEvictionTest {
         NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     }
 
-    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource, final SizeOfEngine engine) {
+    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
+                               @SuppressWarnings("deprecation") final org.ehcache.core.spi.store.heap.SizeOfEngine engine) {
       super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine,
         NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     }

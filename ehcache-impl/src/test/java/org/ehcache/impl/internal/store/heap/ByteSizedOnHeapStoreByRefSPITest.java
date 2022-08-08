@@ -25,7 +25,6 @@ import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
@@ -46,6 +45,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assume.assumeThat;
 
+@Deprecated
 public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
   @BeforeClass
@@ -91,7 +91,7 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
         return new OnHeapStore<>(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-            new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
+            new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
       }
 
       @Override

@@ -20,7 +20,10 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.HumanReadable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the {@link SizedResourcePool} interface.
@@ -30,6 +33,7 @@ import org.ehcache.core.HumanReadable;
 public class SizedResourcePoolImpl<P extends SizedResourcePool> extends AbstractResourcePool<P, ResourceType<P>>
     implements SizedResourcePool, HumanReadable {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(SizedResourcePoolImpl.class);
   private final long size;
   private final ResourceUnit unit;
 
@@ -51,6 +55,9 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
     }
     if (!type.isPersistable() && persistent) {
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
+    }
+    if (type == org.ehcache.config.ResourceType.Core.HEAP && unit instanceof MemoryUnit){
+      LOGGER.info("Byte based heap resources are deprecated and will be removed in a future version.");
     }
     this.size = size;
     this.unit = unit;

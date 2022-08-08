@@ -24,8 +24,6 @@ import org.ehcache.xml.model.ServiceType;
 import org.ehcache.xml.provider.CacheEventDispatcherFactoryConfigurationParser;
 import org.ehcache.xml.provider.CacheManagerPersistenceConfigurationParser;
 import org.ehcache.xml.provider.DefaultCopyProviderConfigurationParser;
-import org.ehcache.xml.provider.DefaultSerializationProviderConfigurationParser;
-import org.ehcache.xml.provider.DefaultSizeOfEngineProviderConfigurationParser;
 import org.ehcache.xml.provider.OffHeapDiskStoreProviderConfigurationParser;
 import org.ehcache.xml.provider.PooledExecutionServiceConfigurationParser;
 import org.ehcache.xml.provider.WriteBehindProviderConfigurationParser;
@@ -44,12 +42,13 @@ import static org.ehcache.xml.XmlUtil.findMatchingNodeInDocument;
 
 public class ServiceCreationConfigurationParser {
 
+  @SuppressWarnings("deprecation")
   static final Collection<CoreServiceCreationConfigurationParser<ConfigType>> CORE_SERVICE_CREATION_CONFIGURATION_PARSERS = asList(
     new DefaultCopyProviderConfigurationParser(),
-    new DefaultSerializationProviderConfigurationParser(),
+    new org.ehcache.xml.provider.DefaultSerializationProviderConfigurationParser(),
     new OffHeapDiskStoreProviderConfigurationParser(),
     new CacheEventDispatcherFactoryConfigurationParser(),
-    new DefaultSizeOfEngineProviderConfigurationParser(),
+    new org.ehcache.xml.provider.DefaultSizeOfEngineProviderConfigurationParser(),
     new CacheManagerPersistenceConfigurationParser(),
     new PooledExecutionServiceConfigurationParser(),
     new WriteBehindProviderConfigurationParser()

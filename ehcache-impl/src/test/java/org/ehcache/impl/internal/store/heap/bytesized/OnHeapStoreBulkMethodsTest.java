@@ -22,7 +22,6 @@ import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.events.NullStoreEventDispatcher;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
@@ -47,6 +46,7 @@ import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@Deprecated
 public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.heap.OnHeapStoreBulkMethodsTest {
 
   @BeforeClass
@@ -69,7 +69,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   protected OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
     return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
+        new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
   @SuppressWarnings("unchecked")
@@ -84,7 +84,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     Store.Configuration<Number, Number> configuration = config;
 
     OnHeapStore<Number, Number> store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher(), new DefaultStatisticsService());
+        new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher(), new DefaultStatisticsService());
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);

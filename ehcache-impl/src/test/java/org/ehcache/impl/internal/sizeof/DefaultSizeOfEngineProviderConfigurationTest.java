@@ -16,7 +16,6 @@
 package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,12 +30,13 @@ import static org.junit.Assert.fail;
  * @author Abhilash
  *
  */
+@Deprecated
 public class DefaultSizeOfEngineProviderConfigurationTest {
 
   @Test
   public void testIllegalMaxObjectSizeArgument() {
     try {
-      new DefaultSizeOfEngineProviderConfiguration(0, MemoryUnit.B, 1l);
+      new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(0, MemoryUnit.B, 1l);
       fail();
     } catch (Exception illegalArgument) {
       assertThat(illegalArgument, instanceOf(IllegalArgumentException.class));
@@ -47,7 +47,7 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
   @Test
   public void testIllegalMaxObjectGraphSizeArgument() {
     try {
-      new DefaultSizeOfEngineProviderConfiguration(1l, MemoryUnit.B, 0);
+      new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(1l, MemoryUnit.B, 0);
       fail();
     } catch (Exception illegalArgument) {
       assertThat(illegalArgument, instanceOf(IllegalArgumentException.class));
@@ -57,7 +57,7 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
 
   @Test
   public void testValidArguments() {
-    DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(10l, MemoryUnit.B, 10l);
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration configuration = new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(10l, MemoryUnit.B, 10l);
     assertThat(configuration.getMaxObjectGraphSize(), equalTo(10l));
     assertThat(configuration.getMaxObjectSize(), equalTo(10l));
     assertThat(configuration.getUnit(), equalTo(MemoryUnit.B));
@@ -65,9 +65,9 @@ public class DefaultSizeOfEngineProviderConfigurationTest {
 
   @Test
   public void testDeriveDetachesCorrectly() {
-    DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(42L, MemoryUnit.B, 100L);
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration configuration = new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(42L, MemoryUnit.B, 100L);
 
-    DefaultSizeOfEngineProviderConfiguration derived = configuration.build(configuration.derive());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration derived = configuration.build(configuration.derive());
 
     assertThat(derived, is(not(sameInstance(configuration))));
     assertThat(derived.getMaxObjectGraphSize(), is(configuration.getMaxObjectGraphSize()));

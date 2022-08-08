@@ -23,6 +23,7 @@ import org.ehcache.core.spi.store.Store;
  * <p>
  * Implementations are expected to be linked to {@link Store} implementations.
  */
+@Deprecated
 public interface SizeOfEngine {
 
   /**

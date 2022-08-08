@@ -90,6 +90,7 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             The element defines the sizing limits for the default SizeOfEngine.
+            DEPRECATED: Memory units for heap resources, which are the primary use-case for size-of-engines, are deprecated.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -289,6 +290,7 @@
           <xs:annotation>
             <xs:documentation xml:lang="en">
               Shortcut for configuring a heap Cache.
+              DEPRECATED: The use of memory units (such as 'B', 'kB' or 'MB') for heap resources is deprecated and will be removed in a future version.
             </xs:documentation>
           </xs:annotation>
         </xs:element>
@@ -304,6 +306,7 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             The element defines the sizing limits for the Cache's SizeOfEngine.
+            DEPRECATED: Memory units for heap resources, which are the primary use-case for size-of-engines, are deprecated.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -537,6 +540,9 @@
       </xs:appinfo>
       <xs:appinfo>
         <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          DEPRECATED: The use of memory units (such as 'B', 'kB' or 'MB') for heap resources is deprecated and will be removed in a future version.
+        </xs:documentation>
       </xs:appinfo>
     </xs:annotation>
   </xs:element>

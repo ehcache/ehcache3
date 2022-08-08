@@ -16,7 +16,6 @@
 
 package org.ehcache.xml.service;
 
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.MemoryType;
@@ -26,13 +25,14 @@ import org.ehcache.xml.model.SizeofType;
 
 import java.math.BigInteger;
 
+@Deprecated
 public class DefaultSizeOfEngineConfigurationParser
-  extends SimpleCoreServiceConfigurationParser<CacheTemplate, CacheType, SizeOfEngineLimits, SizeofType, DefaultSizeOfEngineConfiguration> {
+  extends SimpleCoreServiceConfigurationParser<CacheTemplate, CacheType, SizeOfEngineLimits, SizeofType, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration> {
 
   public DefaultSizeOfEngineConfigurationParser() {
-    super(DefaultSizeOfEngineConfiguration.class,
+    super(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class,
       CacheTemplate::heapStoreSettings,
-      config -> new DefaultSizeOfEngineConfiguration(config.getMaxObjectSize(), config.getUnit(), config.getMaxObjectGraphSize()),
+      config -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration(config.getMaxObjectSize(), config.getUnit(), config.getMaxObjectGraphSize()),
       CacheType::getHeapStoreSettings, CacheType::setHeapStoreSettings,
       config -> new SizeofType()
         .withMaxObjectGraphSize(new SizeofType.MaxObjectGraphSize().withValue(BigInteger.valueOf(config.getMaxObjectGraphSize())))

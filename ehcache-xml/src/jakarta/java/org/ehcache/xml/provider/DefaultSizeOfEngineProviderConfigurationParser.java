@@ -16,7 +16,6 @@
 
 package org.ehcache.xml.provider;
 
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.MemoryType;
 import org.ehcache.xml.model.MemoryUnit;
@@ -25,15 +24,17 @@ import org.ehcache.xml.model.SizeofType;
 
 import java.math.BigInteger;
 
+@Deprecated
 public class DefaultSizeOfEngineProviderConfigurationParser
-  extends SimpleCoreServiceCreationConfigurationParser<ConfigType, SizeofType, DefaultSizeOfEngineProviderConfiguration> {
+  extends SimpleCoreServiceCreationConfigurationParser<ConfigType, SizeofType, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration> {
+
 
   public DefaultSizeOfEngineProviderConfigurationParser() {
-    super(DefaultSizeOfEngineProviderConfiguration.class,
+    super(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration.class,
       ConfigType::getHeapStore, ConfigType::setHeapStore,
       config -> {
         SizeOfEngineLimits sizeOfEngineLimits = new SizeOfEngineLimits(config);
-        return new DefaultSizeOfEngineProviderConfiguration(sizeOfEngineLimits.getMaxObjectSize(),
+        return new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(sizeOfEngineLimits.getMaxObjectSize(),
           sizeOfEngineLimits.getUnit(), sizeOfEngineLimits.getMaxObjectGraphSize());
       },
       config -> new SizeofType()

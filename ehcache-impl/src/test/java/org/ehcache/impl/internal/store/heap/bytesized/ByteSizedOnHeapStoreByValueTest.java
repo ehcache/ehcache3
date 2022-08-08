@@ -24,7 +24,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByValueTest;
 import org.ehcache.core.spi.time.TimeSource;
@@ -44,6 +43,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assume.assumeThat;
 
+@Deprecated
 public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
 
   @BeforeClass
@@ -120,7 +120,7 @@ public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, keyCopier, valueCopier, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher, new DefaultStatisticsService());
+    }, timeSource, keyCopier, valueCopier, new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher, new DefaultStatisticsService());
   }
 
 }
