@@ -53,6 +53,8 @@ hit ratio of 50% or less is going to slow down the cache. Either enlarge such ti
 
 == Byte Sizing
 
+WARNING: Byte based heap resources are deprecated and will be removed in a future version.
+
 A on-heap tier can be limited to a number of entries or a number of bytes.
 When using bytes, we need to calculate the size of every object added to the cache.
 This is of course much slower than calculating the number of entries.

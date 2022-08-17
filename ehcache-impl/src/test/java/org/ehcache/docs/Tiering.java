@@ -57,8 +57,6 @@ public class Tiering {
     ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES); // <1>
     // or
     ResourcePoolsBuilder.heap(10); // <2>
-    // or
-    ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, MemoryUnit.MB); // <3>
     // end::heap[]
     // tag::offheap[]
     ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB); // <1>

@@ -62,8 +62,6 @@ Here we use off-heap only.
 The starting point of every cache and also the faster since no serialization is necessary.
 You can optionally use copiers (see the section <<serializers-copiers.adoc#copiers,Serializers and Copiers>>) to pass keys and values by-value, the default being by-reference.
 
-A heap tier can be sized by entries or by size.
-
 [source%nowrap,java,indent=0]
 ----
 include::{sourcedir310}/ehcache-impl/src/test/java/org/ehcache/docs/Tiering.java[tag=heap]
@@ -71,9 +69,9 @@ include::{sourcedir310}/ehcache-impl/src/test/java/org/ehcache/docs/Tiering.java
 
 <1> Only 10 entries allowed on heap. Eviction will occur when full.
 <2> A shortcut to specify 10 entries.
-<3> Only 10 MB allowed. Eviction will occur when full.
 
 ==== Byte-sized heap
+WARNING: Byte based heap resources are deprecated and will be removed in a future version.
 
 For every tier except the heap tier, calculating the size of the cache is fairly easy.
 You more or less sum the size of all byte buffers containing the serialized entries.

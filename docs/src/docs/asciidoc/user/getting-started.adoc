@@ -258,10 +258,6 @@ A number of advanced topics that were discussed here have been moved out, see be
 
 See <<usermanaged.adoc#,the user managed cache documentation>> for more information on this feature.
 
-=== Byte-sized heap
-
-See the <<tiering.adoc#byte-sized-heap,relevant section>> in the tiering documentation for more information on this feature.
-
 === Update ResourcePools
 
 See the <<tiering.adoc#update-resourcepools,relevant section>> in the tiering documentation for more information on this feature.
