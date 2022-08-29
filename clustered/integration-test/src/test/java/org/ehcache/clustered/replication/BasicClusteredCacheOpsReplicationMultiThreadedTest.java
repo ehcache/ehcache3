@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.reconnect.ThrowingResiliencyStrategy;
 import org.ehcache.clustered.util.runners.ParallelParameterized;
 import org.ehcache.clustered.util.ParallelTestCluster;
 import org.ehcache.config.CacheConfiguration;
@@ -44,7 +45,6 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.utilities.test.WaitForAssert;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -82,8 +82,8 @@ import static org.junit.Assert.fail;
 @RunWith(ParallelParameterized.class)
 public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
-  private static final int NUM_OF_THREADS = 10;
-  private static final int JOB_SIZE = 100;
+  private static final int NUM_OF_THREADS = 4;
+  private static final int JOB_SIZE = 25;
 
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;
@@ -100,7 +100,6 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
-    .withServerHeap(512)
     .withServiceFragment(offheapResource("primary-server-resource", 16)).build());
 
   @Rule
@@ -131,6 +130,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(500, EntryUnit.ENTRIES)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
         .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+        .withResilienceStrategy(new ThrowingResiliencyStrategy<>())
         .build();
 
     cache1 = cacheManager1.createCache(testName.getMethodName(), config);
@@ -153,7 +153,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
     }
   }
 
-  @Test(timeout=180000)
+  @Test
   public void testCRUD() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
     List<Future<?>> futures = new ArrayList<>();
@@ -195,7 +195,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   }
 
-  @Test(timeout=180000)
+  @Test
   public void testBulkOps() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
     List<Future<?>> futures = new ArrayList<>();
@@ -243,7 +243,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   @Ignore("This is currently unstable as if the clear does not complete before the failover," +
           "there is no future operation that will trigger the code in ClusterTierActiveEntity.invokeServerStoreOperation" +
           "dealing with in-flight invalidation reconstructed from reconnect data")
-  @Test(timeout=180000)
+  @Test
   public void testClear() throws Exception {
     List<Future<?>> futures = new ArrayList<>();
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
