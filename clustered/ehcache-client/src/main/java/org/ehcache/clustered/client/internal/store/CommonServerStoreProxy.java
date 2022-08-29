@@ -143,7 +143,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @Override
   public void append(long key, ByteBuffer payLoad) {
     try {
-      entity.invokeAndWaitForReceive(new AppendMessage(key, payLoad), true);
+      entity.invokeAndWaitForComplete(new AppendMessage(key, payLoad), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
