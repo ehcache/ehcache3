@@ -89,6 +89,7 @@ dependencies {
   serverLibs project(':clustered:server:ehcache-entity')
   serverLibs project(':clustered:server:ehcache-service')
 
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
   kit "org.terracotta:platform-kit:$terracottaPlatformVersion@tar.gz"
 }
 
@@ -120,12 +121,11 @@ distributions {
       }
       //tc kit
       into ('') {
-        from configurations.kit.elements.map {
+        from(configurations.kit.elements.map {
           files -> files.collect { tarTree(it) }
-        }
-        eachFile { f ->
-          // remove top level directory from the kit
-          f.path = f.path.replace("platform-kit-$terracottaPlatformVersion/", "")
+        }) {
+          // remove top level directories from the kits
+          eachFile(dropTopLevelDirectories(1))
         }
         exclude { f ->
           // Exclude tc's README.txt - Issue 1273
@@ -191,3 +191,21 @@ publishing.publications.withType(MavenPublication) {
 }
 
 [distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar
+
+static Action<FileCopyDetails> dropTopLevelDirectories(int count) {
+  { fcd ->
+    RelativePath original = fcd.getRelativeSourcePath()
+    def originalSegments = original.segments
+    if (count >= originalSegments.length) {
+      if (original.isFile()) {
+        throw new IllegalStateException("Cannot drop ${count} ${(count > 1 ? 'directories' : 'directory')} from ${original}")
+      } else {
+        fcd.exclude()
+      }
+    } else {
+      def head = fcd.relativePath.segments.dropRight(originalSegments.length)
+      def tail = originalSegments.drop(count)
+      fcd.setRelativePath(new RelativePath(original.isFile(), (head + tail) as String[]))
+    }
+  }
+}
