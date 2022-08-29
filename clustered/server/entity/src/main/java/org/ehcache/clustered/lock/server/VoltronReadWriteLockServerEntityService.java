@@ -27,6 +27,7 @@ import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
+import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceConfiguration;
@@ -88,6 +89,11 @@ public class VoltronReadWriteLockServerEntityService implements EntityServerServ
   @Override
   public SyncMessageCodec<LockOperation> getSyncMessageCodec() {
     return LockSyncMessaging.syncCodec();
+  }
+
+  @Override
+  public ExecutionStrategy<LockOperation> getExecutionStrategy(byte[] configuration) {
+    return message -> ExecutionStrategy.Location.ACTIVE;
   }
 
   private static <T> ServiceConfiguration<T> config(Class<T> klazz) {
