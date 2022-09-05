@@ -731,10 +731,19 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);
 
       // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
-      return getValue(cachedValue);
+      return getIfValidValue(cachedValue);
     } catch (RuntimeException re) {
       throw handleException(re);
     }
+  }
+
+  private ValueHolder<V> getIfValidValue(ValueHolder<V> cachedValue) throws StoreAccessException {
+    try {
+      cachedValue.get();
+    } catch (Throwable t) {
+      throw new StoreAccessException(t);
+    }
+    return cachedValue;
   }
 
   @Override
