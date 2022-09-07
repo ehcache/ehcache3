@@ -56,11 +56,11 @@ gradlePlugin {
 
 dependencies {
   api gradleApi()
-  api 'biz.aQute.bnd:biz.aQute.bnd.gradle:6.0.0'
-  api 'gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0'
+  api 'biz.aQute.bnd:biz.aQute.bnd.gradle:6.3.1'
+  api 'gradle.plugin.com.github.johnrengelman:shadow:7.1.2'
   api 'org.unbroken-dome.gradle-plugins:gradle-xjc-plugin:2.0.0'
-  api 'com.github.spotbugs.snom:spotbugs-gradle-plugin:4.7.9'
-  implementation 'biz.aQute.bnd:biz.aQute.bndlib:6.0.0'
+  api 'com.github.spotbugs.snom:spotbugs-gradle-plugin:5.0.12'
+  implementation 'biz.aQute.bnd:biz.aQute.bndlib:6.3.1'
   implementation 'org.osgi:org.osgi.service.component.annotations:1.5.0'
   implementation 'org.apache.felix:org.apache.felix.scr.generator:1.18.4'
   implementation 'org.apache.felix:org.apache.felix.scr.ds-annotations:1.2.10'
