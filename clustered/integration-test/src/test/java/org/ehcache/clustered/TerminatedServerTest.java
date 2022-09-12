@@ -60,6 +60,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -124,7 +125,7 @@ public class TerminatedServerTest {
   }
 
   @ClassRule @Rule
-  public static final TestRetryer<Duration, ParallelTestCluster> CLUSTER = tryValues(ofSeconds(2), ofSeconds(10), ofSeconds(30))
+  public static final TestRetryer<Duration, ParallelTestCluster> CLUSTER = tryValues(ofSeconds(2), ofSeconds(10), ofSeconds(30), ofMinutes(1), ofMinutes(10))
     .map(leaseLength -> new ParallelTestCluster(
       newCluster().in(clusterPath()).withServiceFragment(
         offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build()))
@@ -152,7 +153,7 @@ public class TerminatedServerTest {
 
     CLUSTER.get().getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(CLUSTER.input().plusSeconds(10)) {
+    new TimeLimitedTask<Void>(CLUSTER.input().multipliedBy(2L)) {
       @Override
       Void runTask() throws Exception {
         cacheManager.close();
