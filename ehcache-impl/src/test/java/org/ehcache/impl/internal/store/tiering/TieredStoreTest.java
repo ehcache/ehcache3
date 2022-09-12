@@ -154,7 +154,7 @@ public class TieredStoreTest {
       tieredStore.get(1);
       fail("We should get an Error");
     } catch (RuntimeException e) {
-      assertSame(error, e);
+      assertSame(error, e.getCause());
     }
   }
 
@@ -219,7 +219,7 @@ public class TieredStoreTest {
     try {
       tieredStore.get(1);
       fail("We should get an Error");
-    } catch (StoreAccessException e) {
+    } catch (StoreAccessRuntimeException e) {
       assertSame(error, e.getCause());
     }
   }
@@ -449,7 +449,7 @@ public class TieredStoreTest {
       tieredStore.computeIfAbsent(1, n -> null);
       fail("We should get an Error");
     } catch (RuntimeException e) {
-      assertSame(error, e);
+      assertSame(error, e.getCause());
     }
   }
 
