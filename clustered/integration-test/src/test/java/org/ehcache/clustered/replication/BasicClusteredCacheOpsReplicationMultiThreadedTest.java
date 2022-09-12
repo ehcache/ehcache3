@@ -153,7 +153,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
     }
   }
 
-  @Test(timeout=180000)
+  @Test
   public void testCRUD() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
     List<Future<?>> futures = new ArrayList<>();
@@ -195,7 +195,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   }
 
-  @Test(timeout=180000)
+  @Test
   public void testBulkOps() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
     List<Future<?>> futures = new ArrayList<>();
@@ -243,7 +243,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   @Ignore("This is currently unstable as if the clear does not complete before the failover," +
           "there is no future operation that will trigger the code in ClusterTierActiveEntity.invokeServerStoreOperation" +
           "dealing with in-flight invalidation reconstructed from reconnect data")
-  @Test(timeout=180000)
+  @Test
   public void testClear() throws Exception {
     List<Future<?>> futures = new ArrayList<>();
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
@@ -279,7 +279,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   private void drainTasks(List<Future<?>> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
     for (int i = 0; i < futures.size(); i++) {
       try {
-        futures.get(i).get(60, TimeUnit.SECONDS);
+        futures.get(i).get(10, TimeUnit.MINUTES);
       } catch (TimeoutException e) {
         fail("Stuck on number " + i);
       }
