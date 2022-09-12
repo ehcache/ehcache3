@@ -89,6 +89,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -99,6 +101,7 @@ import java.util.function.Supplier;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
+import static org.ehcache.spi.resilience.StoreAccessRuntimeException.handleRuntimeException;
 
 /**
  * {@link Store} and {@link HigherCachingTier} implementation for on heap.
@@ -705,7 +708,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         cachedValue = backEnd.putIfAbsent(key, fault);
 
         if (cachedValue == null) {
-          return resolveFault(key, backEnd, now, fault);
+          ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault);
+          fault.complete(valueHolder);
+          return valueHolder;
         }
       }
 
@@ -720,7 +725,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           cachedValue = backEnd.putIfAbsent(key, fault);
 
           if (cachedValue == null) {
-            return resolveFault(key, backEnd, now, fault);
+            ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault);
+            fault.complete(valueHolder);
+            return valueHolder;
           }
         }
         else {
@@ -731,19 +738,10 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);
 
       // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
-      return getIfValidValue(cachedValue);
+      return getValue(cachedValue);
     } catch (RuntimeException re) {
-      throw handleException(re);
+      throw handleRuntimeException(re);
     }
-  }
-
-  private ValueHolder<V> getIfValidValue(ValueHolder<V> cachedValue) throws StoreAccessException {
-    try {
-      cachedValue.get();
-    } catch (Throwable t) {
-      throw new StoreAccessException(t);
-    }
-    return cachedValue;
   }
 
   @Override
@@ -775,7 +773,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   private ValueHolder<V> resolveFault(K key, Backend<K, V> backEnd, long now, Fault<V> fault) throws StoreAccessException {
     try {
-      ValueHolder<V> value = fault.getValueHolder();
+      ValueHolder<V> value = fault.retrieveValueHolder();
       OnHeapValueHolder<V> newValue;
       if(value != null) {
         newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
@@ -821,6 +819,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       return newValue;
 
     } catch (Throwable e) {
+      fault.fail(e);
       backEnd.remove(key, fault);
       throw new StoreAccessException(e);
     }
@@ -1003,35 +1002,24 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     @IgnoreSizeOf
     private final Supplier<ValueHolder<V>> source;
-    private ValueHolder<V> value;
-    private Throwable throwable;
-    private boolean complete;
+    private CompletableFuture<ValueHolder<V>> valueFuture;
 
     public Fault(Supplier<ValueHolder<V>> source) {
       super(FAULT_ID, 0, true);
       this.source = source;
+      this.valueFuture = new CompletableFuture<>();
+    }
+
+    private ValueHolder<V> retrieveValueHolder(){
+      return source.get();
     }
 
     private void complete(ValueHolder<V> value) {
-      synchronized (this) {
-        this.value = value;
-        this.complete = true;
-        notifyAll();
-      }
+      valueFuture.complete(value);
     }
 
     private ValueHolder<V> getValueHolder() {
-      synchronized (this) {
-        if (!complete) {
-          try {
-            complete(source.get());
-          } catch (Throwable e) {
-            fail(e);
-          }
-        }
-      }
-
-      return throwOrReturn();
+      return valueFuture.join();
     }
 
     @Override
@@ -1039,23 +1027,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       throw new UnsupportedOperationException("You should NOT call that?!");
     }
 
-    private ValueHolder<V> throwOrReturn() {
-      if (throwable != null) {
-        if (throwable instanceof RuntimeException) {
-          throw (RuntimeException) throwable;
-        }
-        throw new RuntimeException("Faulting from repository failed", throwable);
-      }
-      return value;
-    }
-
     private void fail(Throwable t) {
-      synchronized (this) {
-        this.throwable = t;
-        this.complete = true;
-        notifyAll();
-      }
-      throwOrReturn();
+      valueFuture.completeExceptionally(t);
     }
 
     @Override
@@ -1110,7 +1083,13 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     @Override
     public String toString() {
-      return "[Fault : " + (complete ? (throwable == null ? String.valueOf(value) : throwable.getMessage()) : "???") + "]";
+      String valueOrException;
+      try {
+        valueOrException = valueFuture.get().toString();
+      } catch (InterruptedException | ExecutionException e) {
+        valueOrException = e.toString();
+      }
+      return "[Fault : " + valueOrException + "]";
     }
 
     @Override

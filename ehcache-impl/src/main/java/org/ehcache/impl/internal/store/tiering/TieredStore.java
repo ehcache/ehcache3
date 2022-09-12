@@ -87,17 +87,13 @@ public class TieredStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
-    try {
-      return cachingTier().getOrComputeIfAbsent(key, keyParam -> {
-        try {
-          return authoritativeTier.getAndFault(keyParam);
-        } catch (StoreAccessException cae) {
-          throw new StoreAccessRuntimeException(cae);
-        }
-      });
-    } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
-    }
+    return cachingTier().getOrComputeIfAbsent(key, keyParam -> {
+      try {
+        return authoritativeTier.getAndFault(keyParam);
+      } catch (StoreAccessException cae) {
+        throw new StorePassThroughException(cae);
+      }
+    });
   }
 
   @Override
@@ -323,17 +319,13 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
-    try {
-      return cachingTier().getOrComputeIfAbsent(key, keyParam -> {
-        try {
-          return authoritativeTier.computeIfAbsentAndFault(keyParam, mappingFunction);
-        } catch (StoreAccessException cae) {
-          throw new StoreAccessRuntimeException(cae);
-        }
-      });
-    } catch (RuntimeException re) {
-      throw handleRuntimeException(re);
-    }
+    return cachingTier().getOrComputeIfAbsent(key, keyParam -> {
+      try {
+        return authoritativeTier.computeIfAbsentAndFault(keyParam, mappingFunction);
+      } catch (StoreAccessException cae) {
+        throw new StoreAccessRuntimeException(cae);
+      }
+    });
   }
 
   @Override
@@ -389,10 +381,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     }if (cause instanceof Error) {
       throw (Error) cause;
     }
-    if (cause instanceof RuntimeException) {
-      throw (RuntimeException) cause;
-    }
-    throw new RuntimeException("Unexpected checked exception wrapped in StoreAccessException", cause);
+    throw ce;
   }
 
   @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class})

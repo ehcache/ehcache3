@@ -16,6 +16,8 @@
 
 package org.ehcache.spi.resilience;
 
+import java.util.concurrent.CompletionException;
+
 /**
  * A wrapper Runtime exception used when don't want to handle the checkedException an internal operation fails on a {@link org.ehcache.Cache}.
  *
@@ -53,17 +55,15 @@ public class StoreAccessRuntimeException extends RuntimeException {
     super(message);
   }
 
-  public static StoreAccessException handleRuntimeException(Exception re) {
-    if(re instanceof StoreAccessRuntimeException) {
+  public static StoreAccessException handleRuntimeException(RuntimeException re) {
+
+    if (re instanceof StoreAccessRuntimeException || re instanceof CompletionException) {
       Throwable cause = re.getCause();
-      if(cause instanceof RuntimeException) {
-        throw (RuntimeException) cause;
-      } else {
+      if (cause instanceof RuntimeException) {
         return new StoreAccessException(cause);
       }
-    } else {
-      return new StoreAccessException(re);
     }
+    return new StoreAccessException(re);
   }
 
 }
