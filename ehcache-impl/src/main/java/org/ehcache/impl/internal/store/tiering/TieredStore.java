@@ -374,6 +374,12 @@ public class TieredStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
+  /**
+   * Handling the received {@link org.ehcache.spi.resilience.StoreAccessException}
+   *
+   * @param ce a {@link org.ehcache.spi.resilience.StoreAccessException} that is being handled
+   * @return {@link org.ehcache.core.spi.store.Store.ValueHolder}
+   */
   private ValueHolder<V> handleStoreAccessException(StoreAccessException ce) throws StoreAccessException {
     Throwable cause = ce.getCause();
     if (cause instanceof StorePassThroughException) {

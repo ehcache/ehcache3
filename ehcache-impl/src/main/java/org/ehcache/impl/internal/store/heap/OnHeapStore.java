@@ -1002,6 +1002,10 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     @IgnoreSizeOf
     private final Supplier<ValueHolder<V>> source;
+
+    /**
+     * valueFuture of type {@link java.util.concurrent.CompletableFuture} to ensure consistent state in concurrent usage
+     */
     private CompletableFuture<ValueHolder<V>> valueFuture;
 
     public Fault(Supplier<ValueHolder<V>> source) {
@@ -1010,14 +1014,28 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       this.valueFuture = new CompletableFuture<>();
     }
 
+    /**
+     * Block the thread coming to get the value in concurrent usage
+     *
+     * @return {@link org.ehcache.core.spi.store.Store.ValueHolder}
+     */
     private ValueHolder<V> retrieveValueHolder(){
       return source.get();
     }
 
+    /**
+     * mark the process for fault object as completed in concurrent usage
+     */
     private void complete(ValueHolder<V> value) {
       valueFuture.complete(value);
     }
 
+    /**
+     * method to get the {@link org.ehcache.core.spi.store.Store.ValueHolder}
+     * Block the thread coming to get the value in concurrent usage
+     *
+     * @return {@link org.ehcache.core.spi.store.Store.ValueHolder}
+     */
     private ValueHolder<V> getValueHolder() {
       return valueFuture.join();
     }
@@ -1027,6 +1045,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       throw new UnsupportedOperationException("You should NOT call that?!");
     }
 
+    /**
+     * method to mark the Fault object process is failed
+     */
     private void fail(Throwable t) {
       valueFuture.completeExceptionally(t);
     }

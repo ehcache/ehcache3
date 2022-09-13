@@ -25,7 +25,7 @@ import java.util.concurrent.CompletionException;
  */
 public class StoreAccessRuntimeException extends RuntimeException {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 6249505400891654776L;
 
   /**
    * Creates a new exception wrapping the {@link Throwable cause} passed in.
@@ -55,6 +55,13 @@ public class StoreAccessRuntimeException extends RuntimeException {
     super(message);
   }
 
+  /**
+   * Wrapped the received {@link java.lang.RuntimeException} to {@link org.ehcache.spi.resilience.StoreAccessException},
+   * so that received {@link java.lang.RuntimeException} can reach {@link org.ehcache.spi.resilience.ResilienceStrategy}
+   *
+   * @param re a {@link java.lang.RuntimeException} that is being handled
+   * @return {@link org.ehcache.spi.resilience.StoreAccessException} a type in which wrapping the received {@link java.lang.RuntimeException}
+   */
   public static StoreAccessException handleRuntimeException(RuntimeException re) {
 
     if (re instanceof StoreAccessRuntimeException || re instanceof CompletionException) {
