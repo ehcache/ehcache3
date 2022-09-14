@@ -60,6 +60,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -87,8 +88,6 @@ import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 @RunWith(Parallel.class)
 public class TerminatedServerTest {
 
-  private static final int CLIENT_MAX_PENDING_REQUESTS = 5;
-
   private static Map<String, String> OLD_PROPERTIES;
 
   @BeforeClass
@@ -106,9 +105,6 @@ public class TerminatedServerTest {
      */
     overrideProperty(oldProperties, TCPropertiesConsts.L1_SHUTDOWN_THREADGROUP_GRACETIME, "1000");
     overrideProperty(oldProperties, TCPropertiesConsts.TC_TRANSPORT_HANDSHAKE_TIMEOUT, "1000");
-
-    // Used only by testTerminationFreezesTheClient to be able to fill the inflight queue
-    overrideProperty(oldProperties, TCPropertiesConsts.CLIENT_MAX_PENDING_REQUESTS, Integer.toString(CLIENT_MAX_PENDING_REQUESTS));
 
     OLD_PROPERTIES = oldProperties;
   }
@@ -129,7 +125,7 @@ public class TerminatedServerTest {
   }
 
   @ClassRule @Rule
-  public static final TestRetryer<Duration, ParallelTestCluster> CLUSTER = tryValues(ofSeconds(2), ofSeconds(10), ofSeconds(30))
+  public static final TestRetryer<Duration, ParallelTestCluster> CLUSTER = tryValues(ofSeconds(2), ofSeconds(10), ofSeconds(30), ofMinutes(1), ofMinutes(10))
     .map(leaseLength -> new ParallelTestCluster(
       newCluster().in(clusterPath()).withServiceFragment(
         offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build()))
@@ -157,7 +153,7 @@ public class TerminatedServerTest {
 
     CLUSTER.get().getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(CLUSTER.input().plusSeconds(10)) {
+    new TimeLimitedTask<Void>(CLUSTER.input().multipliedBy(2L)) {
       @Override
       Void runTask() throws Exception {
         cacheManager.close();
@@ -539,8 +535,8 @@ public class TerminatedServerTest {
 
       CLUSTER.get().getClusterControl().terminateAllServers();
 
-      // Fill the inflight queue and check that we wait no longer than the read timeout
-      for (int i = 0; i < CLIENT_MAX_PENDING_REQUESTS; i++) {
+      // Check that we wait no longer than the read timeout
+      for (int i = 0; i < 5; i++) {
         cache.get(1L);
       }
 
