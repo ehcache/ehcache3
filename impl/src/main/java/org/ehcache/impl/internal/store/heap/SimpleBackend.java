@@ -34,17 +34,12 @@ import java.util.function.BiFunction;
  */
 class SimpleBackend<K, V> implements Backend<K, V> {
 
-  private final EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap;
+  private final EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap = new ConcurrentHashMap<>();
   private final boolean byteSized;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
   SimpleBackend(boolean byteSized) {
-    this(byteSized, new ConcurrentHashMap<>());
-  }
-
-  SimpleBackend(boolean byteSized, EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap) {
     this.byteSized = byteSized;
-    this.realMap = realMap;
   }
 
   @Override
@@ -100,11 +95,6 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   @Override
   public OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
     return realMap.compute(key, computeFunction);
-  }
-
-  @Override
-  public void clear() {
-    realMap.clear();
   }
 
   @Override

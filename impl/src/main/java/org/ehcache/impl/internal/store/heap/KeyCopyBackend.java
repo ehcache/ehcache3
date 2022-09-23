@@ -44,19 +44,14 @@ import java.util.function.BiFunction;
  */
 class KeyCopyBackend<K, V> implements Backend<K, V> {
 
-  private final EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private final EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap = new ConcurrentHashMap<>();
   private final boolean byteSized;
   private final Copier<K> keyCopier;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
   KeyCopyBackend(boolean byteSized, Copier<K> keyCopier) {
-    this(byteSized, keyCopier, new ConcurrentHashMap<>());
-  }
-
-  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier, EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap) {
     this.byteSized = byteSized;
     this.keyCopier = keyCopier;
-    this.keyCopyMap = keyCopyMap;
   }
 
   @Override
@@ -155,11 +150,6 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   public OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
 
     return keyCopyMap.compute(makeKey(key), (mappedKey, mappedValue) -> computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue));
-  }
-
-  @Override
-  public void clear() {
-    keyCopyMap.clear();
   }
 
   @Override

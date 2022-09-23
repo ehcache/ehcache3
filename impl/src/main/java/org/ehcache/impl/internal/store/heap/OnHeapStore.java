@@ -146,6 +146,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   static final int SAMPLE_SIZE = 8;
   private volatile Backend<K, V> map;
+  private final Supplier<Backend<K, V>> backendSupplier;
 
   private final Class<K> keyType;
   private final Class<V> valueType;
@@ -204,6 +205,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher) {
+
     Objects.requireNonNull(keyCopier, "keyCopier must not be null");
 
     this.valueCopier = Objects.requireNonNull(valueCopier, "valueCopier must not be null");
@@ -229,10 +231,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.storeEventDispatcher = eventDispatcher;
 
     if (keyCopier instanceof IdentityCopier) {
-      this.map = new SimpleBackend<>(byteSized);
+      this.backendSupplier = () -> new SimpleBackend<>(byteSized);
     } else {
-      this.map = new KeyCopyBackend<>(byteSized, keyCopier);
+      this.backendSupplier = () -> new KeyCopyBackend<>(byteSized, keyCopier);
     }
+    this.map = backendSupplier.get();
 
     getObserver = operation(StoreOperationOutcomes.GetOutcome.class).named("get").of(this).tag(STATISTICS_TAG).build();
     putObserver = operation(StoreOperationOutcomes.PutOutcome.class).named("put").of(this).tag(STATISTICS_TAG).build();
@@ -616,7 +619,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public void clear() {
-    map.clear();
+    this.map = backendSupplier.get();
   }
 
   @Override
