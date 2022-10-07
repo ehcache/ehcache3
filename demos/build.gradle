@@ -19,7 +19,9 @@ subprojects {
   dependencies {
     implementation project(':impl')
     implementation 'javax.servlet:javax.servlet-api:3.1.0'
-    runtimeOnly 'ch.qos.logback:logback-classic:1.2.3'
+    runtimeOnly('ch.qos.logback:logback-classic:1.2.11') {
+      exclude group:'org.slf4j', module:'slf4j-api'
+    }
     runtimeOnly 'com.h2database:h2:1.4.196'
   }
 }
