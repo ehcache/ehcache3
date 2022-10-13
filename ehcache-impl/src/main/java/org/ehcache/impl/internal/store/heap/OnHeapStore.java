@@ -1105,10 +1105,16 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     @Override
     public String toString() {
       String valueOrException;
-      try {
-        valueOrException = valueFuture.get().toString();
-      } catch (InterruptedException | ExecutionException e) {
-        valueOrException = e.toString();
+      if (valueFuture.isDone()) {
+        if (valueFuture.isCancelled()) {
+          valueOrException = "Cancel";
+        } else if (valueFuture.isCompletedExceptionally()) {
+          valueOrException = "Exception";
+        } else {
+          valueOrException = "Complete";
+        }
+      } else {
+        valueOrException = "InComplete";
       }
       return "[Fault : " + valueOrException + "]";
     }
