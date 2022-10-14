@@ -41,10 +41,6 @@ public class StoreAccessRuntimeException extends RuntimeException {
     return (StoreAccessException) super.getCause();
   }
 
-/*  public StoreAccessException getStoreAccessException() {
-    return getCause();
-  }*/
-
   /**
    * Wrapped the received {@link java.lang.RuntimeException} to {@link org.ehcache.spi.resilience.StoreAccessException},
    * so that received {@link java.lang.RuntimeException} can reach {@link org.ehcache.spi.resilience.ResilienceStrategy}
