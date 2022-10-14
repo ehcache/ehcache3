@@ -32,28 +32,18 @@ public class StoreAccessRuntimeException extends RuntimeException {
    *
    * @param cause the cause of this exception
    */
-  public StoreAccessRuntimeException(Throwable cause) {
+  public StoreAccessRuntimeException(StoreAccessException cause) {
     super(cause);
   }
 
-  /**
-   * Creates a new exception wrapping the {@link Throwable cause} passed in and with the provided message.
-   *
-   * @param message information about the exception
-   * @param cause the cause of this exception
-   */
-  public StoreAccessRuntimeException(String message, Throwable cause) {
-    super(message, cause);
+  @Override
+  public StoreAccessException getCause() {
+    return (StoreAccessException) super.getCause();
   }
 
-  /**
-   * Creates a new exception with the provided message.
-   *
-   * @param message information about the exception
-   */
-  public StoreAccessRuntimeException(String message) {
-    super(message);
-  }
+/*  public StoreAccessException getStoreAccessException() {
+    return getCause();
+  }*/
 
   /**
    * Wrapped the received {@link java.lang.RuntimeException} to {@link org.ehcache.spi.resilience.StoreAccessException},

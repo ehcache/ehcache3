@@ -146,14 +146,14 @@ public class TieredStoreTest {
   @SuppressWarnings("unchecked")
   public void testGetThrowsRuntimeException() throws Exception {
     RuntimeException error = new RuntimeException();
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessRuntimeException(error));
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessException(error));
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     try {
       tieredStore.get(1);
       fail("We should get an Error");
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       assertSame(error, e.getCause());
     }
   }
@@ -195,7 +195,7 @@ public class TieredStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testGetThrowsException() throws Exception {
-    Exception error = new Exception();
+    StoreAccessException error = new StoreAccessException("Error");
     when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessRuntimeException(error));
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
@@ -441,7 +441,7 @@ public class TieredStoreTest {
   public void testComputeIfAbsentThrowsRuntimeException() throws Exception {
 
     RuntimeException error = new RuntimeException();
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessRuntimeException(error));
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(error);
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
@@ -449,7 +449,7 @@ public class TieredStoreTest {
       tieredStore.computeIfAbsent(1, n -> null);
       fail("We should get an Error");
     } catch (RuntimeException e) {
-      assertSame(error, e.getCause());
+      assertSame(error, e);
     }
   }
 

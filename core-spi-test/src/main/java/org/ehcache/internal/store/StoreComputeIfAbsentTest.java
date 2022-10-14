@@ -21,6 +21,7 @@ import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.internal.TestTimeSource;
+import org.ehcache.spi.resilience.StoreAccessRuntimeException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -193,14 +194,14 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     K key = factory.createKey(1L);
 
-    RuntimeException exception = new RuntimeException("error");
-    StorePassThroughException re = new StorePassThroughException(exception);
+    StoreAccessException exception = new StoreAccessException("error");
+    StoreAccessRuntimeException re = new StoreAccessRuntimeException(exception);
 
     try {
       kvStore.computeIfAbsent(key, keyParam -> {
         throw re;
       });
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       assertThat(e, is(exception));
     }
   }

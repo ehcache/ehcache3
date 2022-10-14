@@ -52,7 +52,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.impl.serialization.TransientStateRepository;
-import org.ehcache.sizeof.annotations.IgnoreSizeOf;
+import org.ehcache.spi.resilience.StoreAccessRuntimeException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.core.spi.store.Store;
@@ -90,7 +90,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -704,11 +703,11 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       long now = timeSource.getTimeMillis();
       if (cachedValue == null) {
-        Fault<V> fault = new Fault<>(() -> source.apply(key));
+        Fault<V> fault = new Fault<>();
         cachedValue = backEnd.putIfAbsent(key, fault);
 
         if (cachedValue == null) {
-          ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault);
+          ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault, source);
           fault.complete(valueHolder);
           return valueHolder;
         }
@@ -721,11 +720,11 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           expireMappingUnderLock(key, cachedValue);
 
           // On expiration, we might still be able to get a value from the fault. For instance, when a load-writer is used
-          Fault<V> fault = new Fault<>(() -> source.apply(key));
+          Fault<V> fault = new Fault<>();
           cachedValue = backEnd.putIfAbsent(key, fault);
 
           if (cachedValue == null) {
-            ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault);
+            ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault, source);
             fault.complete(valueHolder);
             return valueHolder;
           }
@@ -771,9 +770,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
   }
 
-  private ValueHolder<V> resolveFault(K key, Backend<K, V> backEnd, long now, Fault<V> fault) throws StoreAccessException {
+  private ValueHolder<V> resolveFault(K key, Backend<K, V> backEnd, long now, Fault<V> fault, Function<K, ValueHolder<V>> source) throws StoreAccessException {
     try {
-      ValueHolder<V> value = fault.retrieveValueHolder();
+      ValueHolder<V> value = source.apply(key);
       OnHeapValueHolder<V> newValue;
       if(value != null) {
         newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
@@ -817,7 +816,10 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
       return newValue;
-
+    } catch (StoreAccessRuntimeException e) {
+      fault.fail(e);
+      backEnd.remove(key, fault);
+      throw e.getCause();
     } catch (Throwable e) {
       fault.fail(e);
       backEnd.remove(key, fault);
@@ -1000,27 +1002,14 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     private static final int FAULT_ID = -1;
 
-    @IgnoreSizeOf
-    private final Supplier<ValueHolder<V>> source;
-
     /**
      * valueFuture of type {@link java.util.concurrent.CompletableFuture} to ensure consistent state in concurrent usage
      */
     private CompletableFuture<ValueHolder<V>> valueFuture;
 
-    public Fault(Supplier<ValueHolder<V>> source) {
+    public Fault() {
       super(FAULT_ID, 0, true);
-      this.source = source;
       this.valueFuture = new CompletableFuture<>();
-    }
-
-    /**
-     * Block the thread coming to get the value in concurrent usage
-     *
-     * @return {@link org.ehcache.core.spi.store.Store.ValueHolder}
-     */
-    private ValueHolder<V> retrieveValueHolder(){
-      return source.get();
     }
 
     /**
