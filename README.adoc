@@ -6,7 +6,7 @@ image::https://dev.azure.com/TerracottaCI/ehcache/_apis/build/status/ehcache3[Bu
 
 For more information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[wiki].
 
-== Getting started with the new API
+== Getting started with the Ehcache 3.x API
 
 For samples, documentation, and usage information, please see http://ehcache.org.
 
