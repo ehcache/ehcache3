@@ -72,6 +72,7 @@ import static org.ehcache.xml.XmlUtil.namespaceUniqueParsersOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -466,10 +467,9 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     InetSocketAddress firstServer = InetSocketAddress.createUnresolved("server-1", 9510);
     InetSocketAddress secondServer = InetSocketAddress.createUnresolved("server-2", 9540);
-    List<InetSocketAddress> expectedServers = Arrays.asList(firstServer, secondServer);
 
     assertThat(connectionSource.getClusterTierManager(), is("cM"));
-    assertThat(servers, is(expectedServers));
+    assertThat(servers, containsInAnyOrder(firstServer, secondServer));
   }
 
   @Test
@@ -503,12 +503,11 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
 
     InetSocketAddress firstServer = InetSocketAddress.createUnresolved("100.100.100.100", 9510);
     InetSocketAddress secondServer = InetSocketAddress.createUnresolved("server-2", 0);
-    InetSocketAddress thirdServer = InetSocketAddress.createUnresolved("[::1]", 0);
-    InetSocketAddress fourthServer = InetSocketAddress.createUnresolved("[fe80::1453:846e:7be4:15fe]", 9710);
-    List<InetSocketAddress> expectedServers = Arrays.asList(firstServer, secondServer, thirdServer, fourthServer);
+    InetSocketAddress thirdServer = InetSocketAddress.createUnresolved("::1", 0);
+    InetSocketAddress fourthServer = InetSocketAddress.createUnresolved("fe80::1453:846e:7be4:15fe", 9710);
 
     assertThat(connectionSource.getClusterTierManager(), is("cM"));
-    assertThat(servers, is(expectedServers));
+    assertThat(servers, containsInAnyOrder(firstServer, secondServer, thirdServer, fourthServer));
   }
 
   @Test
@@ -812,8 +811,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
       "<tc:cluster-connection cluster-tier-manager = \"my-application\">" +
       "<tc:server host = \"100.100.100.100\" port = \"9510\"/>" +
       "<tc:server host = \"server-2\"/>" +
-      "<tc:server host = \"[::1]\"/>" +
-      "<tc:server host = \"[fe80::1453:846e:7be4:15fe]\" port = \"9710\"/>" +
+      "<tc:server host = \"::1\"/>" +
+      "<tc:server host = \"fe80::1453:846e:7be4:15fe\" port = \"9710\"/>" +
       "</tc:cluster-connection>" +
       "<tc:read-timeout unit = \"seconds\">5</tc:read-timeout>" +
       "<tc:write-timeout unit = \"seconds\">5</tc:write-timeout>" +

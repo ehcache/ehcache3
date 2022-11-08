@@ -37,6 +37,12 @@ jobs:
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
+    jdkVersion: '1.8'
+    options: '-PtestVM=java17Home'
+    jobName: 'LinuxJava17'
+
+- template: build-templates/gradle-common.yml@templates
+  parameters:
     vmImage: 'windows-latest'
     jdkVersion: '1.8'
     jobName: 'WindowsJava8'
@@ -47,3 +53,10 @@ jobs:
     jdkVersion: '1.8'
     options: '-PtestVM=java11Home'
     jobName: 'WindowsJava11'
+
+- template: build-templates/gradle-common.yml@templates
+  parameters:
+    vmImage: 'windows-latest'
+    jdkVersion: '1.8'
+    options: '-PtestVM=java17Home'
+    jobName: 'WindowsJava17'

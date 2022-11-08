@@ -35,6 +35,7 @@ import java.util.Properties;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SuppressWarnings("deprecation")
 public class ClusteringServiceConfigurationTest {
@@ -66,7 +67,7 @@ public class ClusteringServiceConfigurationTest {
   @Test
   public void testGetServersAndCacheManager() {
     ConnectionSource.ServerList connectionSource =  (ConnectionSource.ServerList) new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getConnectionSource();
-    assertThat(connectionSource.getServers()).isEqualTo(SERVERS);
+    assertThat(connectionSource.getServers()).hasSameElementsAs(SERVERS);
     assertThat(new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getConnectionSource().getClusterTierManager()).isEqualTo(CACHE_MANAGER);
   }
 
@@ -75,8 +76,7 @@ public class ClusteringServiceConfigurationTest {
     ConnectionSource.ServerList connectionSource =  (ConnectionSource.ServerList) new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER).getConnectionSource();
     Iterator<InetSocketAddress> iterator = connectionSource.getServers().iterator();
     iterator.next();
-    iterator.remove();
-    assertThat(connectionSource.getServers()).isEqualTo(SERVERS);
+    assertThatThrownBy(iterator::remove).isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
