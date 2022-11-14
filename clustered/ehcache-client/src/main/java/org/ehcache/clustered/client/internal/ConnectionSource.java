@@ -21,7 +21,7 @@ import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.dynamic_config.api.model.Cluster;
-import org.terracotta.dynamic_config.api.model.EndpointType;
+import org.terracotta.dynamic_config.api.model.Endpoints;
 import org.terracotta.dynamic_config.api.model.Node;
 import org.terracotta.dynamic_config.api.model.UID;
 import org.terracotta.dynamic_config.entity.topology.client.DynamicTopologyEntity;
@@ -37,18 +37,19 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.AbstractSet;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.StreamSupport;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.StreamSupport.stream;
 
 public abstract class ConnectionSource {
 
@@ -123,12 +124,12 @@ public abstract class ConnectionSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractConnectionSource.class);
 
-    private final HostPortSet currentServers;
+    private final Servers currentServers;
 
     private final String clusterTierManager;
 
     public AbstractConnectionSource(Iterable<InetSocketAddress> servers, String clusterTierManager) {
-      this.currentServers = new HostPortSet(servers);
+      this.currentServers = new Servers(servers);
       this.clusterTierManager = Objects.requireNonNull(clusterTierManager, "Cluster tier manager identifier cannot be null");
     }
 
@@ -197,31 +198,29 @@ public abstract class ConnectionSource {
     }
   }
 
-  private static class HostPortSet extends AbstractSet<InetSocketAddress> {
+  private static class Servers implements Iterable<InetSocketAddress> {
 
-    private volatile EndpointType endpointType;
-    private volatile Collection<HostPort> hostPorts;
+    private final Iterable<InetSocketAddress> initial;
+    private final AtomicReference<Endpoints> endpoints = new AtomicReference<>();
 
-    public HostPortSet(Iterable<InetSocketAddress> initial) {
-      this.hostPorts = StreamSupport.stream(initial.spliterator(), false).map(HostPort::create).collect(toList());
-      this.endpointType = null;
+    public Servers(Iterable<InetSocketAddress> initial) {
+      this.initial = requireNonNull(initial);
     }
 
     @Override
     public Iterator<InetSocketAddress> iterator() {
-      return hostPorts.stream().map(HostPort::createInetSocketAddress).iterator();
-    }
-
-    @Override
-    public int size() {
-      return hostPorts.size();
+      return Optional.ofNullable(endpoints.get())
+        .map(Endpoints::asInetSocketAddresses)
+        .orElse(initial)
+        .iterator();
     }
 
     public void refresh(Cluster cluster) {
-      if (endpointType == null) {
-        endpointType = cluster.determineEndpointType(hostPorts);
-      }
-      hostPorts = cluster.determineEndpoints(endpointType).stream().map(Node.Endpoint::getHostPort).collect(toList());
+      endpoints.set(Optional.ofNullable(endpoints.get())
+        .map(Endpoints::getEndpointType)
+        .map(cluster::determineEndpoints)
+        .orElseGet(() -> cluster.determineEndpoints(stream(initial.spliterator(), false).map(HostPort::create).collect(toList())))
+      );
     }
   }
 }
