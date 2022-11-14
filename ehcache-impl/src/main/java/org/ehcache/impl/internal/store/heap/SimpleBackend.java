@@ -35,15 +35,12 @@ import java.util.function.Supplier;
  */
 class SimpleBackend<K, V> implements Backend<K, V> {
 
-  private volatile EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap;
-  private final Supplier<EvictingConcurrentMap<K, OnHeapValueHolder<V>>> realMapSupplier;
+  private final EvictingConcurrentMap<K, OnHeapValueHolder<V>> realMap = new ConcurrentHashMap<>();
   private final boolean byteSized;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
-  SimpleBackend(boolean byteSized, Supplier<EvictingConcurrentMap<K, OnHeapValueHolder<V>>> realMapSupplier) {
+  SimpleBackend(boolean byteSized) {
     this.byteSized = byteSized;
-    this.realMap = realMapSupplier.get();
-    this.realMapSupplier = realMapSupplier;
   }
 
   @Override
@@ -99,12 +96,6 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   @Override
   public OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
     return realMap.compute(key, computeFunction);
-  }
-
-  @Override
-  public void clear() {
-    // This is faster than performing a clear on the underlying map
-    realMap = realMapSupplier.get();
   }
 
   @Override
