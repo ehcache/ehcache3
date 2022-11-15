@@ -15,10 +15,13 @@
  */
 package org.ehcache.clustered.client.internal;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.dynamic_config.api.model.Cluster;
+import org.terracotta.dynamic_config.api.model.EndpointType;
 import org.terracotta.dynamic_config.api.model.Node;
 import org.terracotta.dynamic_config.api.model.UID;
 import org.terracotta.dynamic_config.entity.topology.client.DynamicTopologyEntity;
@@ -26,6 +29,7 @@ import org.terracotta.dynamic_config.entity.topology.common.DynamicTopologyEntit
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.inet.HostPort;
 import org.terracotta.lease.connection.LeasedConnection;
 import org.terracotta.lease.connection.LeasedConnectionFactory;
 
@@ -33,15 +37,18 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.AbstractSet;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.StreamSupport;
+
+import static java.util.stream.Collectors.toList;
 
 public abstract class ConnectionSource {
 
@@ -95,43 +102,61 @@ public abstract class ConnectionSource {
     }
   }
 
-  public static class ServerList extends ConnectionSource {
-
-    private final CopyOnWriteArraySet<InetSocketAddress> servers;
-    private final String clusterTierManager;
+  public static class ServerList extends AbstractConnectionSource {
 
     public ServerList(Iterable<InetSocketAddress> servers, String clusterTierManager) {
-      this.servers = createServerList(servers);
-      this.clusterTierManager = Objects.requireNonNull(clusterTierManager, "Cluster tier manager identifier cannot be null");
-    }
-
-    private CopyOnWriteArraySet<InetSocketAddress> createServerList(Iterable<InetSocketAddress> servers) {
-      Objects.requireNonNull(servers, "Servers cannot be null");
-      CopyOnWriteArraySet<InetSocketAddress> serverList = new CopyOnWriteArraySet<>();
-      servers.forEach(server -> serverList.add(server));
-      return serverList;
+      super(servers, clusterTierManager);
     }
 
     @Override
-    public String getClusterTierManager() {
+    public URI getClusterUri() {
+      throw new IllegalStateException("Cannot use getClusterUri() on ConnectionSource.ServerList. Use getServers() instead.");
+    }
+
+    @Override
+    public String toString() {
+      return "servers: " + getServers() + " [cache-manager: " + getClusterTierManager() + "]";
+    }
+  }
+
+  private static abstract class AbstractConnectionSource extends ConnectionSource {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractConnectionSource.class);
+
+    private final HostPortSet currentServers;
+
+    private final String clusterTierManager;
+
+    public AbstractConnectionSource(Iterable<InetSocketAddress> servers, String clusterTierManager) {
+      this.currentServers = new HostPortSet(servers);
+      this.clusterTierManager = Objects.requireNonNull(clusterTierManager, "Cluster tier manager identifier cannot be null");
+    }
+
+    @Override
+    public final String getClusterTierManager() {
       return clusterTierManager;
     }
 
     @Override
-    public LeasedConnection connect(Properties connectionProperties) throws ConnectionException {
-      LeasedConnection connection = LeasedConnectionFactory.connect(servers, connectionProperties);
+    public final LeasedConnection connect(Properties connectionProperties) throws ConnectionException {
+      LeasedConnection connection = LeasedConnectionFactory.connect(currentServers, connectionProperties);
       try {
         EntityRef<DynamicTopologyEntity, Object, DynamicTopologyEntity.Settings> ref = connection.getEntityRef(DynamicTopologyEntity.class, 1, DynamicTopologyEntityConstants.ENTITY_NAME);
         DynamicTopologyEntity dynamicTopologyEntity = ref.fetchEntity(null);
+        try {
+          currentServers.refresh(dynamicTopologyEntity.getUpcomingCluster());
+        } catch (TimeoutException | InterruptedException e) {
+          LOGGER.warn("Failed to populate connection with cluster topology - passive failover may fail", e);
+        }
         dynamicTopologyEntity.setListener(new DynamicTopologyEntity.Listener() {
           @Override
           public void onNodeRemoval(Cluster cluster, UID stripeUID, Node removedNode) {
-            removedNode.getEndpoints().forEach(e -> servers.remove(e.getAddress()));
+            currentServers.refresh(cluster);
           }
 
           @Override
           public void onNodeAddition(Cluster cluster, UID addedNodeUID) {
-            servers.add(cluster.determineEndpoint(addedNodeUID, servers).get().getAddress());
+            currentServers.refresh(cluster);
           }
         });
         return new LeasedConnection() {
@@ -167,24 +192,36 @@ public abstract class ConnectionSource {
       }
     }
 
+    public final Iterable<InetSocketAddress> getServers() {
+      return currentServers;
+    }
+  }
+
+  private static class HostPortSet extends AbstractSet<InetSocketAddress> {
+
+    private volatile EndpointType endpointType;
+    private volatile Collection<HostPort> hostPorts;
+
+    public HostPortSet(Iterable<InetSocketAddress> initial) {
+      this.hostPorts = StreamSupport.stream(initial.spliterator(), false).map(HostPort::create).collect(toList());
+      this.endpointType = null;
+    }
+
     @Override
-    public URI getClusterUri() {
-      throw new IllegalStateException("Cannot use getClusterUri() on ConnectionSource.ServerList. Use getServers() instead.");
-    }
-
-    public Iterable<InetSocketAddress> getServers() {
-      return cloneServers(servers);
+    public Iterator<InetSocketAddress> iterator() {
+      return hostPorts.stream().map(HostPort::createInetSocketAddress).iterator();
     }
 
     @Override
-    public String toString() {
-      return "servers: " + getServers() + " [cache-manager: " + getClusterTierManager() + "]";
+    public int size() {
+      return hostPorts.size();
     }
 
-    private List<InetSocketAddress> cloneServers(Iterable<InetSocketAddress> servers) {
-      List<InetSocketAddress> socketAddresses = new ArrayList<>();
-      servers.forEach(socketAddresses::add);
-      return socketAddresses;
+    public void refresh(Cluster cluster) {
+      if (endpointType == null) {
+        endpointType = cluster.determineEndpointType(hostPorts);
+      }
+      hostPorts = cluster.determineEndpoints(endpointType).stream().map(Node.Endpoint::getHostPort).collect(toList());
     }
   }
 }
