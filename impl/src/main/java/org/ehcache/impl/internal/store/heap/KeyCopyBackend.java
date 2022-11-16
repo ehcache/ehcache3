@@ -45,17 +45,14 @@ import java.util.function.Supplier;
  */
 class KeyCopyBackend<K, V> implements Backend<K, V> {
 
-  private volatile EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
-  private final Supplier<EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>>> keyCopyMapSupplier;
+  private final EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap = new ConcurrentHashMap<>();
   private final boolean byteSized;
   private final Copier<K> keyCopier;
   private final AtomicLong byteSize = new AtomicLong(0L);
 
-  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier, Supplier<EvictingConcurrentMap<OnHeapKey<K>, OnHeapValueHolder<V>>> keyCopyMapSupplier) {
+  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier) {
     this.byteSized = byteSized;
     this.keyCopier = keyCopier;
-    this.keyCopyMap = keyCopyMapSupplier.get();
-    this.keyCopyMapSupplier = keyCopyMapSupplier;
   }
 
   @Override
@@ -152,12 +149,6 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   public OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
 
     return keyCopyMap.compute(makeKey(key), (mappedKey, mappedValue) -> computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue));
-  }
-
-  @Override
-  public void clear() {
-    // This is faster than performing a clear on the underlying map
-    keyCopyMap = keyCopyMapSupplier.get();
   }
 
   @Override
