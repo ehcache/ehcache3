@@ -142,7 +142,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   };
 
   static final int SAMPLE_SIZE = 8;
-  private final Backend<K, V> map;
+  private volatile Backend<K, V> map;
+  private final Supplier<Backend<K, V>> backendSupplier;
 
   private final Copier<V> valueCopier;
 
@@ -199,12 +200,8 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
-  public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier, SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, StatisticsService statisticsService) {
-    this(config, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new, statisticsService);
-  }
-
   public OnHeapStore(Configuration<K, V> config, TimeSource timeSource, Copier<K> keyCopier, Copier<V> valueCopier,
-                     SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, Supplier<EvictingConcurrentMap<?, ?>> backingMapSupplier, StatisticsService statisticsService) {
+                     SizeOfEngine sizeOfEngine, StoreEventDispatcher<K, V> eventDispatcher, StatisticsService statisticsService) {
     super(config, statisticsService);
 
     Objects.requireNonNull(keyCopier, "keyCopier must not be null");
@@ -230,10 +227,11 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     this.storeEventDispatcher = eventDispatcher;
 
     if (keyCopier instanceof IdentityCopier) {
-      this.map = new SimpleBackend<>(byteSized, castBackend(backingMapSupplier));
+      this.backendSupplier = () -> new SimpleBackend<>(byteSized);
     } else {
-      this.map = new KeyCopyBackend<>(byteSized, keyCopier, castBackend(backingMapSupplier));
+      this.backendSupplier = () -> new KeyCopyBackend<>(byteSized, keyCopier);
     }
+    this.map = backendSupplier.get();
 
     strategy = OnHeapStrategy.strategy(this, expiry, timeSource);
 
@@ -640,7 +638,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
   @Override
   public void clear() {
-    map.clear();
+    this.map = backendSupplier.get();
   }
 
   @Override
@@ -1662,7 +1660,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       SizeOfEngineProvider sizeOfEngineProvider = getServiceProvider().getService(SizeOfEngineProvider.class);
       SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
           storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
-      OnHeapStore<K, V> onHeapStore = new OnHeapStore<>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, ConcurrentHashMap::new, getServiceProvider().getService(StatisticsService.class));
+      OnHeapStore<K, V> onHeapStore = new OnHeapStore<>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher, getServiceProvider().getService(StatisticsService.class));
       createdStores.put(onHeapStore, copiers);
       return onHeapStore;
     }
