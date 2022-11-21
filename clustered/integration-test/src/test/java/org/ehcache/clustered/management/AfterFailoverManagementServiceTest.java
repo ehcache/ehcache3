@@ -17,8 +17,10 @@ package org.ehcache.clustered.management;
 
 import org.ehcache.clustered.util.BeforeAll;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.runners.MethodSorters;
 
+@Ignore("issue #3088")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AfterFailoverManagementServiceTest extends ClusteringManagementServiceTest {
 
