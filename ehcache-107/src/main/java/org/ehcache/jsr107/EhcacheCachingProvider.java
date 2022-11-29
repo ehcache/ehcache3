@@ -86,7 +86,24 @@ public class EhcacheCachingProvider implements CachingProvider {
   }
 
   /**
-   * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration}.
+   * <p>
+   *   This method behaves exactly like {@link #getCacheManager(URI, ClassLoader, Properties)}.
+   * </p><p>
+   * Requests a JSR-107 {@link CacheManager} is configured according to the specification,
+   * specific {@link URI} be made available that uses provided {@link ClassLoader} and
+   * {@link ClassLoader} is specified in the {@link Configuration}.
+   * </p><p>
+   * Multiple calls to this method with the same {@link URI} and {@link ClassLoader} will return
+   * the same {@link CacheManager} instance.
+   * If a previously returned {@link CacheManager} has been closed
+   * then a new {@link CacheManager} instance would be return.
+   * </p><p>
+   * {@link Configuration} is used in construction of a {@link CacheManager}
+   * and to form identity of the CacheManager.
+   * </p><p>
+   * If a second call is made with the same {@link URI} and {@link ClassLoader} with different properties,
+   * the {@link CacheManager} that was created in the first call would be returned.
+   * </p>
    *
    * @param uri the URI identifying this cache manager
    * @param config the Ehcache configuration to use
@@ -98,8 +115,26 @@ public class EhcacheCachingProvider implements CachingProvider {
   }
 
   /**
-   * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration} with the
-   * provided {@link Properties}.
+   * <p>
+   *   This method behaves exactly like {@link #getCacheManager(URI, ClassLoader, Properties)}.
+   * </p><p>
+   * Requests a JSR-107 {@link CacheManager} is configured according to the specification,
+   * specific {@link URI} be made available that uses provided {@link ClassLoader} and
+   * {@link ClassLoader} is specified in the {@link Configuration}.
+   * </p><p>
+   * Multiple calls to this method with the same {@link URI} and {@link ClassLoader} will return
+   * the same {@link CacheManager} instance.
+   * If a previously returned {@link CacheManager} has been closed
+   * then a new {@link CacheManager} instance would be return.
+   * </p><p>
+   * {@link Configuration} is used in construction of a {@link CacheManager}
+   * and to form identity of the CacheManager.
+   * </p><p>
+   * {@link Properties} is used in construction of a new {@link CacheManager} instance when it does not exists.
+   * </p><p>
+   * If a second call is made with the same {@link URI} and {@link ClassLoader} with different properties,
+   * the {@link CacheManager} that was created in the first call would be returned.
+   * </p>
    *
    * @param uri the URI identifying this cache manager
    * @param config the Ehcache configuration to use
