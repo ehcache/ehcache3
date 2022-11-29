@@ -67,11 +67,13 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
     if (config != null) {
       threadPoolAlias = config.getThreadPoolAlias();
     }
-
-    ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
-    ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
-
-    return new CacheEventDispatcherImpl<>(unOrderedExecutor, orderedExecutor);
+    try {
+      ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
+      ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<>());
+      return new CacheEventDispatcherImpl<>(unOrderedExecutor, orderedExecutor);
+    } catch (IllegalArgumentException ex) {
+      throw new IllegalArgumentException("Exception occurred in creating cache event dispatcher with error message : " + ex.getMessage());
+    }
   }
 
   @Override

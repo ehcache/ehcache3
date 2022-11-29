@@ -15,6 +15,8 @@
  */
 package org.ehcache.integration;
 
+import static org.junit.Assert.assertEquals;
+
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -35,13 +37,13 @@ public class ThreadPoolsTest {
     PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
     executionServiceConfiguration.addPool("foo", 2, 4);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(executionServiceConfiguration)
-        .build(true);
+      .using(executionServiceConfiguration)
+      .build(true);
 
     try {
       cacheManager.createCache("testCache",
-          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-              .build());
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+          .build());
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
       // expected
@@ -55,13 +57,13 @@ public class ThreadPoolsTest {
     PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
     executionServiceConfiguration.addPool("foo", 2, 4);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(new CacheEventDispatcherFactoryConfiguration("foo"))
-        .using(executionServiceConfiguration)
-        .build(true);
+      .using(new CacheEventDispatcherFactoryConfiguration("foo"))
+      .using(executionServiceConfiguration)
+      .build(true);
 
     cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-            .build());
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+        .build());
 
     cacheManager.close();
   }
@@ -71,12 +73,12 @@ public class ThreadPoolsTest {
     PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
     executionServiceConfiguration.addDefaultPool("dflt", 2, 4);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(executionServiceConfiguration)
-        .build(true);
+      .using(executionServiceConfiguration)
+      .build(true);
 
     cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-            .build());
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+        .build());
 
     cacheManager.close();
   }
@@ -86,19 +88,38 @@ public class ThreadPoolsTest {
     PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
     executionServiceConfiguration.addDefaultPool("dflt", 2, 4);
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(new CacheEventDispatcherFactoryConfiguration("foo"))
-        .using(executionServiceConfiguration)
-        .build(true);
+      .using(new CacheEventDispatcherFactoryConfiguration("foo"))
+      .using(executionServiceConfiguration)
+      .build(true);
 
     try {
       cacheManager.createCache("testCache",
-          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-              .build());
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+          .build());
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
       // expected
     }
 
+    cacheManager.close();
+  }
+
+  @Test
+  public void testNoDefaultThreadPoolFailsWithNoCacheEventDispatcher() throws Exception {
+    PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
+    executionServiceConfiguration.addPool("foo", 2, 4);
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .using(executionServiceConfiguration)
+      .build(true);
+    try {
+      cacheManager.createCache("testCache",
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+          .build());
+      fail("expected IllegalStateException");
+    } catch (IllegalStateException ise) {
+      String message = "Exception occurred in creating cache event dispatcher with error message : Null pool alias provided and no default pool configured";
+      assertEquals(message, ise.getCause().getMessage());
+    }
     cacheManager.close();
   }
 
