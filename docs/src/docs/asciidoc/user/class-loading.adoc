@@ -1,12 +1,12 @@
 ---
 ---
 = Class loading
-ifndef::sourcedir34[]
-include::common.adoc[]
-endif::sourcedir34[]
+ifndef::sourcedir39[]
+include::{includedir}/common.adoc[]
+endif::sourcedir39[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 [[about]]

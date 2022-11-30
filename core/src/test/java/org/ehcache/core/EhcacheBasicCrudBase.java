@@ -18,17 +18,16 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.core.util.TestCacheConfig;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.ResilienceStrategy;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
@@ -41,7 +40,6 @@ import org.terracotta.context.TreeNode;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
 
-import java.lang.reflect.Field;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,14 +54,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
 
 /**
  * Provides testing of basic CRUD operations on an {@code Ehcache}.
@@ -72,23 +69,14 @@ import static org.mockito.Mockito.spy;
  */
 public abstract class EhcacheBasicCrudBase {
 
-  protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION =
-    new BaseCacheConfiguration<>(String.class, String.class, null,
-      null, null, ResourcePoolsHelper.createHeapOnlyPools());
+  protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION = new TestCacheConfig<>(String.class, String.class);
 
   @Mock
   protected Store<String, String> store;
   @Mock
   protected CacheEventDispatcher<String, String> cacheEventDispatcher;
-
-  /**
-   * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the
-   * {@link ResilienceStrategy ResilienceStrategy} used in the
-   * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
-   *
-   * @see #setResilienceStrategySpy(InternalCache)
-   */
-  protected ResilienceStrategy<String, String> spiedResilienceStrategy;
+  @Mock
+  protected ResilienceStrategy<String, String> resilienceStrategy;
 
   @Before
   public void initMocks() {
@@ -208,33 +196,6 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Replaces the {@link ResilienceStrategy ResilienceStrategy} instance in the
-   * {@link InternalCache Ehcache} instance provided with a
-   * {@link org.mockito.Mockito#spy(Object) Mockito <code>spy</code>} wrapping the original
-   * {@code ResilienceStrategy} instance.
-   *
-   * @param ehcache the {@code InternalCache} instance to alter
-   *
-   * @return the <code>spy</code>-wrapped {@code ResilienceStrategy} instance
-   */
-  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final InternalCache<K, V> ehcache) {
-    assert ehcache != null;
-    try {
-      final Field resilienceStrategyField = ehcache.getClass().getDeclaredField("resilienceStrategy");
-      resilienceStrategyField.setAccessible(true);
-      @SuppressWarnings("unchecked")
-      ResilienceStrategy<K, V> resilienceStrategy = (ResilienceStrategy<K, V>)resilienceStrategyField.get(ehcache);
-      if (resilienceStrategy != null) {
-        resilienceStrategy = spy(resilienceStrategy);
-        resilienceStrategyField.set(ehcache, resilienceStrategy);
-      }
-      return resilienceStrategy;
-    } catch (Exception e) {
-      throw new AssertionError(String.format("Unable to wrap ResilienceStrategy in Ehcache instance: %s", e));
-    }
-  }
-
-  /**
    * Provides a basic {@link Store} implementation for testing.
    * The contract implemented by this {@code Store} is not strictly conformant but
    * should be sufficient for {@code Ehcache} implementation testing.
@@ -246,6 +207,7 @@ public abstract class EhcacheBasicCrudBase {
     };
 
     private static final Supplier<Boolean> REPLACE_EQUAL_TRUE = () -> true;
+    private static final Supplier<Boolean> INVOKE_WRITER_FALSE = () -> false;
 
     /**
      * The key:value pairs served by this {@code Store}.  This map may be empty.
@@ -258,7 +220,7 @@ public abstract class EhcacheBasicCrudBase {
     private final Set<String> failingKeys;
 
     public FakeStore(final Map<String, String> entries) {
-      this(entries, Collections.<String>emptySet());
+      this(entries, Collections.emptySet());
     }
 
     public FakeStore(final Map<String, String> entries, final Set<String> failingKeys) {
@@ -280,10 +242,8 @@ public abstract class EhcacheBasicCrudBase {
      * @return a new, unmodifiable map of the entries in this {@code Store}.
      */
     protected Map<String, String> getEntryMap() {
-      final Map<String, String> result = new HashMap<>();
-      for (final Map.Entry<String, FakeValueHolder> entry : this.entries.entrySet()) {
-        result.put(entry.getKey(), entry.getValue().value());
-      }
+      Map<String, String> result = new HashMap<>(entries.size());
+      entries.forEach((k, v) -> result.put(k, v.get()));
       return Collections.unmodifiableMap(result);
     }
 
@@ -307,14 +267,12 @@ public abstract class EhcacheBasicCrudBase {
     public PutStatus put(final String key, final String value) throws StoreAccessException {
       this.checkFailingKey(key);
       FakeValueHolder toPut = new FakeValueHolder(value);
-      if (this.entries.put(key, toPut) != null) {
-        return PutStatus.UPDATE;
-      }
+      this.entries.put(key, toPut);
       return PutStatus.PUT;
     }
 
     @Override
-    public ValueHolder<String> putIfAbsent(final String key, final String value) throws StoreAccessException {
+    public ValueHolder<String> putIfAbsent(final String key, final String value, Consumer<Boolean> put) throws StoreAccessException {
       this.checkFailingKey(key);
       final FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
@@ -340,7 +298,7 @@ public abstract class EhcacheBasicCrudBase {
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null) {
         return RemoveStatus.KEY_MISSING;
-      } else if (!currentValue.value().equals(value)) {
+      } else if (!currentValue.get().equals(value)) {
         return RemoveStatus.KEY_PRESENT;
       }
       this.entries.remove(key);
@@ -364,7 +322,7 @@ public abstract class EhcacheBasicCrudBase {
       if (currentValue == null) {
         return ReplaceStatus.MISS_NOT_PRESENT;
       }
-      if (!currentValue.value().equals(oldValue)) {
+      if (!currentValue.get().equals(oldValue)) {
         return ReplaceStatus.MISS_PRESENT;
       }
       this.entries.put(key, new FakeValueHolder(newValue));
@@ -429,16 +387,16 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p>
      * This method is implemented as
-     * <code>this.{@link #compute(String, BiFunction, Supplier) compute}(keys, mappingFunction, () -> { returns true; })</code>
+     * <code>this.{@link Store#getAndCompute(Object, BiFunction)} (keys, mappingFunction, () -> { returns true; })</code>
      */
     @Override
-    public ValueHolder<String> compute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
+    public ValueHolder<String> getAndCompute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
         throws StoreAccessException {
-      return this.compute(key, mappingFunction, REPLACE_EQUAL_TRUE);
+      return this.computeAndGet(key, mappingFunction, REPLACE_EQUAL_TRUE, INVOKE_WRITER_FALSE);
     }
 
     /**
-     * Common core for the {@link #compute(String, BiFunction, Supplier)} method.
+     * Common core for the {@link Store#computeAndGet(Object, BiFunction, Supplier, Supplier)} method.
      *
      * @param key the key of the entry to process
      * @param currentValue the existing value, if any, for {@code key}
@@ -459,9 +417,9 @@ public abstract class EhcacheBasicCrudBase {
         final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
         final Supplier<Boolean> replaceEqual) throws StoreAccessException {
 
-      String remappedValue = null;
+      String remappedValue;
       try {
-        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.value()));
+        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.get()));
       } catch (StorePassThroughException cpte) {
         Throwable cause = cpte.getCause();
         if(cause instanceof RuntimeException) {
@@ -494,10 +452,10 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public ValueHolder<String> compute(
-        final String key,
-        final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
-        final Supplier<Boolean> replaceEqual)
+    public ValueHolder<String> computeAndGet(
+            final String key,
+            final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
+            final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter)
         throws StoreAccessException {
       this.checkFailingKey(key);
 
@@ -510,7 +468,7 @@ public abstract class EhcacheBasicCrudBase {
       this.checkFailingKey(key);
       FakeValueHolder currentValue = this.entries.get(key);
       if (currentValue == null) {
-        String newValue = null;
+        String newValue;
         try {
           newValue = mappingFunction.apply(key);
         } catch (StorePassThroughException cpte) {
@@ -552,8 +510,8 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * {@inheritDoc}
      * <p>
-     * This implementation calls {@link #compute(String, BiFunction, Supplier)
-     *    compute(key, BiFunction, replaceEqual)} for each key presented in {@code keys}.
+     * This implementation calls {@link Store#computeAndGet(Object, BiFunction, Supplier, Supplier)
+     *    } for each key presented in {@code keys}.
      */
     @Override
     public Map<String, Store.ValueHolder<String>> bulkCompute(
@@ -564,14 +522,14 @@ public abstract class EhcacheBasicCrudBase {
 
       final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<>();
       for (final String key : keys) {
-        final ValueHolder<String> newValue = this.compute(key,
+        final ValueHolder<String> newValue = this.computeAndGet(key,
           (key1, oldValue) -> {
             final Entry<String, String> entry = new AbstractMap.SimpleEntry<>(key1, oldValue);
             final Entry<? extends String, ? extends String> remappedEntry =
                 remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
             return remappedEntry.getValue();
           },
-            replaceEqual);
+            replaceEqual, INVOKE_WRITER_FALSE);
 
         resultMap.put(key, newValue);
       }
@@ -632,38 +590,28 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       @Override
-      public String value() {
+      public String get() {
         return this.value;
       }
 
       @Override
-      public long creationTime(final TimeUnit unit) {
-        return unit.convert(this.creationTime, TimeUnit.MICROSECONDS);
+      public long creationTime() {
+        return creationTime;
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(final TimeUnit unit) {
-        return unit.convert(this.lastAccessTime, TimeUnit.MICROSECONDS);
-      }
-
-      @Override
-      public float hitRate(long now, final TimeUnit unit) {
-        return 0;
-      }
-
-      @Override
-      public long hits() {
-        return 0;
+      public long lastAccessTime() {
+        return lastAccessTime;
       }
 
       @Override
@@ -754,7 +702,7 @@ public abstract class EhcacheBasicCrudBase {
       }
 
       this.failingKeys = (failingKeys.isEmpty()
-          ? Collections.<String>emptySet()
+          ? Collections.emptySet()
           : Collections.unmodifiableSet(new HashSet<>(failingKeys)));
     }
 

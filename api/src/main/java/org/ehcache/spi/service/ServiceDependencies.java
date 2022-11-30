@@ -17,6 +17,7 @@
 package org.ehcache.spi.service;
 
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -26,10 +27,13 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@Inherited
 public @interface ServiceDependencies {
 
   /**
    * Array of {@link Service} dependency classes
+   *
+   * @return the dependency class names
    */
   Class<? extends Service>[] value();
 }

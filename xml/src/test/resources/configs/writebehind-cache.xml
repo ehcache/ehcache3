@@ -19,7 +19,9 @@
     xmlns:ehcache='http://www.ehcache.org/v3'
     xsi:schemaLocation="http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
 
-  
+
+    <ehcache:write-behind thread-pool="write-behind-pool"/>
+
     <ehcache:cache alias="bar">
       <ehcache:key-type>java.lang.Number</ehcache:key-type>
       <ehcache:value-type>java.lang.String</ehcache:value-type>
@@ -33,7 +35,7 @@
         <ehcache:heap>10</ehcache:heap>
       </ehcache:resources>
     </ehcache:cache>
-    
+
     <ehcache:cache-template name="example">
       <ehcache:key-type>java.lang.Number</ehcache:key-type>
       <ehcache:value-type>java.lang.String</ehcache:value-type>
@@ -49,7 +51,7 @@
         <ehcache:heap>20</ehcache:heap>
       </ehcache:resources>
     </ehcache:cache-template>
-    
-      <ehcache:cache alias="template1" uses-template="example"/>
+
+    <ehcache:cache alias="template1" uses-template="example"/>
 
 </ehcache:config>

@@ -32,6 +32,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 public class GettingStartedWithStaticImports {
 
   @Test
+  @SuppressWarnings("try")
   public void cachemanagerExample() {
     // tag::java7Example[]
     try(CacheManager cacheManager = newCacheManagerBuilder() // <1>

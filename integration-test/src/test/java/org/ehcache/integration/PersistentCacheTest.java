@@ -26,8 +26,8 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.Serializable;
@@ -138,6 +138,7 @@ public class PersistentCacheTest {
   }
 
   @Test
+  @SuppressWarnings("try")
   public void testPersistentCachesColliding() throws Exception {
     File folder = temporaryFolder.newFolder(testName.getMethodName());
     try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
@@ -174,6 +175,7 @@ public class PersistentCacheTest {
 
   public static final class Locker {
 
+    @SuppressWarnings("try")
     public static void main(String[] args) throws Exception {
       File folder = new File(args[0]);
       File ping = new File(folder, "ping");

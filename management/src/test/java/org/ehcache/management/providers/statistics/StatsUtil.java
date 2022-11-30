@@ -24,7 +24,7 @@ import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class StatsUtil {
 
@@ -54,7 +54,7 @@ public class StatsUtil {
 
     assertThat(counters.size(), Matchers.is(1));
 
-    Number counter = statisticsContext.getStatistic(statName);
+    Number counter = statisticsContext.<Number>getLatestSampleValue(statName).get();
     long value = counter.longValue();
 
     assertThat(value, Matchers.is(expectedResult));

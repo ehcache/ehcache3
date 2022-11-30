@@ -16,11 +16,15 @@
 
 package org.ehcache.transactions.xa.internal.xml;
 
+import org.ehcache.xml.BaseConfigParser;
 import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
+import org.ehcache.xml.JaxbParsers;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.osgi.service.component.annotations.Component;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -29,13 +33,18 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 
+import static org.ehcache.transactions.xa.internal.xml.TxCacheManagerServiceConfigurationParser.TRANSACTION_NAMESPACE_PREFIX;
+
 /**
  * @author Ludovic Orban
  */
-public class TxCacheServiceConfigurationParser implements CacheServiceConfigurationParser<XAStore.Provider> {
+@Component
+public class TxCacheServiceConfigurationParser extends BaseConfigParser<XAStoreConfiguration> implements CacheServiceConfigurationParser<XAStore.Provider> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
+  private static final String STORE_ELEMENT_NAME = "xa-store";
+  private static final String UNIQUE_RESOURCE_NAME = "unique-XAResource-id";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -48,14 +57,32 @@ public class TxCacheServiceConfigurationParser implements CacheServiceConfigurat
   }
 
   @Override
-  public ServiceConfiguration<XAStore.Provider> parseServiceConfiguration(Element fragment) {
+  public ServiceConfiguration<XAStore.Provider, ?> parseServiceConfiguration(Element fragment, ClassLoader classLoader) {
     String localName = fragment.getLocalName();
     if ("xa-store".equals(localName)) {
-      String uniqueXAResourceId = fragment.getAttribute("unique-XAResource-id");
+      String uniqueXAResourceId = JaxbParsers.parsePropertyOrString(fragment.getAttribute("unique-XAResource-id"));
       return new XAStoreConfiguration(uniqueXAResourceId);
     } else {
       throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
           fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
+
+  @Override
+  public Class<XAStore.Provider> getServiceType() {
+    return XAStore.Provider.class;
+  }
+
+  @Override
+  public Element unparseServiceConfiguration(ServiceConfiguration<XAStore.Provider, ?> serviceConfiguration) {
+    return unparseConfig(serviceConfiguration);
+  }
+
+  @Override
+  protected Element createRootElement(Document doc, XAStoreConfiguration storeConfiguration) {
+    Element rootElement = doc.createElementNS(NAMESPACE.toString(), TRANSACTION_NAMESPACE_PREFIX  + STORE_ELEMENT_NAME);
+    rootElement.setAttribute(UNIQUE_RESOURCE_NAME, storeConfiguration.getUniqueXAResourceId());
+    return rootElement;
+  }
+
 }

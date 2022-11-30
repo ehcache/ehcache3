@@ -23,7 +23,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  *
  * @author cdennis
  */
-public class WriteBehindProviderConfiguration implements ServiceCreationConfiguration<WriteBehindProvider> {
+public class WriteBehindProviderConfiguration implements ServiceCreationConfiguration<WriteBehindProvider, String> {
 
   private final String threadPoolAlias;
 
@@ -38,5 +38,15 @@ public class WriteBehindProviderConfiguration implements ServiceCreationConfigur
   @Override
   public Class<WriteBehindProvider> getServiceType() {
     return WriteBehindProvider.class;
+  }
+
+  @Override
+  public String derive() {
+    return getThreadPoolAlias();
+  }
+
+  @Override
+  public WriteBehindProviderConfiguration build(String alias) {
+    return new WriteBehindProviderConfiguration(alias);
   }
 }

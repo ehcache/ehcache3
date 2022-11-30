@@ -16,16 +16,15 @@
 
 package org.ehcache.spi.test;
 
-/**
- * Indicates the annotated method has to be run before each SPI Test
- * Created by rism on 19-02-2015.
- */
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Indicates the annotated method has to be run before each SPI Test
+ * Created by rism on 19-02-2015.
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface Before {

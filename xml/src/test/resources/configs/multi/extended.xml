@@ -1,0 +1,24 @@
+<multi:configurations
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:multi='http://www.ehcache.org/v3/multi'
+  xmlns:ehc='http://www.ehcache.org/v3'
+  xmlns:foo='http://www.example.com/foo'
+  xmlns:bar='http://www.example.com/bar'
+  xmlns:baz='http://www.example.com/baz'>
+  <multi:configuration identity="foo">
+    <ehc:config>
+      <ehc:service>
+        <bar:bar/>
+      </ehc:service>
+      <ehc:cache alias='fancy'>
+        <ehc:key-type>java.lang.String</ehc:key-type>
+        <ehc:value-type>java.lang.String</ehc:value-type>
+        <ehc:resources>
+          <ehc:heap unit='entries'>10</ehc:heap>
+          <baz:baz/>
+        </ehc:resources>
+        <foo:foo/>
+      </ehc:cache>
+    </ehc:config>
+  </multi:configuration>
+</multi:configurations>

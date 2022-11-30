@@ -16,22 +16,23 @@
 
 package org.ehcache.clustered;
 
-import com.google.code.tempusfugit.concurrency.ConcurrentTestRunner;
+import org.assertj.core.api.ThrowableAssertAlternative;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.Diagnostics;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.StateTransitionException;
-import org.ehcache.clustered.client.config.TestClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
+import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.util.runners.Parallel;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.store.StoreAccessTimeoutException;
-import org.hamcrest.Matchers;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -39,43 +40,33 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 import org.junit.runner.RunWith;
-import org.junit.runners.model.Statement;
-import org.terracotta.connection.ConnectionException;
-import org.terracotta.testing.rules.Cluster;
+import org.terracotta.utilities.test.Diagnostics;
 
 import com.tc.net.protocol.transport.ClientMessageTransport;
 import com.tc.properties.TCProperties;
 import com.tc.properties.TCPropertiesConsts;
 import com.tc.properties.TCPropertiesImpl;
+import org.terracotta.utilities.test.rules.TestRetryer;
 
-import java.io.File;
-import java.util.ArrayList;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeNoException;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static java.time.Duration.ofSeconds;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.RULE;
+import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
@@ -89,44 +80,10 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 // and stopping a server for each test.  Each test and the environment supporting it must have
 // no side effects which can affect another test.
 // =============================================================================================
-@RunWith(ConcurrentTestRunner.class)
+@RunWith(Parallel.class)
 public class TerminatedServerTest extends ClusteredTests {
 
-  /**
-   * Determines the level of test concurrency.  The number of allowed concurrent tests
-   * is set in {@link #setConcurrency()}.
-   */
-  private static final Semaphore TEST_PERMITS = new Semaphore(0);
-
-  @ClassRule
-  public static final TestCounter TEST_COUNTER = new TestCounter();
-
-  @BeforeClass
-  public static void setConcurrency() {
-    int availableProcessors = Runtime.getRuntime().availableProcessors();
-    int testCount = TEST_COUNTER.getTestCount();
-    /*
-     * Some build environments can't reliably handle running tests in this class concurrently.
-     * If the 'disable.concurrent.tests' system property is 'true', restrict the tests to
-     * single operation using a single test permit.
-     */
-    boolean disableConcurrentTests = Boolean.getBoolean("disable.concurrent.tests");
-    if (disableConcurrentTests) {
-      TEST_PERMITS.release(1);
-    } else {
-      TEST_PERMITS.release(Math.min(Math.max(1, testCount / 2), availableProcessors));
-    }
-    System.out.format("TerminatedServerTest:" +
-        " disableConcurrentTests=%b, testCount=%d, availableProcessors=%d, TEST_PERMITS.availablePermits()=%d%n",
-        disableConcurrentTests, testCount, availableProcessors, TEST_PERMITS.availablePermits());
-  }
-
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-          + "<ohr:offheap-resources>"
-          + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-          + "</ohr:offheap-resources>" +
-          "</config>\n";
+  private static final int CLIENT_MAX_PENDING_REQUESTS = 5;
 
   private static Map<String, String> OLD_PROPERTIES;
 
@@ -146,6 +103,9 @@ public class TerminatedServerTest extends ClusteredTests {
     overrideProperty(oldProperties, TCPropertiesConsts.L1_SHUTDOWN_THREADGROUP_GRACETIME, "1000");
     overrideProperty(oldProperties, TCPropertiesConsts.TC_TRANSPORT_HANDSHAKE_TIMEOUT, "1000");
 
+    // Used only by testTerminationFreezesTheClient to be able to fill the inflight queue
+    overrideProperty(oldProperties, TCPropertiesConsts.CLIENT_MAX_PENDING_REQUESTS, Integer.toString(CLIENT_MAX_PENDING_REQUESTS));
+
     OLD_PROPERTIES = oldProperties;
   }
 
@@ -159,34 +119,24 @@ public class TerminatedServerTest extends ClusteredTests {
     }
   }
 
-  private static Cluster createCluster() {
-    try {
-      return newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
-    } catch (IllegalArgumentException e) {
-      assumeNoException(e);
-      return null;
-    }
+  private <T extends Throwable> ThrowableAssertAlternative<T> assertExceptionOccurred(Class<T> exception, TimeLimitedTask<?> task) {
+    return assertThatExceptionOfType(exception)
+      .isThrownBy(() -> task.run());
   }
+
+  @ClassRule @Rule
+  public static final TestRetryer<Duration, ParallelTestCluster> CLUSTER = tryValues(ofSeconds(2), ofSeconds(10), ofSeconds(30))
+    .map(leaseLength -> new ParallelTestCluster(
+      newCluster().in(clusterPath()).withServiceFragment(
+        offheapResource("primary-server-resource", 64) + leaseLength(leaseLength)).build()))
+    .outputIs(CLASS_RULE, RULE);
 
   @Rule
   public final TestName testName = new TestName();
 
-  // Included in 'ruleChain' below.
-  private final Cluster cluster = createCluster();
-
-
-  // The TestRule.apply method is called on the inner-most Rule first with the result being passed to each
-  // successively outer rule until the outer-most rule is reached. For ExternalResource rules, the before
-  // method of each rule is called from outer-most rule to inner-most rule; the after method is called from
-  // inner-most to outer-most.
-  @Rule
-  public final RuleChain ruleChain = RuleChain
-      .outerRule(new TestConcurrencyLimiter())
-      .around(cluster);
-
   @Before
-  public void waitForActive() throws Exception {
-    cluster.getClusterControl().waitForActive();
+  public void startAllServers() throws Exception {
+    CLUSTER.get().getClusterControl().startAllServers();
   }
 
   /**
@@ -196,15 +146,14 @@ public class TerminatedServerTest extends ClusteredTests {
   public void testTerminationBeforeCacheManagerClose() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+        .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(2, TimeUnit.SECONDS) {
+    new TimeLimitedTask<Void>(CLUSTER.input().plusSeconds(10)) {
       @Override
       Void runTask() throws Exception {
         cacheManager.close();
@@ -216,130 +165,98 @@ public class TerminatedServerTest extends ClusteredTests {
   }
 
   @Test
-  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheManagerCloseWithCaches() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .lifecycleOperationTimeout(1, TimeUnit.SECONDS))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
             .withCache("simple-cache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                     ResourcePoolsBuilder.newResourcePoolsBuilder()
                         .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
-      @Override
-      Void runTask() throws Exception {
-        cacheManager.close();
-        return null;
-      }
-    }.run();
+    cacheManager.close();
+
   }
 
   @Test
   public void testTerminationBeforeCacheManagerRetrieve() throws Exception {
+    // Close all servers
+    CLUSTER.get().getClusterControl().terminateAllServers();
+
+    // Try to retrieve an entity (that doesn't exist but I don't care... the server is not running anyway
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .lifecycleOperationTimeout(1, TimeUnit.SECONDS));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
-    cacheManager.close();
-
-    cluster.getClusterControl().terminateAllServers();
-
-    clusteredCacheManagerBuilder =
-        CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .expecting()
-                    .defaultServerResource("primary-server-resource"))
-                .lifecycleOperationTimeout(1, TimeUnit.SECONDS));
-    final PersistentCacheManager cacheManagerExisting = clusteredCacheManagerBuilder.build(false);
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .timeouts(TimeoutsBuilder.timeouts().connection(Duration.ofSeconds(1))) // Need a connection timeout shorter than the TimeLimitedTask timeout
+                    .expecting(server -> server.defaultServerResource("primary-server-resource")));
+    PersistentCacheManager cacheManagerExisting = clusteredCacheManagerBuilder.build(false);
 
     // Base test time limit on observed TRANSPORT_HANDSHAKE_SYNACK_TIMEOUT; might not have been set in time to be effective
     long synackTimeout = TimeUnit.MILLISECONDS.toSeconds(ClientMessageTransport.TRANSPORT_HANDSHAKE_SYNACK_TIMEOUT);
-    try {
-      new TimeLimitedTask<Void>(2 + synackTimeout, TimeUnit.SECONDS) {
+
+    assertExceptionOccurred(StateTransitionException.class,
+      new TimeLimitedTask<Void>(ofSeconds(3 + synackTimeout)) {
         @Override
-        Void runTask() throws Exception {
+        Void runTask() {
           cacheManagerExisting.init();
           return null;
         }
-      }.run();
-      fail("Expecting StateTransitionException");
-    } catch (StateTransitionException e) {
-      assertThat(getCausalChain(e), hasItem(Matchers.<Throwable>instanceOf(ConnectionException.class)));
-    }
+      })
+      .withRootCauseInstanceOf(TimeoutException.class);
   }
 
   @Test
-  @Ignore("In multi entity, destroy cache is a blocking operation")
+  @Ignore("Works but by sending a really low level exception. Need to be fixed to get the expected CachePersistenceException")
   public void testTerminationBeforeCacheManagerDestroyCache() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .lifecycleOperationTimeout(1, TimeUnit.SECONDS))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
             .withCache("simple-cache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                     ResourcePoolsBuilder.newResourcePoolsBuilder()
                         .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
     cacheManager.removeCache("simple-cache");
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    try {
-      new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
+    assertExceptionOccurred(CachePersistenceException.class,
+      new TimeLimitedTask<Void>(ofSeconds(10)) {
         @Override
         Void runTask() throws Exception {
           cacheManager.destroyCache("simple-cache");
           return null;
         }
-      }.run();
-      fail("Expecting CachePersistenceException");
-    } catch (CachePersistenceException e) {
-      assertThat(getUltimateCause(e), is(instanceOf(TimeoutException.class)));
-    }
+      });
   }
 
   @Test
-  @Ignore("Multi entity means this is now a blocking operation")
+  @Ignore("There are no timeout on the create cache right now. It waits until the server comes back")
   public void testTerminationBeforeCacheCreate() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .lifecycleOperationTimeout(1, TimeUnit.SECONDS));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    try {
-      new TimeLimitedTask<Cache<Long, String>>(5, TimeUnit.SECONDS) {
+    assertExceptionOccurred(IllegalStateException.class,
+      new TimeLimitedTask<Cache<Long, String>>(ofSeconds(10)) {
         @Override
         Cache<Long, String> runTask() throws Exception {
           return cacheManager.createCache("simple-cache",
@@ -347,50 +264,35 @@ public class TerminatedServerTest extends ClusteredTests {
                   ResourcePoolsBuilder.newResourcePoolsBuilder()
                       .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
         }
-      }.run();
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      assertThat(getUltimateCause(e), is(instanceOf(TimeoutException.class)));
-    }
+      })
+      .withRootCauseInstanceOf(TimeoutException.class);
   }
 
   @Test
-  @Ignore("Need to decide if we close cache entity in a daemon thread")
   public void testTerminationBeforeCacheRemove() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .lifecycleOperationTimeout(1, TimeUnit.SECONDS))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
             .withCache("simple-cache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                     ResourcePoolsBuilder.newResourcePoolsBuilder()
                         .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
-      @Override
-      Void runTask() throws Exception {
-        // CacheManager.removeCache silently "fails" when a timeout is recognized
-        cacheManager.removeCache("simple-cache");
-        return null;
-      }
-    }.run();
+    cacheManager.removeCache("simple-cache");
   }
 
   @Test
   public void testTerminationThenGet() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                .readOperationTimeout(1, TimeUnit.SECONDS)
-                .autoCreate()
-                .defaultServerResource("primary-server-resource"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                .timeouts(TimeoutsBuilder.timeouts().read(Duration.of(1, ChronoUnit.SECONDS)).build())
+                .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -398,33 +300,32 @@ public class TerminatedServerTest extends ClusteredTests {
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    assertThat(cache.get(2L), is(not(nullValue())));
+    assertThat(cache.get(2L)).isNotNull();
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    String value = new TimeLimitedTask<String>(5, TimeUnit.SECONDS) {
+    String value = new TimeLimitedTask<String>(ofSeconds(5)) {
       @Override
       String runTask() throws Exception {
         return cache.get(2L);
       }
     }.run();
 
-    assertThat(value, is(nullValue()));
+    assertThat(value).isNull();
   }
 
   @Test
   public void testTerminationThenContainsKey() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                .readOperationTimeout(1, TimeUnit.SECONDS)
-                .autoCreate()
-                .defaultServerResource("primary-server-resource"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                .timeouts(TimeoutsBuilder.timeouts().read(Duration.of(1, ChronoUnit.SECONDS)).build())
+                .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -432,23 +333,23 @@ public class TerminatedServerTest extends ClusteredTests {
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    assertThat(cache.containsKey(2L), is(true));
+    assertThat(cache.containsKey(2L)).isTrue();
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    boolean value = new TimeLimitedTask<Boolean>(5, TimeUnit.SECONDS) {
+    boolean value = new TimeLimitedTask<Boolean>(ofSeconds(5)) {
       @Override
       Boolean runTask() throws Exception {
         return cache.containsKey(2L);
       }
     }.run();
 
-    assertThat(value, is(false));
+    assertThat(value).isFalse();
   }
 
   @Ignore("ClusteredStore.iterator() is not implemented")
@@ -456,10 +357,9 @@ public class TerminatedServerTest extends ClusteredTests {
   public void testTerminationThenIterator() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                .readOperationTimeout(1, TimeUnit.SECONDS)
-                .autoCreate()
-                .defaultServerResource("primary-server-resource"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+              .timeouts(TimeoutsBuilder.timeouts().read(Duration.of(1, ChronoUnit.SECONDS)).build())
+                .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -467,32 +367,30 @@ public class TerminatedServerTest extends ClusteredTests {
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    Iterator<Cache.Entry<Long, String>> value = new TimeLimitedTask<Iterator<Cache.Entry<Long,String>>>(5, TimeUnit.SECONDS) {
+    Iterator<Cache.Entry<Long, String>> value = new TimeLimitedTask<Iterator<Cache.Entry<Long,String>>>(ofSeconds(5)) {
       @Override
-      Iterator<Cache.Entry<Long, String>> runTask() throws Exception {
+      Iterator<Cache.Entry<Long, String>> runTask() {
         return cache.iterator();
       }
     }.run();
 
-    assertThat(value.hasNext(), is(false));
+    assertThat(value.hasNext()).isFalse();
   }
 
   @Test
   public void testTerminationThenPut() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .mutativeOperationTimeout(1, TimeUnit.SECONDS))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .timeouts(TimeoutsBuilder.timeouts().write(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -500,36 +398,30 @@ public class TerminatedServerTest extends ClusteredTests {
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    try {
-      new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
-        @Override
-        Void runTask() throws Exception {
-          cache.put(2L, "dos");
-          return null;
-        }
-      }.run();
-      fail("Expecting StoreAccessTimeoutException");
-    } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
-    }
+    // The resilience strategy will pick it up and not exception is thrown
+    new TimeLimitedTask<Void>(ofSeconds(10)) {
+      @Override
+      Void runTask() throws Exception {
+        cache.put(2L, "dos");
+        return null;
+      }
+    }.run();
   }
 
   @Test
   public void testTerminationThenPutIfAbsent() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .mutativeOperationTimeout(1, TimeUnit.SECONDS))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .timeouts(TimeoutsBuilder.timeouts().write(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -537,35 +429,29 @@ public class TerminatedServerTest extends ClusteredTests {
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    try {
-      new TimeLimitedTask<String>(5, TimeUnit.SECONDS) {
-        @Override
-        String runTask() throws Exception {
-          return cache.putIfAbsent(2L, "dos");
-        }
-      }.run();
-      fail("Expecting StoreAccessTimeoutException");
-    } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
-    }
+    // The resilience strategy will pick it up and not exception is thrown
+    new TimeLimitedTask<String>(ofSeconds(10)) {
+      @Override
+      String runTask() throws Exception {
+        return cache.putIfAbsent(2L, "dos");
+      }
+    }.run();
   }
 
   @Test
   public void testTerminationThenRemove() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .mutativeOperationTimeout(1, TimeUnit.SECONDS))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .timeouts(TimeoutsBuilder.timeouts().write(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -573,36 +459,31 @@ public class TerminatedServerTest extends ClusteredTests {
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    try {
-      new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
-        @Override
-        Void runTask() throws Exception {
-          cache.remove(2L);
-          return null;
-        }
-      }.run();
-      fail("Expecting StoreAccessTimeoutException");
-    } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
-    }
+    new TimeLimitedTask<Void>(ofSeconds(10)) {
+      @Override
+      Void runTask() throws Exception {
+        cache.remove(2L);
+        return null;
+      }
+    }.run();
   }
 
   @Test
   public void testTerminationThenClear() throws Exception {
+    StatisticsService statisticsService = new DefaultStatisticsService();
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(TestClusteringServiceConfiguration.of(
-                ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                    .autoCreate()
-                    .defaultServerResource("primary-server-resource"))
-                .mutativeOperationTimeout(1, TimeUnit.SECONDS))
+            .using(statisticsService)
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+                    .timeouts(TimeoutsBuilder.timeouts().write(Duration.of(1, ChronoUnit.SECONDS)).build())
+                    .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -610,93 +491,73 @@ public class TerminatedServerTest extends ClusteredTests {
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+    Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     cache.put(1L, "un");
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().terminateAllServers();
+    CLUSTER.get().getClusterControl().terminateAllServers();
 
-    try {
-      new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
+    // The resilience strategy will pick it up and not exception is thrown
+    new TimeLimitedTask<Void>(ofSeconds(10)) {
         @Override
-        Void runTask() throws Exception {
+        Void runTask() {
           cache.clear();
           return null;
         }
       }.run();
-      fail("Expecting StoreAccessTimeoutException");
-    } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for CLEAR"));
-    }
   }
 
-  private Throwable getUltimateCause(Throwable t) {
-    Throwable ultimateCause = t;
-    while (ultimateCause.getCause() != null) {
-      ultimateCause = ultimateCause.getCause();
-    }
-    return ultimateCause;
-  }
+  /**
+   * If the server goes down, the client should not freeze on a server call. It should timeout and answer using
+   * the resilience strategy. Whatever the number of calls is done afterwards.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void testTerminationFreezesTheClient() throws Exception {
+    Duration readOperationTimeout = Duration.ofMillis(100);
 
-  private List<Throwable> getCausalChain(Throwable t) {
-    ArrayList<Throwable> causalChain = new ArrayList<>();
-    for (Throwable cause = t; cause != null; cause = cause.getCause()) {
-      causalChain.add(cause);
+    try(PersistentCacheManager cacheManager =
+          CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/").resolve(testName.getMethodName()))
+              .timeouts(TimeoutsBuilder.timeouts()
+                .read(readOperationTimeout))
+              .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
+            .withCache("simple-cache",
+              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))))
+            .build(true)) {
+
+      Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
+      cache.put(1L, "un");
+
+      CLUSTER.get().getClusterControl().terminateAllServers();
+
+      // Fill the inflight queue and check that we wait no longer than the read timeout
+      for (int i = 0; i < CLIENT_MAX_PENDING_REQUESTS; i++) {
+        cache.get(1L);
+      }
+
+      // The resilience strategy will pick it up and not exception is thrown
+      new TimeLimitedTask<Void>(readOperationTimeout.multipliedBy(2)) { // I multiply by 2 to let some room after the expected timeout
+        @Override
+        Void runTask() {
+          cache.get(1L); // the call that could block
+          return null;
+        }
+      }.run();
+
+    } catch(StateTransitionException e) {
+      // On the cacheManager.close(), it waits for the lease to expire and then throw this exception
     }
-    return causalChain;
   }
 
   private static void overrideProperty(Map<String, String> oldProperties, String propertyName, String propertyValue) {
     TCProperties tcProperties = TCPropertiesImpl.getProperties();
-    oldProperties.put(propertyName, tcProperties.getProperty(propertyName));
+    oldProperties.put(propertyName, tcProperties.getProperty(propertyName, true));
     tcProperties.setProperty(propertyName, propertyValue);
-  }
-
-  /**
-   * Used as a {@link Rule @Rule} to limit the number of concurrently executing tests.
-   */
-  private final class TestConcurrencyLimiter extends ExternalResource {
-
-    @Override
-    protected void before() throws Throwable {
-      try {
-        TEST_PERMITS.acquire();
-      } catch (InterruptedException e) {
-        throw new AssertionError(e);
-      }
-    }
-
-    @Override
-    protected void after() {
-      TEST_PERMITS.release();
-    }
-  }
-
-  /**
-   * Used as a {@link org.junit.ClassRule @ClassRule} to determine the number of tests to
-   * be run from the class.
-   */
-  private static final class TestCounter implements TestRule {
-
-    private int testCount;
-
-    @Override
-    public Statement apply(Statement base, Description description) {
-      int testCount = 0;
-      for (Description child : description.getChildren()) {
-        if (child.isTest()) {
-          testCount++;
-        }
-      }
-      this.testCount = testCount;
-
-      return base;
-    }
-
-    private int getTestCount() {
-      return testCount;
-    }
   }
 
   /**
@@ -712,14 +573,12 @@ public class TerminatedServerTest extends ClusteredTests {
      * and test task completion & thread interrupt clear.
      */
     private final byte[] lock = new byte[0];
-    private final long timeLimit;
-    private final TimeUnit unit;
+    private final Duration timeLimit;
     private volatile boolean isDone = false;
     private volatile boolean isExpired = false;
 
-    private TimeLimitedTask(long timeLimit, TimeUnit unit) {
+    private TimeLimitedTask(Duration timeLimit) {
       this.timeLimit = timeLimit;
-      this.unit = unit;
     }
 
     /**
@@ -732,7 +591,7 @@ public class TerminatedServerTest extends ClusteredTests {
 
     /**
      * Invokes {@link #runTask()} under a time limit.  If {@code runTask} execution exceeds the amount of
-     * time specified in the {@link TimeLimitedTask#TimeLimitedTask(long, TimeUnit) constructor}, the task
+     * time specified in the {@link TimeLimitedTask#TimeLimitedTask(Duration) constructor}, the task
      * {@code Thread} is first interrupted and, if the thread remains alive for another duration of the time
      * limit, the thread is forcefully stopped using {@link Thread#stop()}.
      *
@@ -745,7 +604,7 @@ public class TerminatedServerTest extends ClusteredTests {
     V run() throws Exception {
 
       V result;
-      Future<Void> future = interruptAfter(timeLimit, unit);
+      Future<Void> future = interruptAfter(timeLimit);
       try {
         result = this.runTask();
       } finally {
@@ -754,7 +613,7 @@ public class TerminatedServerTest extends ClusteredTests {
           future.cancel(true);
           Thread.interrupted();     // Reset interrupted status
         }
-        assertThat(testName.getMethodName() + " test thread exceeded its time limit of " + timeLimit + " " + unit, isExpired, is(false));
+        assertThat(isExpired).describedAs( "%s test thread exceeded its time limit of %s", testName.getMethodName(), timeLimit).isFalse();
       }
 
       return result;
@@ -765,15 +624,14 @@ public class TerminatedServerTest extends ClusteredTests {
      * If the timeout expires, a thread dump is taken and the current thread interrupted.
      *
      * @param interval the amount of time to wait
-     * @param unit the unit for {@code interval}
      *
      * @return a {@code Future} that may be used to cancel the timeout.
      */
-    private Future<Void> interruptAfter(final long interval, final TimeUnit unit) {
+    private Future<Void> interruptAfter(Duration interval) {
       final Thread targetThread = Thread.currentThread();
       FutureTask<Void> killer = new FutureTask<>(() -> {
         try {
-          unit.sleep(interval);
+          Thread.sleep(interval.toMillis());
           if (!isDone && targetThread.isAlive()) {
             synchronized (lock) {
               if (isDone) {
@@ -792,7 +650,7 @@ public class TerminatedServerTest extends ClusteredTests {
              * looping wait where the interrupt status is recorded but ignored until the awaited event
              * occurs.
              */
-            unit.timedJoin(targetThread, interval);
+            targetThread.join(interval.toMillis());
             if (!isDone && targetThread.isAlive()) {
               System.out.format("%s test thread did not respond to Thread.interrupt; forcefully stopping %s%n",
                 testName.getMethodName(), targetThread);

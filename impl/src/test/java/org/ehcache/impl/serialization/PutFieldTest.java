@@ -39,8 +39,7 @@ public class PutFieldTest {
 
   @Test
   public void testWithAllPrimitivesAndString() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(Foo_A.class);
@@ -67,8 +66,7 @@ public class PutFieldTest {
 
   @Test
   public void testWithTwoStrings() throws Exception {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(Bar_A.class);

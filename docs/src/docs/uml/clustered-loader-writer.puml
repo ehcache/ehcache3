@@ -1,0 +1,61 @@
+@startuml
+
+participant "SERVER" as S
+
+title LOADER-WRITER
+
+[o-> C1: PUT(K1, V1)
+critical
+C1 -> S: LOCK(H(K1))
+activate S
+C1 -> SOR: WRITE(K1, V1)
+C1 -> S: APPEND(K1, V1)
+C1 -> S: UNLOCK(K1)
+deactivate S
+end
+
+[o-> C2: PUT(K1, V2)
+critical
+C2 -> S: LOCK(H(K1))
+activate S
+C2 -> SOR: WRITE(K1, V2)
+C2 -> S: APPEND(K1, V2)
+C2 -> S: UNLOCK(K1)
+deactivate S
+end
+
+== GETS ==
+
+[o-> C1: GET(K1)
+C1 -> S: GET(K1)
+alt if its a miss
+critical
+C1 -> S: LOCK(H(K1))
+activate S
+C1 -> SOR: LOAD(K1)
+C1 -> S: APPEND(K1, V3)
+C1 -> S: UNLOCK(K1)
+deactivate S
+end
+end
+
+newpage WRITE-BEHIND
+
+[o-> C1: PUT(K1, V1)
+C1 -> S: APPENDWITHWRITER(K1, V1)
+...Asynchronously with replaceAtHead...
+loop through chain until resolved
+critical
+C1 -> S: LOCK(H(K1))
+activate S
+C1 -> SOR: WRITE(K1, V1)
+C1 -> S: UNLOCK(K1)
+end
+deactivate S
+end
+
+[o-> C2: PUT(K1, V2)
+C2 -> S: APPENDWITHWRITER(K1, V2)
+
+@enduml
+

@@ -24,12 +24,12 @@ import org.ehcache.core.spi.service.ServiceFactory;
  */
 public class TestProvidedServiceFactory implements ServiceFactory<TestProvidedService> {
   @Override
-  public TestProvidedService create(ServiceCreationConfiguration<TestProvidedService> configuration) {
+  public TestProvidedService create(ServiceCreationConfiguration<TestProvidedService, ?> configuration) {
     return new DefaultTestProvidedService();
   }
 
   @Override
-  public Class<TestProvidedService> getServiceType() {
+  public Class<? extends TestProvidedService> getServiceType() {
     return TestProvidedService.class;
   }
 }

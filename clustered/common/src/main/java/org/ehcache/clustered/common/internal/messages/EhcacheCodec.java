@@ -26,9 +26,9 @@ import org.terracotta.runnel.decoding.Enm;
 import java.nio.ByteBuffer;
 
 import static java.nio.ByteBuffer.wrap;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_INDEX;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
@@ -70,7 +70,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
   }
 
   @Override
-  public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
+  public EhcacheEntityMessage decodeMessage(byte[] payload) {
     ByteBuffer byteBuffer = wrap(payload);
     Enm<EhcacheMessageType> opCodeEnm = OP_CODE_DECODER.decoder(byteBuffer).enm("opCode");
 
@@ -101,12 +101,12 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
   }
 
   @Override
-  public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
+  public byte[] encodeResponse(EhcacheEntityResponse response) {
     return responseCodec.encode(response);
   }
 
   @Override
-  public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
+  public EhcacheEntityResponse decodeResponse(byte[] payload) {
     return responseCodec.decode(payload);
   }
 }

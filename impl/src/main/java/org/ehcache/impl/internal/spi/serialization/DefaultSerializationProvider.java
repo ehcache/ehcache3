@@ -71,7 +71,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
+  public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?, ?>... configs) throws UnsupportedTypeException {
     DefaultSerializerConfiguration<T> configuration = find(DefaultSerializerConfiguration.Type.KEY, configs);
     Serializer<T> serializer = getUserProvidedSerializer(configuration);
     if (serializer == null) {
@@ -83,7 +83,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
+  public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?, ?>... configs) throws UnsupportedTypeException {
     DefaultSerializerConfiguration<T> configuration = find(DefaultSerializerConfiguration.Type.VALUE, configs);
     Serializer<T> serializer = getUserProvidedSerializer(configuration);
     if (serializer == null) {
@@ -94,7 +94,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     return serializer;
   }
 
-  private <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
+  private <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?, ?>... configs) throws UnsupportedTypeException {
     Class<? extends Serializer<T>> klazz = getSerializerClassFor(clazz, config);
 
     try {
@@ -208,16 +208,18 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
+  private static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?, ?>... serviceConfigurations) {
     DefaultSerializerConfiguration<T> result = null;
 
-    Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceUtils.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
-    for (DefaultSerializerConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
+    @SuppressWarnings("rawtypes")
+    Collection<DefaultSerializerConfiguration<?>> serializationProviderConfigurations =
+      (Collection) ServiceUtils.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
+    for (DefaultSerializerConfiguration<?> serializationProviderConfiguration : serializationProviderConfigurations) {
       if (serializationProviderConfiguration.getType() == type) {
         if (result != null) {
           throw new IllegalArgumentException("Duplicate " + type + " serialization provider : " + serializationProviderConfiguration);
         }
-        result = serializationProviderConfiguration;
+        result = (DefaultSerializerConfiguration<T>) serializationProviderConfiguration;
       }
     }
 

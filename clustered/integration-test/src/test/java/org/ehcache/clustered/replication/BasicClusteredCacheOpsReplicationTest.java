@@ -22,7 +22,10 @@ import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.util.runners.ParallelParameterized;
+import org.ehcache.clustered.util.ParallelTestCluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -32,39 +35,32 @@ import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-@RunWith(Parameterized.class)
+
+@RunWith(ParallelParameterized.class)
 public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  private static PersistentCacheManager CACHE_MANAGER;
-  private static Cache<Long, String> CACHE1;
-  private static Cache<Long, String> CACHE2;
+  private PersistentCacheManager cacheManager;
+  private Cache<Long, String> cacheOne;
+  private Cache<Long, String> cacheTwo;
 
   @Parameters(name = "consistency={0}")
   public static Consistency[] data() {
@@ -74,42 +70,45 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
   @Parameter
   public Consistency cacheConsistency;
 
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+    .withServerHeap(512)
+    .withServiceFragment(offheapResource("primary-server-resource", 32)).build());
+
+  @Rule
+  public final TestName testName = new TestName();
 
   @Before
   public void startServers() throws Exception {
     CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/cm-replication"))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
-    CACHE_MANAGER = clusteredCacheManagerBuilder.build(true);
+            .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
+                .read(Duration.ofMinutes(1))
+                .write(Duration.ofMinutes(1)))
+            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+    cacheManager = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
         .build();
 
-    CACHE1 = CACHE_MANAGER.createCache("clustered-cache", config);
-    CACHE2 = CACHE_MANAGER.createCache("another-cache", config);
+    cacheOne = cacheManager.createCache(testName.getMethodName() + "-1", config);
+    cacheTwo = cacheManager.createCache(testName.getMethodName() + "-2", config);
   }
 
   @After
-  public void tearDown() throws Exception {
-    CACHE_MANAGER.close();
-    CACHE_MANAGER.destroy();
+  public void tearDown() {
+    cacheManager.close();
   }
 
   @Test
   public void testCRUD() throws Exception {
     List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(CACHE1);
-    caches.add(CACHE2);
+    caches.add(cacheOne);
+    caches.add(cacheTwo);
     caches.forEach(x -> {
       x.put(1L, "The one");
       x.put(2L, "The two");
@@ -122,6 +121,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
       x.remove(4L);
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(x -> {
@@ -135,8 +135,8 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
   @Test
   public void testBulkOps() throws Exception {
     List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(CACHE1);
-    caches.add(CACHE2);
+    caches.add(cacheOne);
+    caches.add(cacheTwo);
 
     Map<Long, String> entriesMap = new HashMap<>();
     entriesMap.put(1L, "one");
@@ -147,6 +147,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
     entriesMap.put(6L, "six");
     caches.forEach(cache -> cache.putAll(entriesMap));
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     Set<Long> keySet = entriesMap.keySet();
@@ -165,8 +166,8 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
   @Test
   public void testCAS() throws Exception {
     List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(CACHE1);
-    caches.add(CACHE2);
+    caches.add(cacheOne);
+    caches.add(cacheTwo);
     caches.forEach(cache -> {
       assertThat(cache.putIfAbsent(1L, "one"), nullValue());
       assertThat(cache.putIfAbsent(2L, "two"), nullValue());
@@ -174,6 +175,7 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
       assertThat(cache.replace(3L, "another one", "yet another one"), is(false));
     });
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
     caches.forEach(cache -> {
@@ -188,8 +190,8 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
   public void testClear() throws Exception {
 
     List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(CACHE1);
-    caches.add(CACHE2);
+    caches.add(cacheOne);
+    caches.add(cacheTwo);
 
     Map<Long, String> entriesMap = new HashMap<>();
     entriesMap.put(1L, "one");
@@ -211,13 +213,14 @@ public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
       assertThat(all.get(6L), is("six"));
     });
 
-    CACHE1.clear();
-    CACHE2.clear();
+    cacheOne.clear();
+    cacheTwo.clear();
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
 
-    keySet.forEach(x -> assertThat(CACHE1.get(x), nullValue()));
-    keySet.forEach(x -> assertThat(CACHE2.get(x), nullValue()));
+    keySet.forEach(x -> assertThat(cacheOne.get(x), nullValue()));
+    keySet.forEach(x -> assertThat(cacheTwo.get(x), nullValue()));
 
   }
 

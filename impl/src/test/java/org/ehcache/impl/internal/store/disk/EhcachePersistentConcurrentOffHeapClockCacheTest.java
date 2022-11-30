@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.AbstractEhcacheOffHeapBackingMapTest;

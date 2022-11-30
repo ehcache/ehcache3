@@ -21,7 +21,7 @@ import org.ehcache.transactions.xa.internal.XAStore;
 /**
  * @author Ludovic Orban
  */
-public class XAStoreConfiguration implements ServiceConfiguration<XAStore.Provider> {
+public class XAStoreConfiguration implements ServiceConfiguration<XAStore.Provider, String> {
 
   private final String uniqueXAResourceId;
 
@@ -36,5 +36,15 @@ public class XAStoreConfiguration implements ServiceConfiguration<XAStore.Provid
   @Override
   public Class<XAStore.Provider> getServiceType() {
     return XAStore.Provider.class;
+  }
+
+  @Override
+  public String derive() {
+    return getUniqueXAResourceId();
+  }
+
+  @Override
+  public XAStoreConfiguration build(String xaResourceId) {
+    return new XAStoreConfiguration(xaResourceId);
   }
 }

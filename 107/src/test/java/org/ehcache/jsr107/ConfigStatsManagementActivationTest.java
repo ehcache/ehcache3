@@ -36,8 +36,8 @@ import javax.management.ObjectName;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * ConfigStatsManagementActivationTest
@@ -130,7 +130,7 @@ public class ConfigStatsManagementActivationTest {
     CacheManager cacheManager = provider.getCacheManager();
 
     CacheConfigurationBuilder<Long, String> configurationBuilder = newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .add(new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.ENABLED));
+        .withService(new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.ENABLED));
     Cache<Long, String> cache = cacheManager.createCache("test", Eh107Configuration.fromEhcacheCacheConfiguration(configurationBuilder));
 
     @SuppressWarnings("unchecked")
@@ -202,7 +202,7 @@ public class ConfigStatsManagementActivationTest {
 
     Cache<Long, String> cache = cacheManager.createCache("cache", configuration);
     @SuppressWarnings("unchecked")
-    Eh107Configuration eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
+    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(eh107Configuration.isManagementEnabled(), is(true));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(true));

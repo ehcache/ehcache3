@@ -18,7 +18,6 @@ package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.IsSame;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -27,6 +26,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.createClass
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  *
@@ -36,31 +36,28 @@ public class EnumTest {
 
   @Test
   public void basicInstanceSerialization() throws ClassNotFoundException {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
-    Assert.assertThat(s.read(s.serialize(People.Alice)), IsSame.<Serializable>sameInstance(People.Alice));
-    Assert.assertThat(s.read(s.serialize(People.Bob)), IsSame.<Serializable>sameInstance(People.Bob));
-    Assert.assertThat(s.read(s.serialize(People.Eve)), IsSame.<Serializable>sameInstance(People.Eve));
+    assertThat(s.read(s.serialize(People.Alice)), IsSame.sameInstance(People.Alice));
+    assertThat(s.read(s.serialize(People.Bob)), IsSame.sameInstance(People.Bob));
+    assertThat(s.read(s.serialize(People.Eve)), IsSame.sameInstance(People.Eve));
   }
 
   @Test
   public void classSerialization() throws ClassNotFoundException {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
-    Assert.assertThat(s.read(s.serialize(Enum.class)), IsSame.<Serializable>sameInstance(Enum.class));
-    Assert.assertThat(s.read(s.serialize(Dogs.Handel.getClass())), IsSame.<Serializable>sameInstance(Dogs.Handel.getClass()));
-    Assert.assertThat(s.read(s.serialize(Dogs.Cassie.getClass())), IsSame.<Serializable>sameInstance(Dogs.Cassie.getClass()));
-    Assert.assertThat(s.read(s.serialize(Dogs.Penny.getClass())), IsSame.<Serializable>sameInstance(Dogs.Penny.getClass()));
+    assertThat(s.read(s.serialize(Enum.class)), IsSame.sameInstance(Enum.class));
+    assertThat(s.read(s.serialize(Dogs.Handel.getClass())), IsSame.sameInstance(Dogs.Handel.getClass()));
+    assertThat(s.read(s.serialize(Dogs.Cassie.getClass())), IsSame.sameInstance(Dogs.Cassie.getClass()));
+    assertThat(s.read(s.serialize(Dogs.Penny.getClass())), IsSame.sameInstance(Dogs.Penny.getClass()));
   }
 
   @Test
   public void shiftingInstanceSerialization() throws ClassNotFoundException {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
     ClassLoader wLoader = createClassNameRewritingLoader(Foo_W.class);
@@ -75,7 +72,7 @@ public class EnumTest {
     pushTccl(rLoader);
     try {
       for (int i = 0; i < wInstances.length; i++) {
-        Assert.assertThat(s.read(s.serialize((Serializable) wInstances[i])), IsSame.sameInstance(rInstances[i]));
+        assertThat(s.read(s.serialize((Serializable) wInstances[i])), IsSame.sameInstance(rInstances[i]));
       }
     } finally {
       popTccl();

@@ -20,15 +20,15 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -94,7 +94,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     assertNull(ehcache.replace("key", "value"));
     verify(this.store).replace(eq("key"), eq("value"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
@@ -116,7 +116,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     ehcache.replace("key", "value");
     verify(this.store).replace(eq("key"), eq("value"));
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -135,7 +135,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.replace("key", "value"), is(equalTo("oldValue")));
     verify(this.store).replace(eq("key"), eq("value"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("value")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
   }
@@ -157,7 +157,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     ehcache.replace("key", "value");
     verify(this.store).replace(eq("key"), eq("value"));
-    verify(this.spiedResilienceStrategy).replaceFailure(eq("key"), eq("value"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).replaceFailure(eq("key"), eq("value"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
 
@@ -168,10 +168,9 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache
-        = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
+        = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

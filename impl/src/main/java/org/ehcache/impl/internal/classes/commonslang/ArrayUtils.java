@@ -44,29 +44,41 @@ public class ArrayUtils {
     /**
      * An empty immutable {@code Class} array.
      */
-    public static final Class<?>[] EMPTY_CLASS_ARRAY = new Class[0];
-
+    public static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
     /**
-     * <p>ArrayUtils instances should NOT be constructed in standard programming.
-     * Instead, the class should be used as <code>ArrayUtils.clone(new int[] {2})</code>.
-     *
-     * <p>This constructor is public to permit tools that require a JavaBean instance
-     * to operate.
+     * An empty immutable {@code long} array.
      */
-    public ArrayUtils() {
-      super();
-    }
+    public static final long[] EMPTY_LONG_ARRAY = new long[0];
+    /**
+     * An empty immutable {@code int} array.
+     */
+    public static final int[] EMPTY_INT_ARRAY = new int[0];
+    /**
+     * An empty immutable {@code short} array.
+     */
+    public static final short[] EMPTY_SHORT_ARRAY = new short[0];
+    /**
+     * An empty immutable {@code double} array.
+     */
+    public static final double[] EMPTY_DOUBLE_ARRAY = new double[0];
+    /**
+     * An empty immutable {@code float} array.
+     */
+    public static final float[] EMPTY_FLOAT_ARRAY = new float[0];
+
+    // NOTE: Cannot use {@code} to enclose text which includes {}, but <code></code> is OK
 
     // nullToEmpty
     //-----------------------------------------------------------------------
+
     /**
      * <p>Defensive programming technique to change a {@code null}
      * reference to an empty one.
      *
-     * <p>This method returns an empty array for a {@code null} input array.</li>
+     * <p>This method returns an empty array for a {@code null} input array.
      *
      * <p>As a memory optimizing technique an empty array passed in will be overridden with
-     * the empty {@code public static} references in this class.</li>
+     * the empty {@code public static} references in this class.
      *
      * @param array  the array to check for {@code null} or empty
      * @return the same array, {@code public static} empty array if {@code null} or empty input
@@ -81,12 +93,12 @@ public class ArrayUtils {
 
     /**
      * <p>Defensive programming technique to change a {@code null}
-     * reference to an empty one.</li>
+     * reference to an empty one.
      *
-     * <p>This method returns an empty array for a {@code null} input array.</li>
+     * <p>This method returns an empty array for a {@code null} input array.
      *
      * <p>As a memory optimizing technique an empty array passed in will be overridden with
-     * the empty {@code public static} references in this class.</li>
+     * the empty {@code public static} references in this class.
      *
      * @param array  the array to check for {@code null} or empty
      * @return the same array, {@code public static} empty array if {@code null} or empty input
@@ -105,7 +117,7 @@ public class ArrayUtils {
      * <p>Checks whether two arrays are the same length, treating
      * {@code null} arrays as length {@code 0}.
      *
-     * <p>Any multi-dimensional aspects of the arrays are ignored.</li>
+     * <p>Any multi-dimensional aspects of the arrays are ignored.
      *
      * @param array1 the first array, may be {@code null}
      * @param array2 the second array, may be {@code null}
@@ -116,11 +128,12 @@ public class ArrayUtils {
         return getLength(array1) == getLength(array2);
     }
 
+    //-----------------------------------------------------------------------
     /**
      * <p>Returns the length of the specified array.
-     * This method can deal with {@code Object} arrays and with primitive arrays.</li>
+     * This method can deal with {@code Object} arrays and with primitive arrays.
      *
-     * <p>If the input array is {@code null}, {@code 0} is returned.</li>
+     * <p>If the input array is {@code null}, {@code 0} is returned.
      *
      * <pre>
      * ArrayUtils.getLength(null)            = 0
@@ -143,8 +156,165 @@ public class ArrayUtils {
         return Array.getLength(array);
     }
 
+    // Long array converters
+    // ----------------------------------------------------------------------
     /**
-     * <p>Checks if an array of Objects is empty or {@code null}.</li>
+     * <p>Converts an array of object Longs to primitives.
+     *
+     * <p>This method returns {@code null} for a {@code null} input array.
+     *
+     * @param array  a {@code Long} array, may be {@code null}
+     * @return a {@code long} array, {@code null} if null array input
+     * @throws NullPointerException if array content is {@code null}
+     */
+    public static long[] toPrimitive(final Long[] array) {
+        if (array == null) {
+            return null;
+        } else if (array.length == 0) {
+            return EMPTY_LONG_ARRAY;
+        }
+        final long[] result = new long[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i].longValue();
+        }
+        return result;
+    }
+
+    // Int array converters
+    // ----------------------------------------------------------------------
+    /**
+     * <p>Converts an array of object Integers to primitives.
+     *
+     * <p>This method returns {@code null} for a {@code null} input array.
+     *
+     * @param array  a {@code Integer} array, may be {@code null}
+     * @return an {@code int} array, {@code null} if null array input
+     * @throws NullPointerException if array content is {@code null}
+     */
+    public static int[] toPrimitive(final Integer[] array) {
+        if (array == null) {
+            return null;
+        } else if (array.length == 0) {
+            return EMPTY_INT_ARRAY;
+        }
+        final int[] result = new int[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i].intValue();
+        }
+        return result;
+    }
+
+    // Short array converters
+    // ----------------------------------------------------------------------
+    /**
+     * <p>Converts an array of object Shorts to primitives.
+     *
+     * <p>This method returns {@code null} for a {@code null} input array.
+     *
+     * @param array  a {@code Short} array, may be {@code null}
+     * @return a {@code byte} array, {@code null} if null array input
+     * @throws NullPointerException if array content is {@code null}
+     */
+    public static short[] toPrimitive(final Short[] array) {
+        if (array == null) {
+            return null;
+        } else if (array.length == 0) {
+            return EMPTY_SHORT_ARRAY;
+        }
+        final short[] result = new short[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i].shortValue();
+        }
+        return result;
+    }
+
+    // Byte array converters
+    // ----------------------------------------------------------------------
+
+    // Double array converters
+    // ----------------------------------------------------------------------
+    /**
+     * <p>Converts an array of object Doubles to primitives.
+     *
+     * <p>This method returns {@code null} for a {@code null} input array.
+     *
+     * @param array  a {@code Double} array, may be {@code null}
+     * @return a {@code double} array, {@code null} if null array input
+     * @throws NullPointerException if array content is {@code null}
+     */
+    public static double[] toPrimitive(final Double[] array) {
+        if (array == null) {
+            return null;
+        } else if (array.length == 0) {
+            return EMPTY_DOUBLE_ARRAY;
+        }
+        final double[] result = new double[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i].doubleValue();
+        }
+        return result;
+    }
+
+    //   Float array converters
+    // ----------------------------------------------------------------------
+    /**
+     * <p>Converts an array of object Floats to primitives.
+     *
+     * <p>This method returns {@code null} for a {@code null} input array.
+     *
+     * @param array  a {@code Float} array, may be {@code null}
+     * @return a {@code float} array, {@code null} if null array input
+     * @throws NullPointerException if array content is {@code null}
+     */
+    public static float[] toPrimitive(final Float[] array) {
+        if (array == null) {
+            return null;
+        } else if (array.length == 0) {
+            return EMPTY_FLOAT_ARRAY;
+        }
+        final float[] result = new float[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i].floatValue();
+        }
+        return result;
+    }
+
+    /**
+     * <p>Create an array of primitive type from an array of wrapper types.
+     *
+     * <p>This method returns {@code null} for a {@code null} input array.
+     *
+     * @param array  an array of wrapper object
+     * @return an array of the corresponding primitive type, or the original array
+     * @since 3.5
+     */
+    public static Object toPrimitive(final Object array) {
+        if (array == null) {
+            return null;
+        }
+        final Class<?> ct = array.getClass().getComponentType();
+        final Class<?> pt = ClassUtils.wrapperToPrimitive(ct);
+        if(Integer.TYPE.equals(pt)) {
+            return toPrimitive((Integer[]) array);
+        }
+        if(Long.TYPE.equals(pt)) {
+            return toPrimitive((Long[]) array);
+        }
+        if(Short.TYPE.equals(pt)) {
+            return toPrimitive((Short[]) array);
+        }
+        if(Double.TYPE.equals(pt)) {
+            return toPrimitive((Double[]) array);
+        }
+        if(Float.TYPE.equals(pt)) {
+            return toPrimitive((Float[]) array);
+        }
+        return array;
+    }
+
+    // ----------------------------------------------------------------------
+    /**
+     * <p>Checks if an array of Objects is empty or {@code null}.
      *
      * @param array  the array to test
      * @return {@code true} if the array is empty or {@code null}

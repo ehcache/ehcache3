@@ -16,13 +16,18 @@
 
 package scripts
 
+import org.gradle.api.JavaVersion
+import org.gradle.internal.jvm.Jvm
+
 class Utils {
 
   String version
   String revision
+  boolean isReleaseVersion
 
   Utils(version, logger) {
     this.version = version
+    this.isReleaseVersion = !version.endsWith('SNAPSHOT')
     def tmp = System.getenv("GIT_COMMIT")
     if(tmp != null) {
       revision = tmp
@@ -32,22 +37,25 @@ class Utils {
       try {
         def proc = cmd.execute()
         revision = proc.text.trim()
-      } catch (IOException ioex) {
+      } catch (IOException) {
         revision = 'Unknown'
       }
     }
     logger.debug(revision)
   }
 
-  def fillManifest(manifest, title) {
+  def fillManifest(manifest, group, title) {
     manifest.attributes(
             'provider': 'gradle',
             'Implementation-Title': title,
-            'Implementation-Version': "$version $revision",
+            'Implementation-Vendor-Id': group,
+            'Implementation-Version': "$version",
+            'Implementation-Revision': "$revision",
             'Built-By': System.getProperty('user.name'),
-            'Built-JDK': System.getProperty('java.version'),
-            'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-    )
+            'Built-JDK': System.getProperty('java.version'))
+    if (isReleaseVersion) {
+      manifest.attributes('Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"))
+    }
   }
 
   def pomFiller(pom, nameVar, descriptionVar) {
@@ -86,5 +94,12 @@ class Utils {
         }
       }
     }
+  }
+
+  static def jvmForHome(File home) {
+    def java = Jvm.forHome(home).javaExecutable
+    def versionCommand = "$java -version".execute()
+    def version = JavaVersion.toVersion((versionCommand.err.text =~ /\w+ version "(.+)"/)[0][1])
+    return Jvm.discovered(home, version)
   }
 }

@@ -26,7 +26,7 @@ import java.util.EnumSet;
 /**
  * Configuration contract for setting up {@link org.ehcache.event.CacheEvent} system in a cache.
  */
-public interface CacheEventListenerConfiguration extends ServiceConfiguration<CacheEventListenerProvider> {
+public interface CacheEventListenerConfiguration<R> extends ServiceConfiguration<CacheEventListenerProvider, R> {
 
   /**
    * Indicates which {@link EventFiring firing mode} to use

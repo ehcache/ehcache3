@@ -27,9 +27,7 @@ class DefaultConfigurationResolver {
   static final String DEFAULT_CONFIG_PROPERTY_NAME = "ehcache.jsr107.config.default";
 
   static URI resolveConfigURI(Properties cacheManagerProperties) {
-    Object config = null;
-
-    config = cacheManagerProperties.get(DEFAULT_CONFIG_PROPERTY_NAME);
+    Object config = cacheManagerProperties.get(DEFAULT_CONFIG_PROPERTY_NAME);
 
     if (config == null) {
       config = System.getProperties().get(DEFAULT_CONFIG_PROPERTY_NAME);

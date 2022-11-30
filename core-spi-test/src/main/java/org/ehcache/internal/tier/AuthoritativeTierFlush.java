@@ -16,11 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
-import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
@@ -61,7 +60,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
+    when(valueHolder.expirationTime()).thenReturn(1L);
 
     tier = factory.newStoreWithCapacity(1L);
 
@@ -82,7 +81,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     K key = factory.createKey(1);
     final V value = factory.createValue(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
+    when(valueHolder.expirationTime()).thenReturn(1L);
 
     tier = factory.newStoreWithCapacity(1L);
 
@@ -100,7 +99,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
   public void entryDoesNotExist() {
     K key = factory.createKey(1);
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
-    when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
+    when(valueHolder.expirationTime()).thenReturn(1L);
 
     tier = factory.newStoreWithCapacity(1L);
 

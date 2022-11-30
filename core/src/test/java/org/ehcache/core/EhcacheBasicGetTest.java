@@ -20,7 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -67,12 +67,12 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).get(eq("key"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS));
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#get(Object)} for
+   * Tests the effect of a {@link Ehcache#get(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.get} throws</li>
@@ -88,7 +88,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     ehcache.get("key");
     verify(this.store).get(eq("key"));
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).getFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
@@ -108,7 +108,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).get(eq("key"));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT));
   }
@@ -131,7 +131,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
 
     ehcache.get("key");
     verify(this.store).get(eq("key"));
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).getFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
@@ -141,11 +141,10 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicGetTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 }

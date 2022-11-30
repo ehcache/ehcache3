@@ -17,7 +17,7 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 
 import java.util.Iterator;
 
@@ -59,7 +59,7 @@ class SpecIterator<K, V> implements Iterator<Cache.Entry<K, V>> {
 
       current = next;
 
-      final V nextValue = nextValueHolder.value();
+      final V nextValue = nextValueHolder.get();
       return new Cache.Entry<K, V>() {
         @Override
         public K getKey() {

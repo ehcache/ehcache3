@@ -16,6 +16,8 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
+import org.terracotta.statistics.StatisticsManager;
+
 /**
  * @author Ludovic Orban
  */
@@ -30,6 +32,7 @@ public class OffHeapStoreLifecycleHelper {
 
   public static void close(OffHeapStore<?, ?> offHeapStore) {
     OffHeapStore.Provider.close(offHeapStore);
+    StatisticsManager.nodeFor(offHeapStore).clean();
   }
 
 }

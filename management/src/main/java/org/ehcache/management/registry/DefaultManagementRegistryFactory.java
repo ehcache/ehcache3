@@ -23,15 +23,15 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 public class DefaultManagementRegistryFactory implements ServiceFactory<ManagementRegistryService> {
 
   @Override
-  public ManagementRegistryService create(ServiceCreationConfiguration<ManagementRegistryService> configuration) {
+  public ManagementRegistryService create(ServiceCreationConfiguration<ManagementRegistryService, ?> configuration) {
     return configuration instanceof ManagementRegistryServiceConfiguration ?
         new DefaultManagementRegistryService((ManagementRegistryServiceConfiguration) configuration) :
         new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration());
   }
 
   @Override
-  public Class<ManagementRegistryService> getServiceType() {
-    return ManagementRegistryService.class;
+  public Class<? extends ManagementRegistryService> getServiceType() {
+    return DefaultManagementRegistryService.class;
   }
 
 }

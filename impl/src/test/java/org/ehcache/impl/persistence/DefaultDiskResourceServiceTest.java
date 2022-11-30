@@ -22,13 +22,12 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,9 +39,6 @@ import static org.mockito.Mockito.when;
 public class DefaultDiskResourceServiceTest {
 
   public static abstract class AbstractDefaultDiskResourceServiceTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     protected DefaultDiskResourceService service = new DefaultDiskResourceService();
     @SuppressWarnings("unchecked")
@@ -108,9 +104,8 @@ public class DefaultDiskResourceServiceTest {
 
     @Test
     public void testCreatePersistenceContextWithin() throws CachePersistenceException {
-      expectedException.expect(CachePersistenceException.class);
-      expectedException.expectMessage("Unknown space: null");
-      service.createPersistenceContextWithin(null, "test");
+      assertThatThrownBy(() -> service.createPersistenceContextWithin(null, "test"))
+        .isInstanceOf(CachePersistenceException.class).withFailMessage("Unknown space: null");
     }
 
     @Test
@@ -121,16 +116,14 @@ public class DefaultDiskResourceServiceTest {
 
     @Test
     public void testGetStateRepositoryWithin() throws CachePersistenceException {
-      expectedException.expect(CachePersistenceException.class);
-      expectedException.expectMessage("Unknown space: null");
-      assertThat(service.getStateRepositoryWithin(null, "test")).isNull();
+      assertThatThrownBy(() -> service.getStateRepositoryWithin(null, "test"))
+        .isInstanceOf(CachePersistenceException.class).withFailMessage("Unknown space: null");
     }
 
     @Test
     public void testReleasePersistenceSpaceIdentifier() throws CachePersistenceException {
-      expectedException.expect(CachePersistenceException.class);
-      expectedException.expectMessage("Unknown space: null");
-      assertThat(service.getStateRepositoryWithin(null, "test")).isNull();
+      assertThatThrownBy(() -> service.getStateRepositoryWithin(null, "test"))
+        .isInstanceOf(CachePersistenceException.class).withFailMessage("Unknown space: null");
     }
 
   }

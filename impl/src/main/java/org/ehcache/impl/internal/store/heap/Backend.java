@@ -20,6 +20,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
@@ -37,9 +38,9 @@ interface Backend<K, V> {
 
   OnHeapValueHolder<V> compute(K key, BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> biFunction);
 
-  Backend<K, V> clear();
+  void clear();
 
-  Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash);
+  Collection<Map.Entry<K, OnHeapValueHolder<V>>> removeAllWithHash(int hash);
 
   Iterable<K> keySet();
 

@@ -39,7 +39,7 @@ public interface CachingTierFactory<K, V> {
 
   Class<V> getValueType();
 
-  ServiceConfiguration<?>[] getServiceConfigurations();
+  ServiceConfiguration<?, ?>[] getServiceConfigurations();
 
   ServiceProvider<Service> getServiceProvider();
 

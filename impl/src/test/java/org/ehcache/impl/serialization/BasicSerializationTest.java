@@ -32,6 +32,8 @@ import org.hamcrest.core.IsSame;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 /**
  *
  * @author cdennis
@@ -40,8 +42,7 @@ public class BasicSerializationTest {
 
   @Test
   public void testSimpleObject() throws ClassNotFoundException {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> test = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> test = new CompactJavaSerializer<>(null);
     test.init(new TransientStateRepository());
 
     String input = "";
@@ -53,8 +54,7 @@ public class BasicSerializationTest {
 
   @Test
   public void testComplexObject() throws ClassNotFoundException {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> test = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> test = new CompactJavaSerializer<>(null);
     test.init(new TransientStateRepository());
 
     HashMap<Integer, String> input = new HashMap<>();
@@ -69,21 +69,20 @@ public class BasicSerializationTest {
 
   }
 
-  private static final Class[] PRIMITIVE_CLASSES = new Class[] {
+  private static final Class<?>[] PRIMITIVE_CLASSES = new Class<?>[] {
      boolean.class, byte.class, char.class, short.class,
      int.class, long.class, float.class, double.class, void.class
   };
 
   @Test
   public void testPrimitiveClasses() throws ClassNotFoundException {
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
-    Class[] out = (Class[]) s.read(s.serialize(PRIMITIVE_CLASSES));
+    Class<?>[] out = (Class<?>[]) s.read(s.serialize(PRIMITIVE_CLASSES));
 
-    Assert.assertThat(out, IsNot.not(IsSame.sameInstance(PRIMITIVE_CLASSES)));
-    Assert.assertThat(out, IsEqual.equalTo(PRIMITIVE_CLASSES));
+    assertThat(out, IsNot.not(IsSame.sameInstance(PRIMITIVE_CLASSES)));
+    assertThat(out, IsEqual.equalTo(PRIMITIVE_CLASSES));
   }
 
   @Test
@@ -92,14 +91,13 @@ public class BasicSerializationTest {
     int foo = rand.nextInt();
     float bar = rand.nextFloat();
 
-    @SuppressWarnings("unchecked")
-    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
-    Object proxy = s.read(s.serialize((Serializable) Proxy.newProxyInstance(BasicSerializationTest.class.getClassLoader(), new Class[]{Foo.class, Bar.class}, new Handler(foo, bar))));
+    Object proxy = s.read(s.serialize((Serializable) Proxy.newProxyInstance(BasicSerializationTest.class.getClassLoader(), new Class<?>[]{Foo.class, Bar.class}, new Handler(foo, bar))));
 
-    Assert.assertThat(((Foo) proxy).foo(), Is.is(foo));
-    Assert.assertThat(((Bar) proxy).bar(), Is.is(bar));
+    assertThat(((Foo) proxy).foo(), Is.is(foo));
+    assertThat(((Bar) proxy).bar(), Is.is(bar));
   }
 
   interface Foo {
@@ -112,12 +110,14 @@ public class BasicSerializationTest {
 
   static class Handler implements InvocationHandler, Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     static Method fooMethod, barMethod;
 
     static {
       try {
-        fooMethod = Foo.class.getDeclaredMethod("foo", new Class[0]);
-        barMethod = Bar.class.getDeclaredMethod("bar", new Class[0]);
+        fooMethod = Foo.class.getDeclaredMethod("foo");
+        barMethod = Bar.class.getDeclaredMethod("bar");
       } catch (NoSuchMethodException ex) {
         throw new Error();
       }
@@ -131,8 +131,7 @@ public class BasicSerializationTest {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args)
-            throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) {
       if (method.equals(fooMethod)) {
         return foo;
       } else if (method.equals(barMethod)) {

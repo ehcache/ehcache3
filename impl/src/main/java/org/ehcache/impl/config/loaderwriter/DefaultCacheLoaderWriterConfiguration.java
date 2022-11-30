@@ -18,13 +18,14 @@ package org.ehcache.impl.config.loaderwriter;
 
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
 * {@link ServiceConfiguration} for the default {@link CacheLoaderWriterProvider}.
 */
-public class DefaultCacheLoaderWriterConfiguration extends ClassInstanceConfiguration<CacheLoaderWriter<?, ?>> implements ServiceConfiguration<CacheLoaderWriterProvider> {
+public class DefaultCacheLoaderWriterConfiguration extends ClassInstanceConfiguration<CacheLoaderWriter<?, ?>> implements CacheLoaderWriterConfiguration<DefaultCacheLoaderWriterConfiguration> {
 
   /**
    * Creates a new configuration object with the specified {@link CacheLoaderWriter} class and associated constructor
@@ -46,12 +47,17 @@ public class DefaultCacheLoaderWriterConfiguration extends ClassInstanceConfigur
     super(loaderWriter);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Class<CacheLoaderWriterProvider> getServiceType() {
-    return CacheLoaderWriterProvider.class;
+  protected DefaultCacheLoaderWriterConfiguration(DefaultCacheLoaderWriterConfiguration configuration) {
+    super(configuration);
   }
 
+  @Override
+  public DefaultCacheLoaderWriterConfiguration derive() {
+    return new DefaultCacheLoaderWriterConfiguration(this);
+  }
+
+  @Override
+  public DefaultCacheLoaderWriterConfiguration build(DefaultCacheLoaderWriterConfiguration configuration) {
+    return configuration;
+  }
 }

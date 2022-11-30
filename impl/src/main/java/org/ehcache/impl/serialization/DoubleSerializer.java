@@ -59,8 +59,7 @@ public class DoubleSerializer implements Serializer<Double> {
    */
   @Override
   public Double read(ByteBuffer binary) throws ClassNotFoundException {
-    double d = binary.getDouble();
-    return d;
+    return binary.getDouble();
   }
 
   /**
