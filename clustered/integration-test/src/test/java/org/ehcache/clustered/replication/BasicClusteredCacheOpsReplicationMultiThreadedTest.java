@@ -32,7 +32,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -80,7 +79,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
+      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">24</ohr:resource>"
       + "</ohr:offheap-resources>" +
       "</config>\n";
 
@@ -234,9 +233,6 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
 
   }
 
-  @Ignore("This is currently unstable as if the clear does not complete before the failover," +
-          "there is no future operation that will trigger the code in ClusterTierActiveEntity.invokeServerStoreOperation" +
-          "dealing with in-flight invalidation reconstructed from reconnect data")
   @Test(timeout=180000)
   public void testClear() throws Exception {
     List<Future> futures = new ArrayList<>();
