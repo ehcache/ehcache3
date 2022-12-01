@@ -117,7 +117,7 @@ public class ThreadPoolsTest {
           .build());
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
-      String message = "Exception occurred in creating cache event dispatcher with error message : Null pool alias provided and no default pool configured";
+      String message = "Exception occurred in creating cache event dispatcher with error message : Did you miss to configure default pool? Null pool alias provided and no default pool configured.";
       assertEquals(message, ise.getCause().getMessage());
     }
     cacheManager.close();

@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
- *
  * @author cdennis
  */
 public class PooledExecutionService implements ExecutionService {
@@ -82,7 +81,7 @@ public class PooledExecutionService implements ExecutionService {
 
     poolAlias = poolAlias == null ? defaultPoolAlias : poolAlias;
     if (poolAlias == null) {
-      throw new IllegalArgumentException("Null pool alias provided and no default pool configured");
+      throw new IllegalArgumentException("Did you miss to configure default pool? Null pool alias provided and no default pool configured.");
     }
 
     ThreadPoolExecutor executor = pools.get(poolAlias);
@@ -106,7 +105,7 @@ public class PooledExecutionService implements ExecutionService {
         throw new IllegalStateException("Pool for default pool alias is null");
       }
     } else {
-      LOGGER.warn("No default pool configured, services requiring thread pools must be configured explicitly using named thread pools");
+      LOGGER.warn("No default pool configured, services requiring thread pools must be configured explicitly using named thread pools. This may result in subsequent failure ahead.");
     }
     scheduledExecutor = new OutOfBandScheduledExecutor();
     running = true;
