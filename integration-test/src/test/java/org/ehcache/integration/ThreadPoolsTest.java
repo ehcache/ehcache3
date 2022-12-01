@@ -15,7 +15,7 @@
  */
 package org.ehcache.integration;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -25,6 +25,8 @@ import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.junit.Test;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 /**
@@ -118,7 +120,8 @@ public class ThreadPoolsTest {
       fail("expected IllegalStateException");
     } catch (IllegalStateException ise) {
       String message = "Exception occurred in creating cache event dispatcher with error message : Did you miss to configure default pool? Null pool alias provided and no default pool configured.";
-      assertEquals(message, ise.getCause().getMessage());
+     // assertEquals(message, ise.getCause().getMessage());
+      assertThat(message,is(equalTo(ise.getCause().getMessage())));
     }
     cacheManager.close();
   }
