@@ -81,7 +81,7 @@ public class PooledExecutionService implements ExecutionService {
 
     poolAlias = poolAlias == null ? defaultPoolAlias : poolAlias;
     if (poolAlias == null) {
-      throw new IllegalArgumentException("Did you miss to configure default pool? Null pool alias provided and no default pool configured.");
+      throw new IllegalArgumentException("No default pool configured, and no explicit alias provided. Consider configuring a default pool.");
     }
 
     ThreadPoolExecutor executor = pools.get(poolAlias);
@@ -105,7 +105,7 @@ public class PooledExecutionService implements ExecutionService {
         throw new IllegalStateException("Pool for default pool alias is null");
       }
     } else {
-      LOGGER.warn("No default pool configured, services requiring thread pools must be configured explicitly using named thread pools. This may result in subsequent failure ahead.");
+      LOGGER.warn("No default pool configured. Services requiring thread pools will fail if not explicitly configured to use a named pool.");
     }
     scheduledExecutor = new OutOfBandScheduledExecutor();
     running = true;

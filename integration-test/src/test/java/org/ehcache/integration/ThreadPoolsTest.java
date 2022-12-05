@@ -15,8 +15,6 @@
  */
 package org.ehcache.integration;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -25,8 +23,6 @@ import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.junit.Test;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 /**
@@ -103,25 +99,6 @@ public class ThreadPoolsTest {
       // expected
     }
 
-    cacheManager.close();
-  }
-
-  @Test
-  public void testNoDefaultThreadPoolFailsWithNoCacheEventDispatcher() throws Exception {
-    PooledExecutionServiceConfiguration executionServiceConfiguration = new PooledExecutionServiceConfiguration();
-    executionServiceConfiguration.addPool("foo", 2, 4);
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .using(executionServiceConfiguration)
-      .build(true);
-    try {
-      cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-          .build());
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      String message = "Exception occurred in creating cache event dispatcher with error message : Did you miss to configure default pool? Null pool alias provided and no default pool configured.";
-      assertThat(message,is(equalTo(ise.getCause().getMessage())));
-    }
     cacheManager.close();
   }
 
