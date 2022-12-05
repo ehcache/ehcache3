@@ -86,61 +86,43 @@ public class EhcacheCachingProvider implements CachingProvider {
   }
 
   /**
+   * Requests a {@link CacheManager} configured according to the provided
+   * configuration be made available.
    * <p>
-   *   This method behaves exactly like {@link #getCacheManager(URI, ClassLoader, Properties)}.
-   * </p><p>
-   * Requests a JSR-107 {@link CacheManager} is configured according to the specification,
-   * specific {@link URI} be made available that uses provided {@link ClassLoader} and
-   * {@link ClassLoader} is specified in the {@link Configuration}.
-   * </p><p>
-   * Multiple calls to this method with the same {@link URI} and {@link ClassLoader} will return
-   * the same {@link CacheManager} instance.
-   * If a previously returned {@link CacheManager} has been closed
-   * then a new {@link CacheManager} instance would be return.
-   * </p><p>
-   * {@link Configuration} is used in construction of a {@link CacheManager}
-   * and to form identity of the CacheManager.
-   * </p><p>
-   * If a second call is made with the same {@link URI} and {@link ClassLoader} with different properties,
-   * the {@link CacheManager} that was created in the first call would be returned.
-   * </p>
+   * Multiple calls to this method with the same {@link URI} and configured
+   * {@link Configuration#getClassLoader() config.getClassLoader()}
+   * must return the same {@code CacheManager} instance,
+   * except if a previously returned {@code CacheManager} has been closed.
+   * <p>
+   * This method is shorthand for {@code getCacheManager(uri, config, new Properties())}
    *
-   * @param uri the URI identifying this cache manager
-   * @param config the Ehcache configuration to use
+   * @param uri the URI identifying the cache manager
+   * @param config the configuration for the cache manager
    *
-   * @return a cache manager
+   * @throws CacheException if a cache manager for the specified arguments could not be produced
+   * @throws NullPointerException if either {@code uri} or {@code config} is {@code null}
    */
   public CacheManager getCacheManager(URI uri, Configuration config) {
     return getCacheManager(new ConfigSupplier(uri, config), new Properties());
   }
 
   /**
+   * Requests a {@link CacheManager} configured according to the provided
+   * configuration be made available.
    * <p>
-   *   This method behaves exactly like {@link #getCacheManager(URI, ClassLoader, Properties)}.
-   * </p><p>
-   * Requests a JSR-107 {@link CacheManager} is configured according to the specification,
-   * specific {@link URI} be made available that uses provided {@link ClassLoader} and
-   * {@link ClassLoader} is specified in the {@link Configuration}.
-   * </p><p>
-   * Multiple calls to this method with the same {@link URI} and {@link ClassLoader} will return
-   * the same {@link CacheManager} instance.
-   * If a previously returned {@link CacheManager} has been closed
-   * then a new {@link CacheManager} instance would be return.
-   * </p><p>
-   * {@link Configuration} is used in construction of a {@link CacheManager}
-   * and to form identity of the CacheManager.
-   * </p><p>
-   * {@link Properties} is used in construction of a new {@link CacheManager} instance when it does not exists.
-   * </p><p>
-   * If a second call is made with the same {@link URI} and {@link ClassLoader} with different properties,
-   * the {@link CacheManager} that was created in the first call would be returned.
-   * </p>
+   * Multiple calls to this method with the same {@link URI} and configured
+   * {@link Configuration#getClassLoader() config.getClassLoader()}
+   * must return the same {@code CacheManager} instance,
+   * except if a previously returned {@code CacheManager} has been closed.
+   * <p>
+   * Properties are passed through and can be retrieved via {@link CacheManager#getProperties()}.
    *
-   * @param uri the URI identifying this cache manager
-   * @param config the Ehcache configuration to use
-   * @param properties extra properties
+   * @param uri the URI identifying the cache manager
+   * @param config the configuration for the cache manager
+   * @param properties the {@code Properties} for the cache manager
    *
-   * @return a cache manager
+   * @throws CacheException if a cache manager for the specified arguments could not be produced
+   * @throws NullPointerException if {@code uri} or {@code config} is {@code null}
    */
   public CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
     return getCacheManager(new ConfigSupplier(uri, config), properties);
