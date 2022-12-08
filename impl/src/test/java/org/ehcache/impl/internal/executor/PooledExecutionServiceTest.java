@@ -80,7 +80,7 @@ public class PooledExecutionServiceTest {
 
     pooledExecutionService.start(null);
 
-    expectedException.expectMessage("Null pool alias provided and no default pool configured");
+    expectedException.expectMessage("No default pool configured, and no explicit alias provided. Consider configuring a default pool.");
     pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<Runnable>());
   }
 
