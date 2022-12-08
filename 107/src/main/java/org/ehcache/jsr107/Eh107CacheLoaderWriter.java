@@ -96,7 +96,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   @Override
   public void deleteAll(Iterable<? extends K> keys) throws Exception {
     if (cacheWriter != null) {
-      Set<K> allKeys = new HashSet<K>();
+      Set<K> allKeys = new HashSet<>();
       for (K key : keys) {
         allKeys.add(key);
       }
@@ -113,7 +113,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   private Set<?> successes(Iterable<? extends K> keys, Set<?> failures) {
-    Set<K> set = new HashSet<K>();
+    Set<K> set = new HashSet<>();
     for (K key : keys) {
       if (!failures.contains(key)) {
         set.add(key);
@@ -123,7 +123,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   private Map<?, Exception> failures(Set<K> keys, Exception e) {
-    Map<K, Exception> map = new HashMap<K, Exception>(keys.size());
+    Map<K, Exception> map = new HashMap<>(keys.size());
     for (K key : keys) {
       map.put(key, e);
     }
@@ -133,7 +133,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   @Override
   public void writeAll(Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) throws Exception {
     if (cacheWriter != null) {
-      Collection<Cache.Entry<? extends K, ? extends V>> toWrite = new ArrayList<Cache.Entry<? extends K, ? extends V>>();
+      Collection<Cache.Entry<? extends K, ? extends V>> toWrite = new ArrayList<>();
       for (Map.Entry<? extends K, ? extends V> entry : entries) {
         toWrite.add(cacheEntryFor(entry.getKey(), entry.getValue()));
       }
@@ -142,12 +142,12 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
         cacheWriter.writeAll(toWrite);
       } catch (Exception e) {
         // the remaining entries were not written per 107 spec
-        Map<K, Exception> failures = new HashMap<K, Exception>();
+        Map<K, Exception> failures = new HashMap<>();
         for (Cache.Entry<? extends K, ? extends V> entry : toWrite) {
           failures.put(entry.getKey(), e);
         }
 
-        Set<K> successes = new HashSet<K>();
+        Set<K> successes = new HashSet<>();
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           K key = entry.getKey();
           if (!failures.containsKey(key)) {
@@ -174,7 +174,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
   }
 
   private static <K, V> Cache.Entry<K, V> cacheEntryFor(K key, V value) {
-    return new Entry<K, V>(key, value);
+    return new Entry<>(key, value);
   }
 
   static class Entry<K, V> implements Cache.Entry<K, V> {

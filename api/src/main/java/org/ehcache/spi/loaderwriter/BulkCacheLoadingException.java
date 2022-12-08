@@ -32,13 +32,12 @@ public class BulkCacheLoadingException extends CacheLoadingException {
 
   /**
    * Constructs a {@code BulkCacheLoadingException} instance with the given maps.
-   * <P>
-   *   The two maps are:
-   *   <UL>
-   *     <LI>a map from keys to exception thrown while loading,</LI>
-   *     <LI>a map from keys to value where loading succeeded</LI>
-   *   </UL>
-   * </P>
+   * <p>
+   * The two maps are:
+   * <ul>
+   *   <li>a map from keys to exception thrown while loading,</li>
+   *   <li>a map from keys to value where loading succeeded</li>
+   * </ul>
    *
    * @param failures the map of keys to failure encountered while loading
    * @param successes the map of keys successfully loaded and their associated value
@@ -50,13 +49,12 @@ public class BulkCacheLoadingException extends CacheLoadingException {
 
   /**
    * Constructs a new exception instance with the given message and maps.
-   * <P>
-   *   The given two maps are:
-   *   <UL>
-   *     <LI>a map from keys to exception thrown while loading,</LI>
-   *     <LI>a map from keys to value where loading succeeded</LI>
-   *   </UL>
-   * </P>
+   * <p>
+   * The given two maps are:
+   * <ul>
+   *   <li>a map from keys to exception thrown while loading,</li>
+   *   <li>a map from keys to value where loading succeeded</li>
+   * </ul>
    *
    * @param message the exception message
    * @param failures the map of keys to failure encountered while loading

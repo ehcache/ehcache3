@@ -26,7 +26,7 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.basic.NopStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -72,7 +72,7 @@ public class TieredStoreMutatorTest {
 
     private final AtomicBoolean get = new AtomicBoolean(false);
 
-    private final ConcurrentMap<String, String> map = new ConcurrentHashMap<String, String>();
+    private final ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
 
     @Override
     public PutStatus put(String key, String value) throws StoreAccessException {
@@ -178,15 +178,15 @@ public class TieredStoreMutatorTest {
     .build();
 
     // Not relevant to the test, just used to instantiate the OnHeapStore
-    Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(String.class, String.class,
+    Store.Configuration<String, String> config = new StoreConfigurationImpl<>(String.class, String.class,
       null, getClass().getClassLoader(), Expirations.noExpiration(), resourcePools, 0, null, null);
 
     // Here again, all parameters are useless, we only care about the beforeCompletingTheFault implementation
-    CachingTier<String, String> cachingTier = new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE,
+    CachingTier<String, String> cachingTier = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
       StringCopier.copier(), StringCopier.copier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.
       <String, String>nullStoreEventDispatcher());
 
-    tieredStore = new TieredStore<String, String>(cachingTier, authoritativeTier);
+    tieredStore = new TieredStore<>(cachingTier, authoritativeTier);
   }
 
   @After
@@ -201,22 +201,12 @@ public class TieredStoreMutatorTest {
     // 2. Thread 1 creates a Fault and then block
     //    a. Thread 1 -> Fault.get()
     //    b. Thread 1 -> AuthoritativeTierMock.getAndFault - BLOCK
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        getFromTieredStore();
-      }
-    });
+    launchThread(() -> getFromTieredStore());
 
     // 3. Thread 2 does a put. But it hasn't invalided the on-heap yet (it blocks instead)
     //    a. Thread 2 -> TieredStore.put
     //    b. Thread 2 -> AuthoritativeTierMock.put - BLOCK
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        putToTieredStore();
-      }
-    });
+    launchThread(() -> putToTieredStore());
 
     // At this point we have a fault with null in the caching tier and a value in the authority
     // However the fault has not yet been invalidated following the authority update
@@ -249,19 +239,9 @@ public class TieredStoreMutatorTest {
     // Follows the same pattern as testPutIfAbsent except that at the end, if remove returns KEY_PRESENT, we expect
     // the get to return VALUE afterwards
 
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        getFromTieredStore();
-      }
-    });
+    launchThread(() -> getFromTieredStore());
 
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        putToTieredStore();
-      }
-    });
+    launchThread(() -> putToTieredStore());
 
     progressLatch.await();
 
@@ -294,22 +274,12 @@ public class TieredStoreMutatorTest {
     // 3. Thread 1 creates a Fault and then block
     //    a. Thread 1 -> Fault.get()
     //    b. Thread 1 -> AuthoritativeTierMock.getAndFault - BLOCK
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        getFromTieredStore();
-      }
-    });
+    launchThread(() -> getFromTieredStore());
 
     // 3. Thread 3 does a remove. But it hasn't invalided the on-heap yet (it blocks instead)
     //    a. Thread 2 -> TieredStore.remove
     //    b. Thread 2 -> AuthoritativeTierMock.remove - BLOCK
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        removeKeyFromTieredStore();
-      }
-    });
+    launchThread(() -> removeKeyFromTieredStore());
 
     progressLatch.await();
 
@@ -335,19 +305,9 @@ public class TieredStoreMutatorTest {
 
     putIfAbsentToTieredStore(); // using putIfAbsent instead of put here because our mock won't block on a putIfAbsent
 
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        getFromTieredStore();
-      }
-    });
+    launchThread(() -> getFromTieredStore());
 
-    launchThread(new Runnable() {
-      @Override
-      public void run() {
-        removeKeyFromTieredStore();
-      }
-    });
+    launchThread(() -> removeKeyFromTieredStore());
 
     progressLatch.await();
 
@@ -368,7 +328,7 @@ public class TieredStoreMutatorTest {
     if(value == null) {
       return null;
     }
-    return new BasicOffHeapValueHolder<String>(1, value, Long.MAX_VALUE, System.currentTimeMillis() - 1);
+    return new BasicOffHeapValueHolder<>(1, value, Long.MAX_VALUE, System.currentTimeMillis() - 1);
   }
 
   private Store.PutStatus putToTieredStore() {
@@ -428,19 +388,16 @@ public class TieredStoreMutatorTest {
   }
 
   private void launchThread3() {
-    thread3 = launchThread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          // Give time to test thread to reach blocked fault
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          // ignore
-        }
-        failed = true;
-        thread1Latch.countDown();
-        thread3Latch.countDown();
+    thread3 = launchThread(() -> {
+      try {
+        // Give time to test thread to reach blocked fault
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        // ignore
       }
+      failed = true;
+      thread1Latch.countDown();
+      thread3Latch.countDown();
     });
   }
 

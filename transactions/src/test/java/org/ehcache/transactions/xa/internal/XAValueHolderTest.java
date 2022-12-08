@@ -37,7 +37,7 @@ public class XAValueHolderTest {
   public void testSerialization() throws Exception {
 
     long now = System.currentTimeMillis();
-    XAValueHolder<String> valueHolder = new XAValueHolder<String>("value", now - 1000);
+    XAValueHolder<String> valueHolder = new XAValueHolder<>("value", now - 1000);
     valueHolder.accessed(now, new Duration(100, TimeUnit.SECONDS));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();

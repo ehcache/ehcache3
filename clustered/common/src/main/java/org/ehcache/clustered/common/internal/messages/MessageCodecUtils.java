@@ -16,19 +16,10 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.PoolAllocation;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.terracotta.runnel.EnumMapping;
-import org.terracotta.runnel.decoding.Enm;
-import org.terracotta.runnel.decoding.PrimitiveDecodingSupport;
 import org.terracotta.runnel.decoding.StructDecoder;
-import org.terracotta.runnel.encoding.PrimitiveEncodingSupport;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.util.UUID;
-
-import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 
 /**
  * MessageCodecUtils

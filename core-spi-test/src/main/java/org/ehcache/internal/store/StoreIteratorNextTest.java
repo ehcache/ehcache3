@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store.Iterator#next()} contract of the
  * {@link Store.Iterator Store.Iterator} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

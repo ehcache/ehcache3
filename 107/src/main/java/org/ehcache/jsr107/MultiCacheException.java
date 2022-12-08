@@ -27,7 +27,7 @@ import javax.cache.CacheException;
 class MultiCacheException extends CacheException {
   private static final long serialVersionUID = -6839700789356356261L;
 
-  private final List<Throwable> throwables = new ArrayList<Throwable>();
+  private final List<Throwable> throwables = new ArrayList<>();
 
   MultiCacheException() {
     super();

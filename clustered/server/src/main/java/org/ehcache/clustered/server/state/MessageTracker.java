@@ -16,116 +16,134 @@
 
 package org.ehcache.clustered.server.state;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+
+/**
+ * Message Tracker keeps track of messages seen so far in efficient way by keeping track of contiguous and non-contiguous message ids.
+ *
+ * Assumption: message ids are generated in contiguous fashion in the increment on 1, starting from 0.
+ */
 public class MessageTracker {
 
-  private final ConcurrentHashMap<Long, Boolean> inProgressMessages = new ConcurrentHashMap<>();
+  private static final Logger LOGGER = LoggerFactory.getLogger(MessageTracker.class);
 
-  private long lowerWaterMark = -1L;
-  private final AtomicLong higherWaterMark = new AtomicLong(-1L);
-  private final ReadWriteLock lwmLock = new ReentrantReadWriteLock();
+  // keeping track of highest contiguous message id seen
+  private volatile long highestContiguousMsgId;
+
+  // Keeping track of non contiguous message Ids higher than highestContiguousMsgId.
+  private final ConcurrentSkipListSet<Long> nonContiguousMsgIds;
+
+  // Lock used for reconciliation.
+  private final Lock reconciliationLock;
+
+  // Status that the sync is completed.
+  private volatile boolean isSyncCompleted;
+
+  public MessageTracker(boolean isSyncCompleted) {
+    this.highestContiguousMsgId = -1L;
+    this.nonContiguousMsgIds = new ConcurrentSkipListSet<>();
+    this.reconciliationLock = new ReentrantLock();
+    this.isSyncCompleted = isSyncCompleted;
+  }
 
   /**
-   * This method is only meant to be called by the Active Entity.
-   * This needs to be thread safe.
-   * This tells whether the message should be applied or not
-   * As and when messages are checked for deduplication, which is only
-   * done on newly promoted active, the non duplicate ones are cleared from
-   * inProgressMessages.
+   * Track the given message Id.
    *
-   * @param msgId
-   * @return whether the entity should apply the message or not
+   * @param msgId Message Id to be checked.
    */
-  boolean shouldApply(long msgId) {
-    Lock lock = lwmLock.readLock();
+  public void track(long msgId) {
+    nonContiguousMsgIds.add(msgId);
+    tryReconcile();
+  }
+
+  /**
+   * Check wheather the given message id is already seen by track call.
+   *
+   * @param msgId Message Identifier to be checked.
+   * @return true if the given msgId is already tracked otherwise false.
+   */
+  public boolean seen(long msgId) {
+    boolean seen = nonContiguousMsgIds.contains(msgId) || msgId <= highestContiguousMsgId;
+    tryReconcile();
+    return seen;
+  }
+
+  /**
+   * Checks weather non-contiguous message ids set is empty.
+   *
+   * @return true if the there is no non contiguous message ids otherwise false
+   */
+  public boolean isEmpty() {
+    return nonContiguousMsgIds.isEmpty();
+  }
+
+
+  /**
+   * Notify Message tracker that the sync is completed.
+   */
+  public void notifySyncCompleted() {
+    this.isSyncCompleted = true;
+  }
+
+  /**
+   * Remove the contiguous seen msgIds from the nonContiguousMsgIds and update highestContiguousMsgId
+   */
+  private void reconcile() {
+
+    // If nonContiguousMsgIds is empty then nothing to reconcile.
+    if (nonContiguousMsgIds.isEmpty()) {
+      return;
+    }
+
+    // This happens when a passive is started after Active has moved on and
+    // passive starts to see msgIDs starting from a number > 0.
+    // Once the sync is completed, fast forward highestContiguousMsgId.
+    // Post sync completion assuming platform will send all msgIds beyond highestContiguousMsgId.
+    if (highestContiguousMsgId == -1L && isSyncCompleted) {
+      Long min = nonContiguousMsgIds.last();
+      LOGGER.info("Setting highestContiguousMsgId to {} from -1", min);
+      highestContiguousMsgId = min;
+      nonContiguousMsgIds.removeIf(msgId -> msgId <= min);
+    }
+
+    for (long msgId : nonContiguousMsgIds) {
+      if (msgId <= highestContiguousMsgId) {
+        nonContiguousMsgIds.remove(msgId);
+      } else if (msgId > highestContiguousMsgId + 1) {
+        break;
+      } else {
+        // the order is important..
+        highestContiguousMsgId = msgId;
+        nonContiguousMsgIds.remove(msgId);
+      }
+    }
+
+  }
+
+  /**
+   * Try to reconcile, if the lock is available otherwise just return as other thread would have hold the lock and performing reconcile.
+   */
+  private void tryReconcile() {
+    if (!this.reconciliationLock.tryLock()) {
+      return;
+    }
+
     try {
-      lock.lock();
-      if (msgId < lowerWaterMark) {
-        return false;
+      reconcile();
+
+      // Keep on warning after every reconcile if nonContiguousMsgIds reaches 500 (kept it a bit higher so that we won't get unnecessary warning due to high concurrency).
+      if (nonContiguousMsgIds.size() > 500) {
+        LOGGER.warn("Non - Contiguous Message ID has size : {}, with highestContiguousMsgId as : {}", nonContiguousMsgIds.size(), highestContiguousMsgId);
       }
     } finally {
-      lock.unlock();
-    }
-    if (msgId > higherWaterMark.get()) {
-      return true;
-    }
-    final AtomicBoolean shouldApply = new AtomicBoolean(false);
-    inProgressMessages.computeIfPresent(msgId, (id, state) -> {
-      if (!state) {
-        shouldApply.set(true);
-      }
-      return true;
-    });
-    updateLowerWaterMark();
-    return shouldApply.get();
-  }
-
-  /**
-   * Only to be invoked on Passive Entity
-   * @param msgId
-   */
-  @Deprecated
-  void track(long msgId) {
-    //TODO: remove this once we move to CACHE as ENTITY model.
-    inProgressMessages.put(msgId, false);
-    updateHigherWaterMark(msgId);
-  }
-
-  /**
-   * Only to be invoked on Passive Entity
-   * Assumes there are no message loss &
-   * message ids are ever increasing
-   * @param msgId
-   */
-  void applied(long msgId) {
-    inProgressMessages.computeIfPresent(msgId, ((id, state) -> state = true));
-    updateLowerWaterMark();
-  }
-
-  boolean isEmpty() {
-    return inProgressMessages.isEmpty();
-  }
-
-  private void updateHigherWaterMark(long msgId) {
-    while(true) {
-      long old = higherWaterMark.get();
-      if (msgId < old) {
-        return;
-      }
-      if (higherWaterMark.compareAndSet(old, msgId)) {
-        break;
-      }
+      this.reconciliationLock.unlock();
     }
   }
 
-  private void updateLowerWaterMark() {
-    Lock lock = lwmLock.writeLock();
-    if (lock.tryLock()) {
-      try {
-        for (long i = lowerWaterMark + 1; i <= higherWaterMark.get(); i++) {
-          final AtomicBoolean removed = new AtomicBoolean(false);
-          inProgressMessages.computeIfPresent(i, (id, state) -> {
-            if (state) {
-              removed.set(true);
-              return null;
-            }
-            return state;
-          });
-          if (removed.get()) {
-            lowerWaterMark ++;
-          } else {
-            break;
-          }
-        }
-      } finally {
-        lock.unlock();
-      }
-    }
-  }
 }

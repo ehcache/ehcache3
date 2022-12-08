@@ -42,12 +42,12 @@ class OutOfBandScheduledExecutor {
 
     @Override
     protected <V> RunnableScheduledFuture<V> decorateTask(Callable<V> clbl, RunnableScheduledFuture<V> rsf) {
-      return new OutOfBandRsf<V>(((ExecutorCarrier) clbl).executor(), rsf);
+      return new OutOfBandRsf<>(((ExecutorCarrier) clbl).executor(), rsf);
     }
 
     @Override
     protected <V> RunnableScheduledFuture<V> decorateTask(Runnable r, RunnableScheduledFuture<V> rsf) {
-      return new OutOfBandRsf<V>(((ExecutorCarrier) r).executor(), rsf);
+      return new OutOfBandRsf<>(((ExecutorCarrier) r).executor(), rsf);
     }
   };
 
@@ -62,7 +62,7 @@ class OutOfBandScheduledExecutor {
 
   public <V> ScheduledFuture<V> schedule(ExecutorService using, Callable<V> callable,
                                          long delay, TimeUnit unit) {
-    return scheduler.schedule(new ExecutorCarryingCallable<V>(using, callable), delay, unit);
+    return scheduler.schedule(new ExecutorCarryingCallable<>(using, callable), delay, unit);
   }
 
   public ScheduledFuture<?> scheduleAtFixedRate(ExecutorService using, Runnable command,
@@ -86,6 +86,18 @@ class OutOfBandScheduledExecutor {
   public boolean awaitTermination(long timeout, TimeUnit unit)
     throws InterruptedException {
     return scheduler.awaitTermination(timeout, unit);
+  }
+
+  public boolean isShutdown() {
+    return scheduler.isShutdown();
+  }
+
+  public boolean isTerminating() {
+    return scheduler.isTerminating();
+  }
+
+  public boolean isTerminated() {
+    return scheduler.isTerminated();
   }
 
   interface ExecutorCarrier {

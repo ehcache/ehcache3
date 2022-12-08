@@ -1,9 +1,9 @@
 ---
 ---
-= Ehcache 3.2 Documentation Overview
-ifndef::sourcedir32[]
+= Ehcache 3.4 Documentation Overview
+ifndef::sourcedir34[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir34[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -11,7 +11,7 @@ endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache 3.2 documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.4 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics
@@ -20,10 +20,10 @@ Each topic below corresponds to a menu item at the left.
 | Topic | Description
 
 |link:getting-started.html[Getting Started]|Learn the essentials
+|link:tiering.html[Tiering options]|Using resources other than heap memory, combining them or not
+|link:examples.html[Examples]|Examples of using Ehcache APIs
 |link:xml.html[XML Configuration]|How to configure Ehcache using XML
-|link:usermanaged.html[User Managed Caches]|Creating and making use of caches directly
-|link:107.html[JSR-107 Support]|Using Ehcache as a javax.cache aka JSR-107 provider
-|link:examples.html[Java Examples]|Examples of using Ehcache APIs
+|link:107.html[JCache aka JSR-107]|Using Ehcache as a JCache (javax.cache) aka JSR-107 provider
 |link:xsds.html[Configuration XSD]|Reference XSD for configuration
 |link:clustered-cache.html[Clustering with Terracotta]|Using Terracotta to enable clustering of caches in Ehcache
 |===
@@ -44,11 +44,14 @@ Each topic below corresponds to a menu item at the left.
 |===
 | Topic | Description
 
+|link:migration-guide.html[Migration Guide]|Ehcache2 to Ehcache3 Migration Guide
 |link:expiry.html[Expiry]|Data freshness and expiration
 |link:thread-pools.html[Thread Pools]|Using and controlling threads in Ehcache 3
 |link:serializers-copiers.html[Serializers and Copiers]|Understanding and configuring serializers and copiers
 |link:xa.html[Transactions Support]|Using Ehcache with a JTA transaction manager
 |link:writers.html[Cache Writers]|Using cache writers (write-through and write-behind)
+|link:usermanaged.html[User Managed Caches]|Creating and making use of caches directly
 |link:cache-event-listeners.html[Cache Event Listeners]|Getting notified about events within the cache
 |link:eviction-advisor.html[Eviction Advisor]|Affecting the way entries are chosen for eviction
+|link:class-loading.html[Class loading]|Ehcache and `ClassLoader` interactions
 |===

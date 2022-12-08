@@ -74,7 +74,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
         XATransactionContext<K, V> commitContext = transactionContext;
         if (commitContext == null) {
           // recovery commit
-          commitContext = new XATransactionContext<K, V>(new TransactionId(new SerializableXid(xid)), underlyingStore, journal, null, 0L);
+          commitContext = new XATransactionContext<>(new TransactionId(new SerializableXid(xid)), underlyingStore, journal, null, 0L);
         }
         commitContext.commit(transactionContext == null);
       }
@@ -149,7 +149,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
     }
 
     if ((flags & XAResource.TMSTARTRSCAN) == XAResource.TMSTARTRSCAN) {
-      List<Xid> xids = new ArrayList<Xid>();
+      List<Xid> xids = new ArrayList<>();
       Set<TransactionId> transactionIds = journal.recover().keySet();
       for (TransactionId transactionId : transactionIds) {
         // filter-out in-flight tx
@@ -174,7 +174,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
       XATransactionContext<K, V> rollbackContext = transactionContext;
       if (rollbackContext == null) {
         // recovery rollback
-        rollbackContext = new XATransactionContext<K, V>(new TransactionId(new SerializableXid(xid)), underlyingStore, journal, null, 0L);
+        rollbackContext = new XATransactionContext<>(new TransactionId(new SerializableXid(xid)), underlyingStore, journal, null, 0L);
       }
 
       rollbackContext.rollback(transactionContext == null);
@@ -292,7 +292,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
     return sb.toString();
   }
 
-  private static final Map<Integer, String> XARESOURCE_FLAGS_TO_NAMES = new HashMap<Integer, String>();
+  private static final Map<Integer, String> XARESOURCE_FLAGS_TO_NAMES = new HashMap<>();
   static {
     try {
       for (Field field : XAResource.class.getFields()) {

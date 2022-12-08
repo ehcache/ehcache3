@@ -76,7 +76,7 @@ public class FileBasedStateRepositoryTest {
   public void testHolderLoad() throws Exception {
     File directory = folder.newFolder("testLoad");
     String holderName = "myHolder";
-    StateHolder<Long, String> map = new TransientStateHolder<Long, String>();
+    StateHolder<Long, String> map = new TransientStateHolder<>();
     map.putIfAbsent(42L, "Again? That's not even funny anymore!!");
 
     FileOutputStream fos = new FileOutputStream(new File(directory, HOLDER_FILE_NAME));
@@ -120,12 +120,7 @@ public class FileBasedStateRepositoryTest {
     stateRepository.getPersistentStateHolder("otherHolder", Long.class, Long.class);
     stateRepository.close();
 
-    File[] files = directory.listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        return name.contains("otherHolder") && name.contains("-1-");
-      }
-    });
+    File[] files = directory.listFiles((dir, name) -> name.contains("otherHolder") && name.contains("-1-"));
 
     assertThat(files.length, is(1));
   }

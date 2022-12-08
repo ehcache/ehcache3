@@ -15,12 +15,10 @@
  */
 package org.ehcache.internal.store;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -28,6 +26,7 @@ import org.ehcache.spi.test.SPITest;
 
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -76,12 +75,10 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.computeIfAbsent(key, new Function<K, V>() {
-        @Override
+      kvStore.computeIfAbsent(key, keyParam -> {
         @SuppressWarnings("unchecked")
-        public V apply(K key) {
-          return (V) badValue; // returning wrong value type from function
-        }
+        V value = (V) badValue; // returning wrong value type from function
+        return value;
       });
       throw new AssertionError();
     } catch (ClassCastException e) {
@@ -109,12 +106,10 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore2.computeIfAbsent(badKey, new Function<Object, Object>() { // wrong key type
-            @Override
-            public Object apply(Object key) {
-              throw new AssertionError();
-            }
-          });
+      // wrong key type
+      kvStore2.computeIfAbsent(badKey, key -> {
+        throw new AssertionError();
+      });
       throw new AssertionError();
     } catch (ClassCastException e) {
       // expected
@@ -132,12 +127,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     assertThat(kvStore.get(key), nullValue());
     try {
-      kvStore.computeIfAbsent(key, new Function<K, V>() {
-        @Override
-        public V apply(K keyParam) {
-          return value;
-        }
-      });
+      kvStore.computeIfAbsent(key, keyParam -> value);
       assertThat(kvStore.get(key).value(), is(value));
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -155,11 +145,8 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     // if entry is not absent, the function should not be invoked
     try {
-      kvStore.computeIfAbsent(key, new Function<K, V>() {
-        @Override
-        public V apply(K keyParam) {
-          throw new AssertionError();
-        }
+      kvStore.computeIfAbsent(key, keyParam -> {
+        throw new AssertionError();
       });
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -177,12 +164,9 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.get(key), nullValue());
     final AtomicBoolean called = new AtomicBoolean();
     try {
-      kvStore.computeIfAbsent(key, new Function<K, V>() {
-        @Override
-        public V apply(K keyParam) {
-          called.set(true);
-          return null;
-        }
+      kvStore.computeIfAbsent(key, keyParam -> {
+        called.set(true);
+        return null;
       });
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -201,11 +185,8 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     final RuntimeException re = new RuntimeException();
     try {
-      kvStore.computeIfAbsent(key, new Function<K, V>() {
-        @Override
-        public V apply(K keyParam) {
-          throw re;
-        }
+      kvStore.computeIfAbsent(key, keyParam -> {
+        throw re;
       });
     } catch (RuntimeException e) {
       assertThat(e, is(re));
@@ -219,22 +200,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void testComputeIfAbsentValuePresentExpiresOnAccess() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource(10043L);
-    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
-      @Override
-      public Duration getExpiryForCreation(K key, V value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
-        return Duration.INFINITE;
-      }
-    }, timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.builder().setAccess(Duration.ZERO).build(), timeSource);
 
     K key = factory.createKey(250928L);
     V value = factory.createValue(2059820L);
@@ -242,12 +208,9 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.put(key, value);
-      Store.ValueHolder<V> result = kvStore.computeIfAbsent(key, new Function<K, V>() {
-        @Override
-        public V apply(K k) {
-          fail("Should not be invoked");
-          return newValue;
-        }
+      Store.ValueHolder<V> result = kvStore.computeIfAbsent(key, k -> {
+        fail("Should not be invoked");
+        return newValue;
       });
       assertThat(result.value(), is(value));
     } catch (StoreAccessException e) {

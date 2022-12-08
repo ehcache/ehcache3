@@ -30,6 +30,9 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
@@ -38,31 +41,30 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.internal.resilience.RecoveryCache;
+import org.ehcache.core.internal.resilience.ResilienceStrategy;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.core.spi.store.Store.PutStatus;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.Store.ValueHolder;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
+import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
-import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.core.statistics.BulkOps;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.jsr166e.LongAdder;
@@ -70,16 +72,13 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Implementation of the {@link Cache} interface when no {@link CacheLoaderWriter} is involved.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  *
  * @see EhcacheWithLoaderWriter
  */
@@ -102,7 +101,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
-  private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
+  private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<>(BulkOps.class);
   private final OperationObserver<ClearOutcome> clearObserver = operation(ClearOutcome.class).named("clear").of(this).tag("cache").build();
 
   /**
@@ -114,7 +113,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
    * @param logger the logger
    */
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, CacheEventDispatcher<K, V> eventDispatcher, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, new StatusTransitioner(logger));
+    this(new EhcacheRuntimeConfiguration<>(configuration), store, eventDispatcher, logger, new StatusTransitioner(logger));
   }
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
@@ -124,9 +123,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     StatisticsManager.associate(store).withParent(this);
 
     if (store instanceof RecoveryCache) {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(castToRecoveryCache(store));
+      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(castToRecoveryCache(store));
     } else {
-      this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(recoveryCache(store));
+      this.resilienceStrategy = new LoggingRobustResilienceStrategy<>(recoveryCache(store));
     }
 
     this.runtimeConfiguration = runtimeConfiguration;
@@ -220,28 +219,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
-    if (newValue == null) {
-      return false;
-    }
-
-    final Duration duration;
-    if (oldValue == null) {
-      try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForCreation(key, newValue);
-      } catch (RuntimeException re) {
-        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-        return true;
-      }
-    } else {
-      try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, supplierOf(oldValue), newValue);
-      } catch (RuntimeException re) {
-        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-        return true;
-      }
-    }
-
-    return Duration.ZERO.equals(duration);
+    return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiry(), key, oldValue, newValue);
   }
 
   /**
@@ -333,9 +311,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       return Collections.emptyMap();
     }
 
-    Map<K, V> result = new HashMap<K, V>();
+    Map<K, V> result = new HashMap<>();
     try {
-      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new GetAllFunction<K, V>());
+      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new GetAllFunction<>());
 
       int hits = 0;
       int keyCount = 0;
@@ -363,9 +341,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   LinkedHashSet<Map.Entry<? extends K, ? extends V>> nullValuesForKeys(final Iterable<? extends K> keys) {
-    final LinkedHashSet<Map.Entry<? extends K, ? extends V>> entries = new LinkedHashSet<Map.Entry<? extends K, ? extends V>>();
+    final LinkedHashSet<Map.Entry<? extends K, ? extends V>> entries = new LinkedHashSet<>();
     for (K key : keys) {
-      entries.add(new AbstractMap.SimpleEntry<K, V>(key, null));
+      entries.add(new AbstractMap.SimpleEntry<>(key, null));
     }
     return entries;
   }
@@ -384,7 +362,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     // Copy all entries to write into a Map
-    final Map<K, V> entriesToRemap = new HashMap<K, V>();
+    final Map<K, V> entriesToRemap = new HashMap<>();
     for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
       // If a key/value is null, throw NPE, nothing gets mutated
       if (entry.getKey() == null || entry.getValue() == null) {
@@ -394,9 +372,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     try {
-      PutAllFunction<K, V> putAllFunction = new PutAllFunction<K, V>(logger, entriesToRemap, runtimeConfiguration.getExpiry());
+      PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiry());
       store.bulkCompute(entries.keySet(), putAllFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
+      addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
       putAllObserver.end(PutAllOutcome.SUCCESS);
     } catch (StoreAccessException e) {
       try {
@@ -428,7 +407,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
 
     try {
-      RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<K, V>();
+      RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<>();
       store.bulkCompute(keys, removeAllFunction);
       addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, removeAllFunction.getActualRemoveCount().get());
       removeAllObserver.end(RemoveAllOutcome.SUCCESS);
@@ -670,7 +649,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterator<Entry<K, V>> specIterator() {
-      return new SpecIterator<K, V>(this, store);
+      return new SpecIterator<>(this, store);
     }
 
     @Override
@@ -685,12 +664,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
-        store.bulkComputeIfAbsent(keys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-          @Override
-          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> absentKeys) {
-            return cacheLoaderWriterLoadAllForKeys(absentKeys, loadFunction).entrySet();
-          }
-        });
+        store.bulkComputeIfAbsent(keys, absentKeys -> cacheLoaderWriterLoadAllForKeys(absentKeys, loadFunction).entrySet());
       } catch (StoreAccessException e) {
         throw newCacheLoadingException(e);
       }
@@ -701,7 +675,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         Map<? super K, ? extends V> loaded = loadFunction.apply(keys);
 
         // put into a new map since we can't assume the 107 cache loader returns things ordered, or necessarily with all the desired keys
-        Map<K, V> rv = new LinkedHashMap<K, V>();
+        Map<K, V> rv = new LinkedHashMap<>();
         for (K key : keys) {
           rv.put(key, loaded.get(key));
         }
@@ -713,16 +687,12 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
-        store.bulkCompute(keys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
-          @Override
-          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(
-              Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) {
-            Collection<K> keys = new ArrayList<K>();
-            for (Map.Entry<? extends K, ? extends V> entry : entries) {
-              keys.add(entry.getKey());
-            }
-            return cacheLoaderWriterLoadAllForKeys(keys, loadFunction).entrySet();
+        store.bulkCompute(keys, entries -> {
+          Collection<K> keys1 = new ArrayList<>();
+          for (Map.Entry<? extends K, ? extends V> entry : entries) {
+            keys1.add(entry.getKey());
           }
+          return cacheLoaderWriterLoadAllForKeys(keys1, loadFunction).entrySet();
         });
       } catch (StoreAccessException e) {
         throw newCacheLoadingException(e);
@@ -731,43 +701,40 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public void compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
-        final NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter, final NullaryFunction<Boolean> withStatsAndEvents) {
+        final Supplier<Boolean> replaceEqual, final Supplier<Boolean> invokeWriter, final Supplier<Boolean> withStatsAndEvents) {
       putObserver.begin();
       removeObserver.begin();
       getObserver.begin();
 
       try {
-        BiFunction<K, V, V> fn = new BiFunction<K, V, V>() {
-          @Override
-          public V apply(K mappedKey, V mappedValue) {
-            if (mappedValue == null) {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
-            } else {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
-            }
-
-            V newValue = computeFunction.apply(mappedKey, mappedValue);
-
-            if (newValue == mappedValue) {
-              if (! replaceEqual.apply()) {
-                return mappedValue;
-              }
-            }
-
-            if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
-              return null;
-            }
-
-            if (withStatsAndEvents.apply()) {
-              if (newValue == null) {
-                removeObserver.end(RemoveOutcome.SUCCESS);
-              } else {
-                putObserver.end(PutOutcome.PUT);
-              }
-            }
-
-            return newValue;
+        BiFunction<K, V, V> fn = (mappedKey, mappedValue) -> {
+          if (mappedValue == null) {
+            getObserver.end(GetOutcome.MISS);
+          } else {
+            getObserver.end(GetOutcome.HIT);
           }
+
+          V newValue = computeFunction.apply(mappedKey, mappedValue);
+
+          if (newValue == mappedValue) {
+            if (! replaceEqual.get()) {
+              return mappedValue;
+            }
+          }
+
+          if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
+            return null;
+          }
+
+          if (withStatsAndEvents.get()) {
+            if (newValue == null) {
+              removeObserver.end(RemoveOutcome.SUCCESS);
+            } else {
+              putObserver.end(mappedValue == null ? PutOutcome.PUT : PutOutcome.UPDATED);
+            }
+          }
+
+          return newValue;
         };
 
         store.compute(key, fn, replaceEqual);
@@ -781,15 +748,12 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       getObserver.begin();
       removeObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<V>();
+      final AtomicReference<V> existingValue = new AtomicReference<>();
       try {
-        store.compute(key, new BiFunction<K, V, V>() {
-          @Override
-          public V apply(K mappedKey, V mappedValue) {
-            existingValue.set(mappedValue);
+        store.compute(key, (mappedKey, mappedValue) -> {
+          existingValue.set(mappedValue);
 
-            return null;
-          }
+          return null;
         });
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
@@ -812,19 +776,16 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       getObserver.begin();
       putObserver.begin();
 
-      final AtomicReference<V> existingValue = new AtomicReference<V>();
+      final AtomicReference<V> existingValue = new AtomicReference<>();
       try {
-        store.compute(key, new BiFunction<K, V, V>() {
-          @Override
-          public V apply(K mappedKey, V mappedValue) {
-            existingValue.set(mappedValue);
+        store.compute(key, (mappedKey, mappedValue) -> {
+          existingValue.set(mappedValue);
 
-            if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
-              return null;
-            }
-
-            return value;
+          if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
+            return null;
           }
+
+          return value;
         });
       } catch (StoreAccessException e) {
         getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
@@ -911,7 +872,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         current = next;
         advance();
-        return new ValueHolderBasedEntry<K, V>(current);
+        return new ValueHolderBasedEntry<>(current);
       } else {
         if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
         StoreAccessException cae = nextException;
@@ -930,7 +891,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       current = null;
     }
   }
-
 
   private static <K> RecoveryCache<K> recoveryCache(final Store<K, ?> store) {
     return new RecoveryCache<K>() {
@@ -952,6 +912,26 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         }
       }
     };
+  }
+
+  private static <K, V> boolean newValueAlreadyExpired(Logger logger, Expiry<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
+    if (newValue == null) {
+      return false;
+    }
+
+    Duration duration;
+    try {
+      if (oldValue == null) {
+          duration = expiry.getExpiryForCreation(key, newValue);
+      } else {
+          duration = expiry.getExpiryForUpdate(key, supplierOf(oldValue), newValue);
+      }
+    } catch (RuntimeException re) {
+      logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+      return true;
+    }
+
+    return Duration.ZERO.equals(duration);
   }
 
   private static class ValueHolderBasedEntry<K, V> implements Cache.Entry<K, V> {
@@ -981,6 +961,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     private final Map<K, V> entriesToRemap;
     private final Expiry<? super K, ? super V> expiry;
     private final AtomicInteger actualPutCount = new AtomicInteger();
+    private final AtomicInteger actualUpdateCount = new AtomicInteger();
 
     public PutAllFunction(Logger logger, Map<K, V> entriesToRemap, Expiry<? super K, ? super V> expiry) {
       this.logger = logger;
@@ -990,7 +971,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-      Map<K, V> mutations = new LinkedHashMap<K, V>();
+      Map<K, V> mutations = new LinkedHashMap<>();
 
       // then record we handled these mappings
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
@@ -1002,6 +983,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           mutations.put(key, null);
         } else {
           actualPutCount.incrementAndGet();
+          if(existingValue != null) {
+            actualUpdateCount.incrementAndGet();
+          }
           mutations.put(key, newValue);
         }
       }
@@ -1015,32 +999,15 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
-      if (newValue == null) {
-        return false;
-      }
-
-      final Duration duration;
-      if (oldValue == null) {
-        try {
-          duration = expiry.getExpiryForCreation(key, newValue);
-        } catch (RuntimeException re) {
-          logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-          return true;
-        }
-      } else {
-        try {
-          duration = expiry.getExpiryForUpdate(key, supplierOf(oldValue), newValue);
-        } catch (RuntimeException re) {
-          logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-          return true;
-        }
-      }
-
-      return Duration.ZERO.equals(duration);
+      return Ehcache.newValueAlreadyExpired(logger, expiry, key, oldValue, newValue);
     }
 
     public AtomicInteger getActualPutCount() {
       return actualPutCount;
+    }
+
+    public AtomicInteger getActualUpdateCount() {
+      return actualUpdateCount;
     }
   }
 
@@ -1050,7 +1017,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-      Map<K, V> results = new LinkedHashMap<K, V>();
+      Map<K, V> results = new LinkedHashMap<>();
 
       for (Map.Entry<? extends K, ? extends V> entry : entries) {
         K key = entry.getKey();
@@ -1074,7 +1041,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends K> keys) {
-      Map<K, V> computeResult = new LinkedHashMap<K ,V>();
+      Map<K, V> computeResult = new LinkedHashMap<>();
 
       // put all the entries to get ordering correct
       for (K key : keys) {

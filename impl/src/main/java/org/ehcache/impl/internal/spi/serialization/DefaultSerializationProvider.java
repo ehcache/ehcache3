@@ -16,12 +16,11 @@
 
 package org.ehcache.impl.internal.spi.serialization;
 
-import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.serialization.ByteArraySerializer;
 import org.ehcache.impl.serialization.CharSerializer;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.DoubleSerializer;
 import org.ehcache.impl.serialization.FloatSerializer;
@@ -35,7 +34,7 @@ import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,14 +59,14 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   protected final Map<Class<?>, Class<? extends Serializer<?>>> serializers;
 
-  final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger>();
+  final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<>();
   final Set<Serializer<?>> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Serializer<?>, Boolean>());
 
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
-      this.serializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>(configuration.getDefaultSerializers());
+      this.serializers = new LinkedHashMap<>(configuration.getDefaultSerializers());
     } else {
-      this.serializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>(Collections.<Class<?>, Class<? extends Serializer<?>>>emptyMap());
+      this.serializers = new LinkedHashMap<>(Collections.<Class<?>, Class<? extends Serializer<?>>>emptyMap());
     }
   }
 
@@ -216,7 +215,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   private static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultSerializerConfiguration<T> result = null;
 
-    Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
+    Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceUtils.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
     for (DefaultSerializerConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
       if (serializationProviderConfiguration.getType() == type) {
         if (result != null) {

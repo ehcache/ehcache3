@@ -25,12 +25,12 @@ public class SizedResourcePoolImplTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void poolSizeMustBeGreaterThan0() {
-    new SizedResourcePoolImpl<SizedResourcePool>(ResourceType.Core.HEAP, 0, EntryUnit.ENTRIES, false);
+    new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 0, EntryUnit.ENTRIES, false);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void poolSizeMustNotBeNegative() {
-    new SizedResourcePoolImpl<SizedResourcePool>(ResourceType.Core.HEAP, -42L, EntryUnit.ENTRIES, false);
+    new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, -42L, EntryUnit.ENTRIES, false);
   }
 
 }

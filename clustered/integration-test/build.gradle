@@ -14,31 +14,38 @@
  * limitations under the License.
  */
 
-import org.gradle.internal.jvm.Jvm
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
 configurations {
   serverLibs
 }
 
 dependencies {
-  testCompile project(':dist')
-  testCompile project(':clustered:clustered-dist')
-  testCompile project(':management')
-  testCompile "org.terracotta.management.dist:management-client:$parent.managementVersion"
-  testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
+  // not required by gradle but required by the IDE because 'dist' do not has any transitive dependencies
+  testCompileOnly project(':clustered:client')
+  testCompileOnly project(':clustered:common')
+  testCompileOnly project(':impl')
+  testCompileOnly project(':xml')
+  testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
 
-  testCompile group:'org.terracotta', name:'galvan-support', version: galvanVersion
+  testCompile project(':management')
+  testCompile "org.terracotta.management.dist:mnm-nms:$parent.managementVersion"
+  testCompile "org.terracotta.management.dist:mnm-nms-agent:$parent.managementVersion"
+  testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
+  testRuntime project(':clustered:clustered-dist')
+  testRuntime project(':dist')
+
+  testCompile (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion) {
+    // galvan-support depends on junit 4.11 and version enforcement plugin won't allow that
+    exclude group:'junit', module:'junit'
+  }
   testCompile (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
     exclude group:'junit', module:'junit'
     exclude group:'org.hamcrest', module:'hamcrest-core'
   }
   testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
-  serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
-    exclude group:'org.terracotta.management.dist', module:'management-common'
+  serverLibs ("org.terracotta.management.dist:mnm-server:$parent.managementVersion") {
+    exclude group:'org.terracotta.management.dist', module:'mnm-common'
   }
 }
 
@@ -48,21 +55,22 @@ task unzipKit(type: Copy) {
   into 'build/ehcache-kit'
 }
 
-compileTestJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
+task copyServerLibs(type: Copy) {
+  dependsOn unzipKit
+  from project.configurations.serverLibs
+  into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
 test {
-  dependsOn unzipKit
-  executable = Jvm.current().javaExecutable
+  dependsOn copyServerLibs
+  environment 'JAVA_HOME', testJava.javaHome
   // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
-  systemProperty 'managementPlugins', project.configurations.serverLibs.join(File.pathSeparator)
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }

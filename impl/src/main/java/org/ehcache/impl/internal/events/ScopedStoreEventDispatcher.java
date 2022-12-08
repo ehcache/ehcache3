@@ -35,7 +35,7 @@ public class ScopedStoreEventDispatcher<K, V> extends AbstractStoreEventDispatch
       StoreEventSink<K, V> noOpEventSink = (StoreEventSink<K, V>) NO_OP_EVENT_SINK;
       return noOpEventSink;
     } else {
-      return new InvocationScopedEventSink<K, V>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
+      return new InvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
     }
   }
 }

@@ -63,7 +63,7 @@ public class ChainResolver<K, V> {
   public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
-    long expirationTime = Long.MIN_VALUE;
+    long expirationTime = Long.MAX_VALUE;
     int keyMatch = 0;
     boolean compacted = false;
     for (Element element : chain) {
@@ -79,9 +79,6 @@ public class ChainResolver<K, V> {
         if (expiry != Expirations.noExpiration()) {
           if(operation.isExpiryAvailable()) {
             expirationTime = operation.expirationTime();
-            if (expirationTime == Long.MIN_VALUE) {
-              continue;
-            }
             if (now >= expirationTime) {
               result = null;
             }
@@ -95,12 +92,7 @@ public class ChainResolver<K, V> {
                   continue;
                 }
               } else {
-                duration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
-                  @Override
-                  public V value() {
-                    return previousResult.getValue();
-                  }
-                }, result.getValue());
+                duration = expiry.getExpiryForUpdate(key, previousResult::getValue, result.getValue());
                 if (duration == null) {
                   continue;
                 }
@@ -111,7 +103,7 @@ public class ChainResolver<K, V> {
             }
             compacted = true;
             if(duration.isInfinite()) {
-              expirationTime = Long.MIN_VALUE;
+              expirationTime = Long.MAX_VALUE;
               continue;
             }
             long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
@@ -130,13 +122,13 @@ public class ChainResolver<K, V> {
     compacted = (result == null) ? (keyMatch > 0) : (compacted || keyMatch > 1);
     if(compacted) {
       if(result != null) {
-        Operation<K, V> resolvedOperation = new PutOperation<K, V>(key, result.getValue(), -expirationTime);
+        Operation<K, V> resolvedOperation = new PutOperation<>(key, result.getValue(), -expirationTime);
         ByteBuffer payload = codec.encode(resolvedOperation);
         chainBuilder = chainBuilder.add(payload);
       }
-      return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result, true);
+      return new ResolvedChain.Impl<>(chainBuilder.build(), key, result, keyMatch, expirationTime);
     } else {
-      return new ResolvedChain.Impl<K, V>(chain, key, result, false);
+      return new ResolvedChain.Impl<>(chain, key, result, 0, expirationTime);
     }
   }
 }

@@ -133,7 +133,7 @@ public class ClusteredStoreProviderTest {
     final List<ServiceConfiguration<?>> serviceConfigs = Collections.emptyList();
     if (expectedRank == -1) {
       try {
-        provider.rank(new HashSet<ResourceType<?>>(Arrays.asList(resources)),
+        provider.rank(new HashSet<>(Arrays.asList(resources)),
             serviceConfigs);
         fail();
       } catch (IllegalStateException e) {
@@ -141,7 +141,7 @@ public class ClusteredStoreProviderTest {
         assertThat(e.getMessage(), startsWith("No Store.Provider "));
       }
     } else {
-      assertThat(provider.rank(new HashSet<ResourceType<?>>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
+      assertThat(provider.rank(new HashSet<>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
     }
   }
 

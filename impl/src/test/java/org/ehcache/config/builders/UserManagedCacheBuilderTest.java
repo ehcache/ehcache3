@@ -45,15 +45,10 @@ public class UserManagedCacheBuilderTest {
   @Test
   public void testIsExtensible() {
 
-    final UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>> cfg = new UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>>() {
+    final UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>> cfg = builder -> new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class) {
       @Override
-      public UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>> builder(final UserManagedCacheBuilder<String, Object, ? extends UserManagedCache<String, Object>> builder) {
-        return new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class) {
-          @Override
-          TestUserManagedCache<String, Object> build(final ServiceLocator.DependencySet dependencySet) {
-            return new TestUserManagedCache<String, Object>();
-          }
-        };
+      TestUserManagedCache<String, Object> build(final ServiceLocator.DependencySet dependencySet) {
+        return new TestUserManagedCache<>();
       }
     };
 

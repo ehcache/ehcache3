@@ -97,9 +97,9 @@ public class XmlConfiguration implements Configuration {
   private final ClassLoader classLoader;
   private final Map<String, ClassLoader> cacheClassLoaders;
 
-  private final Collection<ServiceCreationConfiguration<?>> serviceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>();
-  private final Map<String, CacheConfiguration<?, ?>> cacheConfigurations = new HashMap<String, CacheConfiguration<?, ?>>();
-  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<String, ConfigurationParser.CacheTemplate>();
+  private final Collection<ServiceCreationConfiguration<?>> serviceConfigurations = new ArrayList<>();
+  private final Map<String, CacheConfiguration<?, ?>> cacheConfigurations = new HashMap<>();
+  private final Map<String, ConfigurationParser.CacheTemplate> templates = new HashMap<>();
 
   /**
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url}
@@ -158,7 +158,7 @@ public class XmlConfiguration implements Configuration {
     }
     this.xml = url;
     this.classLoader = classLoader;
-    this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
+    this.cacheClassLoaders = new HashMap<>(cacheClassLoaders);
     try {
       parseConfiguration();
     } catch (XmlConfigurationException e) {
@@ -174,7 +174,7 @@ public class XmlConfiguration implements Configuration {
     LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm());
 
-    final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<ServiceCreationConfiguration<?>>();
+    final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<>();
 
     for (ServiceType serviceType : configurationParser.getServiceElements()) {
       final ServiceCreationConfiguration<?> serviceConfiguration = configurationParser.parseExtension(serviceType.getServiceCreationConfiguration());
@@ -236,6 +236,9 @@ public class XmlConfiguration implements Configuration {
 
     for (ConfigurationParser.CacheDefinition cacheDefinition : configurationParser.getCacheElements()) {
       String alias = cacheDefinition.id();
+      if(cacheConfigurations.containsKey(alias)) {
+        throw new XmlConfigurationException("Two caches defined with the same alias: " + alias);
+      }
 
       ClassLoader cacheClassLoader = cacheClassLoaders.get(alias);
       boolean classLoaderConfigured = false;
@@ -290,7 +293,7 @@ public class XmlConfiguration implements Configuration {
       }
       final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
       if (parsedDiskStoreSettings != null) {
-        builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency()));
+        builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency(), parsedDiskStoreSettings.diskSegments()));
       }
       for (ServiceConfiguration<?> serviceConfig : cacheDefinition.serviceConfigs()) {
         builder = builder.add(serviceConfig);
@@ -364,10 +367,9 @@ public class XmlConfiguration implements Configuration {
   /**
    * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
    * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}.
-   * <P>
-   *   Note that this version does not specify resources, which are mandatory to create a
-   *   {@link CacheConfigurationBuilder}. So if the template does not define resources, this will throw.
-   * </P>
+   * <p>
+   * Note that this version does not specify resources, which are mandatory to create a
+   * {@link CacheConfigurationBuilder}. So if the template does not define resources, this will throw.
    *
    * @param name the unique name identifying the cache-template element in the XML
    * @param keyType the type of keys for the {@link CacheConfigurationBuilder} to use, must
@@ -559,7 +561,7 @@ public class XmlConfiguration implements Configuration {
           @SuppressWarnings("unchecked")
           final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
           final List<EventType> eventListToFireOn = listener.fireOn();
-          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
+          Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<>();
           for (EventType events : eventListToFireOn) {
             switch (events) {
               case CREATED:

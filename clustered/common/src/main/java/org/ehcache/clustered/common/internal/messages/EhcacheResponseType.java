@@ -32,7 +32,8 @@ public enum EhcacheResponseType {
   CLIENT_INVALIDATE_ALL,
   SERVER_INVALIDATE_HASH,
   MAP_VALUE,
-  ALL_INVALIDATION_DONE;
+  ALL_INVALIDATION_DONE,
+  PREPARE_FOR_DESTROY;
 
 
   public static final String RESPONSE_TYPE_FIELD_NAME = "opCode";
@@ -47,5 +48,6 @@ public enum EhcacheResponseType {
     .mapping(EhcacheResponseType.CLIENT_INVALIDATE_ALL, 86)
     .mapping(EhcacheResponseType.SERVER_INVALIDATE_HASH, 87)
     .mapping(EhcacheResponseType.MAP_VALUE, 88)
+    .mapping(EhcacheResponseType.PREPARE_FOR_DESTROY, 89)
     .build();
 }

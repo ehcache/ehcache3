@@ -15,6 +15,12 @@
  */
 
 dependencies {
-    compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-    testCompile project(':impl'), project(':transactions')
+  compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion", "javax.cache:cache-api:$parent.jcacheVersion"
+  testCompile project(':107'), project(':impl'), project(':transactions')
+}
+
+test {
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
 }

@@ -33,6 +33,7 @@ class EhDeploy implements Plugin<Project> {
 
     project.plugins.apply 'signing'
     project.plugins.apply 'maven'
+    project.plugins.apply EhPomGenerate // for generating pom.*
 
     project.configurations {
         provided
@@ -54,6 +55,8 @@ class EhDeploy implements Plugin<Project> {
     }
 
     def artifactFiltering = {
+      pom.scopeMappings.mappings.remove(project.configurations.testCompile)
+      pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.provided, Conf2ScopeMappingContainer.PROVIDED)
 
       utils.pomFiller(pom, project.subPomName, project.subPomDesc)

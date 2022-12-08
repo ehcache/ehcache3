@@ -34,7 +34,7 @@ public class VoltronReadWriteLock {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VoltronReadWriteLock.class);
 
-  private final EntityRef<VoltronReadWriteLockClient, Void> reference;
+  private final EntityRef<VoltronReadWriteLockClient, Void, Void> reference;
 
   public VoltronReadWriteLock(Connection connection, String id) {
     try {
@@ -121,9 +121,7 @@ public class VoltronReadWriteLock {
     public void unlock() {
       client.unlock(type);
       client.close();
-      if (type == HoldType.WRITE) {
-        tryDestroy();
-      }
+      tryDestroy();
     }
   }
 
@@ -140,7 +138,7 @@ public class VoltronReadWriteLock {
           throw new AssertionError(e);
         }
         try {
-          return reference.fetchEntity();
+          return reference.fetchEntity(null);
         } catch (EntityNotFoundException e) {
           //ignore
         }
@@ -152,7 +150,7 @@ public class VoltronReadWriteLock {
     }
   }
 
-  private static EntityRef<VoltronReadWriteLockClient, Void> createEntityRef(Connection connection, String identifier) throws EntityNotProvidedException {
+  private static EntityRef<VoltronReadWriteLockClient, Void, Void> createEntityRef(Connection connection, String identifier) throws EntityNotProvidedException {
     return connection.getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-" + identifier);
   }
 }

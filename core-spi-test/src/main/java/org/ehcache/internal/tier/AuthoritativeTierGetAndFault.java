@@ -38,7 +38,6 @@ import static org.hamcrest.Matchers.nullValue;
 /**
  * Test the {@link AuthoritativeTier#getAndFault(Object)} contract of the
  * {@link AuthoritativeTier AuthoritativeTier} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

@@ -31,10 +31,10 @@ import java.util.concurrent.BlockingQueue;
 
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * InvocationScopedEventSinkTest
@@ -47,10 +47,10 @@ public class InvocationScopedEventSinkTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setUp() {
-    HashSet<StoreEventListener<String, String>> storeEventListeners = new HashSet<StoreEventListener<String, String>>();
+    HashSet<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
     listener = mock(StoreEventListener.class);
     storeEventListeners.add(listener);
-    eventSink = new InvocationScopedEventSink<String, String>(new HashSet<StoreEventFilter<String, String>>(),
+    eventSink = new InvocationScopedEventSink<String, String>(new HashSet<>(),
         false, new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) }, storeEventListeners);
 
   }

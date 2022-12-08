@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
@@ -38,77 +37,56 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CommonServerStoreProxy.class);
 
+  private final String cacheId;
   private final ServerStoreMessageFactory messageFactory;
-  private final EhcacheClientEntity entity;
+  private final ClusterTierClientEntity entity;
 
-  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
-  private final Map<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
-      = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
+  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<>();
+  private final Map<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
+      = new ConcurrentHashMap<>();
 
-  CommonServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+  CommonServerStoreProxy(final String cacheId, final ServerStoreMessageFactory messageFactory, final ClusterTierClientEntity entity) {
+    this.cacheId = cacheId;
     this.messageFactory = messageFactory;
     this.entity = entity;
-    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
-        if (response.getCacheId().equals(messageFactory.getCacheId())) {
-          long key = response.getKey();
-          LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", messageFactory.getCacheId(), key);
-          for (InvalidationListener listener : invalidationListeners) {
-            listener.onInvalidateHash(key);
-          }
-        } else {
-          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
-        }
+    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, (SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>) response -> {
+      long key = response.getKey();
+      LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", cacheId, key);
+      for (InvalidationListener listener : invalidationListeners) {
+        listener.onInvalidateHash(key);
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
-        final String cacheId = response.getCacheId();
-        final long key = response.getKey();
-        final int invalidationId = response.getInvalidationId();
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, (SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>) response -> {
+      final long key = response.getKey();
+      final int invalidationId = response.getInvalidationId();
 
-        if (cacheId.equals(messageFactory.getCacheId())) {
-          LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-          for (InvalidationListener listener : invalidationListeners) {
-            listener.onInvalidateHash(key);
-          }
+      LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+      for (InvalidationListener listener : invalidationListeners) {
+        listener.onInvalidateHash(key);
+      }
 
-          try {
-            LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-            entity.invokeAsync(messageFactory.clientInvalidationAck(invalidationId), false);
-          } catch (Exception e) {
-            //TODO: what should be done here?
-            LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
-          }
-        } else {
-          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
-        }
+      try {
+        LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+        entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAck(key, invalidationId), false);
+      } catch (Exception e) {
+        //TODO: what should be done here?
+        LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
       }
     });
-    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
-        final String cacheId = response.getCacheId();
-        final int invalidationId = response.getInvalidationId();
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, (SimpleClusterTierClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>) response -> {
+      final int invalidationId = response.getInvalidationId();
 
-        if (cacheId.equals(messageFactory.getCacheId())) {
-          LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
-          for (InvalidationListener listener : invalidationListeners) {
-            listener.onInvalidateAll();
-          }
+      LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
+      for (InvalidationListener listener : invalidationListeners) {
+        listener.onInvalidateAll();
+      }
 
-          try {
-            LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-            entity.invokeAsync(messageFactory.clientInvalidationAck(invalidationId), false);
-          } catch (Exception e) {
-            //TODO: what should be done here?
-            LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
-          }
-        } else {
-          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
-        }
+      try {
+        LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
+        entity.invokeServerStoreOperationAsync(messageFactory.clientInvalidationAllAck(invalidationId), false);
+      } catch (Exception e) {
+        //TODO: what should be done here?
+        LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
       }
     });
 
@@ -117,15 +95,15 @@ class CommonServerStoreProxy implements ServerStoreProxy {
 
   @SuppressWarnings("unchecked")
   private void addResponseListenersToEntity() {
-    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
+    for (Map.Entry<Class<? extends EhcacheEntityResponse>, SimpleClusterTierClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
         this.responseListeners.entrySet()) {
-      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener)classResponseListenerEntry.getValue());
+      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (SimpleClusterTierClientEntity.ResponseListener)classResponseListenerEntry.getValue());
     }
   }
 
   @Override
   public String getCacheId() {
-    return messageFactory.getCacheId();
+    return cacheId;
   }
 
   @Override
@@ -138,7 +116,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     return invalidationListeners.remove(listener);
   }
 
-  <T extends EhcacheEntityResponse> void addResponseListeners(Class<T> listenerClass, EhcacheClientEntity.ResponseListener<T> listener) {
+  <T extends EhcacheEntityResponse> void addResponseListeners(Class<T> listenerClass, SimpleClusterTierClientEntity.ResponseListener<T> listener) {
     this.responseListeners.put(listenerClass, listener);
     this.entity.addResponseListener(listenerClass, listener);
   }
@@ -146,17 +124,14 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @SuppressWarnings("unchecked")
   @Override
   public void close() {
-    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
-        this.responseListeners.entrySet()) {
-      this.entity.removeResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener) classResponseListenerEntry.getValue());
-    }
+    entity.close();
   }
 
   @Override
   public Chain get(long key) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
-      response = entity.invoke(messageFactory.getOperation(key), false);
+      response = entity.invokeServerStoreOperation(messageFactory.getOperation(key), false);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -173,7 +148,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @Override
   public void append(long key, ByteBuffer payLoad) throws TimeoutException {
     try {
-      entity.invoke(messageFactory.appendOperation(key, payLoad), true);
+      entity.invokeServerStoreOperation(messageFactory.appendOperation(key, payLoad), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -185,7 +160,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     EhcacheEntityResponse response;
     try {
-      response = entity.invoke(messageFactory.getAndAppendOperation(key, payLoad), true);
+      response = entity.invokeServerStoreOperation(messageFactory.getAndAppendOperation(key, payLoad), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {
@@ -203,7 +178,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     // TODO: Optimize this method to just send sequences for expect Chain
     try {
-      entity.invokeAsync(messageFactory.replaceAtHeadOperation(key, expect, update), true);
+      entity.invokeServerStoreOperationAsync(messageFactory.replaceAtHeadOperation(key, expect, update), false);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -212,7 +187,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   @Override
   public void clear() throws TimeoutException {
     try {
-      entity.invoke(messageFactory.clearOperation(), true);
+      entity.invokeServerStoreOperation(messageFactory.clearOperation(), true);
     } catch (TimeoutException e) {
       throw e;
     } catch (Exception e) {

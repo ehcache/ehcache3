@@ -17,7 +17,6 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
@@ -27,6 +26,7 @@ import org.ehcache.spi.test.SPITest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -37,7 +37,6 @@ import static org.mockito.Mockito.when;
 /**
  * Test the {@link CachingTier#clear()} contract of the
  * {@link CachingTier CachingTier} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -75,16 +74,11 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
     when(originalValueHolder.value()).thenReturn(originalValue);
 
     try {
-      List<K> keys = new ArrayList<K>();
+      List<K> keys = new ArrayList<>();
       for (int i = 0; i < nbMappings; i++) {
         K key = factory.createKey(i);
 
-        tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(final K k) {
-            return originalValueHolder;
-          }
-        });
+        tier.getOrComputeIfAbsent(key, k -> originalValueHolder);
         keys.add(key);
       }
 
@@ -95,12 +89,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
       for (K key : keys) {
         tier.invalidate(key);
-        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
-          @Override
-          public Store.ValueHolder<V> apply(final K o) {
-            return newValueHolder;
-          }
-        });
+        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, o -> newValueHolder);
 
         assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
       }

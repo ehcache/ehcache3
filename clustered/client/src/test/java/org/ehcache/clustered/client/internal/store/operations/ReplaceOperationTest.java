@@ -27,12 +27,12 @@ public class ReplaceOperationTest extends BaseKeyValueOperationTest {
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
-    return new ReplaceOperation<K, V>(key, value, timestamp);
+    return new ReplaceOperation<>(key, value, timestamp);
   }
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-    return new ReplaceOperation<K, V>(buffer, keySerializer, valueSerializer);
+    return new ReplaceOperation<>(buffer, keySerializer, valueSerializer);
   }
 
   @Override
@@ -42,11 +42,11 @@ public class ReplaceOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    ReplaceOperation<Long, String> operation = new ReplaceOperation<Long, String>(1L, "one", System.currentTimeMillis());
+    ReplaceOperation<Long, String> operation = new ReplaceOperation<>(1L, "one", System.currentTimeMillis());
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(operation, result);
   }

@@ -30,18 +30,16 @@ import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
  */
 public enum EhcacheMessageType {
   // Lifecycle messages
-  CONFIGURE,
   VALIDATE,
-  CREATE_SERVER_STORE,
   VALIDATE_SERVER_STORE,
-  RELEASE_SERVER_STORE,
-  DESTROY_SERVER_STORE,
+  PREPARE_FOR_DESTROY,
 
   // ServerStore operation messages
   GET_AND_APPEND,
   APPEND,
   REPLACE,
   CLIENT_INVALIDATION_ACK,
+  CLIENT_INVALIDATION_ALL_ACK,
   CLEAR,
   GET_STORE,
 
@@ -52,47 +50,39 @@ public enum EhcacheMessageType {
 
   // Passive replication messages
   CHAIN_REPLICATION_OP,
-  CLIENT_ID_TRACK_OP,
   CLEAR_INVALIDATION_COMPLETE,
-  INVALIDATION_COMPLETE,
-  CREATE_SERVER_STORE_REPLICATION,
-  DESTROY_SERVER_STORE_REPLICATION;
+  INVALIDATION_COMPLETE;
 
   public static final String MESSAGE_TYPE_FIELD_NAME = "opCode";
   public static final int MESSAGE_TYPE_FIELD_INDEX = 10;
   public static final EnumMapping<EhcacheMessageType> EHCACHE_MESSAGE_TYPES_ENUM_MAPPING = newEnumMappingBuilder(EhcacheMessageType.class)
-    .mapping(CONFIGURE, 1)
-    .mapping(VALIDATE, 2)
-    .mapping(CREATE_SERVER_STORE, 3)
-    .mapping(VALIDATE_SERVER_STORE, 4)
-    .mapping(RELEASE_SERVER_STORE, 5)
-    .mapping(DESTROY_SERVER_STORE, 6)
+    .mapping(VALIDATE, 1)
+    .mapping(VALIDATE_SERVER_STORE, 2)
+    .mapping(PREPARE_FOR_DESTROY, 3)
 
     .mapping(GET_AND_APPEND, 21)
     .mapping(APPEND, 22)
     .mapping(REPLACE, 23)
     .mapping(CLIENT_INVALIDATION_ACK, 24)
-    .mapping(CLEAR, 25)
-    .mapping(GET_STORE, 26)
+    .mapping(CLIENT_INVALIDATION_ALL_ACK, 25)
+    .mapping(CLEAR, 26)
+    .mapping(GET_STORE, 27)
 
     .mapping(GET_STATE_REPO, 41)
     .mapping(PUT_IF_ABSENT, 42)
     .mapping(ENTRY_SET, 43)
 
     .mapping(CHAIN_REPLICATION_OP, 61)
-    .mapping(CLIENT_ID_TRACK_OP, 62)
     .mapping(CLEAR_INVALIDATION_COMPLETE, 63)
     .mapping(INVALIDATION_COMPLETE, 64)
-    .mapping(CREATE_SERVER_STORE_REPLICATION, 65)
-    .mapping(DESTROY_SERVER_STORE_REPLICATION, 66)
     .build();
 
-  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(CONFIGURE, VALIDATE, CREATE_SERVER_STORE, VALIDATE_SERVER_STORE, RELEASE_SERVER_STORE, DESTROY_SERVER_STORE);
+  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, VALIDATE_SERVER_STORE, PREPARE_FOR_DESTROY);
   public static boolean isLifecycleMessage(EhcacheMessageType value) {
     return LIFECYCLE_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> STORE_OPERATION_MESSAGES = of(GET_AND_APPEND, APPEND, REPLACE, CLIENT_INVALIDATION_ACK, CLEAR, GET_STORE);
+  public static final EnumSet<EhcacheMessageType> STORE_OPERATION_MESSAGES = of(GET_AND_APPEND, APPEND, REPLACE, CLIENT_INVALIDATION_ACK, CLIENT_INVALIDATION_ALL_ACK, CLEAR, GET_STORE);
   public static boolean isStoreOperationMessage(EhcacheMessageType value) {
     return STORE_OPERATION_MESSAGES.contains(value);
   }
@@ -102,7 +92,23 @@ public enum EhcacheMessageType {
     return STATE_REPO_OPERATION_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE, CREATE_SERVER_STORE_REPLICATION, DESTROY_SERVER_STORE_REPLICATION);
+  /**
+   * All not idempotent messages are tracked. One exception is {@link #CLEAR}. It is idempotent but also a pretty costly operation so we prefer to avoid
+   * to do it twice. The same list if used for passive and active. However, of course, according to the {@code EhcacheExecutionStrategy}, the following will happen
+   * <ul>
+   *   <li>{@link #CHAIN_REPLICATION_OP}: Received by the passive. This message will be transformed to look like the original GET_AND_APPEND and its response</li>
+   *   <li>{@link #PUT_IF_ABSENT}: Received by both</li>
+   *   <li>{@link #GET_AND_APPEND}: Received by the active (which will then send a passive replication message to the passive)</li>
+   *   <li>{@link #APPEND}: Received by the active (which will then send a passive replication message to the passive)</li>
+   *   <li>{@link #CLEAR}: Received by both</li>
+   * </ul>
+   */
+  public static final EnumSet<EhcacheMessageType> TRACKED_OPERATION_MESSAGES = of(CHAIN_REPLICATION_OP, PUT_IF_ABSENT, GET_AND_APPEND, APPEND, CLEAR);
+  public static boolean isTrackedOperationMessage(EhcacheMessageType value) {
+    return TRACKED_OPERATION_MESSAGES.contains(value);
+  }
+
+  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE);
   public static boolean isPassiveReplicationMessage(EhcacheMessageType value) {
     return PASSIVE_REPLICATION_MESSAGES.contains(value);
   }

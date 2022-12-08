@@ -18,8 +18,8 @@ package org.ehcache.management.providers.actions;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
+import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.action.Exposed;
-import org.terracotta.management.registry.action.Named;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

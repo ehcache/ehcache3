@@ -22,11 +22,10 @@ public interface ResourceUnit {
 
   /**
    * Compares {@code thisSize} in this unit to {@code thatSize} in {@code thatUnit}.
-   * <P>
+   * <p>
    * Returns 1, 0, or -1 if the {@code thisSize} of {@code this} is greater than,
    * equal to, or less than {@code thatSize} of {@code thatUnit}
    * respectively.
-   * </P>
    *
    * @param thisSize size in this unit
    * @param thatSize size in {@code thatUnit}

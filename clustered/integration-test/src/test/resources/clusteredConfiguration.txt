@@ -1,5 +1,19 @@
 caches:
-    cache-1:
+    cache-shared:
+        keyType: java.lang.String
+        valueType: java.lang.String
+        serviceConfigurations: None
+        evictionAdvisor: None
+        expiry: NoExpiry
+        resourcePools:
+            pools:
+                heap:
+                    size: 1 MB
+                    tierHeight: 10000
+                clustered-shared:
+                    size: Pool {sharedResourcePool='resource-pool-a' clustered-shared}
+                    tierHeight: 10
+    cache-dedicated:
         keyType: java.lang.String
         valueType: java.lang.String
         serviceConfigurations: None
@@ -14,11 +28,14 @@ caches:
                     size: 1 MB
                     tierHeight: 1000
                 clustered-dedicated:
-                    size: 2 MB (persistent)
+                    size: Pool{ 2MB clustered-dedicated from='primary-server-resource'}
                     tierHeight: 10
 services:
     - org.ehcache.clustered.client.config.ClusteringServiceConfiguration:
-        clusterUri: terracotta://server-1:9510/my-server-entity-2
+        clusterUri: terracotta://server-1/my-server-entity-2
         readOperationTimeout: TimeoutDuration{20 SECONDS}
         autoCreate: true
+        defaultServerResource: primary-server-resource
+            resourcePools:
+                resource-pool-a: [33554432 bytes from '<default>']
     - org.ehcache.management.registry.DefaultManagementRegistryConfiguration

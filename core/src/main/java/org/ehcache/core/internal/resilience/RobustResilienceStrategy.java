@@ -169,7 +169,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   @Override
   public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e) {
     cleanup(keys, e);
-    HashMap<K, V> result = new HashMap<K, V>();
+    HashMap<K, V> result = new HashMap<>();
     for (K key : keys) {
       result.put(key, null);
     }

@@ -29,6 +29,7 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.TestDiskResourceService;
@@ -80,6 +81,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.expiry.Expirations.noExpiration;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -212,6 +215,32 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     }
   }
 
+  @Test
+  public void testProvidingOffHeapDiskStoreConfiguration() throws Exception {
+    OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
+    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
+    serviceLocator.startAllServices();
+
+    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
+    PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+
+    @SuppressWarnings("unchecked")
+    Store.Configuration<Long, Object[]> storeConfig1 = mock(Store.Configuration.class);
+    when(storeConfig1.getKeyType()).thenReturn(Long.class);
+    when(storeConfig1.getValueType()).thenReturn(Object[].class);
+    when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
+      .disk(10, MB)
+      .build());
+    when(storeConfig1.getDispatcherConcurrency()).thenReturn(1);
+
+    OffHeapDiskStore<Long, Object[]> offHeapDiskStore1 = provider.createStore(storeConfig1, space,
+      new OffHeapDiskStoreConfiguration("pool", 2, 4));
+    assertThat(offHeapDiskStore1.getThreadPoolAlias(), is("pool"));
+    assertThat(offHeapDiskStore1.getWriterConcurrency(), is(2));
+    assertThat(offHeapDiskStore1.getDiskSegments(), is(4));
+  }
+
   @Override
   protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry) {
     try {
@@ -220,14 +249,14 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
-      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<String, String>(String.class, String.class,
-          null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<String, String>(
-              getPersistenceContext(),
-              new OnDemandExecutionService(), null, 1,
-              storeConfiguration, timeSource,
-              new TestStoreEventDispatcher<String, String>(),
-              MB.toBytes(1));
+      StoreConfigurationImpl<String, String> storeConfiguration = new StoreConfigurationImpl<>(String.class, String.class,
+        null, classLoader, expiry, null, 0, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, String> offHeapStore = new OffHeapDiskStore<>(
+        getPersistenceContext(),
+        new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+        storeConfiguration, timeSource,
+        new TestStoreEventDispatcher<>(),
+        MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -243,14 +272,14 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
-      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
-          evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
-      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
-              getPersistenceContext(),
-              new OnDemandExecutionService(), null, 1,
-              storeConfiguration, timeSource,
-              new TestStoreEventDispatcher<String, byte[]>(),
-              MB.toBytes(1));
+      StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<>(String.class, byte[].class,
+        evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+      OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<>(
+        getPersistenceContext(),
+        new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+        storeConfiguration, timeSource,
+        new TestStoreEventDispatcher<>(),
+        MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -305,7 +334,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
-        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
+      new HashSet<>(Arrays.asList(resources)),
         Collections.<ServiceConfiguration<?>>emptyList()),
         is(expectedRank));
   }
@@ -362,44 +391,41 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         cache.put(i, new CacheValue((int)i));
       }
 
-      Callable<Void> task = new Callable<Void>() {
-        @Override
-        public Void call() {
-          Random rndm = new Random();
+      Callable<Void> task = () -> {
+        Random rndm = new Random();
 
-          long start = System.nanoTime();
-          while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
-            Long k = key(rndm);
-            switch (rndm.nextInt(4)) {
-              case 0: {
-                CacheValue v = value(rndm);
-                cache.putIfAbsent(k, v);
-                break;
-              }
-              case 1: {
-                CacheValue nv = value(rndm);
-                CacheValue ov = value(rndm);
-                cache.put(k, ov);
-                cache.replace(k, nv);
-                break;
-              }
-              case 2: {
-                CacheValue nv = value(rndm);
-                CacheValue ov = value(rndm);
-                cache.put(k, ov);
-                cache.replace(k, ov, nv);
-                break;
-              }
-              case 3: {
-                CacheValue v = value(rndm);
-                cache.put(k, v);
-                cache.remove(k, v);
-                break;
-              }
+        long start = System.nanoTime();
+        while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
+          Long k = key(rndm);
+          switch (rndm.nextInt(4)) {
+            case 0: {
+              CacheValue v = value(rndm);
+              cache.putIfAbsent(k, v);
+              break;
+            }
+            case 1: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, nv);
+              break;
+            }
+            case 2: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, ov, nv);
+              break;
+            }
+            case 3: {
+              CacheValue v = value(rndm);
+              cache.put(k, v);
+              cache.remove(k, v);
+              break;
             }
           }
-          return null;
         }
+        return null;
       };
 
       ExecutorService executor = Executors.newCachedThreadPool();

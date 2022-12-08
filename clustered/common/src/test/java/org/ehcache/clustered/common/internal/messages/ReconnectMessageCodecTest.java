@@ -16,56 +16,54 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 public class ReconnectMessageCodecTest {
 
+  private ReconnectMessageCodec reconnectMessageCodec;
+
+  @Before
+  public void setUp() {
+    reconnectMessageCodec = new ReconnectMessageCodec();
+  }
+
   @Test
-  public void testCodec() {
+  public void testClusterTierReconnectCodec() {
 
-    Set<String> caches = new HashSet<String>();
-    caches.add("test");
-    caches.add("test1");
-    caches.add("test2");
+    ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(UUID.randomUUID());
 
-    ReconnectMessage reconnectMessage = new ReconnectMessage(UUID.randomUUID(), caches);
+    Set<Long> setToInvalidate = new HashSet<>();
+    setToInvalidate.add(1L);
+    setToInvalidate.add(11L);
+    setToInvalidate.add(111L);
 
-    Set<Long> firstSetToInvalidate = new HashSet<Long>();
-    firstSetToInvalidate.add(1L);
-    firstSetToInvalidate.add(11L);
-    firstSetToInvalidate.add(111L);
+    reconnectMessage.addInvalidationsInProgress(setToInvalidate);
+    reconnectMessage.clearInProgress();
 
-    Set<Long> secondSetToInvalidate = new HashSet<Long>();
-    secondSetToInvalidate.add(2L);
-    secondSetToInvalidate.add(22L);
-    secondSetToInvalidate.add(222L);
-    secondSetToInvalidate.add(2222L);
-    reconnectMessage.addInvalidationsInProgress("test", firstSetToInvalidate);
-    reconnectMessage.addInvalidationsInProgress("test1", Collections.<Long>emptySet());
-    reconnectMessage.addInvalidationsInProgress("test2", secondSetToInvalidate);
-    reconnectMessage.addClearInProgress("test");
-
-    ReconnectMessageCodec dataCodec = new ReconnectMessageCodec();
-
-    ReconnectMessage decoded = dataCodec.decode(dataCodec.encode(reconnectMessage));
+    ClusterTierReconnectMessage decoded = reconnectMessageCodec.decode(reconnectMessageCodec.encode(reconnectMessage));
     assertThat(decoded, notNullValue());
     assertThat(decoded.getClientId(), is(reconnectMessage.getClientId()));
-    assertThat(decoded.getAllCaches(), containsInAnyOrder("test", "test1", "test2"));
-    assertThat(decoded.getInvalidationsInProgress("test"), containsInAnyOrder(firstSetToInvalidate.toArray()));
-    assertThat(decoded.getInvalidationsInProgress("test1").isEmpty(), is(true));
-    assertThat(decoded.getInvalidationsInProgress("test2"), containsInAnyOrder(secondSetToInvalidate.toArray()));
-    assertThat(decoded.isClearInProgress("test"), is(true));
-    assertThat(decoded.isClearInProgress("test1"), is(false));
-    assertThat(decoded.isClearInProgress("test2"), is(false));
+    assertThat(decoded.getInvalidationsInProgress(), containsInAnyOrder(setToInvalidate.toArray()));
+    assertThat(decoded.isClearInProgress(), is(true));
+  }
+
+  @Test
+  public void testClusterTierManagerReconnectCodec() {
+    UUID uuid = UUID.randomUUID();
+    ClusterTierManagerReconnectMessage message = new ClusterTierManagerReconnectMessage(uuid);
+
+    ClusterTierManagerReconnectMessage decodedMessage = reconnectMessageCodec.decodeReconnectMessage(reconnectMessageCodec.encode(message));
+
+    assertThat(decodedMessage.getClientId(), is(uuid));
   }
 }

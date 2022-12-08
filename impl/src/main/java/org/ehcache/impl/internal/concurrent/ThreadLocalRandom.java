@@ -39,7 +39,7 @@ import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
  * BY ALL MEANS, DO <u>NOT</u> USE THE <code>ints()</code>, <code>longs()</code> or <code>doubles()</code> METHODS.
  * USE THE <code>_ints()</code>, <code>_longs()</code> or <code>_doubles()</code> ONES INSTEAD.
  * </b>
- * <p/>
+ * <p>
  * A random number generator isolated to the current thread.  Like the
  * global {@link java.util.Random} generator used by the {@link
  * java.lang.Math} class, a {@code ThreadLocalRandom} is initialized
@@ -127,12 +127,7 @@ class ThreadLocalRandom extends Random {
 
     private static long initialSeed() {
         String pp = java.security.AccessController.doPrivileged(
-                new PrivilegedAction<String>() {
-          @Override
-          public String run() {
-            return System.getProperty("java.util.secureRandomSeed");
-          }
-        });
+          (PrivilegedAction<String>) () -> System.getProperty("java.util.secureRandomSeed"));
         if (pp != null && pp.equalsIgnoreCase("true")) {
             byte[] seedBytes = java.security.SecureRandom.getSeed(8);
             long s = (long)(seedBytes[0]) & 0xffL;
@@ -192,7 +187,7 @@ class ThreadLocalRandom extends Random {
 
     /** Rarely-used holder for the second of a pair of Gaussians */
     private static final ThreadLocal<Double> nextLocalGaussian =
-        new ThreadLocal<Double>();
+      new ThreadLocal<>();
 
     private static long mix64(long z) {
         z = (z ^ (z >>> 33)) * 0xff51afd7ed558ccdL;

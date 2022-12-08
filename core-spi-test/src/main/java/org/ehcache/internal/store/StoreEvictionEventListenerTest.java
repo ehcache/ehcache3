@@ -20,8 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.spi.test.After;
@@ -29,12 +27,15 @@ import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matcher;
 
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * Tests eviction events according to the contract of the
@@ -99,12 +100,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.compute(k2, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        return v2;
-      }
-    });
+    kvStore.compute(k2, (mappedKey, mappedValue) -> v2);
     verifyListenerInteractions(listener);
   }
 
@@ -113,12 +109,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.computeIfAbsent(k2, new Function<K, V>() {
-      @Override
-      public V apply(K mappedKey) {
-        return v2;
-      }
-    });
+    kvStore.computeIfAbsent(k2, mappedKey -> v2);
     verifyListenerInteractions(listener);
   }
 

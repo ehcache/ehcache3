@@ -31,7 +31,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.TestDiskResourceService;
@@ -72,6 +72,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
+import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -83,7 +85,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
   private final TieredStore.Provider provider = new TieredStore.Provider();
-  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
+  private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<>();
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -123,20 +125,20 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
       }
 
       private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
-        Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-            evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
+        Serializer<String> keySerializer = new JavaSerializer<>(getClass().getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
+          evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
         @SuppressWarnings("unchecked")
         final Copier<String> defaultCopier = new IdentityCopier();
 
         StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
-        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
+        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
 
         SizedResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
         long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
 
-        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, noOpEventDispatcher, offheapSize);
+        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, timeSource, noOpEventDispatcher, offheapSize);
 
         try {
           CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -148,17 +150,17 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           long diskSize = ((MemoryUnit) diskPool.getUnit()).toBytes(diskPool.getSize());
 
-          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
-                  persistenceContext,
-                  new OnDemandExecutionService(), null, 1,
-                  config, timeSource,
-                  new TestStoreEventDispatcher<String, String>(),
-                  diskSize);
+          OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<>(
+            persistenceContext,
+            new OnDemandExecutionService(), null, DEFAULT_WRITER_CONCURRENCY, DEFAULT_DISK_SEGMENTS,
+            config, timeSource,
+            new TestStoreEventDispatcher<>(),
+            diskSize);
 
-          CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
+          CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(onHeapStore, offHeapStore);
 
 
-          TieredStore<String, String> tieredStore = new TieredStore<String, String>(compoundCachingTier, diskStore);
+          TieredStore<String, String> tieredStore = new TieredStore<>(compoundCachingTier, diskStore);
 
           provider.registerStore(tieredStore, new CachingTier.Provider() {
             @Override

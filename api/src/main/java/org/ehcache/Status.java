@@ -18,20 +18,19 @@ package org.ehcache;
 
 /**
  * Enumeration of {@link CacheManager} and {@link UserManagedCache} statuses.
- * <P>
- *   Instances are allowed the following {@code Status} transitions:
- *   <DL>
- *     <DT>{@link #UNINITIALIZED} to {@link #AVAILABLE}
- *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}
- *     <DT>{@link #AVAILABLE} to {@link #UNINITIALIZED}
- *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}
- *     <DT>{@link #UNINITIALIZED} to {@link #MAINTENANCE}
- *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}
- *     <DT>{@link #MAINTENANCE} to {@link #UNINITIALIZED}
- *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}
- *   </DL>
- *   As such the {@code UNINITIALIZED} state is the fallback state.
- * </P>
+ * <p>
+ * Instances are allowed the following {@code Status} transitions:
+ * <dl>
+ *   <dt>{@link #UNINITIALIZED} to {@link #AVAILABLE}</dt>
+ *   <dd>In case of transition failure, it will remain {@code UNINITIALIZED}</dd>
+ *   <dt>{@link #AVAILABLE} to {@link #UNINITIALIZED}</dt>
+ *   <dd>In case of transition failure, it still ends up {@code UNINITIALIZED}</dd>
+ *   <dt>{@link #UNINITIALIZED} to {@link #MAINTENANCE}</dt>
+ *   <dd>In case of transition failure, it will remain {@code UNINITIALIZED}</dd>
+ *   <dt>{@link #MAINTENANCE} to {@link #UNINITIALIZED}</dt>
+ *   <dd>In case of transition failure, it still ends up {@code UNINITIALIZED}</dd>
+ * </dl>
+ * As such the {@code UNINITIALIZED} state is the fallback state.
  */
 public enum Status {
 

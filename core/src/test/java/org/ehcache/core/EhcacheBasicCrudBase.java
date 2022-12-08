@@ -27,9 +27,6 @@ import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Description;
@@ -60,9 +57,12 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 
 /**
@@ -73,8 +73,8 @@ import static org.mockito.Mockito.spy;
 public abstract class EhcacheBasicCrudBase {
 
   protected static final CacheConfiguration<String, String> CACHE_CONFIGURATION =
-      new BaseCacheConfiguration<String, String>(String.class, String.class, null,
-          null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    new BaseCacheConfiguration<>(String.class, String.class, null,
+      null, null, ResourcePoolsHelper.createHeapOnlyPools());
 
   @Mock
   protected Store<String, String> store;
@@ -198,13 +198,13 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Returns a Mockito {@code any} Matcher for {@link NullaryFunction NullaryFunction<Boolean>}.
+   * Returns a Mockito {@code any} Matcher for {@link Supplier Supplier<Boolean>}.
    *
    * @return a Mockito {@code any} matcher for {@code NullaryFunction}.
    */
   @SuppressWarnings("unchecked")
-  protected static NullaryFunction<Boolean> getBooleanNullaryFunction() {
-    return any(NullaryFunction.class);    // unchecked
+  protected static Supplier<Boolean> getBooleanSupplier() {
+    return any(Supplier.class);    // unchecked
   }
 
   /**
@@ -241,19 +241,11 @@ public abstract class EhcacheBasicCrudBase {
    */
   protected static class FakeStore implements Store<String, String> {
 
-    private final CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
-      @Override
-      public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
-        // noop
-      }
+    private final CacheConfigurationChangeListener cacheConfigurationChangeListener = event -> {
+      // noop
     };
 
-    private static final NullaryFunction<Boolean> REPLACE_EQUAL_TRUE = new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    };
+    private static final Supplier<Boolean> REPLACE_EQUAL_TRUE = () -> true;
 
     /**
      * The key:value pairs served by this {@code Store}.  This map may be empty.
@@ -273,13 +265,13 @@ public abstract class EhcacheBasicCrudBase {
       assert failingKeys != null;
 
       // Use of ConcurrentHashMap is required to avoid ConcurrentModificationExceptions using Iterator.remove
-      this.entries = new ConcurrentHashMap<String, FakeValueHolder>();
+      this.entries = new ConcurrentHashMap<>();
       if (entries != null) {
         for (final Map.Entry<String, String> entry : entries.entrySet()) {
           this.entries.put(entry.getKey(), new FakeValueHolder(entry.getValue()));
         }
       }
-      this.failingKeys = Collections.unmodifiableSet(new HashSet<String>(failingKeys));
+      this.failingKeys = Collections.unmodifiableSet(new HashSet<>(failingKeys));
     }
 
     /**
@@ -288,7 +280,7 @@ public abstract class EhcacheBasicCrudBase {
      * @return a new, unmodifiable map of the entries in this {@code Store}.
      */
     protected Map<String, String> getEntryMap() {
-      final Map<String, String> result = new HashMap<String, String>();
+      final Map<String, String> result = new HashMap<>();
       for (final Map.Entry<String, FakeValueHolder> entry : this.entries.entrySet()) {
         result.put(entry.getKey(), entry.getValue().value());
       }
@@ -391,7 +383,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * The {@code Iterator} returned by this method <b>does not</b> have a {@code remove}
      * method.  The {@code Iterator} returned by {@code FakeStore.this.entries.entrySet().iterator()}
      * must not throw {@link java.util.ConcurrentModificationException ConcurrentModification}.
@@ -435,9 +427,9 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This method is implemented as
-     * <code>this.{@link #compute(String, BiFunction, NullaryFunction) compute}(keys, mappingFunction, () -> { returns true; })</code>
+     * <code>this.{@link #compute(String, BiFunction, Supplier) compute}(keys, mappingFunction, () -> { returns true; })</code>
      */
     @Override
     public ValueHolder<String> compute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
@@ -446,7 +438,7 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     /**
-     * Common core for the {@link #compute(String, BiFunction, NullaryFunction)} method.
+     * Common core for the {@link #compute(String, BiFunction, Supplier)} method.
      *
      * @param key the key of the entry to process
      * @param currentValue the existing value, if any, for {@code key}
@@ -465,7 +457,7 @@ public abstract class EhcacheBasicCrudBase {
         final String key,
         final FakeValueHolder currentValue,
         final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
-        final NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+        final Supplier<Boolean> replaceEqual) throws StoreAccessException {
 
       String remappedValue = null;
       try {
@@ -489,7 +481,7 @@ public abstract class EhcacheBasicCrudBase {
         this.entries.put(key, newValue);
       } else {
         /* New, remapped value is the same */
-        if (replaceEqual.apply()) {
+        if (replaceEqual.get()) {
           /* Replace existing equal value */
           this.entries.put(key, newValue);
         } else {
@@ -505,7 +497,7 @@ public abstract class EhcacheBasicCrudBase {
     public ValueHolder<String> compute(
         final String key,
         final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
-        final NullaryFunction<Boolean> replaceEqual)
+        final Supplier<Boolean> replaceEqual)
         throws StoreAccessException {
       this.checkFailingKey(key);
 
@@ -544,9 +536,9 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This method is implemented as
-     * <code>this.{@link #bulkCompute(Set, Function, NullaryFunction)
+     * <code>this.{@link #bulkCompute(Set, Function, Supplier)
      *    bulkCompute}(keys, remappingFunction, () -> { returns true; })</code>
      */
     @Override
@@ -559,29 +551,26 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * This implementation calls {@link #compute(String, BiFunction, NullaryFunction)
+     * <p>
+     * This implementation calls {@link #compute(String, BiFunction, Supplier)
      *    compute(key, BiFunction, replaceEqual)} for each key presented in {@code keys}.
      */
     @Override
     public Map<String, Store.ValueHolder<String>> bulkCompute(
         final Set<? extends String> keys,
         final Function<Iterable<? extends Entry<? extends String, ? extends String>>, Iterable<? extends Entry<? extends String, ? extends String>>> remappingFunction,
-        final NullaryFunction<Boolean> replaceEqual)
+        final Supplier<Boolean> replaceEqual)
         throws StoreAccessException {
 
-      final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<String, ValueHolder<String>>();
+      final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<>();
       for (final String key : keys) {
         final ValueHolder<String> newValue = this.compute(key,
-            new BiFunction<String, String, String>() {
-              @Override
-              public String apply(final String key, final String oldValue) {
-                final Entry<String, String> entry = new AbstractMap.SimpleEntry<String, String>(key, oldValue);
-                final Entry<? extends String, ? extends String> remappedEntry =
-                    remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
-                return remappedEntry.getValue();
-              }
-            },
+          (key1, oldValue) -> {
+            final Entry<String, String> entry = new AbstractMap.SimpleEntry<>(key1, oldValue);
+            final Entry<? extends String, ? extends String> remappedEntry =
+                remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
+            return remappedEntry.getValue();
+          },
             replaceEqual);
 
         resultMap.put(key, newValue);
@@ -592,7 +581,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This implementation is based, in part, on the implementation found in
      * {@code org.ehcache.internal.store.OnHeapStore}.  This implementation calls
      * {@code mappingFunction} for each key through an internal function supplied
@@ -601,15 +590,12 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public Map<String, ValueHolder<String>> bulkComputeIfAbsent(final Set<? extends String> keys, final Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction)
         throws StoreAccessException {
-      final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<String, ValueHolder<String>>();
+      final Map<String, ValueHolder<String>> resultMap = new LinkedHashMap<>();
       for (final String key : keys) {
-        final ValueHolder<String> newValue = this.computeIfAbsent(key, new Function<String, String>() {
-          @Override
-          public String apply(final String key) {
-            final Map.Entry<? extends String, ? extends String> entry =
-                mappingFunction.apply(Collections.singleton(key)).iterator().next();
-            return entry.getValue();
-          }
+        final ValueHolder<String> newValue = this.computeIfAbsent(key, key1 -> {
+          final Entry<? extends String, ? extends String> entry =
+              mappingFunction.apply(Collections.singleton(key1)).iterator().next();
+          return entry.getValue();
         });
         resultMap.put(key, newValue);
       }
@@ -619,7 +605,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
       List<CacheConfigurationChangeListener> configurationChangeListenerList
-          = new ArrayList<CacheConfigurationChangeListener>();
+          = new ArrayList<>();
       configurationChangeListenerList.add(this.cacheConfigurationChangeListener);
       return configurationChangeListenerList;
     }
@@ -740,7 +726,7 @@ public abstract class EhcacheBasicCrudBase {
    */
   protected static class FakeCacheLoaderWriter implements CacheLoaderWriter<String, String> {
 
-    private final Map<String, String> entries = new HashMap<String, String>();
+    private final Map<String, String> entries = new HashMap<>();
 
     /**
      * Keys for which access results in a thrown {@code Exception}.  This set may be empty.
@@ -769,7 +755,7 @@ public abstract class EhcacheBasicCrudBase {
 
       this.failingKeys = (failingKeys.isEmpty()
           ? Collections.<String>emptySet()
-          : Collections.unmodifiableSet(new HashSet<String>(failingKeys)));
+          : Collections.unmodifiableSet(new HashSet<>(failingKeys)));
     }
 
     public FakeCacheLoaderWriter(final Map<String, String> entries, final Set<String> failingKeys, boolean isBulkCacheLoadingExceptionEnabled) {
@@ -785,7 +771,7 @@ public abstract class EhcacheBasicCrudBase {
      * Sets the key causing the {@link #writeAll(Iterable)} and {@link #deleteAll(Iterable)}
      * methods to throw an exception <i>other</i> that a
      * {@link BulkCacheWritingException BulkCacheWritingException}.
-     * <p/>
+     * <p>
      * If a complete failure is recognized, the cache image maintained by this instance
      * is in an inconsistent state.
      *
@@ -804,7 +790,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * If this method throws an exception <i>other</i> than a
      * {@link BulkCacheWritingException BulkCacheWritingException}, the
      * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.
@@ -813,8 +799,8 @@ public abstract class EhcacheBasicCrudBase {
     public void writeAll(final Iterable<? extends Map.Entry<? extends String, ? extends String>> entries)
         throws Exception {
 
-      final Set<String> successes = new LinkedHashSet<String>();
-      final Map<String, Exception> failures = new LinkedHashMap<String, Exception>();
+      final Set<String> successes = new LinkedHashSet<>();
+      final Map<String, Exception> failures = new LinkedHashMap<>();
 
       for (final Entry<? extends String, ? extends String> entry : entries) {
         final String key = entry.getKey();
@@ -843,15 +829,15 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * If this method throws an exception <i>other</i> than a
      * {@link BulkCacheWritingException BulkCacheWritingException}, the
      * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.
      */
     @Override
     public void deleteAll(final Iterable<? extends String> keys) throws Exception {
-      final Set<String> successes = new LinkedHashSet<String>();
-      final Map<String, Exception> failures = new LinkedHashMap<String, Exception>();
+      final Set<String> successes = new LinkedHashSet<>();
+      final Map<String, Exception> failures = new LinkedHashMap<>();
 
       for (final String key : keys) {
         if (key.equals(this.completeFailureKey)) {
@@ -894,8 +880,8 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public Map<String, String> loadAll(final Iterable<? extends String> keys) throws Exception {
       if (isBulkCacheLoadingExceptionEnabled) {
-        Map<String, Exception> failures = new HashMap<String, Exception>();
-        Map<String, String> loadedKeys = new HashMap<String, String>();
+        Map<String, Exception> failures = new HashMap<>();
+        Map<String, String> loadedKeys = new HashMap<>();
 
         Exception loadingException = new RuntimeException("Exception loading keys");
 
@@ -909,7 +895,7 @@ public abstract class EhcacheBasicCrudBase {
         throw new BulkCacheLoadingException(failures, loadedKeys);
       }
 
-      final Map<String, String> resultMap = new HashMap<String, String>();
+      final Map<String, String> resultMap = new HashMap<>();
       for (final String key : keys) {
         if (this.failingKeys.contains(key)) {
           throw new FailedKeyException(key);

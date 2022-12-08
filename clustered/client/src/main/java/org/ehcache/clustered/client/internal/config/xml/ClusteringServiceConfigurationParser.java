@@ -92,8 +92,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
    * Complete interpretation of the top-level elements defined in <code>{@value ClusteredCacheConstants#XSD}</code>.
    * This method is called only for those elements from the namespace set by {@link ClusteredCacheConstants#NAMESPACE}.
    * <p>
-   *   This method presumes the element presented is valid according to the XSD.
-   * </p>
+   * This method presumes the element presented is valid according to the XSD.
    *
    * @param fragment the XML fragment to process
    *
@@ -240,6 +239,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   private static final class ServerSideConfig {
     private boolean autoCreate = false;
     private String defaultServerResource = null;
-    private final Map<String, Pool> pools = new HashMap<String, Pool>();
+    private final Map<String, Pool> pools = new HashMap<>();
   }
 }

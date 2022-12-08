@@ -25,10 +25,11 @@ import org.ehcache.core.HumanReadable;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
+import java.util.Map;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
-import static org.ehcache.clustered.client.internal.EhcacheClientEntity.Timeouts.DEFAULT_READ_OPERATION_TIMEOUT;
+import static org.ehcache.clustered.client.internal.Timeouts.DEFAULT_READ_OPERATION_TIMEOUT;
 
 /**
  * Specifies the configuration for a {@link ClusteringService}.
@@ -243,6 +244,16 @@ public class ClusteringServiceConfiguration
     return this.getClass().getName() + ":\n    " +
         "clusterUri: " + getClusterUri()+ "\n    " +
         "readOperationTimeout: " + getReadOperationTimeout()+ "\n    " +
-        "autoCreate: " + isAutoCreate();
+        "autoCreate: " + isAutoCreate() + "\n    " +
+        "defaultServerResource: " + serverConfiguration.getDefaultServerResource() + "\n    " +
+        readablePoolsString();
+  }
+
+  private String readablePoolsString() {
+    StringBuilder pools = new StringBuilder("resourcePools:\n");
+    for(Map.Entry entry : serverConfiguration.getResourcePools().entrySet()) {
+      pools.append("        " + entry.getKey() + ": " + entry.getValue() + "\n");
+    }
+    return pools.toString();
   }
 }

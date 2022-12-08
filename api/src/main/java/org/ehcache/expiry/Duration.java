@@ -24,9 +24,8 @@ public final class Duration {
 
   /**
    * The infinite {@code Duration}.
-   * <P>
-   *   This constant should be used to express a lack of a concrete expiration time (ie. "eternal").
-   * </P>
+   * <p>
+   * This constant should be used to express a lack of a concrete expiration time (ie. "eternal").
    */
   public static final Duration INFINITE = new Duration(0, null, true);
 

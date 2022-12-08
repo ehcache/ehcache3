@@ -17,12 +17,12 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
-import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
+
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.nullValue;
 /**
  * Test the {@link AuthoritativeTier#computeIfAbsentAndFault(Object, Function)} contract of the
  * {@link AuthoritativeTier AuthoritativeTier} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -62,12 +61,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
 
     tier = factory.newStoreWithCapacity(1L);
 
-    tier.computeIfAbsent(key, new Function<K, V>() {
-      @Override
-      public V apply(final K k) {
-        return factory.createValue(1L);
-      }
-    });
+    tier.computeIfAbsent(key, k -> factory.createValue(1L));
 
     fillTierOverCapacity(tier, factory);
 
@@ -87,12 +81,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
 
     try {
       assertThat(tier.get(key), is(nullValue()));
-      assertThat(tier.computeIfAbsentAndFault(key, new Function<K, V>() {
-        @Override
-        public V apply(final K k) {
-          return factory.createValue(1L);
-        }
-      }).value(), is(equalTo(value)));
+      assertThat(tier.computeIfAbsentAndFault(key, k -> factory.createValue(1L)).value(), is(equalTo(value)));
 
       fillTierOverCapacity(tier, factory);
       assertThat(tier.get(key).value(), is(equalTo(value)));

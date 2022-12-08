@@ -1,9 +1,9 @@
 ---
 ---
-= Ehcache 3.2 Documentation
-ifndef::sourcedir32[]
+= Ehcache 3.4 Documentation
+ifndef::sourcedir34[]
 include::common.adoc[]
-endif::sourcedir32[]
+endif::sourcedir34[]
 We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
@@ -19,40 +19,38 @@ NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should s
       <<107.adoc#,the Ehcache 3.x JSR-107 Provider page>>.
 
 [[configuring-with-java]]
-=== Configuring with Java
+=== Programmatic configuration
 
 Java configuration is most easily achieved through the use of builders that offer a fluent API.
 
-==== Managed cache
-
-As with the previous versions of Ehcache, the canonical way of dealing with `Cache` is through a `CacheManager`:
+As with the previous versions of Ehcache, the canonical way of dealing with `Cache` is through a `CacheManager`.
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
+include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
 ----
 
 <1> The static method `org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder` returns a new `org.ehcache.config.builders.CacheManagerBuilder` instance.
-<2> Use the builder to define a `Cache` with alias "preConfigured". This cache will be created when `cacheManager.build()` is invoked on the actual `CacheManager` instance. 
-The first `String` argument is the cache alias, which is used to retrieve the cache from the `CacheManager`. 
-The second argument, `org.ehcache.config.CacheConfiguration`, is used to configure the `Cache`. 
+<2> Use the builder to define a `Cache` with alias "preConfigured". This cache will be created when `cacheManager.build()` is invoked on the actual `CacheManager` instance.
+The first `String` argument is the cache alias, which is used to retrieve the cache from the `CacheManager`.
+The second argument, `org.ehcache.config.CacheConfiguration`, is used to configure the `Cache`.
 We use the static `newCacheConfigurationBuilder()` method on `org.ehcache.config.builders.CacheConfigurationBuilder` to create a default configuration.
-<3> Finally, invoking `build()` returns a fully instantiated, but uninitialized, `CacheManager` we can use.
-<4> Before using the `CacheManager` it needs to be initialized, which can be done in 1 of 2 ways: 
+<3> Finally, invoking `build()` returns a fully instantiated, **but uninitialized**, `CacheManager` we can use.
+<4> Before using the `CacheManager` it needs to be initialized, which can be done in 1 of 2 ways:
 Calling `CacheManager.init()` on the `CacheManager` instance, or calling the `CacheManagerBuilder.build(boolean init)` method with the boolean parameter set to true.
-<5> A cache is retrieved by passing its alias, key type and value type to the `CacheManager`. 
-For instance, to obtain the cache declared in step 2 you need its alias=preConfigured, keyType=Long.class and valueType=String.class. 
-For type-safety, we ask for both key and value types to be passed in. 
-If these differ from the ones we expect, the `CacheManager` throws a `ClassCastException` early in the application's lifecycle. 
+<5> A cache is retrieved by passing its alias, key type and value type to the `CacheManager`.
+For instance, to obtain the cache declared in step 2 you need its `alias="preConfigured"`, `keyType=Long.class` and `valueType=String.class`.
+For type-safety, we ask for both key and value types to be passed in.
+If these differ from the ones we expect, the `CacheManager` throws a `ClassCastException` early in the application's lifecycle.
 This guards the `Cache` from being polluted by random types.
 <6> The `CacheManager` can be used to create new `Cache` instances as needed. Just as in step 2, it requires passing in an
     alias as well as a `CacheConfiguration`. The instantiated and fully initialized `Cache` added will be returned and/or
     accessed through the `CacheManager.getCache` API.
-<7> The newly added `Cache` can now be used to store entries, which are comprised of key value pairs. 
-The put method's first parameter is the key and the second parameter is the value. 
-Remember the key and value types must be the same types as those defined in the `CacheConfiguration`. 
+<7> The newly added `Cache` can now be used to store entries, which are comprised of key value pairs.
+The put method's first parameter is the key and the second parameter is the value.
+Remember the key and value types must be the same types as those defined in the `CacheConfiguration`.
 Additionally the key must be unique and is only associated with one value.
-<8> A value is retrieved from a cache by calling the `cache.get(key)` method. 
+<8> A value is retrieved from a cache by calling the `cache.get(key)` method.
 It only takes one parameter which is the key, and returns the value associated with that key. If there is no value associated with that key then null is returned.
 <9> We can `CacheManager.removeCache(String)` a given `Cache`. The `CacheManager` will not only remove its reference to the
     `Cache`, but will also close it. The `Cache` releases all locally held transient resources (such as memory).
@@ -60,42 +58,71 @@ It only takes one parameter which is the key, and returns the value associated w
 <10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
+Here is a shorter version featuring 3 important things:
+
+[source,java,indent=0]
+----
+include::{sourcedir34}/integration-test/src/test/java/org/ehcache/docs/GettingStartedWithStaticImports.java[tag=java7Example]
+----
+<1> A `CacheManager` implements `Closeable` so can be closed automatically by a try-with-resources.
+A `CacheManager` must be closed cleanly. In a `finally` block, with a `try-with-resources` or (more frequent for normal applications) in some shutdown hook.
+<2> Builders having different names, you can use static imports for all of them.
+<3> The `CacheManager` is initialized using `build(true)`.
+
+[[configuring-with-xml]]
+=== XML configuration
+
+You can create an XML file to configure a `CacheManager`.
+
+[source,xml,indent=0]
+----
+include::{sourcedir34}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
+----
+
+<1> Declares a `Cache` aliased to `foo`.
+<2> The keys and values of `foo` are declared as type `String`; if not specified, the default is `java.lang.Object`.
+<3> `foo` is declared to hold up to 2,000 entries on heap...
+<4> ...as well as up to 500 MB of off-heap memory before it starts evicting
+<5> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configurations can then "extend"
+<6> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
+<7> `simpleCache` is another such `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
+
+Refer to the <<xml.adoc#,XML documentation>> for more details on the XML format.
+
+In order to parse an XML configuration, you can use the `XmlConfiguration` type:
+
+[source,java]
+----
+URL myUrl = getClass().getResource("/my-config.xml"); // <1>
+Configuration xmlConfig = new XmlConfiguration(myUrl); // <2>
+CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); // <3>
+----
+
+<1> Obtain a `URL` to your XML file location
+<2> Instantiate an `XmlConfiguration` passing the XML file URL to it
+<3> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
+    create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
+
 === Creating a cache manager with clustering support
 
-To enable Clustering with Terracotta, firstly you will have to <<clustered-cache.adoc#starting-terracotta-server, start the Terracotta server>> configured with clustered storage.
+To enable Clustering with Terracotta, firstly you will have to <<clustered-cache.adoc#starting-server, start the Terracotta server>> configured with clustered storage.
 In addition, for creating the cache manager with clustering support, you will need to provide the clustering service configuration:
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+include::{sourcedir34}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
 ----
 
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
 <2> Use the `ClusteringServiceConfigurationBuilder`{empty}'s static method `.cluster(URI)` for connecting the cache manager to the clustering storage at the
     URI specified that returns the clustering service configuration builder instance.
-    The sample URI provided in the example points to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (assuming the server is running on localhost and port *9510*); the query-param `auto-create`
+    The sample URI provided in the example points to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (assuming the server is running on localhost and port *9410*); the query-param `auto-create`
     creates the clustered storage in the server if it doesn't already exist.
 <3> Returns a fully initialized cache manager that can be used to create clustered caches.
-<4> Close the cache manager.
+<4> Auto-create the clustered storage if it doesn't already exist.
+<5> Close the cache manager.
 
 NOTE: See <<clustered-cache.adoc#,the clustered cache documentation>> for more information on this feature.
-
-==== User managed cache
-
-Ehcache 3 introduces the concept of `UserManagedCache`:
-
-[source,java,indent=0]
-----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
-----
-
-<1> A new feature of Ehcache 3 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true, or
-<2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
-<3> You can use the cache exactly as a managed cache
-<4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
-    managed caches simultaneously, the `CacheManager.close()` operation would not impact the user managed cache(s).
-
-NOTE: See <<usermanaged.adoc#,the user managed cache documentation>> for more information on this feature.
 
 === Storage Tiers
 
@@ -106,93 +133,23 @@ The idea is that resources related to faster storage are more rare, but are loca
 Thus less-hot (less frequently used) data is moved to the more abundant but slower tiers. Hotter data is moved onto
 the faster tiers.
 
-==== Off-heap
-
-[source,java,indent=0]
-----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
-----
-
-<1> If you wish to use off-heap, you'll have to define a resource pool, giving the memory size you want to allocate.
-
-The example above allocates a very small amount of off-heap.
-Remember that data stored off-heap will have to be serialized and deserialized - and is thus slower than heap.
-You should thus favor off-heap for large amounts of data where on-heap would have too severe an impact on garbage collection.
-
-Do not forget to define in the java options the `-XX:MaxDirectMemorySize` option, according to the off-heap size you intend to use.
-
-==== Disk persistence
-
-[source,java,indent=0]
-----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
-----
-
-<1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
-    location where data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
-<2> Defines a resource pool for the disk. 
-The third parameter is a boolean value which is used to set whether the disk pool is persistent. 
-When set to true, the pool is persistent, and when set to false, the pool is not persistent. 
-When this method is used without the third boolean parameter then the pool is not persistent.
-
-The example above allocates a very small amount of disk storage.
-Remember that data stored on disk will have to be serialized / deserialized and written / read from disk -
-and is thus slower than heap and offheap.
-You should thus favor disk for large amounts of data.
-
-Another reason to use disk storage is persistence across application restarts.
-Note that Ehcache 3 only offers persistence in the case of clean shutdowns.
-
 ==== Three tiers
 
-The example below illustrates how to use disk storage for a non-persistent `Cache` instance. 
+A classical example would be using 3 tiers with a persistent disk storage.
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
+include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
-    location where data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
-<2> You define a resource pool for the heap.
-<3> You define a resource pool for the off-heap.
-<4> You define a non-persistent resource pool for the disk. Remember this pool is not persistent because we declared the disk pool using the method that does not use the boolean persistent parameter.
+    location where data should be stored on disk to the `CacheManagerBuilder.persistence()` static method.
+<2> You define a resource pool for the heap. This will be your faster but smaller pool.
+<3> You define a resource pool for the off-heap. Still pretty fast and a bit bigger.
+<4> You define a persistent resource pool for the disk. It is persistent because said it should be (last parameter is `true`).
+<5> All values stored in the cache will be available after a JVM restart (assuming the `CacheManager` has been closed cleanly by calling `close()`).
 
-==== Byte-sized heap
-
-You can also size the heap tier using memory units instead of entry count.
-
-NOTE: Byte sizing has a runtime performance impact that depends on the size and graph complexity of the data cached.
-
-[source,java,indent=0]
-----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
-----
-
-<1> You can also size the heap tier in bytes. 
-This will limit the amount of memory used by the heap tier for storing key-value pairs. 
-Note that there is a cost associated to sizing objects.
-<2> The sizing can also be further restrained by 2 additional configuration settings: 
-The first one specifies the maximum number of objects to traverse while walking the object graph, the second defines the maximum size of a single object. 
-If the sizing goes above any of these two limits, the mutative operation on the cache will be ignored.
-<3> A default configuration can be provided at CacheManager level to be used by the caches unless defined
-    explicitly.
-
-==== Update ResourcePools
-
-Limited size adjustment can be performed on a live cache.
-
-NOTE: `updateResourcePools()` only allows you to change the heap tier sizing, not the pool type. Thus you can't change the sizing of off-heap or disk tiers.
-
-[source,java,indent=0]
-----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
-----
-
-<1> You will need to create a new `ResourcePools` object with resources of required size, using `ResourcePoolsBuilder`. This object can
-    then be passed to the said method so as to trigger the update.
-<2> To update capacity of `ResourcePools`, the `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
-    The `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
+For details, read the <<tiering.adoc#,tiering documentation>>.
 
 === Data freshness
 
@@ -201,7 +158,7 @@ The following illustrates how to configure a _time-to-live_ expiry.
 
 [source,java,indent=0]
 ----
-include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
+include::{sourcedir34}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
 ----
 
 <1> Expiry is configured at the cache level, so start by defining a cache configuration,
@@ -209,45 +166,26 @@ include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 
 See the section on <<expiry.adoc#,expiry>> for more information about the options available.
 
-[[configuring-with-xml]]
-=== Configuring With XML
+== Advanced topics
 
-...It wouldn't be Java without _some_ XML.
+A number of advanced topics that were discussed here have been moved out, see below.
 
-You can create an XML file to configure a `CacheManager`:
+=== User managed cache
 
-[source,xml]
-----
-include::{sourcedir32}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
-----
+See <<usermanaged.adoc#,the user managed cache documentation>> for more information on this feature.
 
-<1> Declares a `Cache` aliased to `foo`
-<2> The keys of `foo` are declared as type `String`; since the value type is not specified, the values will be of type `Object`.
-<3> `foo` is declared to hold up to 2,000 entries on heap...
-<4> ...as well as up to 500 MB of off-heap memory before it starts evicting
-<5> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configurations can then _extend_
-<6> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
-<7> `simpleCache` is another such `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
+=== Byte-sized heap
 
-Refer to the <<xml.adoc#,XML documentation>> for more details on the XML format.
+See the <<tiering.adoc#byte-sized-heap,relevant section>> in the tiering documentation for more information on this feature.
 
-In order to parse an XML configuration, you can use the `XmlConfiguration` type:
+=== Update ResourcePools
 
-[source,java]
-----
-final URL myUrl = this.getClass().getResource("/my-config.xml"); // <1>
-Configuration xmlConfig = new XmlConfiguration(myUrl); // <2>
-CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); // <3>
-----
+See the <<tiering.adoc#update-resourcepools,relevant section>> in the tiering documentation for more information on this feature.
 
-<1> Obtain a `URL` to your XML file's location
-<2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
-<3> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
-    create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
+=== Off-heap
 
-== Current development
+See <<tiering.adoc#off-heap,the tiering documentation>> for more information on this feature.
 
-For developer information, you might want to check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3 project wiki on GitHub].
+=== Disk persistence
 
-The next version, 3.2, will finalize http://terracotta.org[Terracotta clustering] support.
-Cache events, cache-through and transactional clustered caches will then be supported.
+See <<tiering.adoc#disk,the tiering documentation>> for more information on this feature.

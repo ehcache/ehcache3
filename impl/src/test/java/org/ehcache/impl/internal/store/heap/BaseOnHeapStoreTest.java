@@ -25,9 +25,6 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -57,6 +54,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.ehcache.impl.internal.util.Matchers.holding;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
@@ -66,16 +66,16 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 public abstract class BaseOnHeapStoreTest {
 
@@ -149,12 +149,7 @@ public abstract class BaseOnHeapStoreTest {
 
   @Test
   public void testEvictWithFullyAdvisedAgainstEvictionDoesEvict() throws Exception {
-    OnHeapStore<String, String> store = newStore(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        return true;
-      }
-    });
+    OnHeapStore<String, String> store = newStore((key, value) -> true);
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));
@@ -167,11 +162,8 @@ public abstract class BaseOnHeapStoreTest {
 
   @Test
   public void testEvictWithBrokenEvictionAdvisorDoesEvict() throws Exception {
-    OnHeapStore<String, String> store = newStore(new EvictionAdvisor<String, String>() {
-      @Override
-      public boolean adviseAgainstEviction(String key, String value) {
-        throw new UnsupportedOperationException("Broken advisor!");
-      }
+    OnHeapStore<String, String> store = newStore((key, value) -> {
+      throw new UnsupportedOperationException("Broken advisor!");
     });
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     for (int i = 0; i < 100; i++) {
@@ -587,17 +579,7 @@ public abstract class BaseOnHeapStoreTest {
     long accessTime = installedHolder.lastAccessTime(TimeUnit.MILLISECONDS);
     timeSource.advanceTime(1);
 
-    ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        return mappedValue;
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    });
+    ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> mappedValue, () -> true);
 
     assertThat(newValue.value(), equalTo("value"));
     assertThat(createTime + 1, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
@@ -618,17 +600,7 @@ public abstract class BaseOnHeapStoreTest {
     long accessTime = installedHolder.lastAccessTime(TimeUnit.MILLISECONDS);
     timeSource.advanceTime(1);
 
-    ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        return mappedValue;
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> mappedValue, () -> false);
 
     assertThat(newValue.value(), equalTo("value"));
     assertThat(createTime, equalTo(newValue.creationTime(TimeUnit.MILLISECONDS)));
@@ -642,13 +614,10 @@ public abstract class BaseOnHeapStoreTest {
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
-    ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        assertThat(mappedKey, equalTo("key"));
-        assertThat(mappedValue, nullValue());
-        return "value";
-      }
+    ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> {
+      assertThat(mappedKey, equalTo("key"));
+      assertThat(mappedValue, nullValue());
+      return "value";
     });
 
     assertThat(newValue.value(), equalTo("value"));
@@ -664,12 +633,7 @@ public abstract class BaseOnHeapStoreTest {
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
-    ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        return null;
-      }
-    });
+    ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> null);
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
@@ -677,12 +641,7 @@ public abstract class BaseOnHeapStoreTest {
 
     store.put("key", "value");
 
-    newValue = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        return null;
-      }
-    });
+    newValue = store.compute("key", (mappedKey, mappedValue) -> null);
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
@@ -697,11 +656,8 @@ public abstract class BaseOnHeapStoreTest {
 
     store.put("key", "value");
     try {
-      store.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String mappedKey, String mappedValue) {
-          throw RUNTIME_EXCEPTION;
-        }
+      store.compute("key", (mappedKey, mappedValue) -> {
+        throw RUNTIME_EXCEPTION;
       });
       fail("RuntimeException expected");
     } catch (StoreAccessException cae) {
@@ -718,13 +674,10 @@ public abstract class BaseOnHeapStoreTest {
 
     store.put("key", "value");
 
-    ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        assertThat(mappedKey, equalTo("key"));
-        assertThat(mappedValue, equalTo("value"));
-        return "value2";
-      }
+    ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> {
+      assertThat(mappedKey, equalTo("key"));
+      assertThat(mappedValue, equalTo("value"));
+      return "value2";
     });
 
     assertThat(newValue.value(), equalTo("value2"));
@@ -742,13 +695,10 @@ public abstract class BaseOnHeapStoreTest {
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key", "value");
     timeSource.advanceTime(1);
-    ValueHolder<String> newValue = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String mappedKey, String mappedValue) {
-        assertThat(mappedKey, equalTo("key"));
-        assertThat(mappedValue, nullValue());
-        return "value2";
-      }
+    ValueHolder<String> newValue = store.compute("key", (mappedKey, mappedValue) -> {
+      assertThat(mappedKey, equalTo("key"));
+      assertThat(mappedValue, nullValue());
+      return "value2";
     });
 
     assertThat(newValue.value(), equalTo("value2"));
@@ -761,34 +711,9 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnCreate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.ZERO;
-      }
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setCreate(Duration.ZERO).build());
 
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.INFINITE;
-      }
-    });
-
-    ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String key, String value) {
-        return "value";
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    ValueHolder<String> result = store.compute("key", (key, value) -> "value", () -> false);
     assertThat(result, nullValue());
   }
 
@@ -796,35 +721,10 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnUpdate() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.ZERO;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
 
     store.put("key", "value");
-    ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String key, String value) {
-        return "newValue";
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    ValueHolder<String> result = store.compute("key", (key, value) -> "newValue", () -> false);
     assertThat(result, valueHeld("newValue"));
   }
 
@@ -832,35 +732,10 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeWhenExpireOnAccess() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
-    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
-      @Override
-      public Duration getExpiryForCreation(String key, String value) {
-        return Duration.INFINITE;
-      }
-
-      @Override
-      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.INFINITE;
-      }
-    });
+    OnHeapStore<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
 
     store.put("key", "value");
-    ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
-      @Override
-      public String apply(String key, String value) {
-        return value;
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return false;
-      }
-    });
+    ValueHolder<String> result = store.compute("key", (key, value) -> value, () -> false);
     assertThat(result, valueHeld("value"));
   }
 
@@ -870,12 +745,9 @@ public abstract class BaseOnHeapStoreTest {
     StoreEventSink<String, String> eventSink = getStoreEventSink();
     StoreEventDispatcher<String, String> eventDispatcher = getStoreEventDispatcher();
 
-    ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
-      @Override
-      public String apply(String mappedKey) {
-        assertThat(mappedKey, equalTo("key"));
-        return "value";
-      }
+    ValueHolder<String> newValue = store.computeIfAbsent("key", mappedKey -> {
+      assertThat(mappedKey, equalTo("key"));
+      return "value";
     });
 
     assertThat(newValue.value(), equalTo("value"));
@@ -890,12 +762,9 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
 
     store.put("key", "value");
-    ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
-      @Override
-      public String apply(String mappedKey) {
-        fail("Should not be called");
-        return null;
-      }
+    ValueHolder<String> newValue = store.computeIfAbsent("key", mappedKey -> {
+      fail("Should not be called");
+      return null;
     });
 
     assertThat(newValue.value(), equalTo("value"));
@@ -907,12 +776,7 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeIfAbsentReturnNull() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
-      @Override
-      public String apply(String mappedKey) {
-        return null;
-      }
-    });
+    ValueHolder<String> newValue = store.computeIfAbsent("key", mappedKey -> null);
 
     assertThat(newValue, nullValue());
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP));
@@ -924,11 +788,8 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
 
     try {
-      store.computeIfAbsent("key", new Function<String, String>() {
-        @Override
-        public String apply(String mappedKey) {
-          throw RUNTIME_EXCEPTION;
-        }
+      store.computeIfAbsent("key", mappedKey -> {
+        throw RUNTIME_EXCEPTION;
       });
       fail("Expected exception");
     } catch (StoreAccessException cae) {
@@ -948,12 +809,9 @@ public abstract class BaseOnHeapStoreTest {
 
     timeSource.advanceTime(1);
 
-    ValueHolder<String> newValue = store.computeIfAbsent("key", new Function<String, String>() {
-      @Override
-      public String apply(String mappedKey) {
-        assertThat(mappedKey, equalTo("key"));
-        return "value2";
-      }
+    ValueHolder<String> newValue = store.computeIfAbsent("key", mappedKey -> {
+      assertThat(mappedKey, equalTo("key"));
+      return "value2";
     });
 
     assertThat(newValue.value(), equalTo("value2"));
@@ -1061,17 +919,42 @@ public abstract class BaseOnHeapStoreTest {
     assertThat(storeSize(store), is(1));
     timeSource.advanceTime(1);
 
-    ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", new Function<String, ValueHolder<String>>() {
-      @Override
-      public ValueHolder<String> apply(final String s) {
-        throw new AssertionError();
-      }
-    });
+    ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", s -> null);
 
     assertThat(newValue, nullValue());
     assertThat(store.get("key"), nullValue());
     verify(invalidationListener).onInvalidation(eq("key"), argThat(valueHeld("value")));
     assertThat(storeSize(store), is(0));
+    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
+  }
+
+  @Test
+  public void testGetOfComputeIfAbsentExpiresWithLoaderWriter() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    OnHeapStore<String, String> store = newStore(timeSource,
+      Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    @SuppressWarnings("unchecked")
+    CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
+    store.setInvalidationListener(invalidationListener);
+
+    // Add an entry
+    store.put("key", "value");
+    assertThat(storeSize(store), is(1));
+
+    // Advance after expiration time
+    timeSource.advanceTime(1);
+
+    @SuppressWarnings("unchecked")
+    final ValueHolder<String> vh = mock(ValueHolder.class);
+    when(vh.value()).thenReturn("newvalue");
+    when(vh.expirationTime(TimeUnit.MILLISECONDS)).thenReturn(2L);
+
+    ValueHolder<String> newValue = store.getOrComputeIfAbsent("key", s -> vh);
+
+    assertThat(newValue, valueHeld("newvalue"));
+    assertThat(store.get("key"), valueHeld("newvalue"));
+    verify(invalidationListener).onInvalidation(eq("key"), argThat(valueHeld("value")));
+    assertThat(storeSize(store), is(1));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
 
@@ -1083,46 +966,37 @@ public abstract class BaseOnHeapStoreTest {
     final CountDownLatch mainFaultCreationLatch = new CountDownLatch(1);
 
 
-    Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
+    Thread thread = new Thread(() -> {
+      try {
         try {
+          mainFaultCreationLatch.await();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+        store.invalidate("1");
+        store.getOrComputeIfAbsent("1", s -> {
+          threadFaultCompletionLatch.countDown();
           try {
-            mainFaultCreationLatch.await();
+            testCompletionLatch.await();
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
-          store.invalidate("1");
-          store.getOrComputeIfAbsent("1", new Function<String, ValueHolder<String>>() {
-            @Override
-            public ValueHolder<String> apply(final String s) {
-              threadFaultCompletionLatch.countDown();
-              try {
-                testCompletionLatch.await();
-              } catch (InterruptedException e) {
-                e.printStackTrace();
-              }
-              return null;
-            }
-          });
-        } catch (StoreAccessException e) {
-          e.printStackTrace();
-        }
+          return null;
+        });
+      } catch (StoreAccessException e) {
+        e.printStackTrace();
       }
     });
     thread.start();
 
-    store.getOrComputeIfAbsent("1", new Function<String, ValueHolder<String>>() {
-      @Override
-      public ValueHolder<String> apply(final String s) {
-        try {
-          mainFaultCreationLatch.countDown();
-          threadFaultCompletionLatch.await();
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-        return null;
+    store.getOrComputeIfAbsent("1", s -> {
+      try {
+        mainFaultCreationLatch.countDown();
+        threadFaultCompletionLatch.await();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
       }
+      return null;
     });
     testCompletionLatch.countDown();
   }
@@ -1132,51 +1006,37 @@ public abstract class BaseOnHeapStoreTest {
     final OnHeapStore<String, String> store = newStore();
     final CountDownLatch testCompletionLatch = new CountDownLatch(1);
     final CountDownLatch threadFaultCompletionLatch = new CountDownLatch(1);
-    CachingTier.InvalidationListener<String, String> invalidationListener = new CachingTier.InvalidationListener<String, String>() {
-      @Override
-      public void onInvalidation(final String key, final ValueHolder<String> valueHolder) {
-        try {
-          valueHolder.getId();
-        } catch (Exception e) {
-          e.printStackTrace();
-          fail("Test tried to invalidate Fault");
-        }
+    CachingTier.InvalidationListener<String, String> invalidationListener = (key, valueHolder) -> {
+      try {
+        valueHolder.getId();
+      } catch (Exception e) {
+        e.printStackTrace();
+        fail("Test tried to invalidate Fault");
       }
     };
 
     store.setInvalidationListener(invalidationListener);
     updateStoreCapacity(store, 1);
 
-    Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          store.getOrComputeIfAbsent("1", new Function<String, ValueHolder<String>>() {
-            @Override
-            public ValueHolder<String> apply(final String s) {
-              threadFaultCompletionLatch.countDown();
-              try {
-                testCompletionLatch.await();
-              } catch (InterruptedException e) {
-                e.printStackTrace();
-              }
-              return null;
-            }
-          });
-        } catch (StoreAccessException e) {
-          e.printStackTrace();
-        }
+    Thread thread = new Thread(() -> {
+      try {
+        store.getOrComputeIfAbsent("1", s -> {
+          threadFaultCompletionLatch.countDown();
+          try {
+            testCompletionLatch.await();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+          return null;
+        });
+      } catch (StoreAccessException e) {
+        e.printStackTrace();
       }
     });
     thread.start();
 
     threadFaultCompletionLatch.await();
-    store.getOrComputeIfAbsent("10", new Function<String, ValueHolder<String>>() {
-      @Override
-      public ValueHolder<String> apply(final String s) {
-        return null;
-      }
-    });
+    store.getOrComputeIfAbsent("10", s -> null);
     testCompletionLatch.countDown();
   }
 
@@ -1189,28 +1049,20 @@ public abstract class BaseOnHeapStoreTest {
     final CountDownLatch startLatch = new CountDownLatch(1);
     final CountDownLatch endLatch = new CountDownLatch(threads);
 
-    Runnable runnable = new Runnable() {
-
-      @Override
-      public void run() {
-        try {
-          startLatch.await();
-        } catch (InterruptedException e) {
-          fail("Got an exception waiting to start thread " + e);
-        }
-        try {
-          ValueHolder<String> result = store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
-            @Override
-            public ValueHolder<String> apply(String key) {
-              return new CopiedOnHeapValueHolder<String>("theAnswer!", System.currentTimeMillis(), -1, false, new IdentityCopier<String>());
-            }
-          });
-          assertThat(result.value(), is("theAnswer!"));
-          endLatch.countDown();
-        } catch (Exception e) {
-          e.printStackTrace();
-          fail("Got an exception " + e);
-        }
+    Runnable runnable = () -> {
+      try {
+        startLatch.await();
+      } catch (InterruptedException e) {
+        fail("Got an exception waiting to start thread " + e);
+      }
+      try {
+        ValueHolder<String> result = store.getOrComputeIfAbsent("42", key -> new CopiedOnHeapValueHolder<>("theAnswer!", System
+          .currentTimeMillis(), -1, false, new IdentityCopier<>()));
+        assertThat(result.value(), is("theAnswer!"));
+        endLatch.countDown();
+      } catch (Exception e) {
+        e.printStackTrace();
+        fail("Got an exception " + e);
       }
     };
 
@@ -1233,33 +1085,27 @@ public abstract class BaseOnHeapStoreTest {
     CachingTier.InvalidationListener<String, String> invalidationListener = mock(CachingTier.InvalidationListener.class);
     store.setInvalidationListener(invalidationListener);
 
-    final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
+    final AtomicReference<AssertionError> failedInThread = new AtomicReference<>();
 
     final CountDownLatch getLatch = new CountDownLatch(1);
     final CountDownLatch invalidateLatch = new CountDownLatch(1);
 
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
-            @Override
-            public ValueHolder<String> apply(String aString) {
-              invalidateLatch.countDown();
-              try {
-                boolean await = getLatch.await(5, TimeUnit.SECONDS);
-                if (!await) {
-                  failedInThread.set(new AssertionError("latch timed out"));
-                }
-              } catch (InterruptedException e) {
-                failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
-              }
-              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
+    new Thread(() -> {
+      try {
+        store.getOrComputeIfAbsent("42", aString -> {
+          invalidateLatch.countDown();
+          try {
+            boolean await = getLatch.await(5, TimeUnit.SECONDS);
+            if (!await) {
+              failedInThread.set(new AssertionError("latch timed out"));
             }
-          });
-        } catch (StoreAccessException caex) {
-          failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
-        }
+          } catch (InterruptedException e) {
+            failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
+          }
+          return new CopiedOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<>());
+        });
+      } catch (StoreAccessException caex) {
+        failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
       }
     }).start();
 
@@ -1280,33 +1126,27 @@ public abstract class BaseOnHeapStoreTest {
   public void testConcurrentSilentFaultingAndInvalidate() throws Exception {
     final OnHeapStore<String, String> store = newStore();
 
-    final AtomicReference<AssertionError> failedInThread = new AtomicReference<AssertionError>();
+    final AtomicReference<AssertionError> failedInThread = new AtomicReference<>();
 
     final CountDownLatch getLatch = new CountDownLatch(1);
     final CountDownLatch invalidateLatch = new CountDownLatch(1);
 
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          store.getOrComputeIfAbsent("42", new Function<String, ValueHolder<String>>() {
-            @Override
-            public ValueHolder<String> apply(String aString) {
-              invalidateLatch.countDown();
-              try {
-                boolean await = getLatch.await(5, TimeUnit.SECONDS);
-                if (!await) {
-                  failedInThread.set(new AssertionError("latch timed out"));
-                }
-              } catch (InterruptedException e) {
-                failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
-              }
-              return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
+    new Thread(() -> {
+      try {
+        store.getOrComputeIfAbsent("42", aString -> {
+          invalidateLatch.countDown();
+          try {
+            boolean await = getLatch.await(5, TimeUnit.SECONDS);
+            if (!await) {
+              failedInThread.set(new AssertionError("latch timed out"));
             }
-          });
-        } catch (StoreAccessException caex) {
-          failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
-        }
+          } catch (InterruptedException e) {
+            failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
+          }
+          return new CopiedOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<>());
+        });
+      } catch (StoreAccessException caex) {
+        failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
       }
     }).start();
 
@@ -1314,14 +1154,11 @@ public abstract class BaseOnHeapStoreTest {
     if (!await) {
       fail("latch timed out");
     }
-    store.silentInvalidate("42", new Function<ValueHolder<String>, Void>() {
-      @Override
-      public Void apply(ValueHolder<String> stringValueHolder) {
-        if (stringValueHolder != null) {
-          assertThat("Expected a null parameter otherwise we leak a Fault", stringValueHolder, nullValue());
-        }
-        return null;
+    store.silentInvalidate("42", stringValueHolder -> {
+      if (stringValueHolder != null) {
+        assertThat("Expected a null parameter otherwise we leak a Fault", stringValueHolder, nullValue());
       }
+      return null;
     });
     getLatch.countDown();
 
@@ -1340,43 +1177,37 @@ public abstract class BaseOnHeapStoreTest {
     store.put("keyA", "valueA");
     store.put("keyB", "valueB");
 
-    final Exchanger<String> keyExchanger = new Exchanger<String>();
-    final AtomicReference<String> reference = new AtomicReference<String>();
+    final Exchanger<String> keyExchanger = new Exchanger<>();
+    final AtomicReference<String> reference = new AtomicReference<>();
     final CountDownLatch faultingLatch = new CountDownLatch(1);
 
     // prepare concurrent faulting
-    final Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        String key;
+    final Thread thread = new Thread(() -> {
+      String key;
 
-        try {
-          key = keyExchanger.exchange("ready to roll!");
-          store.put(key, "updateValue");
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        } catch (StoreAccessException e) {
-          e.printStackTrace();
-        }
+      try {
+        key = keyExchanger.exchange("ready to roll!");
+        store.put(key, "updateValue");
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } catch (StoreAccessException e) {
+        e.printStackTrace();
       }
     });
     thread.start();
 
-    store.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-      @Override
-      public void onInvalidation(String key, ValueHolder<String> valueHolder) {
-        // Only want to exchange on the first invalidation!
-        if (reference.compareAndSet(null, key)) {
-          try {
-            keyExchanger.exchange(key);
-            long now = System.nanoTime();
-            while (!thread.getState().equals(Thread.State.BLOCKED)) {
-              Thread.yield();
-            }
-            assertThat(thread.getState(), is(Thread.State.BLOCKED));
-          } catch (InterruptedException e) {
-            e.printStackTrace();
+    store.setInvalidationListener((key, valueHolder) -> {
+      // Only want to exchange on the first invalidation!
+      if (reference.compareAndSet(null, key)) {
+        try {
+          keyExchanger.exchange(key);
+          long now = System.nanoTime();
+          while (!thread.getState().equals(Thread.State.BLOCKED)) {
+            Thread.yield();
           }
+          assertThat(thread.getState(), is(Thread.State.BLOCKED));
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
       }
     });
@@ -1394,30 +1225,24 @@ public abstract class BaseOnHeapStoreTest {
 
     final CountDownLatch expiryLatch = new CountDownLatch(1);
 
-    final Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          expiryLatch.await();
-          store.put("key", "newValue");
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        } catch (StoreAccessException e) {
-          e.printStackTrace();
-        }
+    final Thread thread = new Thread(() -> {
+      try {
+        expiryLatch.await();
+        store.put("key", "newValue");
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } catch (StoreAccessException e) {
+        e.printStackTrace();
       }
     });
     thread.start();
 
-    store.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-      @Override
-      public void onInvalidation(String key, ValueHolder<String> valueHolder) {
-        expiryLatch.countDown();
-        while (!thread.getState().equals(Thread.State.BLOCKED)) {
-          Thread.yield();
-        }
-        assertThat(thread.getState(), is(Thread.State.BLOCKED));
+    store.setInvalidationListener((key, valueHolder) -> {
+      expiryLatch.countDown();
+      while (!thread.getState().equals(Thread.State.BLOCKED)) {
+        Thread.yield();
       }
+      assertThat(thread.getState(), is(Thread.State.BLOCKED));
     });
 
     testTimeSource.advanceTime(20);
@@ -1466,7 +1291,7 @@ public abstract class BaseOnHeapStoreTest {
 
   private static Map<String, Long> observeAccessTimes(Iterator<Entry<String, ValueHolder<String>>> iter)
       throws StoreAccessException {
-    Map<String, Long> map = new HashMap<String, Long>();
+    Map<String, Long> map = new HashMap<>();
     while (iter.hasNext()) {
       Entry<String, ValueHolder<String>> entry = iter.next();
       map.put(entry.getKey(), entry.getValue().lastAccessTime(TimeUnit.MILLISECONDS));
@@ -1476,7 +1301,7 @@ public abstract class BaseOnHeapStoreTest {
 
   private static Map<String, String> observe(Iterator<Entry<String, ValueHolder<String>>> iter)
       throws StoreAccessException {
-    Map<String, String> map = new HashMap<String, String>();
+    Map<String, String> map = new HashMap<>();
     while (iter.hasNext()) {
       Entry<String, ValueHolder<String>> entry = iter.next();
       map.put(entry.getKey(), entry.getValue().value());

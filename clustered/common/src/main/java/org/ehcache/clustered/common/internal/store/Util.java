@@ -93,16 +93,11 @@ public class Util {
   }
 
   public static Element getElement(final ByteBuffer payload) {
-    return new Element() {
-      @Override
-      public ByteBuffer getPayload() {
-        return payload.duplicate();
-      }
-    };
+    return () -> payload.duplicate();
   }
 
   public static Chain getChain(boolean isSequenced, ByteBuffer... buffers) {
-    List<Element> elements = new ArrayList<Element>();
+    List<Element> elements = new ArrayList<>();
     long counter = 0;
     for (final ByteBuffer buffer : buffers) {
       if (isSequenced) {

@@ -22,13 +22,13 @@ import com.pany.ehcache.integration.ProductCacheLoaderWriter;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -55,7 +55,7 @@ public class ParsesConfigurationExtensionTest {
   @Test
   public void testConfigParse() throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
     final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource("/ehcache-107.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceCreationConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceCreationConfigurations().toArray()));
 
     final CacheManager cacheManager = new EhcacheManager(configuration, Collections.<Service>singletonList(jsr107Service));
     cacheManager.init();
@@ -68,7 +68,7 @@ public class ParsesConfigurationExtensionTest {
   @Test
   public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
     XmlConfiguration config = new XmlConfiguration(ParsesConfigurationExtensionTest.class.getResource("/ehcache-example.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
 
     final CacheManager cacheManager = new EhcacheManager(config, Collections.<Service>singletonList(jsr107Service));
     cacheManager.init();

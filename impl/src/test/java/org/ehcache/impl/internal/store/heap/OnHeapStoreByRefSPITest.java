@@ -84,9 +84,9 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       @SuppressWarnings("unchecked")
       private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
-        Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-            evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
-        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), new TestStoreEventDispatcher<String, String>());
+        Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
+          evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
+        return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), new TestStoreEventDispatcher<>());
       }
 
       @Override

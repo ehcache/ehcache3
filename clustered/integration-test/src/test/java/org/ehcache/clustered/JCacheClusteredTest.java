@@ -19,24 +19,21 @@ package org.ehcache.clustered;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.terracotta.connection.Connection;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.net.URL;
-import java.util.Collections;
 
-import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.spi.CachingProvider;
 
 import static org.ehcache.clustered.CacheManagerLifecycleEhcacheIntegrationTest.substitute;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 /**
  * JCacheClusteredTest
  */
-public class JCacheClusteredTest {
+public class JCacheClusteredTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
       "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -46,13 +43,11 @@ public class JCacheClusteredTest {
       "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
-  private static Connection ASSERTION_CONNECTION;
+  public static Cluster CLUSTER = newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {
     CLUSTER.getClusterControl().waitForActive();
-    ASSERTION_CONNECTION = CLUSTER.newConnection();
   }
 
   @Test
@@ -60,6 +55,6 @@ public class JCacheClusteredTest {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/jcache-clustered.xml");
     URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
     CachingProvider cachingProvider = Caching.getCachingProvider();
-    CacheManager cacheManager = cachingProvider.getCacheManager(substitutedXml.toURI(), getClass().getClassLoader());
+    cachingProvider.getCacheManager(substitutedXml.toURI(), getClass().getClassLoader());
   }
 }

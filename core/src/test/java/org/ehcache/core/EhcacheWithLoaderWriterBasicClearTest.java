@@ -32,7 +32,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -116,7 +116,7 @@ public class EhcacheWithLoaderWriterBasicClearTest extends EhcacheBasicCrudBase 
   }
 
   private Map<String, String> getTestStoreEntries() {
-    final Map<String, String> storeEntries = new HashMap<String, String>();
+    final Map<String, String> storeEntries = new HashMap<>();
     storeEntries.put("key1", "value1");
     storeEntries.put("keyA", "valueA");
     storeEntries.put("key2", "value2");
@@ -132,7 +132,8 @@ public class EhcacheWithLoaderWriterBasicClearTest extends EhcacheBasicCrudBase 
   private EhcacheWithLoaderWriter<String, String> getEhcache()
       throws Exception {
     final EhcacheWithLoaderWriter<String, String> ehcache =
-        new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicClearTest"));
+      new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+        .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicClearTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

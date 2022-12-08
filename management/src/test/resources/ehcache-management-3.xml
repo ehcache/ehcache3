@@ -6,20 +6,12 @@
                         http://www.ehcache.org/v3/management ../../main/resources/ehcache-management-ext.xsd">
 
   <service>
-    <mnm:management cache-manager-alias="my-cache-manager-name" statistics-executor-alias="my-statisticsExecutorAlias" collector-executor-alias="my-collectorExecutorAlias">
+    <mnm:management cache-manager-alias="my-cache-manager-name" collector-executor-alias="my-collectorExecutorAlias">
       <mnm:tags>
         <mnm:tag>webapp-name</mnm:tag>
         <mnm:tag>jboss-1</mnm:tag>
         <mnm:tag>server-node-1</mnm:tag>
       </mnm:tags>
-      <mnm:statistics-configurations>
-        <mnm:statistics-configuration provider="org.ehcache.management.providers.statistics.EhcacheStatisticsProvider">
-          <mnm:average-window unit="hours">2</mnm:average-window>
-          <mnm:history-interval unit="minutes">1</mnm:history-interval>
-          <mnm:history-size>500</mnm:history-size>
-          <mnm:time-to-disable unit="minutes">1</mnm:time-to-disable>
-        </mnm:statistics-configuration>
-      </mnm:statistics-configurations>
     </mnm:management>
   </service>
 

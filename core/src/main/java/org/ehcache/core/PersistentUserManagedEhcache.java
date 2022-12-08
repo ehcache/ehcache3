@@ -41,10 +41,9 @@ import java.util.Set;
 /**
  * Implementation of {@link PersistentUserManagedCache} which is a cache with a persistent resource outside of a
  * {@link org.ehcache.CacheManager}.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  */
 public class PersistentUserManagedEhcache<K, V> implements PersistentUserManagedCache<K, V> {
 
@@ -68,9 +67,9 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
     if (cacheLoaderWriter == null) {
-      this.cache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, statusTransitioner);
+      this.cache = new Ehcache<>(new EhcacheRuntimeConfiguration<>(configuration), store, eventDispatcher, logger, statusTransitioner);
     } else {
-      this.cache = new EhcacheWithLoaderWriter<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
+      this.cache = new EhcacheWithLoaderWriter<>(new EhcacheRuntimeConfiguration<>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
     }
     this.diskPersistenceService = diskPersistenceService;
     this.id = id;

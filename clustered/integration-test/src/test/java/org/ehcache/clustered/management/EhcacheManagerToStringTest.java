@@ -27,22 +27,19 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.HumanReadable;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.net.URI;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest {
 
@@ -59,18 +56,13 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(1, MemoryUnit.MB)
                 .disk(2, MemoryUnit.MB, true))
-            .withLoaderWriter(new SampleLoaderWriter<String, String>())
+            .withLoaderWriter(new SampleLoaderWriter<>())
             .add(WriteBehindConfigurationBuilder
                 .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                 .queueSize(3)
                 .concurrencyLevel(1)
                 .enableCoalescing())
-            .withEvictionAdvisor(new EvictionAdvisor<String, String>() {
-              @Override
-              public boolean adviseAgainstEviction(String key, String value) {
-                return false;
-              }
-            })
+            .withEvictionAdvisor((key, value) -> false)
             .build())
         .build(true);
 
@@ -97,23 +89,27 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
         // cluster config
         .with(ClusteringServiceConfigurationBuilder.cluster(uri)
             .autoCreate()
-            .defaultServerResource("primary-server-resource"))
+            .defaultServerResource("primary-server-resource")
+            .resourcePool("resource-pool-a", 32, MemoryUnit.MB))
         // management config
         .using(new DefaultManagementRegistryConfiguration()
             .addTags("webapp-1", "server-node-1")
-            .setCacheManagerAlias("my-super-cache-manager")
-            .addConfiguration(new EhcacheStatisticsProviderConfiguration(
-                1, TimeUnit.MINUTES,
-                100, 1, TimeUnit.SECONDS,
-                2, TimeUnit.SECONDS))) // TTD reduce to 2 seconds so that the stat collector run faster
-        // cache config
-        .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            .setCacheManagerAlias("my-super-cache-manager"))
+        // cache clustered dedicated
+        .withCache("cache-dedicated", CacheConfigurationBuilder.newCacheConfigurationBuilder(
             String.class, String.class,
             newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(1, MemoryUnit.MB)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .build())
+        // cache clustered shared
+        .withCache("cache-shared", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+          String.class, String.class,
+          newResourcePoolsBuilder()
+            .heap(1, MemoryUnit.MB)
+            .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a")))
+          .build())
         .build(true);
 
     try {
@@ -124,7 +120,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
       assertThat(
           actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", ""),
           equalTo(
-              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replace("server-1:9510", uri.getAuthority())
+              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replace("server-1", uri.getAuthority())
           )
       );
 

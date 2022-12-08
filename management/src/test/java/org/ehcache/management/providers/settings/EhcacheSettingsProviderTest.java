@@ -27,8 +27,6 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.SharedManagementService;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultSharedManagementService;
 import org.junit.After;
@@ -90,17 +88,11 @@ public class EhcacheSettingsProviderTest {
         .withExpiry(Expirations.timeToIdleExpiration(Duration.of(2, TimeUnit.HOURS)))
         .build();
 
-    StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(
-        1, TimeUnit.MINUTES,
-        100, 1, TimeUnit.SECONDS,
-        2, TimeUnit.SECONDS);
-
     // ehcache cache manager
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(sharedManagementService)
         .using(new DefaultPersistenceConfiguration(ROOT.newFolder("test_standalone_ehcache")))
         .using(new DefaultManagementRegistryConfiguration()
-            .addConfiguration(statisticsProviderConfiguration)
             .setCacheManagerAlias("my-cm-1")
             .addTag("boo")
             .addTags("foo", "baz"))

@@ -19,9 +19,9 @@ import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
-import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.cluster.Clustering;
@@ -32,9 +32,9 @@ import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.settings.EhcacheSettingsProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.DefaultManagementRegistry;
 import org.terracotta.management.registry.ManagementProvider;
@@ -43,15 +43,11 @@ import org.terracotta.statistics.StatisticsManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
 
-import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
-
-@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class})
+@ServiceDependencies({CacheManagerProviderService.class, StatisticsService.class})
 public class DefaultManagementRegistryService extends DefaultManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 
   private final ManagementRegistryServiceConfiguration configuration;
-  private volatile ScheduledExecutorService statisticsExecutor;
   private volatile InternalCacheManager cacheManager;
   private volatile ClusteringManagementService clusteringManagementService;
 
@@ -66,12 +62,13 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    this.statisticsExecutor = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(getConfiguration().getStatisticsExecutorAlias());
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+
+    StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
 
     // initialize management capabilities (stats, action calls, etc)
     addManagementProvider(new EhcacheActionProvider(getConfiguration()));
-    addManagementProvider(new EhcacheStatisticsProvider(getConfiguration(), statisticsExecutor));
+    addManagementProvider(new EhcacheStatisticsProvider(getConfiguration(), statisticsService));
     addManagementProvider(new EhcacheStatisticCollectorProvider(getConfiguration()));
     addManagementProvider(new EhcacheSettingsProvider(getConfiguration(), cacheManager));
 
@@ -93,11 +90,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
       this.clusteringManagementService = null;
     }
 
-    for (ManagementProvider<?> managementProvider : managementProviders) {
-      managementProvider.close();
-    }
-    managementProviders.clear();
-    shutdownNow(statisticsExecutor);
+    super.close();
   }
 
   @Override
@@ -151,7 +144,7 @@ public class DefaultManagementRegistryService extends DefaultManagementRegistry 
 
   @Override
   public ContextContainer getContextContainer() {
-    Collection<ContextContainer> cacheCtx = new ArrayList<ContextContainer>();
+    Collection<ContextContainer> cacheCtx = new ArrayList<>();
     for (String cacheName : this.cacheManager.getRuntimeConfiguration().getCacheConfigurations().keySet()) {
       cacheCtx.add(new ContextContainer("cacheName", cacheName));
     }

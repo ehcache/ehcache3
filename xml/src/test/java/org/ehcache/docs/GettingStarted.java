@@ -48,4 +48,10 @@ public class GettingStarted {
     configurationBuilder = configurationBuilder.withResourcePools(ResourcePoolsBuilder.heap(1000)); // <2>
     // end::xmlTemplate[]
   }
+
+  @Test
+  public void xmlExpirySample() throws Exception {
+    XmlConfiguration xmlConfiguration = new XmlConfiguration(getClass().getResource("/configs/docs/expiry.xml"));
+    CacheManagerBuilder.newCacheManager(xmlConfiguration).init();
+  }
 }

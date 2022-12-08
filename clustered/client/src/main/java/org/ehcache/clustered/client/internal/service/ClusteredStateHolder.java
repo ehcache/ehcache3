@@ -16,23 +16,33 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryMessageFactory;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.spi.persistence.StateHolder;
 
+import java.util.AbstractMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
+import static org.ehcache.clustered.client.internal.service.ValueCodecFactory.getCodecForClass;
+
 public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
 
   private final StateRepositoryMessageFactory messageFactory;
-  private final EhcacheClientEntity entity;
+  private final ClusterTierClientEntity entity;
+  private final Class<K> keyClass;
+  private final ValueCodec<K> keyCodec;
+  private final ValueCodec<V> valueCodec;
 
-  public ClusteredStateHolder(final String cacheId, final String mapId, final EhcacheClientEntity entity) {
+  public ClusteredStateHolder(final String cacheId, final String mapId, final ClusterTierClientEntity entity, Class<K> keyClass, Class<V> valueClass) {
+    this.keyClass = keyClass;
+    this.keyCodec = getCodecForClass(keyClass);
+    this.valueCodec = getCodecForClass(valueClass);
     this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
     this.entity = entity;
   }
@@ -40,12 +50,17 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   @Override
   @SuppressWarnings("unchecked")
   public V get(final Object key) {
-    return (V) getResponse(messageFactory.getMessage(key));
+    if (!keyClass.isAssignableFrom(key.getClass())) {
+      return null;
+    }
+    @SuppressWarnings("unchecked")
+    Object response = getResponse(messageFactory.getMessage(keyCodec.encode((K) key)), false);
+    return valueCodec.decode(response);
   }
 
-  private Object getResponse(StateRepositoryOpMessage message) {
+  private Object getResponse(StateRepositoryOpMessage message, boolean track) {
     try {
-      EhcacheEntityResponse response = entity.invoke(message, true);
+      EhcacheEntityResponse response = entity.invokeStateRepositoryOperation(message, track);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
     } catch (ClusterException ce) {
       throw new ClusteredMapException(ce);
@@ -57,13 +72,21 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   @Override
   @SuppressWarnings("unchecked")
   public Set<Map.Entry<K, V>> entrySet() {
-    return (Set<Map.Entry<K, V>>) getResponse(messageFactory.entrySetMessage());
+    @SuppressWarnings("unchecked")
+    Set<Map.Entry<Object, Object>> response = (Set<Map.Entry<Object, Object>>) getResponse(messageFactory.entrySetMessage(), true);
+    Set<Map.Entry<K, V>> entries = new HashSet<>();
+    for (Map.Entry<Object, Object> objectEntry : response) {
+      entries.add(new AbstractMap.SimpleEntry<>(keyCodec.decode(objectEntry.getKey()),
+        valueCodec.decode(objectEntry.getValue())));
+    }
+    return entries;
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public V putIfAbsent(final K key, final V value) {
-    return (V) getResponse(messageFactory.putIfAbsentMessage(key, value));
+    Object response = getResponse(messageFactory.putIfAbsentMessage(keyCodec.encode(key), valueCodec.encode(value)), true);
+    return valueCodec.decode(response);
   }
 
 }

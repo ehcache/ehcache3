@@ -25,9 +25,8 @@ public interface StateRepository {
 
   /**
    * Gets a named state holder rooted in the current {@code StateRepository}.
-   * <P>
-   *   If the state holder existed already, it is returned with its content fully available.
-   * </P>
+   * <p>
+   * If the state holder existed already, it is returned with its content fully available.
    *
    * @param name the state holder name
    * @param keyClass concrete key type

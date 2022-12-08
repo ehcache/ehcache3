@@ -20,7 +20,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * A {@link Service} providing {@link Serializer} instances.
- * <P>
+ * <p>
  * The {@code CacheManager} {@link org.ehcache.spi.service.ServiceProvider obtains} an instance of this
  * {@code Service} prior to creating any {@code Cache} instances.  Before creating each {@code Cache}
  * instance, the {@code CacheManager} calls the
@@ -28,14 +28,12 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * {@link #createValueSerializer(Class, ClassLoader, ServiceConfiguration[])} methods to obtain
  * {@code Serializer} instances for the {@code Cache}, either through explicit configuration or from
  * {@code CacheManager} level configuration.
- * </P>
- * <P>
- *   Some {@code Cache} configurations make serialization mandatory.  If serialization is mandatory,
- *   failure to return a {@code Serializer} from a {@code SerializationProvider}
- *   results in a {@code Cache} initialization failure.  For a {@code Cache} in which serialization
- *   is not mandatory, failing to return a {@code Serializer} will not cause {@code Cache} initialization
- *   failure.
- * </P>
+ * <p>
+ * Some {@code Cache} configurations make serialization mandatory.  If serialization is mandatory,
+ * failure to return a {@code Serializer} from a {@code SerializationProvider}
+ * results in a {@code Cache} initialization failure.  For a {@code Cache} in which serialization
+ * is not mandatory, failing to return a {@code Serializer} will not cause {@code Cache} initialization
+ * failure.
  */
 public interface SerializationProvider extends Service {
 

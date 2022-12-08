@@ -18,10 +18,9 @@ package org.ehcache.core.spi.time;
 
 /**
  * A source of wall time.
- * <P>
- *   The main purpose of this interface is to allow tests to control time arbitrarily (as opposed to using system time
- *   and sleep()'ing to advance time.
- * </P>
+ * <p>
+ * The main purpose of this interface is to allow tests to control time arbitrarily (as opposed to using system time
+ * and sleep()'ing to advance time.
  */
 public interface TimeSource {
 

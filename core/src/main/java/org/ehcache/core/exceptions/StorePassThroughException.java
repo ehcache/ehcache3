@@ -21,10 +21,9 @@ import org.ehcache.core.spi.store.StoreAccessException;
 /**
  * A generic wrapper runtime exception that will not be caught and
  * handled at the store level.
- * <P>
- *   This wrapper can be used to enable any runtime exceptions that you don't want to be caught at the store level to
- *   be propagated.
- * </P>
+ * <p>
+ * This wrapper can be used to enable any runtime exceptions that you don't want to be caught at the store level to
+ * be propagated.
  */
 public class StorePassThroughException extends RuntimeException {
 
@@ -51,11 +50,10 @@ public class StorePassThroughException extends RuntimeException {
 
   /**
    * Helper method for handling runtime exceptions.
-   * <P>
-   *   Throwing most as {@link StoreAccessException} except for {@code StorePassThroughException}.
-   *   In which case if its cause is a {@link RuntimeException} it is thrown back and if not it is
-   *   wrapped in a {@code StoreAccessException}.
-   * </P>
+   * <p>
+   * Throwing most as {@link StoreAccessException} except for {@code StorePassThroughException}.
+   * In which case if its cause is a {@link RuntimeException} it is thrown back and if not it is
+   * wrapped in a {@code StoreAccessException}.
    *
    * @param re the exception to handler
    * @throws StoreAccessException except for {@code StorePassThroughException} containing a {@code RuntimeException}

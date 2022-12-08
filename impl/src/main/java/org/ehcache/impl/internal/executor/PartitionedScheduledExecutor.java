@@ -113,37 +113,29 @@ class PartitionedScheduledExecutor extends AbstractExecutorService implements Sc
   public void shutdown() {
     shutdown = true;
     try {
-      final Long longestDelay = waitFor(scheduler.schedule(null, new Callable<Long>() {
+      final Long longestDelay = waitFor(scheduler.schedule(null, () -> {
+        long maxDelay = 0;
+        for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
+          Runnable job = it.next();
 
-        @Override
-        public Long call() throws ExecutionException {
-          long maxDelay = 0;
-          for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
-            Runnable job = it.next();
-
-            if (job instanceof OutOfBandRsf) {
-              OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
-              if (oobJob.getExecutor() == worker) {
-                if (oobJob.isPeriodic()) {
-                  oobJob.cancel(false);
-                  it.remove();
-                } else {
-                  maxDelay = Math.max(maxDelay, oobJob.getDelay(NANOSECONDS));
-                }
+          if (job instanceof OutOfBandRsf) {
+            OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
+            if (oobJob.getExecutor() == worker) {
+              if (oobJob.isPeriodic()) {
+                oobJob.cancel(false);
+                it.remove();
+              } else {
+                maxDelay = Math.max(maxDelay, oobJob.getDelay(NANOSECONDS));
               }
             }
           }
-          return maxDelay;
         }
+        return maxDelay;
       }, 0, NANOSECONDS));
 
-      termination = scheduler.schedule(worker, new Callable<List<Runnable>>() {
-
-        @Override
-        public List<Runnable> call() {
-          worker.shutdown();
-          return emptyList();
-        }
+      termination = scheduler.schedule(worker, () -> {
+        worker.shutdown();
+        return emptyList();
       }, longestDelay + 1, NANOSECONDS);
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
@@ -154,26 +146,22 @@ class PartitionedScheduledExecutor extends AbstractExecutorService implements Sc
   public List<Runnable> shutdownNow() {
     shutdown = true;
     try {
-      termination = scheduler.schedule(null, new Callable<List<Runnable>>() {
+      termination = scheduler.schedule(null, () -> {
+        List<Runnable> abortedTasks = new ArrayList<>();
+        for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
+          Runnable job = it.next();
 
-        @Override
-        public List<Runnable> call() throws Exception {
-          List<Runnable> abortedTasks = new ArrayList<Runnable>();
-          for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
-            Runnable job = it.next();
-
-            if (job instanceof OutOfBandRsf) {
-              OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
-              if (oobJob.getExecutor() == worker) {
-                abortedTasks.add(job);
-                it.remove();
-              }
+          if (job instanceof OutOfBandRsf) {
+            OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
+            if (oobJob.getExecutor() == worker) {
+              abortedTasks.add(job);
+              it.remove();
             }
           }
-
-          abortedTasks.addAll(worker.shutdownNow());
-          return abortedTasks;
         }
+
+        abortedTasks.addAll(worker.shutdownNow());
+        return abortedTasks;
       }, 0L, NANOSECONDS);
 
 

@@ -28,9 +28,8 @@ public interface CacheManager extends Closeable {
 
   /**
    * Creates a {@link Cache} in this {@code CacheManager} according to the specified {@link CacheConfiguration}.
-   * <P>
-   *   The returned {@code Cache} will be in status {@link Status#AVAILABLE AVAILABLE}.
-   * </P>
+   * <p>
+   * The returned {@code Cache} will be in status {@link Status#AVAILABLE AVAILABLE}.
    *
    * @param alias the alias under which the cache will be created
    * @param config the configuration of the cache to create
@@ -46,9 +45,8 @@ public interface CacheManager extends Closeable {
   /**
    * Creates a {@link Cache} in this {@code CacheManager} according to the specified {@link CacheConfiguration} provided
    * through a {@link Builder}.
-   * <P>
-   *   The returned {@code Cache} will be in status {@link Status#AVAILABLE AVAILABLE}.
-   * </P>
+   * <p>
+   * The returned {@code Cache} will be in status {@link Status#AVAILABLE AVAILABLE}.
    *
    * @param alias the alias under which the cache will be created
    * @param configBuilder the builder for the configuration of the cache to create
@@ -78,9 +76,8 @@ public interface CacheManager extends Closeable {
 
   /**
    * Removes the {@link Cache} associated with the alias provided, if one is known.
-   * <P>
+   * <p>
    * When the cache is removed, it will release all resources it used.
-   * </P>
    *
    * @param alias the alias for which to remove the {@link Cache}
    */
@@ -88,14 +85,12 @@ public interface CacheManager extends Closeable {
 
   /**
    * Transitions this {@code CacheManager} to {@link Status#AVAILABLE AVAILABLE}.
-   * <P>
-   *   This will start all {@link org.ehcache.spi.service.Service Service}s managed by this {@code CacheManager}, as well
-   *   as initializing all {@link Cache}s registered with it.
-   * </P>
-   * <P>
-   *   If an error occurs before the {@code CacheManager} is {@code AVAILABLE}, it will revert to
-   *   {@link org.ehcache.Status#UNINITIALIZED UNINITIALIZED} attempting to close all services it had already started.
-   * </P>
+   * <p>
+   * This will start all {@link org.ehcache.spi.service.Service Service}s managed by this {@code CacheManager}, as well
+   * as initializing all {@link Cache}s registered with it.
+   * <p>
+   * If an error occurs before the {@code CacheManager} is {@code AVAILABLE}, it will revert to
+   * {@link org.ehcache.Status#UNINITIALIZED UNINITIALIZED} attempting to close all services it had already started.
    *
    * @throws IllegalStateException if the {@code CacheManager} is not {@code UNINITIALIZED}
    * @throws StateTransitionException if the {@code CacheManager} could not be made {@code AVAILABLE}
@@ -104,14 +99,12 @@ public interface CacheManager extends Closeable {
 
   /**
    * Transitions this {@code CacheManager} to {@link Status#UNINITIALIZED UNINITIALIZED}.
-   * <P>
-   *   This will close all {@link Cache}s known to this {@code CacheManager} and stop all
-   *   {@link org.ehcache.spi.service.Service Service}s managed by this {@code CacheManager}.
-   * </P>
-   * <P>
-   *   Failure to close any {@code Cache} or to stop any {@code Service} will not prevent others from being closed or
-   *   stopped.
-   * </P>
+   * <p>
+   * This will close all {@link Cache}s known to this {@code CacheManager} and stop all
+   * {@link org.ehcache.spi.service.Service Service}s managed by this {@code CacheManager}.
+   * <p>
+   * Failure to close any {@code Cache} or to stop any {@code Service} will not prevent others from being closed or
+   * stopped.
    *
    * @throws StateTransitionException if the {@code CacheManager} could not reach {@code UNINITIALIZED} cleanly
    * @throws IllegalStateException if the {@code CacheManager} is not {@code AVAILABLE}

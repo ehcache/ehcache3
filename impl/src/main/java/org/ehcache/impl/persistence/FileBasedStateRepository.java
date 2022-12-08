@@ -58,19 +58,14 @@ class FileBasedStateRepository implements StateRepository, Closeable {
       throw new IllegalArgumentException(directory + " is not a directory");
     }
     this.dataDirectory = directory;
-    knownHolders = new ConcurrentHashMap<String, Tuple>();
+    knownHolders = new ConcurrentHashMap<>();
     loadMaps();
   }
 
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void loadMaps() throws CachePersistenceException {
     try {
-      for (File file : dataDirectory.listFiles(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-          return name.endsWith(HOLDER_FILE_SUFFIX);
-        }
-      })) {
+      for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
         FileInputStream fis = new FileInputStream(file);
         try {
           ObjectInputStream oin = new ObjectInputStream(fis);
@@ -118,7 +113,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
     Tuple result = knownHolders.get(name);
     if (result == null) {
-      StateHolder<K, V> holder = new TransientStateHolder<K, V>();
+      StateHolder<K, V> holder = new TransientStateHolder<>();
       result = knownHolders.putIfAbsent(name, new Tuple(nextIndex.getAndIncrement(), holder));
 
       if (result == null) {

@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
@@ -23,7 +24,6 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ServerSideConfigurationBuilder;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -31,19 +31,17 @@ import org.ehcache.config.units.MemoryUnit;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
-import java.util.Collections;
 
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class ResourcePoolAllocationFailureTest {
+public class ResourcePoolAllocationFailureTest extends ClusteredTests {
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
@@ -54,7 +52,7 @@ public class ResourcePoolAllocationFailureTest {
 
   @ClassRule
   public static Cluster CLUSTER =
-    new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+    newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
 
   @BeforeClass
   public static void waitForActive() throws Exception {
@@ -71,9 +69,9 @@ public class ResourcePoolAllocationFailureTest {
       cacheManagerBuilder.build(true);
       fail("InvalidServerStoreConfigurationException expected");
     } catch (Exception e) {
-      e.printStackTrace();
-      assertThat(getRootCause(e), instanceOf(InvalidServerStoreConfigurationException.class));
-      assertThat(getRootCause(e).getMessage(), startsWith("Failed to create ServerStore"));
+      Throwable cause = getCause(e, CachePersistenceException.class);
+      assertThat(cause, notNullValue());
+      assertThat(cause.getMessage(), startsWith("Unable to create"));
     }
     resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(100, MemoryUnit.KB);
     cacheManagerBuilder = getPersistentCacheManagerCacheManagerBuilder(resourcePool);
@@ -96,6 +94,17 @@ public class ResourcePoolAllocationFailureTest {
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(resourcePool)
       ).add(new ClusteredStoreConfiguration(Consistency.EVENTUAL)));
+  }
+
+  private static Throwable getCause(Throwable e, Class<? extends Throwable> causeClass) {
+    Throwable current = e;
+    while (current.getCause() != null) {
+      if (current.getClass().isAssignableFrom(causeClass)) {
+        return current;
+      }
+      current = current.getCause();
+    }
+    return null;
   }
 
   private static Throwable getRootCause(Throwable e) {

@@ -26,14 +26,12 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -60,9 +58,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -72,20 +69,21 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyEntryIterable;
 import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyEntryIterableFunction;
 import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyStringSet;
 
 /**
  * Provides testing of basic PUT_ALL operations on an {@code EhcacheWithLoaderWriter}.
- * <p/>
+ * <p>
  * In an effort compromise, this class intentionally omits test cases in which
  * the {@code Store} is pre-populated with no entries, pre-populated only with
  * entries having keys not in the {@code putAll} request map, and pre-populated
  * with entries for all keys in the {@code putAll} request map.  This reduces
  * the potential test cases by about 70% without, hopefully, compromising code
  * coverage.
- * <p/>
+ * <p>
  * Since the processing in {@link EhcacheWithLoaderWriter#putAll} relies on non-deterministically ordered Maps in several stages
  * of processing, the result of {@code putAll} when handling failures is *not* deterministic -- changes in
  * iteration order of the {@code putAll} request map can change the results of the {@code putAll} operation under
@@ -101,7 +99,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link Store#bulkCompute(Set, Function, NullaryFunction)
+   * {@link Store#bulkCompute(Set, java.util.function.Function, java.util.function.Supplier)
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor
@@ -1933,13 +1931,14 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
-    CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null,
-        expiry, ResourcePoolsHelper.createHeapOnlyPools());
+    CacheConfiguration<String, String> config = new BaseCacheConfiguration<>(String.class, String.class, null, null,
+      expiry, ResourcePoolsHelper.createHeapOnlyPools());
     return getEhcache(cacheLoaderWriter, config);
   }
 
   private EhcacheWithLoaderWriter<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicPutAllTest"));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
+      .getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -1954,7 +1953,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
    *    in the order observed by the captor.
    */
   private Set<String> getBulkComputeArgs() {
-    final Set<String> bulkComputeArgs = new LinkedHashSet<String>();
+    final Set<String> bulkComputeArgs = new LinkedHashSet<>();
     for (final Set<String> set : this.bulkComputeSetCaptor.getAllValues()) {
       bulkComputeArgs.addAll(set);
     }

@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-import org.gradle.internal.jvm.Jvm
-
 apply plugin: EhDeploy
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 
 dependencies {
   compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
@@ -31,22 +26,11 @@ dependencies {
   compile("org.terracotta.management:monitoring-service-api:$parent.managementVersion") {
     transitive = false
   }
-  compile"org.terracotta.management.dist:management-common:$parent.managementVersion"
+  compile"org.terracotta.management.dist:mnm-common:$parent.managementVersion"
+  compile("org.terracotta:client-message-tracker:$parent.terracottaPlatformVersion")
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
   provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
-}
-
-compileJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
-}
-
-compileTestJava {
-  options.forkOptions.executable = Jvm.current().javacExecutable
-}
-
-test {
-  executable = Jvm.current().javaExecutable
 }
 
 tasks.withType(JavaCompile) {

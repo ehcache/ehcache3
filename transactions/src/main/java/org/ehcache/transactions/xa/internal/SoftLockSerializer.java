@@ -121,7 +121,7 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 
-    private static final Map<String, Class<?>> primitiveClasses = new HashMap<String, Class<?>>();
+    private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();
 
     static {
       primitiveClasses.put("boolean", boolean.class);

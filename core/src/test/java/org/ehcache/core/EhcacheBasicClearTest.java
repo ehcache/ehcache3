@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -104,7 +104,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   }
 
   private Map<String, String> getTestStoreEntries() {
-    final Map<String, String> storeEntries = new HashMap<String, String>();
+    final Map<String, String> storeEntries = new HashMap<>();
     storeEntries.put("key1", "value1");
     storeEntries.put("keyA", "valueA");
     storeEntries.put("key2", "value2");
@@ -120,7 +120,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
+      new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

@@ -20,15 +20,14 @@ import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.nio.ByteBuffer;
-import java.util.UUID;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -38,8 +37,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
  * EhcacheServerCodecTest
  */
 public class EhcacheServerCodecTest {
-
-  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   @Mock
   private EhcacheCodec clientCodec;
@@ -72,7 +69,7 @@ public class EhcacheServerCodecTest {
 
   @Test
   public void testDelegatesToPassiveReplicationCodeForEncoding() throws Exception {
-    ClientIDTrackerMessage message = new ClientIDTrackerMessage(CLIENT_ID);
+    InvalidationCompleteMessage message = new InvalidationCompleteMessage(1000L);
     serverCodec.encodeMessage(message);
 
     verify(replicationCodec).encode(message);

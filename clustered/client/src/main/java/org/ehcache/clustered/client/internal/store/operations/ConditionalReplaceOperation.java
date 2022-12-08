@@ -38,11 +38,11 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     if(oldValue == null) {
       throw new NullPointerException("Old value can not be null");
     }
-    this.oldValueHolder = new LazyValueHolder<V>(oldValue);
+    this.oldValueHolder = new LazyValueHolder<>(oldValue);
     if(newValue == null) {
       throw new NullPointerException("New value can not be null");
     }
-    this.newValueHolder = new LazyValueHolder<V>(newValue);
+    this.newValueHolder = new LazyValueHolder<>(newValue);
     this.timeStamp = timeStamp;
   }
 
@@ -72,8 +72,8 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
-    this.oldValueHolder = new LazyValueHolder<V>(oldValueBlob, valueSerializer);
-    this.newValueHolder = new LazyValueHolder<V>(valueBlob, valueSerializer);
+    this.oldValueHolder = new LazyValueHolder<>(oldValueBlob, valueSerializer);
+    this.newValueHolder = new LazyValueHolder<>(valueBlob, valueSerializer);
   }
 
   public K getKey() {

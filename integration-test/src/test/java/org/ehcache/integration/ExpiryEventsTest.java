@@ -63,8 +63,8 @@ public class ExpiryEventsTest {
           .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));;
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
-      byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<String>(
-          SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));;
+      byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<>(
+        SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));;
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();
 
@@ -175,14 +175,9 @@ public class ExpiryEventsTest {
 
   private void performActualTest(Cache<Long, String> testCache) {
 
-    final List<Long> expiredKeys = new CopyOnWriteArrayList<Long>();
+    final List<Long> expiredKeys = new CopyOnWriteArrayList<>();
 
-    testCache.getRuntimeConfiguration().registerCacheEventListener(new CacheEventListener<Long, String>() {
-      @Override
-      public void onEvent(CacheEvent<? extends Long, ? extends String> event) {
-        expiredKeys.add(event.getKey());
-      }
-    }, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
+    testCache.getRuntimeConfiguration().registerCacheEventListener(event -> expiredKeys.add(event.getKey()), EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
 
     testCache.put(1L, "one");
     testCache.put(2L, "two");

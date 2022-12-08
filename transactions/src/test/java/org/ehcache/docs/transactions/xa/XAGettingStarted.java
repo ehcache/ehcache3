@@ -168,7 +168,7 @@ public class XAGettingStarted {
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
+        .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <4>
                 ResourcePoolsBuilder.newResourcePoolsBuilder() // <5>
                         .heap(10, EntryUnit.ENTRIES)
@@ -218,7 +218,7 @@ public class XAGettingStarted {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleLoaderWriter.class);
 
-    private final Map<K, V> data = new HashMap<K, V>();
+    private final Map<K, V> data = new HashMap<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     public SampleLoaderWriter(Map<K, V> initialData) {

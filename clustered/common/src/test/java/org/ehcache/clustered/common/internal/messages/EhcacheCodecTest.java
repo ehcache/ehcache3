@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
@@ -55,13 +55,13 @@ public class EhcacheCodecTest {
 
   @Test
   public void encodeMessage() throws Exception {
-    LifecycleMessage.DestroyServerStore lifecycleMessage = new LifecycleMessage.DestroyServerStore("foo", CLIENT_ID);
+    LifecycleMessage.ValidateServerStore lifecycleMessage = new LifecycleMessage.ValidateServerStore("foo", null, CLIENT_ID);
     codec.encodeMessage(lifecycleMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, never()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
 
-    ServerStoreOpMessage.ClearMessage serverStoreOpMessage = new ServerStoreOpMessage.ClearMessage("foo", CLIENT_ID);
+    ServerStoreOpMessage.ClearMessage serverStoreOpMessage = new ServerStoreOpMessage.ClearMessage(CLIENT_ID);
     codec.encodeMessage(serverStoreOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));

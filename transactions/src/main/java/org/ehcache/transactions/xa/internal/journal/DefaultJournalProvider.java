@@ -51,13 +51,13 @@ public class DefaultJournalProvider implements JournalProvider {
   public <K> Journal<K> getJournal(PersistableResourceService.PersistenceSpaceIdentifier<?> persistentSpaceId, Serializer<K> keySerializer) {
     if (persistentSpaceId == null) {
       LOGGER.info("Using transient XAStore journal");
-      return new TransientJournal<K>();
+      return new TransientJournal<>();
     }
 
     try {
       LOGGER.info("Using persistent XAStore journal");
       FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(persistentSpaceId, "XAJournal");
-      return new PersistentJournal<K>(persistenceContext.getDirectory(), keySerializer);
+      return new PersistentJournal<>(persistenceContext.getDirectory(), keySerializer);
     } catch (CachePersistenceException cpe) {
       throw new RuntimeException(cpe);
     }

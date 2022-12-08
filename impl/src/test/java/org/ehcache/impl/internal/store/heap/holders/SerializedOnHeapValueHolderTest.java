@@ -82,17 +82,12 @@ public class SerializedOnHeapValueHolderTest {
 
   @Test
   public void testSerializerGetsDifferentByteBufferOnRead() {
-    final Exchanger<ByteBuffer> exchanger = new Exchanger<ByteBuffer>();
+    final Exchanger<ByteBuffer> exchanger = new Exchanger<>();
     final ReadExchangeSerializer serializer = new ReadExchangeSerializer(exchanger);
-    final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<String>("test it!", System
-        .currentTimeMillis(), false, serializer);
+    final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<>("test it!", System
+      .currentTimeMillis(), false, serializer);
 
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        valueHolder.value();
-      }
-    }).start();
+    new Thread(() -> valueHolder.value()).start();
 
     valueHolder.value();
   }
@@ -100,7 +95,7 @@ public class SerializedOnHeapValueHolderTest {
   private static class ReadExchangeSerializer implements Serializer<String> {
 
     private final Exchanger<ByteBuffer> exchanger;
-    private final Serializer<String> delegate = new JavaSerializer<String>(SerializedOnHeapValueHolderTest.class.getClassLoader());
+    private final Serializer<String> delegate = new JavaSerializer<>(SerializedOnHeapValueHolderTest.class.getClassLoader());
 
     private ReadExchangeSerializer(Exchanger<ByteBuffer> exchanger) {
       this.exchanger = exchanger;
@@ -131,7 +126,8 @@ public class SerializedOnHeapValueHolderTest {
   }
 
   private static <V extends Serializable> ValueHolder<V> newValueHolder(V value) {
-    return new SerializedOnHeapValueHolder<V>(value, TestTimeSource.INSTANCE.getTimeMillis(), false, new JavaSerializer<V>(SerializedOnHeapValueHolderTest.class.getClassLoader()));
+    return new SerializedOnHeapValueHolder<>(value, TestTimeSource.INSTANCE.getTimeMillis(), false, new JavaSerializer<>(SerializedOnHeapValueHolderTest.class
+      .getClassLoader()));
   }
 
   private static class TestTimeSource implements TimeSource {

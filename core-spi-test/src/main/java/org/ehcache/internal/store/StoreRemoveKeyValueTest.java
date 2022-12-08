@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.not;
 /**
  * Test the {@link Store#remove(Object, Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

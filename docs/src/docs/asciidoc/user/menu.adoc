@@ -2,24 +2,29 @@ link:./index.html[Home]::
 
 User documentation::
 - link:./getting-started{outfilesuffix}[Getting started]
+- link:./tiering{outfilesuffix}[Tiering options]
+- link:./examples{outfilesuffix}[Examples]
 - link:./xml{outfilesuffix}[XML Configuration]
-- link:./usermanaged{outfilesuffix}[User managed caches]
-- link:./107{outfilesuffix}[javax.cache aka jsr-107]
-- link:./expiry{outfilesuffix}[Expiry]
-- link:./thread-pools{outfilesuffix}[Thread Pools]
-- link:./serializers-copiers{outfilesuffix}[Serializers and Copiers]
-- link:./management{outfilesuffix}[Management and Monitoring]
-- link:./xa{outfilesuffix}[Transactions support]
-- link:./writers{outfilesuffix}[Cache Writers]
-- link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
-- link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
+- link:./107{outfilesuffix}[JCache aka JSR-107]
+- link:./xsds{outfilesuffix}[Configuration XSD]
 - link:./clustered-cache{outfilesuffix}[Clustering with Terracotta]
 
-General topics:
+General topics::
 - link:./caching-terms{outfilesuffix}[Caching Terms]
 - link:./caching-concepts{outfilesuffix}[Caching Concepts]
 - link:./caching-patterns{outfilesuffix}[Caching Patterns]
 
-Resources::
-- link:./examples{outfilesuffix}[Java examples]
-- link:./xsds{outfilesuffix}[Configuration XSD]
+Advanced topics::
+- link:./migration-guide{outfilesuffix}[Migration Guide]
+- link:./expiry{outfilesuffix}[Expiry]
+- link:./thread-pools{outfilesuffix}[Thread Pools]
+- link:./serializers-copiers{outfilesuffix}[Serializers and Copiers]
+- link:./xa{outfilesuffix}[Transactions support]
+- link:./writers{outfilesuffix}[Cache Writers]
+- link:./usermanaged{outfilesuffix}[User managed caches]
+- link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
+- link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
+- link:./class-loading{outfilesuffix}[Class loading in Ehcache]
+
+Not published::
+- link:./management{outfilesuffix}[Management and Monitoring]

@@ -19,8 +19,10 @@ package org.ehcache.clustered.server.state;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
+import org.terracotta.entity.ConfigurationException;
 
 import com.tc.classloader.CommonComponent;
 
@@ -42,30 +44,28 @@ public interface EhcacheStateService {
 
   ServerSideServerStore getStore(String name);
 
+  ServerSideServerStore loadStore(String name, ServerStoreConfiguration serverStoreConfiguration);
+
   Set<String> getStores();
+
+  void prepareForDestroy();
 
   void destroy();
 
   void validate(ServerSideConfiguration configuration) throws ClusterException;
 
-  void configure(ServerSideConfiguration configuration) throws ClusterException;
+  void configure() throws ConfigurationException;
 
-  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException;
+  ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration, boolean forActive) throws ConfigurationException;
 
   void destroyServerStore(String name) throws ClusterException;
 
   boolean isConfigured();
 
-  StateRepositoryManager getStateRepositoryManager() throws ClusterException;
+  StateRepositoryManager getStateRepositoryManager();
 
-  ClientMessageTracker getClientMessageTracker();
+  InvalidationTracker getInvalidationTracker(String name);
 
-  InvalidationTracker getInvalidationTracker(String cacheId);
-
-  void addInvalidationtracker(String cacheId);
-
-  InvalidationTracker removeInvalidationtracker(String cacheId);
-
-  void loadExisting();
+  void loadExisting(ServerSideConfiguration configuration);
 
 }

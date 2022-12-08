@@ -23,7 +23,7 @@ import org.ehcache.spi.test.SPITester;
  * Parent class for all Store tester classes.
  * It contains all common utility methods (e.g. instantiate a
  * {@link Store.ValueHolder Store.ValueHolder}).
- * <p/>
+ *
  * @author Aurelien Broszniowski
  */
 

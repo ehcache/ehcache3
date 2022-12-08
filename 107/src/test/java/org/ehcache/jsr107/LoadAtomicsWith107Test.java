@@ -34,7 +34,7 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,18 +60,8 @@ public class LoadAtomicsWith107Test {
     testCache = cacheManager.createCache("testCache", new MutableConfiguration<Number, CharSequence>()
         .setReadThrough(true)
         .setWriteThrough(true)
-        .setCacheLoaderFactory(new Factory<CacheLoader<Number, CharSequence>>() {
-          @Override
-          public CacheLoader<Number, CharSequence> create() {
-            return cacheLoader;
-          }
-        })
-        .setCacheWriterFactory(new Factory<CacheWriter<? super Number, ? super CharSequence>>() {
-          @Override
-          public CacheWriter<? super Number, ? super CharSequence> create() {
-            return cacheWriter;
-          }
-        })
+        .setCacheLoaderFactory(() -> cacheLoader)
+        .setCacheWriterFactory(() -> cacheWriter)
         .setTypes(Number.class, CharSequence.class));
   }
 

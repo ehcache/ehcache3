@@ -23,6 +23,7 @@
 package org.ehcache.impl.internal.concurrent;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2702,7 +2703,7 @@ class ForkJoinPool extends AbstractExecutorService {
      *         scheduled for execution
      */
     public <T> ForkJoinTask<T> submit(Callable<T> task) {
-        ForkJoinTask<T> job = new ForkJoinTask.AdaptedCallable<T>(task);
+        ForkJoinTask<T> job = new ForkJoinTask.AdaptedCallable<>(task);
         externalPush(job);
         return job;
     }
@@ -2713,7 +2714,7 @@ class ForkJoinPool extends AbstractExecutorService {
      *         scheduled for execution
      */
     public <T> ForkJoinTask<T> submit(Runnable task, T result) {
-        ForkJoinTask<T> job = new ForkJoinTask.AdaptedRunnable<T>(task, result);
+        ForkJoinTask<T> job = new ForkJoinTask.AdaptedRunnable<>(task, result);
         externalPush(job);
         return job;
     }
@@ -2743,12 +2744,12 @@ class ForkJoinPool extends AbstractExecutorService {
         // In previous versions of this class, this method constructed
         // a task to run ForkJoinTask.invokeAll, but now external
         // invocation of multiple tasks is at least as efficient.
-        ArrayList<Future<T>> futures = new ArrayList<Future<T>>(tasks.size());
+        ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
 
         boolean done = false;
         try {
             for (Callable<T> t : tasks) {
-                ForkJoinTask<T> f = new ForkJoinTask.AdaptedCallable<T>(t);
+                ForkJoinTask<T> f = new ForkJoinTask.AdaptedCallable<>(t);
                 futures.add(f);
                 externalPush(f);
             }
@@ -3360,11 +3361,11 @@ class ForkJoinPool extends AbstractExecutorService {
     // implement RunnableFuture.
 
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new ForkJoinTask.AdaptedRunnable<T>(runnable, value);
+        return new ForkJoinTask.AdaptedRunnable<>(runnable, value);
     }
 
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-        return new ForkJoinTask.AdaptedCallable<T>(callable);
+        return new ForkJoinTask.AdaptedCallable<>(callable);
     }
 
     // Unsafe mechanics
@@ -3425,8 +3426,7 @@ class ForkJoinPool extends AbstractExecutorService {
         modifyThreadPermission = new RuntimePermission("modifyThread");
 
         common = java.security.AccessController.doPrivileged
-            (new java.security.PrivilegedAction<ForkJoinPool>() {
-                public ForkJoinPool run() { return makeCommonPool(); }});
+            ((PrivilegedAction<ForkJoinPool>) () -> makeCommonPool());
         int par = common.config & SMASK; // report 1 even if threads disabled
         commonParallelism = par > 0 ? par : 1;
     }
@@ -3501,11 +3501,8 @@ class ForkJoinPool extends AbstractExecutorService {
         public final ForkJoinWorkerThread newThread(final ForkJoinPool pool) {
             return (ForkJoinWorkerThread.InnocuousForkJoinWorkerThread)
                 java.security.AccessController.doPrivileged(
-                    new java.security.PrivilegedAction<ForkJoinWorkerThread>() {
-                    public ForkJoinWorkerThread run() {
-                        return new ForkJoinWorkerThread.
-                            InnocuousForkJoinWorkerThread(pool);
-                    }}, innocuousAcc);
+                  (PrivilegedAction<ForkJoinWorkerThread>) () -> new ForkJoinWorkerThread.
+                      InnocuousForkJoinWorkerThread(pool), innocuousAcc);
         }
     }
 

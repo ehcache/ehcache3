@@ -85,7 +85,7 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
       getPoolForResource(currentResourceType).validateUpdate(toBeUpdated.getPoolForResource(currentResourceType));
     }
 
-    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<ResourceType<?>, ResourcePool>();
+    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<>();
     poolsMap.putAll(pools);
     for(ResourceType<?> currentResourceType : toBeUpdated.getResourceTypeSet()) {
       ResourcePool poolForResource = toBeUpdated.getPoolForResource(currentResourceType);
@@ -101,21 +101,18 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
    * @param pools the resource pools to validate
    */
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
-    List<SizedResourcePool> ordered = new ArrayList<SizedResourcePool>(pools.size());
+    List<SizedResourcePool> ordered = new ArrayList<>(pools.size());
     for(ResourcePool pool : pools) {
       if (pool instanceof SizedResourcePool) {
         ordered.add((SizedResourcePool)pool);
       }
     }
-    Collections.sort(ordered, new Comparator<SizedResourcePool>() {
-      @Override
-      public int compare(final SizedResourcePool o1, final SizedResourcePool o2) {
-        int retVal = o2.getType().getTierHeight() - o1.getType().getTierHeight();
-        if(retVal == 0) {
-          return o1.toString().compareTo(o2.toString());
-        } else {
-          return retVal;
-        }
+    Collections.sort(ordered, (o1, o2) -> {
+      int retVal = o2.getType().getTierHeight() - o1.getType().getTierHeight();
+      if(retVal == 0) {
+        return o1.toString().compareTo(o2.toString());
+      } else {
+        return retVal;
       }
     });
 
@@ -147,13 +144,8 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
   @Override
   public String readableString() {
 
-    Map<ResourceType<?>, ResourcePool> sortedPools = new TreeMap<ResourceType<?>, ResourcePool>(
-      new Comparator<ResourceType<?>>() {
-        @Override
-        public int compare(ResourceType<?> o1, ResourceType<?> o2) {
-          return o2.getTierHeight() - o1.getTierHeight();
-        }
-      }
+    Map<ResourceType<?>, ResourcePool> sortedPools = new TreeMap<>(
+      (o1, o2) -> o2.getTierHeight() - o1.getTierHeight()
     );
     sortedPools.putAll(pools);
 

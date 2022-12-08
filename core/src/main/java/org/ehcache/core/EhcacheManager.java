@@ -40,6 +40,7 @@ import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.event.CacheEventListener;
@@ -55,7 +56,6 @@ import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,10 +77,9 @@ import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
+ * <p>
+ * {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ * {@code org.ehcache}.
  */
 public class EhcacheManager implements PersistentCacheManager, InternalCacheManager {
 
@@ -90,8 +89,8 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   private final ClassLoader cacheManagerClassLoader;
 
   private final boolean useLoaderInAtomics;
-  private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<String, CacheHolder>();
-  private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<CacheManagerListener>();
+  private final ConcurrentMap<String, CacheHolder> caches = new ConcurrentHashMap<>();
+  private final CopyOnWriteArrayList<CacheManagerListener> listeners = new CopyOnWriteArrayList<>();
 
   private final StatusTransitioner statusTransitioner = new StatusTransitioner(LOGGER);
   private final String simpleName;
@@ -116,7 +115,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   private void validateServicesConfigs() {
-    HashSet<Class> classes = new HashSet<Class>();
+    HashSet<Class> classes = new HashSet<>();
     for (ServiceCreationConfiguration<?> service : configuration.getServiceCreationConfigurations()) {
       if (!classes.add(service.getServiceType())) {
         throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
@@ -187,6 +186,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if(cacheHolder != null) {
       final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
       if (ehcache != null) {
+        if (removeFromConfig) {
+          configuration.removeCacheConfiguration(alias);
+        }
+
         if (!statusTransitioner.isTransitioning()) {
           for (CacheManagerListener listener : listeners) {
             listener.cacheRemoved(alias, ehcache);
@@ -195,9 +198,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
         ehcache.close();
         closeEhcache(alias, ehcache);
-        if (removeFromConfig) {
-          configuration.removeCacheConfiguration(alias);
-        }
       }
       LOGGER.info("Cache '{}' removed from {}.", alias, simpleName);
     }
@@ -294,9 +294,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
   <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                         final Class<K> keyType, final Class<V> valueType) {
-    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
+    Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
 
-    List<ServiceConfiguration> unknownServiceConfigs = new ArrayList<ServiceConfiguration>();
+    List<ServiceConfiguration> unknownServiceConfigs = new ArrayList<>();
     for (ServiceConfiguration serviceConfig : adjustedServiceConfigs) {
       if (!serviceLocator.knowsServiceFor(serviceConfig)) {
         unknownServiceConfigs.add(serviceConfig);
@@ -306,7 +306,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       throw new IllegalStateException("Cannot find service(s) that can handle following configuration(s) : " + unknownServiceConfigs);
     }
 
-    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
+    List<LifeCycled> lifeCycledList = new ArrayList<>();
 
     final Store<K, V> store = getStore(alias, config, keyType, valueType, adjustedServiceConfigs, lifeCycledList);
 
@@ -316,7 +316,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       final CacheLoaderWriter<? super K, V> loaderWriter;
       loaderWriter = cacheLoaderWriterProvider.createCacheLoaderWriter(alias, config);
       WriteBehindConfiguration writeBehindConfiguration =
-          ServiceLocator.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
+          ServiceUtils.findSingletonAmongst(WriteBehindConfiguration.class, config.getServiceConfigurations().toArray());
       if(writeBehindConfiguration == null) {
         decorator = loaderWriter;
       } else {
@@ -357,16 +357,16 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     final InternalCache<K, V> cache;
     if (decorator == null) {
-      cache = new Ehcache<K, V>(config, store, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+      cache = new Ehcache<>(config, store, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
     } else {
-      cache = new EhcacheWithLoaderWriter<K, V>(config, store, decorator, evtService,
-                    useLoaderInAtomics, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + alias));
+      cache = new EhcacheWithLoaderWriter<>(config, store, decorator, evtService,
+        useLoaderInAtomics, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + alias));
     }
 
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs =
-          ServiceLocator.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
+          ServiceUtils.findAmongst(CacheEventListenerConfiguration.class, config.getServiceConfigurations());
       for (CacheEventListenerConfiguration lsnrConfig: evtLsnrConfigs) {
         final CacheEventListener<K, V> lsnr = evntLsnrFactory.createEventListener(alias, lsnrConfig);
         if (lsnr != null) {
@@ -481,7 +481,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     int dispatcherConcurrency;
-    StoreEventSourceConfiguration eventSourceConfiguration = ServiceLocator.findSingletonAmongst(StoreEventSourceConfiguration.class, config
+    StoreEventSourceConfiguration eventSourceConfiguration = ServiceUtils.findSingletonAmongst(StoreEventSourceConfiguration.class, config
         .getServiceConfigurations()
         .toArray());
     if (eventSourceConfiguration != null) {
@@ -490,7 +490,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       dispatcherConcurrency = StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
     }
 
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, dispatcherConcurrency, keySerializer, valueSerializer);
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     lifeCycledList.add(new LifeCycled() {
@@ -527,10 +527,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       cacheClassLoader = cacheManagerClassLoader;
     }
     if (cacheClassLoader != config.getClassLoader() ) {
-      config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
-          config.getEvictionAdvisor(), cacheClassLoader, config.getExpiry(),
-          config.getResourcePools(), config.getServiceConfigurations().toArray(
-          new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
+      config = new BaseCacheConfiguration<>(config.getKeyType(), config.getValueType(),
+        config.getEvictionAdvisor(), cacheClassLoader, config.getExpiry(),
+        config.getResourcePools(), config.getServiceConfigurations().toArray(
+        new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
     return config;
   }
@@ -559,7 +559,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     try {
       serviceLocator.startAllServices();
 
-      Deque<String> initiatedCaches = new ArrayDeque<String>();
+      Deque<String> initiatedCaches = new ArrayDeque<>();
       try {
         for (Map.Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations()
             .entrySet()) {
@@ -635,23 +635,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return configuration;
   }
 
-  /**
-   * Removes and closes a cache without performing {@link CacheManagerListener#cacheRemoved(String, Cache)}
-   * notifications.
-   *
-   * @param alias the alias of the cache to remove
-   */
-  protected void removeAndCloseWithoutNotice(final String alias) {
-    final CacheHolder cacheHolder = caches.remove(alias);
-    if(cacheHolder != null) {
-      final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
-      if(ehcache.getStatus() == Status.AVAILABLE) {
-        ehcache.close();
-      }
-    }
-    configuration.removeCacheConfiguration(alias);
-  }
-
   @Override
   public void destroyCache(final String alias) throws CachePersistenceException {
     if (alias == null) {
@@ -680,7 +663,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     try {
-      removeAndCloseWithoutNotice(alias);
+      removeCache(alias, true);
       destroyPersistenceSpace(alias);
     } finally {
       // if it was started, stop it

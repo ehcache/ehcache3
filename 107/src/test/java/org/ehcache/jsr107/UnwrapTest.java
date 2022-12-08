@@ -52,7 +52,7 @@ public class UnwrapTest {
 
   @Test
   public void testCacheUnwrap() {
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class);
     Cache<String, String> cache = cacheManager.createCache("cache", configuration);
     assertThat(cache.unwrap(org.ehcache.Cache.class), is(instanceOf(org.ehcache.Cache.class)));
@@ -68,11 +68,11 @@ public class UnwrapTest {
 
   @Test
   public void testCacheEntryEventUnwrap() {
-    MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
+    MutableConfiguration<String, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(String.class, String.class);
     Cache<String, String> cache = cacheManager.createCache("cache", configuration);
     org.ehcache.event.CacheEvent<String, String> ehEvent = new EhEvent();
-    Eh107CacheEntryEvent<String, String> cacheEntryEvent = new Eh107CacheEntryEvent.NormalEvent<String, String>(cache, EventType.CREATED, ehEvent, false);
+    Eh107CacheEntryEvent<String, String> cacheEntryEvent = new Eh107CacheEntryEvent.NormalEvent<>(cache, EventType.CREATED, ehEvent, false);
     assertThat(cacheEntryEvent.unwrap(org.ehcache.event.CacheEvent.class), is(instanceOf(CacheEvent.class)));
     assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.NormalEvent.class)));
   }

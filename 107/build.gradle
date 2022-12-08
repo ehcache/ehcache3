@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import org.gradle.internal.jvm.Jvm
-
 apply plugin: EhDeploy
 
 configurations {
@@ -46,23 +44,29 @@ tasks.withType(JavaCompile) {
 
 javadoc {
   exclude '**/tck/**'
+  classpath = sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + configurations.provided
+}
+
+test {
+  if (testJava.javaVersion.isJava9Compatible()) {
+    jvmArgs += ['--add-modules', 'java.xml.bind']
+  }
 }
 
 task unpackTckTests(type: Copy) {
   from {
     configurations.tckTestClasses.collect {zipTree(it)}
   }
-  into sourceSets.tckTest.output.classesDir
+  into sourceSets.tckTest.java.outputDir
 }
 
 task tckTest(type: Test, dependsOn: unpackTckTests) {
-  executable = Jvm.current().javaExecutable
-  testClassesDir = sourceSets.tckTest.output.classesDir
+  testClassesDirs = sourceSets.tckTest.output.classesDirs
   classpath += sourceSets.tckTest.runtimeClasspath
 
   binResultsDir file("$buildDir/tck-tests-results/binary/$name")
-  reports.junitXml.destination = "$buildDir/tck-tests-results"
-  reports.html.destination = "$buildDir/reports/tck-tests"
+  reports.junitXml.destination = file("$buildDir/tck-tests-results")
+  reports.html.destination = file("$buildDir/reports/tck-tests")
 
   systemProperty 'java.net.preferIPv4Stack', 'true'
   systemProperty 'javax.management.builder.initial', 'org.ehcache.jsr107.internal.tck.Eh107MBeanServerBuilder'

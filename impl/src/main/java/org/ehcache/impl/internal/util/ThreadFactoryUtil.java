@@ -15,24 +15,54 @@
  */
 package org.ehcache.impl.internal.util;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Ludovic Orban
  */
-public class ThreadFactoryUtil {
+public final class ThreadFactoryUtil {
 
+  /** Turn it on to activate thread creation tracking */
+  private static final boolean DEBUG = false;
+
+  /** Stack traces (wrapped in exceptions) of all created threads */
+  private static final Map<Integer, Exception> threads = (DEBUG ? new HashMap<>() : null);
+
+  private ThreadFactoryUtil() {}
+
+  /**
+   * Return a {@code ThreadFactory} that will generate threads named "Ehcache [alias]-incrementingNumber"
+   *
+   * @param alias the alias to use in the name. If null, the alias used will be "_default_"
+   * @return the new thread factory
+   */
   public static ThreadFactory threadFactory(final String alias) {
     return new ThreadFactory() {
-
+      private final ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
       private final AtomicInteger threadCount = new AtomicInteger();
+      private final String poolAlias = (alias == null ? "_default_" : alias);
 
       @Override
       public Thread newThread(Runnable r) {
-        return new Thread(r, "Ehcache [" + alias + "]-" + threadCount.getAndIncrement());
+        Thread t = new Thread(threadGroup, r, "Ehcache [" + poolAlias + "]-" + threadCount.getAndIncrement());
+        if(DEBUG) {
+          threads.put(System.identityHashCode(t), new Exception(t.getName()));
+        }
+        return t;
       }
     };
   }
 
+  /**
+   * Will return all the created threads stack traces produce by the thread factories created if the {@link #DEBUG} flag
+   * is true.
+   *
+   * @return All the created thread stack traces if {@link #DEBUG} is on, or null otherwise
+   */
+  public static Map<Integer, Exception> getCreatedThreads() {
+    return threads;
+  }
 }

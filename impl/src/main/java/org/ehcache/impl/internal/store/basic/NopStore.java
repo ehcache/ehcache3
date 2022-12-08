@@ -17,9 +17,6 @@ package org.ehcache.impl.internal.store.basic;
 
 import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
@@ -31,6 +28,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A store that doesn't store anything.
@@ -161,7 +161,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
     return null;
   }
 
@@ -176,8 +176,8 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
-    Map<K, ValueHolder<V>> map = new HashMap<K, ValueHolder<V>>(keys.size());
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+    Map<K, ValueHolder<V>> map = new HashMap<>(keys.size());
     for(K key : keys) {
       map.put(key, EmptyValueHolder.<V>empty());
     }
@@ -186,7 +186,7 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
-    Map<K, ValueHolder<V>> map = new HashMap<K, ValueHolder<V>>(keys.size());
+    Map<K, ValueHolder<V>> map = new HashMap<>(keys.size());
     for(K key : keys) {
       map.put(key, EmptyValueHolder.<V>empty());
     }

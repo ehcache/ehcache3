@@ -17,15 +17,10 @@ package org.ehcache.management.registry;
 
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -33,15 +28,12 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
 
   private static final AtomicLong COUNTER = new AtomicLong();
 
-  private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration> statisticConfigurations = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration>();
-  private final Collection<String> tags = new TreeSet<String>();
+  private final Collection<String> tags = new TreeSet<>();
   private Context context = Context.empty();
-  private String statisticsExecutorAlias;
-  private String collectorExecutorAlias;
+  private String collectorExecutorAlias = "collectorExecutor";
 
   public DefaultManagementRegistryConfiguration() {
     setCacheManagerAlias("cache-manager-" + COUNTER.getAndIncrement());
-    addConfiguration(new EhcacheStatisticsProviderConfiguration());
   }
 
   public DefaultManagementRegistryConfiguration setCacheManagerAlias(String alias) {
@@ -56,19 +48,8 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return this;
   }
 
-  public DefaultManagementRegistryConfiguration setStatisticsExecutorAlias(String alias) {
-    this.statisticsExecutorAlias = alias;
-    return this;
-  }
-
   public DefaultManagementRegistryConfiguration setCollectorExecutorAlias(String collectorExecutorAlias) {
     this.collectorExecutorAlias = collectorExecutorAlias;
-    return this;
-  }
-
-  public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration configuration) {
-    Class<? extends ManagementProvider> providerType = configuration.getStatisticsProviderType();
-    statisticConfigurations.put(providerType, configuration);
     return this;
   }
 
@@ -91,11 +72,6 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
-  public String getStatisticsExecutorAlias() {
-    return this.statisticsExecutorAlias;
-  }
-
-  @Override
   public String getCollectorExecutorAlias() {
     return this.collectorExecutorAlias;
   }
@@ -103,11 +79,6 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   @Override
   public Collection<String> getTags() {
     return tags;
-  }
-
-  @Override
-  public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider> providerType) {
-    return statisticConfigurations.get(providerType);
   }
 
   @Override
@@ -119,9 +90,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   public String toString() {
     return "DefaultManagementRegistryConfiguration{" + "context=" + context +
         ", tags=" + tags +
-        ", statisticsExecutorAlias='" + statisticsExecutorAlias + '\'' +
         ", collectorExecutorAlias='" + collectorExecutorAlias + '\'' +
-        ", statisticConfigurations=" + statisticConfigurations +
         '}';
   }
 
@@ -132,20 +101,16 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
 
     DefaultManagementRegistryConfiguration that = (DefaultManagementRegistryConfiguration) o;
 
-    if (!statisticConfigurations.equals(that.statisticConfigurations)) return false;
     if (!tags.equals(that.tags)) return false;
     if (!context.equals(that.context)) return false;
-    if (statisticsExecutorAlias != null ? !statisticsExecutorAlias.equals(that.statisticsExecutorAlias) : that.statisticsExecutorAlias != null) return false;
     return collectorExecutorAlias != null ? collectorExecutorAlias.equals(that.collectorExecutorAlias) : that.collectorExecutorAlias == null;
 
   }
 
   @Override
   public int hashCode() {
-    int result = statisticConfigurations.hashCode();
-    result = 31 * result + tags.hashCode();
+    int result = tags.hashCode();
     result = 31 * result + context.hashCode();
-    result = 31 * result + (statisticsExecutorAlias != null ? statisticsExecutorAlias.hashCode() : 0);
     result = 31 * result + (collectorExecutorAlias != null ? collectorExecutorAlias.hashCode() : 0);
     return result;
   }

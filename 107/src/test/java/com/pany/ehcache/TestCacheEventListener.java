@@ -26,7 +26,7 @@ import java.util.List;
  * TestCacheEventListener
  */
 public class TestCacheEventListener implements CacheEventListener<String, String> {
-  public static List<CacheEvent<? extends String, ? extends String>> seen = new ArrayList<CacheEvent<? extends String, ? extends String>>();
+  public static List<CacheEvent<? extends String, ? extends String>> seen = new ArrayList<>();
 
   @Override
   public void onEvent(CacheEvent<? extends String, ? extends String> event) {

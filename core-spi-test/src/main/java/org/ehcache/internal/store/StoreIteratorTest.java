@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * Test the {@link Store#iterator()} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -76,8 +75,8 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(key3, value3);
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
-    List<K> keys = new ArrayList<K>();
-    List<V> values = new ArrayList<V>();
+    List<K> keys = new ArrayList<>();
+    List<V> values = new ArrayList<>();
     while (iterator.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> nextEntry = iterator.next();
       keys.add(nextEntry.getKey());

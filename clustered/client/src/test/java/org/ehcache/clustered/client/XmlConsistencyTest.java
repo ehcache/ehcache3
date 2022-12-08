@@ -20,7 +20,7 @@ import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +44,7 @@ public class XmlConsistencyTest {
   @Test
   public void testDefaultConsistency() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = xmlConfiguration.getCacheConfigurations().get("default-consistency-cache");
-    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceLocator.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
+    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
         .getServiceConfigurations());
 
     assertNull(clusteredStoreConfiguration);
@@ -53,7 +53,7 @@ public class XmlConsistencyTest {
   @Test
   public void testEventualConsistency() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = xmlConfiguration.getCacheConfigurations().get("eventual-consistency-cache");
-    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceLocator.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
+    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
         .getServiceConfigurations());
 
     assertThat(clusteredStoreConfiguration.getConsistency(), is(Consistency.EVENTUAL));
@@ -62,7 +62,7 @@ public class XmlConsistencyTest {
   @Test
   public void testStrongConsistency() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = xmlConfiguration.getCacheConfigurations().get("strong-consistency-cache");
-    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceLocator.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
+    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
         .getServiceConfigurations());
 
     assertThat(clusteredStoreConfiguration.getConsistency(), is(Consistency.STRONG));
@@ -71,7 +71,7 @@ public class XmlConsistencyTest {
   @Test
   public void testTemplateConsistency() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = xmlConfiguration.getCacheConfigurations().get("template-consistency-cache");
-    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceLocator.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
+    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
         .getServiceConfigurations());
 
     assertThat(clusteredStoreConfiguration.getConsistency(), is(Consistency.STRONG));
@@ -80,7 +80,7 @@ public class XmlConsistencyTest {
   @Test
   public void testTemplateConsistencyOverride() throws Exception {
     CacheConfiguration<?, ?> cacheConfiguration = xmlConfiguration.getCacheConfigurations().get("template-override-consistency-cache");
-    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceLocator.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
+    ClusteredStoreConfiguration clusteredStoreConfiguration = ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class, cacheConfiguration
         .getServiceConfigurations());
 
     assertThat(clusteredStoreConfiguration.getConsistency(), is(Consistency.EVENTUAL));
