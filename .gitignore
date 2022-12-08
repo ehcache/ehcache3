@@ -1,22 +1,4 @@
-*/target/
-
-build/
-*/src/generated/
+# Gradle
 .gradle/
-
-.project
-.classpath
-.settings/org.eclipse.m2e.core.prefs
-*/.classpath
-*.prefs
-
-*.iml
-.idea
-out/
-
-.nb-gradle
-.nb-gradle-properties
-
-/classes
-
-**/*.*~
+**/build/
+!**/src/**/build/

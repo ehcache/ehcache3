@@ -18,6 +18,7 @@ import org.asciidoctor.gradle.jvm.AsciidoctorJBasePlugin
 import org.asciidoctor.gradle.jvm.AsciidoctorTask
 
 plugins {
+  id 'org.ehcache.build.conventions.base'
   id 'org.asciidoctor.jvm.base'
 }
 
@@ -31,7 +32,7 @@ asciidoctorj {
 }
 
 def createCopyCssTask(def asciidocTask) {
-  return tasks.register("copy${asciidocTask.name}CSS", Copy) {
+  return tasks.register("copy${asciidocTask.name}CSS", Sync) {
     from ('css') {
       include '**'
     } into("${asciidocTask.outputDir}/css")

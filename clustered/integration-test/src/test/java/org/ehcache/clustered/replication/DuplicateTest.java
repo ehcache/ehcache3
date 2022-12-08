@@ -17,7 +17,6 @@ package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -44,14 +43,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assume.assumeThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class DuplicateTest extends ClusteredTests {
+public class DuplicateTest {
 
   private PersistentCacheManager cacheManager;
 

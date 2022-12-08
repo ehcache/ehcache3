@@ -31,7 +31,10 @@ import java.net.URL;
 import java.util.Properties;
 
 import static org.ehcache.clustered.CacheManagerLifecycleEhcacheIntegrationTest.substitute;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+
 
 /**
  * JCacheClusteredTest - runs the TCK test suite using clustered caches
@@ -40,7 +43,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 @ExternalTests.From(javax.cache.CachingTest.class)
 @ExternalTests.Ignore(value=CachingProviderTest.class, method="getCacheManagerUsingDefaultURI")
 @ExternalTests.Ignore(value= CacheListenerTest.class)
-public class JCacheClusteredTest extends ClusteredTests {
+public class JCacheClusteredTest {
 
   private static final Properties TCK_PROPERTIES = new Properties();
   static {

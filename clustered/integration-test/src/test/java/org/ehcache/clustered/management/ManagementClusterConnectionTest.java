@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -31,7 +30,6 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.utilities.test.rules.TestRetryer;
 
 import java.net.URI;
@@ -48,14 +46,17 @@ import static org.ehcache.clustered.management.AbstractClusteringManagementTest.
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResources;
 import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
 import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 
-public class ManagementClusterConnectionTest extends ClusteredTests {
+public class ManagementClusterConnectionTest {
 
   protected static CacheManager cacheManager;
   protected static ObjectMapper mapper = new ObjectMapper();
@@ -176,12 +177,6 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
   private String getInstanceId() throws Exception {
     return CLUSTER.get().getNmsService().readTopology().clientStream()
       .filter(client -> client.getName().startsWith("Ehcache:") && client.isManageable())
-      .findFirst().get()
-      .getManagementRegistry().get()
-      .getCapability("SettingsCapability").get()
-      .getDescriptors(Settings.class).stream()
-      .filter(settings -> settings.containsKey("instanceId"))
-      .map(settings -> settings.getString("instanceId"))
-      .findFirst().get();
+      .findFirst().get().getContext().get("instanceId");
   }
 }

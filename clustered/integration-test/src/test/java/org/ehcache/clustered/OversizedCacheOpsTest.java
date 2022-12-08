@@ -31,13 +31,15 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.util.Arrays;
 
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class OversizedCacheOpsTest extends ClusteredTests {
+public class OversizedCacheOpsTest {
 
   @ClassRule
   public static Cluster CLUSTER = newCluster().in(clusterPath())

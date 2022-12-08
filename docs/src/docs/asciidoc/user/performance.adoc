@@ -1,9 +1,9 @@
 ---
 ---
 = Performance Tuning
-ifndef::sourcedir38[]
+ifndef::sourcedir39[]
 include::{includedir}/common.adoc[]
-endif::sourcedir38[]
+endif::sourcedir39[]
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
@@ -120,7 +120,7 @@ For instance, let's say you define an expiry policy like this.
 
 [source,java,indent=0]
 ----
-include::{sourcedir38}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
+include::{sourcedir39}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
 ----
 
 <1> Will instantiate a `Duration` every time an entry is accessed

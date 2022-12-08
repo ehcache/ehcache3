@@ -32,7 +32,6 @@ import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.spi.CachingProvider;
-
 import java.util.ServiceLoader;
 import java.util.Set;
 
@@ -43,7 +42,6 @@ import static java.util.stream.StreamSupport.stream;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
-import static org.ehcache.osgi.OsgiTestUtils.wrappedGradleBundle;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertEquals;
@@ -59,20 +57,17 @@ public class Jsr107OsgiTest {
   @Configuration
   public Option[] individualModules() {
     return options(
-      gradleBundle("org.ehcache.modules:impl"),
-      gradleBundle("org.ehcache.modules:xml"), jaxbConfiguration(),
-      gradleBundle("org.ehcache.modules:107"),
-      gradleBundle("org.ehcache.modules:core"),
-      gradleBundle("org.ehcache.modules:api"),
+      gradleBundle("org.ehcache.modules:ehcache-impl"),
+      gradleBundle("org.ehcache.modules:ehcache-xml"), jaxbConfiguration(),
+      gradleBundle("org.ehcache.modules:ehcache-107"),
+      gradleBundle("org.ehcache.modules:ehcache-core"),
+      gradleBundle("org.ehcache.modules:ehcache-api"),
       gradleBundle("javax.cache:cache-api"),
 
-      gradleBundle("org.terracotta.management:management-model"),
-      gradleBundle("org.terracotta.management:sequence-generator"),
-
-      wrappedGradleBundle("org.terracotta:statistics"),
-      wrappedGradleBundle("org.ehcache:sizeof"),
-      wrappedGradleBundle("org.terracotta:offheap-store"),
-      wrappedGradleBundle("org.terracotta:terracotta-utilities-tools"),
+      gradleBundle("org.terracotta:statistics"),
+      gradleBundle("org.ehcache:sizeof"),
+      gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("Jsr107OsgiTest", "individualModules")
     );
@@ -81,7 +76,7 @@ public class Jsr107OsgiTest {
   @Configuration
   public Option[] uberJar() {
     return options(
-      gradleBundle("org.ehcache:dist"), jaxbConfiguration(),
+      gradleBundle("org.ehcache:ehcache"), jaxbConfiguration(),
       gradleBundle("javax.cache:cache-api"),
 
       baseConfiguration("Jsr107OsgiTest", "uberJar")

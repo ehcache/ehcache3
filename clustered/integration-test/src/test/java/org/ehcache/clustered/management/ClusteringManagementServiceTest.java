@@ -302,10 +302,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     if (cluster.serverStream().count() == 2) {
       waitForAllNotifications(
         "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED",
-        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED"); // passive server
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "CLIENT_REGISTRY_AVAILABLE"); // passive server
     } else {
       waitForAllNotifications(
-        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED");
+        "SERVER_ENTITY_CREATED", "ENTITY_REGISTRY_AVAILABLE", "EHCACHE_SERVER_STORE_CREATED", "SERVER_ENTITY_FETCHED", "CACHE_ADDED", "CLIENT_REGISTRY_AVAILABLE");
     }
   }
 
@@ -313,7 +313,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   public void test_F_notifs_on_remove_cache() throws Exception {
     cacheManager.removeCache("cache-2");
 
-    waitForAllNotifications("CACHE_REMOVED", "SERVER_ENTITY_UNFETCHED");
+    waitForAllNotifications("CACHE_REMOVED", "SERVER_ENTITY_UNFETCHED", "CLIENT_REGISTRY_AVAILABLE");
   }
 
   @Test

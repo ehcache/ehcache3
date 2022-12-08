@@ -29,12 +29,12 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
-import org.terracotta.org.junit.rules.TemporaryFolder;
 import org.terracotta.statistics.OperationStatistic;
 
 import java.io.File;

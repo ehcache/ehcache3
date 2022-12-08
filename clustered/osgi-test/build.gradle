@@ -14,53 +14,44 @@
  * limitations under the License.
  */
 
+plugins {
+  id 'org.ehcache.build.conventions.java'
+}
+
 configurations {
+  modularOsgiModule
   osgiModule
+  lowerBoundOsgiModule.extendsFrom osgiModule
   testCompileOnly.extendsFrom osgiModule
 }
 
 dependencies {
-  osgiModule project(':api')
-  osgiModule project(':core')
-  osgiModule project(':impl')
-  osgiModule project(':xml')
+  modularOsgiModule project(':ehcache-api')
+  modularOsgiModule project(':ehcache-core')
+  modularOsgiModule project(':ehcache-impl')
+  modularOsgiModule project(':ehcache-xml')
 
-  osgiModule project(':dist')
-  osgiModule project(':clustered:clustered-dist')
+  osgiModule project(':ehcache')
+  osgiModule project(':clustered:ehcache-clustered')
   osgiModule "javax.cache:cache-api:$parent.jcacheVersion"
   osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   osgiModule "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
+  osgiModule "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
   osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
   osgiModule 'com.sun.activation:javax.activation:1.2.0'
   osgiModule 'org.glassfish.hk2:osgi-resource-locator:1.0.2'
 
-  //IDEs cannot handle the :dist or :clustered:clustered-dist dependencies
-  testCompileOnly project(':clustered:client')
-  testCompileOnly project(':clustered:common')
-
-  testImplementation 'org.apache.felix:org.apache.felix.framework:6.0.3'
-  testImplementation ('org.ops4j.pax.exam:pax-exam-junit4:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-
-  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-container-native:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.1") {
-    exclude group:'org.slf4j', module:'slf4j-api'
-  }
-
+  testImplementation project(':osgi-test')
+  testImplementation 'org.osgi:osgi.core:6.0.0'
 }
 
 configurations.all {
   resolutionStrategy {
     dependencySubstitution {
       substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
-        .because('https://ops4j1.jira.com/browse/PAXURL-341')
-        .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+        .because('https://github.com/codehaus-plexus/plexus-utils/issues/3' +
+          ' and https://github.com/codehaus-plexus/plexus-utils/issues/4')
+        .with(module('org.ops4j.pax.url:pax-url-aether:2.6.3'))
       substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
         .because('https://ops4j1.jira.com/browse/PAXURL-341')
         .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
@@ -68,6 +59,9 @@ configurations.all {
         .because('https://ops4j1.jira.com/browse/PAXURL-341')
         .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
 
+      substitute(module('biz.aQute.bnd:bndlib:2.4.0'))
+        .because('Java 9 Stuff')
+        .with(module('biz.aQute.bnd:biz.aQute.bndlib:5.2.0'))
       substitute(module('junit:junit:4.12'))
         .because('CVE-2020-15250')
         .with(module('junit:junit:4.13.1'))
@@ -83,21 +77,47 @@ sourceSets {
   }
 }
 
-configurations.osgiModule.dependencies.withType(ProjectDependency).forEach {
-  test.dependsOn it.dependencyProject.tasks.jar
-}
-
-task unzipKit(type: Copy) {
-  dependsOn project(':clustered:clustered-dist').distZip
-  from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
+task unzipKit(type: Sync) {
+  dependsOn project(':clustered:ehcache-clustered').distZip
+  from zipTree(project(':clustered:ehcache-clustered').distZip.archivePath)
   into 'build/ehcache-kit'
 }
 
-test {
+tasks.withType(Test) {
   dependsOn unzipKit
-  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
-}.doFirst {
-  configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
-    systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
-  })
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit"
+}
+
+test {
+  dependsOn configurations.osgiModule, configurations.modularOsgiModule
+  doFirst {
+    [configurations.modularOsgiModule, configurations.osgiModule]*.resolvedConfiguration*.resolvedArtifacts*.forEach({
+      systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+    })
+  }
+}
+
+configurations {
+  lowerBoundOsgiModule {
+    resolutionStrategy.dependencySubstitution {
+      substitute module('org.glassfish.jaxb:jaxb-runtime') with module('com.sun.xml.bind:jaxb-osgi:2.2.8-b01')
+    }
+  }
+}
+dependencies {
+  lowerBoundOsgiModule 'javax.xml.bind:jaxb-api:2.2.9'
+}
+
+tasks.register('lowerBoundTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  dependsOn configurations.lowerBoundOsgiModule, configurations.modularOsgiModule
+  doFirst {
+    [configurations.modularOsgiModule, configurations.lowerBoundOsgiModule]*.resolvedConfiguration*.resolvedArtifacts*.forEach({
+      systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+    })
+  }
+}
+
+tasks.named('check') {
+  dependsOn tasks.lowerBoundTest
 }

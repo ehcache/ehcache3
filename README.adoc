@@ -1,6 +1,6 @@
 = The Ehcache 3.x line is currently the development line.
 
-Status of the build: 
+Status of the build:
 [link="https://dev.azure.com/TerracottaCI/ehcache/_build/latest?definitionId=14"]
 image::https://dev.azure.com/TerracottaCI/ehcache/_apis/build/status/ehcache3[Build Status]
 
@@ -12,11 +12,11 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.8.1 on September 4th 2019.
+We released 3.9.0 on August 25th 2020.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.8.1[release notes] contain the links to the artifacts and the documentation to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.9.0[release notes] contain the links to the artifacts and the documentation to help you get started.
 
-You should consider upgrading to 3.8.x as it does all previous 3.x do and more with a fully compatible API.
+You should consider upgrading to 3.9.x as it does all previous 3.x do and more with a fully compatible API.
 
 == Current development & next release
 

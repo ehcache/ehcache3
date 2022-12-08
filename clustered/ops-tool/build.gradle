@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+plugins {
+  id 'org.ehcache.build.conventions.java-library'
+}
+
 dependencies {
   implementation 'com.beust:jcommander:1.47'
 }

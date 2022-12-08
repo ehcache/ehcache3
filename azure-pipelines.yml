@@ -40,11 +40,10 @@ jobs:
     vmImage: 'windows-latest'
     jdkVersion: '1.8'
     jobName: 'WindowsJava8'
-    options: '--max-workers=1'
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
     vmImage: 'windows-latest'
     jdkVersion: '1.8'
-    options: '-PtestVM=java11Home --max-workers=1'
+    options: '-PtestVM=java11Home'
     jobName: 'WindowsJava11'

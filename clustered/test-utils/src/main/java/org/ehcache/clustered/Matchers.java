@@ -26,10 +26,25 @@ import org.hamcrest.TypeSafeMatcher;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import static org.ehcache.clustered.ChainUtils.readPayload;
 
 public class Matchers {
+
+  public static <K, V> Matcher<Map.Entry<K, V>> entry(Matcher<K> key, Matcher<V> value) {
+    return new TypeSafeMatcher<Map.Entry<K, V>>() {
+      @Override
+      protected boolean matchesSafely(Map.Entry<K, V> item) {
+        return key.matches(item.getKey()) && value.matches(item.getValue());
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("an entry with key ").appendDescriptionOf(key).appendText(" and value ").appendDescriptionOf(value);
+      }
+    };
+  }
 
   public static Matcher<Chain> matchesChain(Chain expected) {
     return new TypeSafeMatcher<Chain>() {
