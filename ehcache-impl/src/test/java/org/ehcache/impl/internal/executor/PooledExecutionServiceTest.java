@@ -67,7 +67,7 @@ public class PooledExecutionServiceTest {
     pooledExecutionService.start(null);
     try {
       assertThatThrownBy(() -> pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>()))
-        .isInstanceOf(IllegalArgumentException.class).hasMessage("Null pool alias provided and no default pool configured");
+        .isInstanceOf(IllegalArgumentException.class).hasMessage("No default pool configured, and no explicit alias provided. Consider configuring a default pool.");
     } finally {
       pooledExecutionService.stop();
     }
