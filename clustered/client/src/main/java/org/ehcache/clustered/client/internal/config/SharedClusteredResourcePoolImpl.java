@@ -20,7 +20,7 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.SharedClusteredResourcePool;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.config.ResourcePool;
-import org.ehcache.core.config.AbstractResourcePool;
+import org.ehcache.impl.config.AbstractResourcePool;
 
 /**
  * Implementation for {@link SharedClusteredResourcePool}.
@@ -44,11 +44,6 @@ public class SharedClusteredResourcePoolImpl
       throw new NullPointerException("sharedResourcePool identifier can not be null");
     }
     this.sharedResourcePool = sharedResourcePool;
-  }
-
-  @Override
-  public ClusteredResourceType<SharedClusteredResourcePool> getType() {
-    return super.getType();
   }
 
   @Override

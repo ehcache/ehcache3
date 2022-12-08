@@ -19,10 +19,17 @@ import org.gradle.internal.jvm.Jvm
 plugins {
   // This adds tasks to auto close or release nexus staging repos
   // see https://github.com/Codearte/gradle-nexus-staging-plugin/
-  id 'io.codearte.nexus-staging' version '0.9.0'
-  // This adds the ability to print a taskTree
-  // ./gradlew <task1> ... <taskN> taskTree
-  id "com.dorongold.task-tree" version "1.3"
+  id 'io.codearte.nexus-staging'
+  //OWASP Security Vulnerability Detection
+  id 'org.owasp.dependencycheck'
+  // Declare spotbugs at the top
+  id 'com.github.spotbugs' apply false
+  // Declare bnd at the top
+  id 'biz.aQute.bnd.builder' apply false
+}
+
+wrapper {
+  distributionType = Wrapper.DistributionType.ALL
 }
 
 if (deployUrl.contains('nexus')) {
@@ -48,7 +55,7 @@ if (deployUrl.contains('nexus')) {
 project.nexusStaging {
   username = project.ext.deployUser
   password = project.ext.deployPwd
-  logger.warn("Nexus Staging: Using login ${username} and url ${serverUrl}")
+  logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
 }
 
 // Disable automatic promotion for added safety
@@ -57,69 +64,41 @@ closeAndReleaseRepository.enabled = false
 
 ext {
 
-  baseVersion = findProperty('overrideVersion') ?: '3.5.0-SNAPSHOT'
-
-  // Third parties
-  offheapVersion = '2.3.2'
-  statisticVersion = '1.4.3'
-  jcacheVersion = '1.0.0'
-  slf4jVersion = '1.7.7'
-  sizeofVersion = '0.3.0'
-  ehcache2Version = '2.10.3'
-
-  // Clustered
-  terracottaPlatformVersion = '5.3.4'
-  managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.3.1'
-  terracottaCoreVersion = '5.3.4'
-  offheapResourceVersion = terracottaPlatformVersion
-  entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.3.2'
-  entityTestLibVersion = terracottaPassthroughTestingVersion
-
-  // Tools
-  findbugsVersion = '3.0.1'
+  baseVersion = findProperty('overrideVersion') ?: ehcacheVersion
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
-  isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
 }
 
 
-// Java 6 build setup
 assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
 ext {
   testJava = Jvm.current()
 }
 
 if (hasProperty('testVM')) {
-  switch (testVM) {
-    case '8':
-      if (JavaVersion.current().isJava8()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java8Home') : 'Set the poperty \'java8Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 8 installation'
-        testJava = Jvm.discovered(new File(java8Home), JavaVersion.VERSION_1_8)
-      }
-      break
-    case '9':
-      if (JavaVersion.current().isJava9()) {
-        testJava = Jvm.current()
-      } else {
-        assert hasProperty('java9Home'): 'Set the poperty \'java9Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 9 installation'
-        testJava = Jvm.discovered(new File(java9Home), JavaVersion.VERSION_1_9)
-      }
-      break
-    default:
-      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 8 or 9")
+  File jvmHome = new File(testVM)
+  if (!jvmHome.exists() && hasProperty(testVM)) {
+    jvmHome = new File(project.property(testVM).toString())
   }
+  testJava = Utils.jvmForHome(jvmHome)
+  println "Using Test JVM $testJava [Version: $testJava.javaVersion.majorVersion]"
+}
+
+dependencyCheck {
+  failBuildOnCVSS = 0
+  suppressionFile = 'config/owasp-supressions.xml'
+  skipConfigurations += ['checkstyle', 'spotbugs']
+  skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
+}
+tasks.register('check') {
+  dependsOn dependencyCheckAggregate
 }
 
 subprojects {
-  apply plugin: 'java'
-  apply plugin: 'eclipse'
+  apply plugin: 'java-library'
   apply plugin: 'checkstyle'
-  apply plugin: 'findbugs'
+  apply plugin: 'com.github.spotbugs'
   apply plugin: 'jacoco'
 
   group = 'org.ehcache.modules'
@@ -135,7 +114,7 @@ subprojects {
       mavenLocal()
     }
     mavenCentral()
-    maven { url "http://repo.terracotta.org/maven2" }
+    maven { url "https://repo.terracotta.org/maven2" }
   }
 
   sourceSets {
@@ -148,13 +127,15 @@ subprojects {
   }
 
   dependencies {
-    compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
-    testCompileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
-    testCompile 'junit:junit:4.12', 'org.assertj:assertj-core:3.8.0', 'org.hamcrest:hamcrest-library:1.3'
-    testCompile('org.mockito:mockito-core:2.10.0') {
-      exclude group:'org.hamcrest', module:'hamcrest-core'
-    }
-    testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
+    implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
+    compileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
+    testCompileOnly "com.github.spotbugs:spotbugs-annotations:${project.spotbugs.toolVersion}"
+    testImplementation "junit:junit:$junitVersion"
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
+    testImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
+    testRuntimeOnly "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   }
 
   jar {
@@ -163,10 +144,8 @@ subprojects {
   }
 
   test {
-    maxHeapSize = "1408m"
-    systemProperty 'java.awt.headless', 'true'
-    if (parent.isCloudbees) {
-      systemProperty 'disable.concurrent.tests', 'true'
+    jacoco {
+      excludes += "org.terracotta.tripwire.*"
     }
   }
 
@@ -181,7 +160,7 @@ subprojects {
 
   task sourceJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allJava
-    classifier = 'sources'
+    archiveClassifier = 'sources'
   }
 
   javadoc {
@@ -191,12 +170,10 @@ subprojects {
 
   task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
-    classifier = 'javadoc'
+    archiveClassifier = 'javadoc'
   }
 
   artifacts {
-    archives jar
-
     archives javadocJar
     archives sourceJar
   }
@@ -204,16 +181,20 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.9'
   }
 
-  findbugs {
+  spotbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    findbugs.toolVersion = parent.findbugsVersion
+
   }
 
-  findbugsMain {
+  // Spotbugs itself has a divergence in it's slf4j dependencies.
+  // This version is independent of the version we use.
+  configurations.spotbugs.resolutionStrategy {
+    force 'org.slf4j:slf4j-api:1.8.0-beta4'
+  }
+  spotbugsMain {
     reports {
       // Switch from xml to html by changing these flags
       xml.enabled = true
@@ -222,7 +203,7 @@ subprojects {
   }
 
   jacoco {
-    toolVersion = '0.7.9'
+    toolVersion = jacocoVersion
   }
 
   jacocoTestReport {
@@ -239,6 +220,9 @@ subprojects {
   }
   tasks.withType(Test) {
     executable = testJava.javaExecutable
+    maxHeapSize = "256m"
+    maxParallelForks 64
+    systemProperty 'java.awt.headless', 'true'
   }
   tasks.withType(Javadoc) {
     options.addStringOption('Xdoclint:none', '-quiet')
@@ -247,6 +231,49 @@ subprojects {
   configurations.all {
     resolutionStrategy {
       failOnVersionConflict()
+      // If you want to override a dependency, instead of changing gradle.properties, use something like below
+      // force 'org.terracotta:statistics:2.0-SNAPSHOT'
+    }
+  }
+
+  plugins.withId('biz.aQute.bnd.builder') {
+    /*
+     * The bnd gradle plugin does not handle our 2-digit snapshot versioning scheme very well. It maps `x.y-SNAPSHOT`
+     * to `x.y.0.SNAPSHOT`. This is bad since `x.y.0.SNAPSHOT` is considered to be less than *all* `x.y.z`. This means
+     * the baseline version range expression `(,x.y.0.SNAPSHOT[` will always pick the last release from the previous
+     * minor line. To fix this we manually map to a 3-digit snapshot version where the 3rd digit is a number chosen
+     * to be higher than we would ever release ('All the worlds a VAX').
+     */
+    def fixedVersion = project.version.asType(String).replaceAll(/^(\d+.\d+)-SNAPSHOT$/, "\$1.999-SNAPSHOT")
+
+    jar {
+      bnd(
+        'Bundle-Name': project.properties.subPomName,
+        'Bundle-Description': project.properties.subPomDesc,
+        'Bundle-SymbolicName': "org.ehcache.modules.$project.archivesBaseName",
+        'Bundle-DocURL': 'http://ehcache.org',
+        'Bundle-License': 'LICENSE',
+        'Bundle-Vendor': 'Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.',
+        'Bundle-Version': fixedVersion,
+        'Service-Component': 'OSGI-INF/*.xml'
+      )
+    }
+    dependencies {
+      baseline(group: group, name: jar.archiveBaseName.get(), version: "(,${fixedVersion}[") {
+        force = true
+        transitive = false
+      }
+    }
+    configurations.baseline {
+      resolutionStrategy {
+        componentSelection {
+          all { selection ->
+            if (!selection.candidate.version.matches(/\d+(?:\.\d+)*/)) {
+              selection.reject("Only full releases can be used as OSGi baselines")
+            }
+          }
+        }
+      }
     }
   }
 }
@@ -254,7 +281,7 @@ subprojects {
 allprojects {
   tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint:unchecked']
+    options.compilerArgs += ['-Werror', '-Xlint:all']
   }
   tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'

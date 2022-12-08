@@ -14,60 +14,95 @@
  * limitations under the License.
  */
 
+configurations {
+  osgiModule
+  testCompileOnly.extendsFrom osgiModule
+}
+
 dependencies {
-  ext {
-    paxExamVersion = '3.5.0'
-    felixVersion = '4.4.0'
-  }
+  osgiModule project(':api')
+  osgiModule project(':core')
+  osgiModule project(':impl')
+  osgiModule project(':xml')
+  osgiModule project(':107')
+  osgiModule project(':transactions')
 
-  testCompile project(':impl'), project(':xml'), project(':107'),
-          "org.apache.felix:org.apache.felix.framework:$felixVersion",
-          "javax.cache:cache-api:$parent.jcacheVersion"
-  testCompile ("org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion") {
-    exclude group:'junit', module:'junit'
+  osgiModule "javax.cache:cache-api:$parent.jcacheVersion"
+  osgiModule ('org.codehaus.btm:btm:2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 
-  testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion",
-  testRuntime ("org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion") {
+  osgiModule project(':dist')
+
+  osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
+  osgiModule 'org.apache.felix:org.apache.felix.scr:2.1.6'
+
+  osgiModule 'com.sun.activation:javax.activation:1.2.0'
+  osgiModule 'org.glassfish.hk2:osgi-resource-locator:1.0.2'
+
+  testImplementation 'org.apache.felix:org.apache.felix.framework:6.0.3'
+  testImplementation ('org.ops4j.pax.exam:pax-exam-junit4:4.12.0') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testRuntime ("org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion") {
+
+  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-container-native:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testRuntimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.12.0') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testRuntimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.1") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
 }
 
 configurations.all {
    resolutionStrategy {
-     force 'org.apache.maven.wagon:wagon-provider-api:2.5'
-     force 'org.codehaus.plexus:plexus-utils:3.0.15'
-     force 'org.eclipse.aether:aether-api:0.9.0.M4'
-     force 'org.eclipse.aether:aether-impl:0.9.0.M4'
-     force 'org.eclipse.aether:aether-spi:0.9.0.M4'
-     force 'org.eclipse.aether:aether-util:0.9.0.M4'
-     force 'org.sonatype.plexus:plexus-cipher:1.7'
-     force 'org.sonatype.plexus:plexus-sec-dispatcher:1.4'
+     force 'org.ops4j.base:ops4j-base-lang:1.5.0'
+     force 'org.ops4j.base:ops4j-base-net:1.5.0'
+     force 'org.ops4j.base:ops4j-base-util-property:1.5.0'
+     force 'org.ops4j.pax.url:pax-url-commons:2.6.1'
    }
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
+configurations.all {
+  resolutionStrategy {
+    dependencySubstitution {
+      substitute(module('org.ops4j.pax.url:pax-url-aether:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-aether:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-classpath:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-classpath:2.6.1'))
+      substitute(module('org.ops4j.pax.url:pax-url-link:2.4.5'))
+              .because('https://ops4j1.jira.com/browse/PAXURL-341')
+              .with(module('org.ops4j.pax.url:pax-url-link:2.6.1'))
+
+      substitute(module('junit:junit:4.12'))
+        .because('CVE-2020-15250')
+        .with(module('junit:junit:4.13.1'))
+    }
+  }
 }
 
 sourceSets {
   test {
-    // Needed for PaxExam which makes the dynamic bundle load content of a single dir
-    // matching the package of the test class
+    // Needed to allow PaxExam to see the test resources
     output.resourcesDir = java.outputDir
   }
 }
 
-test {
-  systemProperty 'ehcache.osgi.jar', project(':dist').jar.archivePath.getPath()
-  systemProperty 'ehcache.osgi.jcache.version', parent.jcacheVersion
-  systemProperty 'ehcache.osgi.slf4j.version', parent.slf4jVersion
-}.doFirst {
-  if (testJava.javaVersion.isJava9Compatible()) throw new StopExecutionException("OSGi Tests Not Working in Java 9")
+configurations.osgiModule.dependencies.withType(ProjectDependency).forEach {
+  test.dependsOn it.dependencyProject.tasks.jar
 }
 
-test.dependsOn ':dist:jar'
+test {
+  if (testJava.javaVersion.isJava9Compatible()) {
+    //https://issues.apache.org/jira/browse/FELIX-5727 - framework extensions in Java 9 are ugly
+    jvmArgs += ['--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED']
+  }
+}.doFirst {
+  configurations.osgiModule.resolvedConfiguration.resolvedArtifacts.forEach({
+    systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
+  })
+}

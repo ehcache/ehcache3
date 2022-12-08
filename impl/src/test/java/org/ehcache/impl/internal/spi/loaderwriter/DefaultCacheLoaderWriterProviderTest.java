@@ -38,8 +38,8 @@ import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class DefaultCacheLoaderWriterProviderTest {
@@ -49,7 +49,7 @@ public class DefaultCacheLoaderWriterProviderTest {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-                .add(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
+                .withService(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
                 .build()).build(true);
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
     assertThat(foo, is(MyLoader.object));
@@ -74,7 +74,7 @@ public class DefaultCacheLoaderWriterProviderTest {
   @Test
   public void testCacheConfigOverridesCacheManagerConfig() {
     final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-        .add(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
+        .withService(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
         .build();
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<>();
@@ -95,11 +95,11 @@ public class DefaultCacheLoaderWriterProviderTest {
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(100))
-            .add(new DefaultCacheLoaderWriterConfiguration(klazz))
+            .withService(new DefaultCacheLoaderWriterConfiguration(klazz))
             .build());
-    Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
+    Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
+    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
     cacheManager.close();
   }
 
@@ -132,34 +132,34 @@ public class DefaultCacheLoaderWriterProviderTest {
     };
 
     @Override
-    public Object load(final Object key) throws Exception {
+    public Object load(final Object key) {
       return object;
     }
 
     @Override
-    public Map<Object, Object> loadAll(final Iterable<?> keys) throws Exception {
+    public Map<Object, Object> loadAll(final Iterable<?> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     private static Object lastWritten;
 
     @Override
-    public void write(final Object key, final Object value) throws Exception {
+    public void write(final Object key, final Object value) {
       lastWritten = value;
     }
 
     @Override
-    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) throws Exception {
+    public void writeAll(final Iterable<? extends Map.Entry<?, ?>> entries) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void delete(final Object key) throws Exception {
+    public void delete(final Object key) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void deleteAll(final Iterable<?> keys) throws Exception {
+    public void deleteAll(final Iterable<?> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
   }
@@ -176,12 +176,12 @@ public class DefaultCacheLoaderWriterProviderTest {
     private static Object lastWritten;
 
     @Override
-    public Object load(final Object key) throws Exception {
+    public Object load(final Object key) {
       return object;
     }
 
     @Override
-    public void write(final Object key, final Object value) throws Exception {
+    public void write(final Object key, final Object value) {
       lastWritten = value;
     }
 

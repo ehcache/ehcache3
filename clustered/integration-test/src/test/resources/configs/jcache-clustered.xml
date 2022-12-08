@@ -15,27 +15,26 @@
   ~ limitations under the License.
   -->
 
-<!DOCTYPE config
-[
-<!ENTITY cluster-uri SYSTEM "cluster-uri.xml">
-]
->
 <ehcache:config
     xmlns:ehcache="http://www.ehcache.org/v3"
-    xmlns:tc="http://www.ehcache.org/v3/clustered">
+    xmlns:tc="http://www.ehcache.org/v3/clustered"
+    xmlns:jsr107="http://www.ehcache.org/v3/jsr107">
 
   <ehcache:service>
     <tc:cluster>
-      <tc:connection url="${cluster-uri}/testJCache"/>
-      <tc:server-side-config auto-create="true"/>
+      <tc:connection url="${cluster-uri}/jcache-tck"/>
+      <tc:server-side-config client-mode="auto-create"/>
     </tc:cluster>
   </ehcache:service>
 
-  <ehcache:cache alias="foo">
-    <ehcache:resources>
-      <ehcache:heap>10</ehcache:heap>
-      <tc:clustered-dedicated from="primary" unit="MB">10</tc:clustered-dedicated>
-    </ehcache:resources>
-  </ehcache:cache>
+  <ehcache:service>
+    <jsr107:defaults default-template="clustered"/>
+  </ehcache:service>
 
+  <ehcache:cache-template name="clustered">
+    <ehcache:resources>
+      <ehcache:heap>1000</ehcache:heap>
+      <tc:clustered-dedicated from="primary" unit="MB">4</tc:clustered-dedicated>
+    </ehcache:resources>
+  </ehcache:cache-template>
 </ehcache:config>

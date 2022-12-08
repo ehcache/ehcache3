@@ -19,22 +19,14 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 
-import java.util.UUID;
-
 public class LifeCycleMessageFactory {
 
-  private UUID clientId;
-
   public LifecycleMessage validateStoreManager(ServerSideConfiguration configuration){
-    return new LifecycleMessage.ValidateStoreManager(configuration, clientId);
+    return new LifecycleMessage.ValidateStoreManager(configuration);
   }
 
   public LifecycleMessage validateServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
-    return new LifecycleMessage.ValidateServerStore(name, serverStoreConfiguration, clientId);
-  }
-
-  public void setClientId(UUID clientId) {
-    this.clientId = clientId;
+    return new LifecycleMessage.ValidateServerStore(name, serverStoreConfiguration);
   }
 
   public LifecycleMessage prepareForDestroy() {

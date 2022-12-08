@@ -15,58 +15,55 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.Cache;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.statistics.CacheStatistics;
-import org.ehcache.core.statistics.TypedValueStatistic;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.LatencyHistogramConfiguration;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
-import org.terracotta.management.registry.collect.StatisticRegistry;
+import org.terracotta.management.model.stats.Statistic;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 
 public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
-  private final StatisticRegistry statisticRegistry;
-  private final String cacheName;
+  private final String cacheAlias;
+  private final StatisticsService statisticsService;
 
-  StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsService statisticsService) {
+  StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsService statisticsService, TimeSource timeSource) {
     super(registryConfiguration, cacheBinding);
-    this.cacheName = cacheBinding.getAlias();
-    this.statisticRegistry = new StatisticRegistry(cacheBinding.getCache());
+    this.cacheAlias = cacheBinding.getAlias();
+    this.statisticsService = statisticsService;
 
-    CacheStatistics cacheStatistics = statisticsService.getCacheStatistics(cacheName);
-    Map<String, TypedValueStatistic> knownStatistics = cacheStatistics.getKnownStatistics();
+    statisticsService.createCacheRegistry(this.cacheAlias, cacheBinding.getCache(), timeSource::getTimeMillis);
 
-    for(Map.Entry<String, TypedValueStatistic> stat : knownStatistics.entrySet()) {
-      String name = stat.getKey();
-      TypedValueStatistic valueStatistic = stat.getValue();
-      switch (valueStatistic.getType()) {
-        case COUNTER:
-          statisticRegistry.registerCounter(name, valueStatistic);
-          break;
-        case SIZE:
-          statisticRegistry.registerSize(name, valueStatistic);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported statistic type: " + valueStatistic.getType());
-      }
-    }
+    statisticsService.registerCacheStatistics(this.cacheAlias);
+
+    LatencyHistogramConfiguration latencyHistogramConfiguration = registryConfiguration.getLatencyHistogramConfiguration();
+
+    // We want some latency statistics as well, so let's register them
+    registerDerivedStatistics(cacheBinding.getCache(), "get", CacheOperationOutcomes.GetOutcome.HIT, "Cache:GetHitLatency", latencyHistogramConfiguration);
+    registerDerivedStatistics(cacheBinding.getCache(),"get", CacheOperationOutcomes.GetOutcome.MISS, "Cache:GetMissLatency", latencyHistogramConfiguration);
+    registerDerivedStatistics(cacheBinding.getCache(),"put", CacheOperationOutcomes.PutOutcome.PUT, "Cache:PutLatency", latencyHistogramConfiguration);
+    registerDerivedStatistics(cacheBinding.getCache(),"remove", CacheOperationOutcomes.RemoveOutcome.SUCCESS, "Cache:RemoveLatency", latencyHistogramConfiguration);
   }
 
-  public Number queryStatistic(String fullStatisticName) {
-    return statisticRegistry.queryStatistic(fullStatisticName);
-  }
-
-  public Map<String, Number> queryStatistics() {
-    return statisticRegistry.queryStatistics();
+  private <T extends Enum<T>, K, V> void registerDerivedStatistics(Cache<K, V> cache, String statName, T outcome, String derivedName, LatencyHistogramConfiguration configuration) {
+    this.statisticsService.registerDerivedStatistics(this.cacheAlias, cache , statName, outcome, derivedName, configuration);
   }
 
   @Override
   public Collection<StatisticDescriptor> getDescriptors() {
-    return statisticRegistry.getDescriptors();
+    return statisticsService.getCacheDescriptors(cacheAlias);
+  }
+
+  Map<String, Statistic<? extends Serializable>> collectStatistics(Collection<String> statisticNames, long since) {
+    return this.statisticsService.collectStatistics(this.cacheAlias, statisticNames, since);
   }
 
 }

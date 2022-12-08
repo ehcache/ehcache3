@@ -33,7 +33,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,37 +42,26 @@ import java.util.Set;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class BasicClusteredCacheOpsTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
   @ClassRule
-  public static Cluster CLUSTER =
-      newCluster().in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 64)).build();
 
   @Test
   public void basicCacheCRUD() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
-            .autoCreate()
-            .defaultServerResource("primary-server-resource"));
+            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -108,17 +96,15 @@ public class BasicClusteredCacheOpsTest extends ClusteredTests {
   public void basicCacheCAS() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER.getConnectionURI().resolve("/cas-cm")).autoCreate())
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/cas-cm")).autoCreate(c -> c))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-                .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+                .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
 
-    final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
-    try {
-      final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
+    try (PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true)) {
 
-      try {
+      try (PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true)) {
         final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
         final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
 
@@ -130,11 +116,7 @@ public class BasicClusteredCacheOpsTest extends ClusteredTests {
         assertThat(cache1.remove(1L, "yet another one"), is(true));
         assertThat(cache2.replace(1L, "one"), nullValue());
         assertThat(cache1.replace(1L, "another one", "yet another one"), is(false));
-      } finally {
-        cacheManager2.close();
       }
-    } finally {
-      cacheManager1.close();
     }
   }
 
@@ -142,17 +124,15 @@ public class BasicClusteredCacheOpsTest extends ClusteredTests {
   public void basicClusteredBulk() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER.getConnectionURI().resolve("/bulk-cm")).autoCreate())
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/bulk-cm")).autoCreate(c -> c))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-                .add(new ClusteredStoreConfiguration(Consistency.STRONG)));
+                .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
 
-    final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
-    try {
-      final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
+    try (PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true)) {
 
-      try {
+      try (PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true)) {
         final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
         final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
 
@@ -162,23 +142,32 @@ public class BasicClusteredCacheOpsTest extends ClusteredTests {
         entriesMap.put(3L, "three");
         cache1.putAll(entriesMap);
 
-        Set<Long> keySet  = new HashSet<>(Arrays.asList(1L, 2L, 3L));
+        Set<Long> keySet = new HashSet<>(Arrays.asList(1L, 2L, 3L));
         Map<Long, String> all = cache2.getAll(keySet);
         assertThat(all.get(1L), is("one"));
         assertThat(all.get(2L), is("two"));
         assertThat(all.get(3L), is("three"));
 
+        Map<Long, String> entries1 = new HashMap<>();
+        assertThat(cache1, iterableWithSize(3));
+        cache1.forEach(e -> entries1.putIfAbsent(e.getKey(), e.getValue()));
+        assertThat(entries1, hasEntry(1L, "one"));
+        assertThat(entries1, hasEntry(2L, "two"));
+        assertThat(entries1, hasEntry(3L, "three"));
+
+        Map<Long, String> entries2 = new HashMap<>();
+        assertThat(cache2, iterableWithSize(3));
+        cache2.forEach(e -> entries2.putIfAbsent(e.getKey(), e.getValue()));
+        assertThat(entries2, hasEntry(1L, "one"));
+        assertThat(entries2, hasEntry(2L, "two"));
+        assertThat(entries2, hasEntry(3L, "three"));
         cache2.removeAll(keySet);
 
         all = cache1.getAll(keySet);
         assertThat(all.get(1L), nullValue());
         assertThat(all.get(2L), nullValue());
         assertThat(all.get(3L), nullValue());
-      } finally {
-        cacheManager2.close();
       }
-    } finally {
-      cacheManager1.close();
     }
   }
 }

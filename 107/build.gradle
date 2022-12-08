@@ -14,10 +14,24 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+plugins {
+  id 'biz.aQute.bnd.builder'
+  id 'org.jayware.osgi-ds'
+  id 'org.ehcache.build.deploy'
+}
 
 configurations {
   tckTestClasses
+
+  all {
+    resolutionStrategy {
+      dependencySubstitution {
+        substitute(module('junit:junit:4.11'))
+          .because('CVE-2020-15250')
+          .with(module('junit:junit:4.13.1'))
+      }
+    }
+  }
 }
 
 sourceSets {
@@ -30,27 +44,29 @@ sourceSets {
 }
 
 dependencies {
-  compile project(':impl'), project(':xml')
-  provided "javax.cache:cache-api:$parent.jcacheVersion"
-  tckTestRuntime 'javax.cache:cache-tests:1.0.1'
-  tckTestClasses('javax.cache:cache-tests:1.0.1:tests') {
+  api project(':api')
+  providedApi "javax.cache:cache-api:$parent.jcacheVersion"
+
+  implementation project(':impl')
+  implementation project(':xml')
+
+  compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+
+  tckTestRuntimeOnly "javax.cache:cache-tests:$jcacheTckVersion"
+  tckTestClasses("javax.cache:cache-tests:$jcacheTckVersion:tests") {
     transitive = false
   }
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}
-
 javadoc {
   exclude '**/tck/**'
-  classpath = sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + configurations.provided
 }
 
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
-  }
+jar {
+  bnd(
+    'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.jsr107.internal.*, org.ehcache.jsr107.*',
+    'Import-Package': 'javax.cache.*;resolution:=optional, *',
+  )
 }
 
 task unpackTckTests(type: Copy) {
@@ -78,5 +94,3 @@ task tckTest(type: Test, dependsOn: unpackTckTests) {
 }
 
 test.dependsOn tckTest
-
-

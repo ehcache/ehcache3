@@ -16,6 +16,7 @@
 
 package org.ehcache.jsr107.config;
 
+import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.Map;
@@ -24,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * {@link ServiceCreationConfiguration} for default {@link Jsr107Service} implementation.
  */
-public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107Service> {
+public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107Service, Void> {
 
   private final String defaultTemplate;
   private final boolean jsr107CompliantAtomics;
@@ -37,8 +38,8 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
    *  @param defaultTemplate the default template
    * @param templates cache alias to template name map
    * @param jsr107CompliantAtomics behaviour of loader writer in atomic operations
-   * @param enableManagementAll
-   * @param enableStatisticsAll
+   * @param enableManagementAll enable management JMX
+   * @param enableStatisticsAll enable statistics JMX
    */
   public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates,
                              boolean jsr107CompliantAtomics, ConfigurationElementState enableManagementAll, ConfigurationElementState enableStatisticsAll) {

@@ -32,45 +32,34 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.google.code.tempusfugit.temporal.Duration.seconds;
-import static com.google.code.tempusfugit.temporal.Timeout.timeout;
-import static com.google.code.tempusfugit.temporal.WaitFor.waitOrTimeout;
+import static org.ehcache.testing.StandardTimeouts.eventually;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class PassiveSyncTest extends ClusteredTests {
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
 
   @ClassRule
-  public static Cluster CLUSTER =
-    newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
+  public static Cluster CLUSTER = newCluster(2).in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 16))
+    .withServerHeap(512)
+    .build();
 
   @Before
   public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+    CLUSTER.getClusterControl().terminateOnePassive();
   }
 
   @Test(timeout = 150000)
   public void testSync() throws Exception {
-    CLUSTER.getClusterControl().terminateOnePassive();
-
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/op-sync"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -88,12 +77,10 @@ public class PassiveSyncTest extends ClusteredTests {
       CLUSTER.getClusterControl().startOneServer();
       CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().waitForActive();
 
-      // Sometimes the new passive believes there is a second connection and we have to wait for the full reconnect window before getting a result
-      waitOrTimeout(() -> "value-5".equals(cache.get(-5L)), timeout(seconds(130)));
 
-      for (long i = -4; i < 5; i++) {
+      assertThat(() -> cache.get(0L), eventually().matches(notNullValue()));
+      for (long i = -5; i < 5; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }
     } finally {
@@ -104,16 +91,12 @@ public class PassiveSyncTest extends ClusteredTests {
   @Ignore
   @Test
   public void testLifeCycleOperationsOnSync() throws Exception {
-    CLUSTER.getClusterControl().terminateOnePassive();
-
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
 
-    try {
+    try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
           .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
@@ -147,8 +130,6 @@ public class PassiveSyncTest extends ClusteredTests {
       for (long i = 0; i < 100; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
       }
-    } finally {
-      cacheManager.close();
     }
   }
 }

@@ -16,12 +16,8 @@
 package org.ehcache.impl.internal.loaderwriter.writebehind;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -39,7 +35,7 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
 
   private final List<WriteBehind<K, V>> stripes = new ArrayList<>();
 
-  public StripedWriteBehind(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public StripedWriteBehind(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     int writeBehindConcurrency = config.getConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
       if (config.getBatchingConfiguration() == null) {
@@ -68,7 +64,7 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
 
   @Override
   public V load(K key) throws Exception {
-    V v = null;
+    V v;
     readLock.lock();
     try {
       v = getStripe(key).load(key);
@@ -76,15 +72,6 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
       readLock.unlock();
     }
     return v;
-  }
-
-  @Override
-  public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
-    Map<K, V> entries = new HashMap<>();
-    for (K k : keys) {
-      entries.put(k, load(k)) ;
-    }
-    return entries;
   }
 
   @Override
@@ -98,26 +85,12 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
   }
 
   @Override
-  public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
-    for (Entry<? extends K, ? extends V> entry : entries) {
-      write(entry.getKey(), entry.getValue());
-    }
-  }
-
-  @Override
   public void delete(K key) throws Exception {
     readLock.lock();
     try {
       getStripe(key).delete(key);
     } finally {
       readLock.unlock();
-    }
-  }
-
-  @Override
-  public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
-    for (K k : keys) {
-      delete(k);
     }
   }
 

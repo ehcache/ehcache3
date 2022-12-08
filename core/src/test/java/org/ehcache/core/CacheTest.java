@@ -18,23 +18,22 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.StateTransitionException;
 import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -226,37 +225,27 @@ public abstract class CacheTest {
       }
       return new Store.ValueHolder<Object>() {
         @Override
-        public Object value() {
+        public Object get() {
           return existingValue.get();
         }
 
         @Override
-        public long creationTime(final TimeUnit unit) {
+        public long creationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long expirationTime(TimeUnit unit) {
+        public long expirationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public boolean isExpired(long expirationTime, TimeUnit unit) {
+        public boolean isExpired(long expirationTime) {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long lastAccessTime(final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public float hitRate(final long now, final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public long hits() {
+        public long lastAccessTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
@@ -266,44 +255,34 @@ public abstract class CacheTest {
         }
       };
     });
-    when(store.putIfAbsent(eq("foo"), any(String.class))).then(invocation -> {
+    when(store.putIfAbsent(eq("foo"), any(String.class), any(Consumer.class))).then(invocation -> {
       final Object toReturn;
       if ((toReturn = existingValue.get()) == null) {
         existingValue.compareAndSet(null, invocation.getArguments()[1]);
       }
       return new Store.ValueHolder<Object>() {
         @Override
-        public Object value() {
+        public Object get() {
           return toReturn;
         }
 
         @Override
-        public long creationTime(final TimeUnit unit) {
+        public long creationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long expirationTime(TimeUnit unit) {
+        public long expirationTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public boolean isExpired(long expirationTime, TimeUnit unit) {
+        public boolean isExpired(long expirationTime) {
           throw new UnsupportedOperationException("Implement me!");
         }
 
         @Override
-        public long lastAccessTime(final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public float hitRate(final long now, final TimeUnit unit) {
-          throw new UnsupportedOperationException("Implement me!");
-        }
-
-        @Override
-        public long hits() {
+        public long lastAccessTime() {
           throw new UnsupportedOperationException("Implement me!");
         }
 
@@ -316,9 +295,9 @@ public abstract class CacheTest {
     InternalCache<Object, Object> ehcache = getCache(store);
     ehcache.init();
     assertThat(ehcache.putIfAbsent("foo", value), nullValue());
-    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.<Object>is(value));
-    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.<Object>is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foo"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", "foobar"), CoreMatchers.is(value));
+    assertThat(ehcache.putIfAbsent("foo", value), CoreMatchers.is(value));
   }
 
   @Test
@@ -339,7 +318,7 @@ public abstract class CacheTest {
       if (ehcache instanceof Ehcache) {
         ((Ehcache)ehcache).removeHook(hook);
       } else {
-        ((EhcacheWithLoaderWriter)ehcache).removeHook(hook);
+        ((Ehcache)ehcache).removeHook(hook);
       }
       fail();
     } catch (IllegalStateException e) {

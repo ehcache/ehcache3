@@ -22,16 +22,14 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderTest;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -80,13 +78,10 @@ public class UserManagedCacheBuilderTest {
 
   @Test
   public void testTypedCacheWithExpirationPolicy() {
-    UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
-        .withExpiry(Expirations.timeToIdleExpiration(new Duration(30, TimeUnit.SECONDS)))
-        .build(true);
-    try {
+    try (UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
+      .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofSeconds(30)))
+      .build(true)) {
       assertThat(cache, notNullValue());
-    } finally {
-      cache.close();
     }
   }
 

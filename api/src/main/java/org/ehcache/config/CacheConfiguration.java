@@ -17,7 +17,8 @@
 package org.ehcache.config;
 
 import org.ehcache.Cache;
-import org.ehcache.expiry.Expiry;
+
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -39,7 +40,7 @@ public interface CacheConfiguration<K, V> {
    *
    * @return service configurations
    */
-  Collection<ServiceConfiguration<?>> getServiceConfigurations();
+  Collection<ServiceConfiguration<?, ?>> getServiceConfigurations();
 
   /**
    * The key type for the {@link Cache}.
@@ -82,13 +83,25 @@ public interface CacheConfiguration<K, V> {
   ClassLoader getClassLoader();
 
   /**
-   * The {@link Expiry} rules for the {@link Cache}.
+   * The {@link org.ehcache.expiry.Expiry} rules for the {@link Cache}.
    * <p>
    * The {@code Expiry} cannot be null.
    *
    * @return the {@code Expiry}
+   *
+   * @deprecated Use {@link #getExpiryPolicy()}
    */
-  Expiry<? super K, ? super V> getExpiry();
+  @Deprecated
+  org.ehcache.expiry.Expiry<? super K, ? super V> getExpiry();
+
+  /**
+   * The {@link ExpiryPolicy} rules for the {@link Cache}.
+   * <p>
+   * The {@code ExpiryPolicy} cannot be null.
+   *
+   * @return the {@code ExpiryPolicy}
+   */
+  ExpiryPolicy<? super K, ? super V> getExpiryPolicy();
 
   /**
    * The {@link ResourcePools} for the {@link Cache}.
@@ -99,4 +112,17 @@ public interface CacheConfiguration<K, V> {
    */
   ResourcePools getResourcePools();
 
+  /**
+   * Create a builder seeded with this configuration.
+   * <p>
+   * The default implementation throws {@code UnsupportedOperationException} to indicate that configuration derivation
+   * is not supported.
+   *
+   * @see FluentConfigurationBuilder
+   * @return a configuration builder
+   * @throws UnsupportedOperationException if configuration derivation is not supported
+   */
+  default FluentCacheConfigurationBuilder<K, V, ?> derive() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
 }

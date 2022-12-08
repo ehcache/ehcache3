@@ -23,7 +23,7 @@ import org.ehcache.spi.service.Service;
  *
  * @author cdennis
  */
-class FooConfiguration implements ServiceConfiguration<Service> {
+class FooConfiguration implements ServiceConfiguration<Service, Void> {
 
   @Override
   public Class<Service> getServiceType() {

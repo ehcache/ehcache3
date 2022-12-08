@@ -54,7 +54,7 @@ An example of `Service` being the `org.ehcache.core.spi.store.Store.Provider`, i
 
 `Service` instances are created using Java's https://docs.oracle.com/javase/6/docs/api/java/util/ServiceLoader.html[`java.util.ServiceLoader` service-provider loading facility].
 It is used to locate all `org.ehcache.core.spi.service.ServiceFactory` implementations on the classpath.
-These are in turn used to create `Service` instances. Each `CacheManager` uses its own `org.ehcache.core.internal.service.ServiceLocator` facility to locate `Service` instances, which it then in turn life cycles.
+These are in turn used to create `Service` instances. Each `CacheManager` uses its own `org.ehcache.core.spi.ServiceLocator` facility to locate `Service` instances, which it then in turn life cycles.
 
 `Service` instances are configured by their own respective `ServiceConfiguration` at `Service.start()` invocation time.
 `CacheManager` and its `Service` instances can then use these services.

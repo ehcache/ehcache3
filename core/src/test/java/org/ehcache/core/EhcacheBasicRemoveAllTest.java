@@ -19,19 +19,18 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -54,11 +53,11 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_C;
 import static org.ehcache.core.EhcacheBasicBulkUtil.copyWithout;
 import static org.ehcache.core.EhcacheBasicBulkUtil.fanIn;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getEntryMap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -131,7 +130,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
+   * Tests {@link Ehcache#removeAll(Set)} for
    * <ul>
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
@@ -149,7 +148,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
+    verify(this.resilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -159,7 +158,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
+   * Tests {@link Ehcache#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -180,7 +179,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates));
     assertThat(fakeStore.getEntryMap(), equalTo(copyWithout(originalStoreContent, contentUpdates)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -188,7 +187,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
+   * Tests {@link Ehcache#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -209,11 +208,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -222,7 +221,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
+   * Tests {@link Ehcache#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -241,57 +240,16 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
 
-    final InOrder ordered = inOrder(this.store, this.spiedResilienceStrategy);
+    final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
-    ordered.verify(this.spiedResilienceStrategy)
+    ordered.verify(this.resilienceStrategy)
         .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
     assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void removeAllStoreCallsMethodTwice() throws Exception {
-    CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    final List<String> removed = new ArrayList<>();
-    doAnswer(invocation -> {
-      @SuppressWarnings("unchecked")
-      Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
-      for (String key : i) {
-        removed.add(key);
-      }
-      return null;
-    }).when(cacheLoaderWriter).deleteAll(any(Iterable.class));
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
-
-    final ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>> functionArgumentCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
-
-    Set<String> keys = new HashSet<String>() {{
-      add("1");
-      add("2");
-    }};
-
-    HashMap<String, String> entriesMap = new HashMap<>();
-    entriesMap.put("1", "one");
-    entriesMap.put("2", "two");
-
-    when(store.bulkCompute(any(Set.class), functionArgumentCaptor.capture())).then(invocation -> {
-      Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
-      Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = entriesMap.entrySet();
-      function.apply(arg);
-      function.apply(arg);
-      return null;
-    });
-
-    ehcache.removeAll(keys);
-
-    assertThat(removed.size(), is(2));
-    assertThat(removed.contains("1"), is(true));
-    assertThat(removed.contains("2"), is(true));
   }
 
   /**
@@ -300,20 +258,10 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
-    return ehcache;
-  }
-
-  private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory
-      .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
-    ehcache.init();
-    assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 
@@ -379,7 +327,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @param originalStoreContent  the original content provided to {@code fakeStore}
    * @param fakeLoaderWriter the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
    * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
-   * @param contentUpdates the {@code Set} provided to the {@link EhcacheWithLoaderWriter#removeAll(java.util.Set)} call in the test
+   * @param contentUpdates the {@code Set} provided to the {@link Ehcache#removeAll(java.util.Set)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
    * @param bcweSuccesses the {@code Set} from {@link BulkCacheWritingException#getSuccesses()}

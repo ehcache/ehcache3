@@ -20,39 +20,19 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 
 import java.io.Serializable;
-import java.util.UUID;
 
 public abstract class LifecycleMessage extends EhcacheOperationMessage implements Serializable {
 
-  protected UUID clientId;
-  protected long id = NOT_REPLICATED;
-
-  @Override
-  public UUID getClientId() {
-    if (clientId == null) {
-      throw new AssertionError("Client Id cannot be null for lifecycle messages");
-    }
-    return this.clientId;
-  }
-
-  @Override
-  public long getId() {
-    return this.id;
-  }
-
-  @Override
-  public void setId(long id) {
-    this.id = id;
-  }
+  private static final long serialVersionUID = -5877907682623164227L;
 
   public static class ValidateStoreManager extends LifecycleMessage {
-    private static final long serialVersionUID = 5742152283115139745L;
+
+    private static final long serialVersionUID = -7459333332357106170L;
 
     private final ServerSideConfiguration configuration;
 
-    ValidateStoreManager(ServerSideConfiguration config, UUID clientId) {
+    ValidateStoreManager(ServerSideConfiguration config) {
       this.configuration = config;
-      this.clientId = clientId;
     }
 
     @Override
@@ -69,15 +49,15 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
    * Message directing the <i>lookup</i> of a previously created {@code ServerStore}.
    */
   public static class ValidateServerStore extends LifecycleMessage {
-    private static final long serialVersionUID = 4879477027919589726L;
+
+    private static final long serialVersionUID = -7271460156539083757L;
 
     private final String name;
     private final ServerStoreConfiguration storeConfiguration;
 
-    ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
+    public ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
       this.name = name;
       this.storeConfiguration = storeConfiguration;
-      this.clientId = clientId;
     }
 
     public String getName() {
@@ -95,6 +75,9 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
   }
 
   public static class PrepareForDestroy extends LifecycleMessage {
+
+    private static final long serialVersionUID = -680257947889507297L;
+
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.PREPARE_FOR_DESTROY;

@@ -1,17 +1,15 @@
----
----
-= Ehcache 3.4 Documentation Overview
-ifndef::sourcedir34[]
-include::common.adoc[]
-endif::sourcedir34[]
+= Ehcache {version} Documentation Overview
+ifndef::sourcedir38[]
+include::{includedir}/common.adoc[]
+endif::sourcedir38[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache 3.4 documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.8 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics
@@ -19,13 +17,13 @@ Each topic below corresponds to a menu item at the left.
 |===
 | Topic | Description
 
-|link:getting-started.html[Getting Started]|Learn the essentials
-|link:tiering.html[Tiering options]|Using resources other than heap memory, combining them or not
-|link:examples.html[Examples]|Examples of using Ehcache APIs
-|link:xml.html[XML Configuration]|How to configure Ehcache using XML
-|link:107.html[JCache aka JSR-107]|Using Ehcache as a JCache (javax.cache) aka JSR-107 provider
-|link:xsds.html[Configuration XSD]|Reference XSD for configuration
-|link:clustered-cache.html[Clustering with Terracotta]|Using Terracotta to enable clustering of caches in Ehcache
+|link:getting-started{outfilesuffix}[Getting Started]|Learn the essentials
+|link:tiering{outfilesuffix}[Tiering options]|Using resources other than heap memory, combining them or not
+|link:examples{outfilesuffix}[Examples]|Examples of using Ehcache APIs
+|link:xml{outfilesuffix}[XML Configuration]|How to configure Ehcache using XML
+|link:107{outfilesuffix}[JCache aka JSR-107]|Using Ehcache as a JCache (javax.cache) aka JSR-107 provider
+|link:xsds{outfilesuffix}[Configuration XSD]|Reference XSD for configuration
+|link:clustered-cache{outfilesuffix}[Clustering with Terracotta]|Using Terracotta to enable clustering of caches in Ehcache
 |===
 
 === General Topics
@@ -33,9 +31,9 @@ Each topic below corresponds to a menu item at the left.
 |===
 | Topic | Description
 
-|link:caching-terms.html[Caching Terms]|Learn terms that relate to caching
-|link:caching-concepts.html[Caching Concepts]|Learn concepts that relate to caching
-|link:caching-patterns.html[Caching Patterns]|Learn common patterns of cache usage
+|link:caching-terms{outfilesuffix}[Caching Terms]|Learn terms that relate to caching
+|link:caching-concepts{outfilesuffix}[Caching Concepts]|Learn concepts that relate to caching
+|link:caching-patterns{outfilesuffix}[Caching Patterns]|Learn common patterns of cache usage
 
 |===
 
@@ -44,14 +42,18 @@ Each topic below corresponds to a menu item at the left.
 |===
 | Topic | Description
 
-|link:migration-guide.html[Migration Guide]|Ehcache2 to Ehcache3 Migration Guide
-|link:expiry.html[Expiry]|Data freshness and expiration
-|link:thread-pools.html[Thread Pools]|Using and controlling threads in Ehcache 3
-|link:serializers-copiers.html[Serializers and Copiers]|Understanding and configuring serializers and copiers
-|link:xa.html[Transactions Support]|Using Ehcache with a JTA transaction manager
-|link:writers.html[Cache Writers]|Using cache writers (write-through and write-behind)
-|link:usermanaged.html[User Managed Caches]|Creating and making use of caches directly
-|link:cache-event-listeners.html[Cache Event Listeners]|Getting notified about events within the cache
-|link:eviction-advisor.html[Eviction Advisor]|Affecting the way entries are chosen for eviction
-|link:class-loading.html[Class loading]|Ehcache and `ClassLoader` interactions
+|link:migration-guide{outfilesuffix}[Migration Guide]|Ehcache2 to Ehcache3 Migration Guide
+|link:expiry{outfilesuffix}[Expiry]|Data freshness and expiration
+|link:resilience{outfilesuffix}[Resilience]|Cache resilience in case of failures
+|link:thread-pools{outfilesuffix}[Thread Pools]|Using and controlling threads in Ehcache 3
+|link:serializers-copiers{outfilesuffix}[Serializers and Copiers]|Understanding and configuring serializers and copiers
+|link:xa{outfilesuffix}[Transactions Support]|Using Ehcache with a JTA transaction manager
+|link:writers{outfilesuffix}[Cache Writers]|Using cache writers (write-through and write-behind)
+|link:usermanaged{outfilesuffix}[User Managed Caches]|Creating and making use of caches directly
+|link:cache-event-listeners{outfilesuffix}[Cache Event Listeners]|Getting notified about events within the cache
+|link:eviction-advisor{outfilesuffix}[Eviction Advisor]|Affecting the way entries are chosen for eviction
+|link:class-loading{outfilesuffix}[Class loading]|Ehcache and `ClassLoader` interactions
+|link:osgi{outfilesuffix}[OSGi Deployment]|How to use Ehcache in an OSGi Environment
+|link:config-derive{outfilesuffix}[Configuration Derivation]|How to derive a new configuration from an existing one
+|link:performance{outfilesuffix}[Performance Tuning]|Ehcache Performance Tuning
 |===

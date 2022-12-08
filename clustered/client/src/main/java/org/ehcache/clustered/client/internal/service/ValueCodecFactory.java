@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.service;
 
+import org.ehcache.clustered.common.internal.store.FilteredObjectInputStream;
 import org.ehcache.clustered.common.internal.store.ValueWrapper;
 
 import java.io.ByteArrayInputStream;
@@ -24,12 +25,13 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.function.Predicate;
 
 /**
  * ValueCodecFactory
  */
 class ValueCodecFactory {
-  static <T> ValueCodec<T> getCodecForClass(Class<T> clazz) {
+  static <T> ValueCodec<T> getCodecForClass(Class<T> clazz, Predicate<Class<?>> isClassPermitted, ClassLoader classLoader) {
     if (!Serializable.class.isAssignableFrom(clazz)) {
       throw new IllegalArgumentException("The provided type is invalid as it is not Serializable " + clazz);
     }
@@ -39,7 +41,7 @@ class ValueCodecFactory {
         || clazz.isPrimitive() || String.class.equals(clazz)) {
       return new IdentityCodec<>();
     } else {
-      return new SerializationWrapperCodec<>();
+      return new SerializationWrapperCodec<>(isClassPermitted, classLoader);
     }
   }
 
@@ -57,23 +59,25 @@ class ValueCodecFactory {
   }
 
   private static class SerializationWrapperCodec<T> implements ValueCodec<T> {
+
+    private final Predicate<Class<?>> isClassPermitted;
+    private final ClassLoader classLoader;
+
+    public SerializationWrapperCodec(Predicate<Class<?>> isClassPermitted, ClassLoader classLoader) {
+      this.isClassPermitted = isClassPermitted;
+      this.classLoader = classLoader;
+    }
+
     @Override
     public Object encode(T input) {
       if (input == null) {
         return null;
       }
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      try {
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        try {
-          oos.writeObject(input);
-        } catch(IOException e) {
-          throw new RuntimeException("Object cannot be serialized", e);
-        } finally {
-          oos.close();
-        }
-      } catch(IOException e) {
-        // ignore
+      try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+        oos.writeObject(input);
+      } catch (IOException e) {
+        throw new RuntimeException("Object cannot be serialized", e);
       }
       return new ValueWrapper(input.hashCode(), baos.toByteArray());
     }
@@ -85,21 +89,13 @@ class ValueCodecFactory {
       }
       ValueWrapper data = (ValueWrapper) input;
       ByteArrayInputStream bais = new ByteArrayInputStream(data.getValue());
-      try {
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        try {
-          @SuppressWarnings("unchecked")
-          T result = (T) ois.readObject();
-          return result;
-        } catch (ClassNotFoundException e) {
-          throw new RuntimeException("Could not load class", e);
-        } finally {
-          ois.close();
-        }
-      } catch(IOException e) {
-        // ignore
+      try (ObjectInputStream ois = new FilteredObjectInputStream(bais, isClassPermitted, classLoader)) {
+        @SuppressWarnings("unchecked")
+        T result = (T) ois.readObject();
+        return result;
+      } catch (ClassNotFoundException | IOException e) {
+        throw new RuntimeException("Could not load class", e);
       }
-      throw new AssertionError("Cannot reach here!");
     }
   }
 }

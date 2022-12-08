@@ -30,8 +30,8 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.junit.After;
 import org.junit.Before;
@@ -39,9 +39,10 @@ import org.junit.Test;
 
 import java.net.URI;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 /**
  * This class includes tests to ensure server-side exceptions returned as responses to
@@ -75,21 +76,21 @@ public class ClusterTierManagerClientEntityExceptionTest {
   public void testServerExceptionPassThrough() throws Exception {
     ClusteringServiceConfiguration creationConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate()
+          .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 2, MemoryUnit.MB, "serverResource2")
-            .resourcePool("sharedTertiary", 4, MemoryUnit.MB)
-            .build();
+            .resourcePool("sharedTertiary", 4, MemoryUnit.MB))
+          .build();
     DefaultClusteringService creationService = new DefaultClusteringService(creationConfig);
     creationService.start(null);
     creationService.stop();
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .expecting()
-            .defaultServerResource("different")
-            .build();
+          .expecting(server -> server
+            .defaultServerResource("different"))
+          .build();
     DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
     /*
      * Induce an "InvalidStoreException: cluster tier 'cacheAlias' does not exist" on the server.

@@ -21,19 +21,19 @@ import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
-
-  private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
   @Override
   protected void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
@@ -46,17 +46,15 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
   @Override
   @SuppressWarnings("unchecked")
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry,
+      final ExpiryPolicy<? super K, ? super V> expiry,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final int capacity) {
 
-    return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
-      @SuppressWarnings("unchecked")
+    return new OnHeapStore<>(new Store.Configuration<K, V>() {
       @Override
       public Class<K> getKeyType() {
         return (Class<K>) String.class;
       }
 
-      @SuppressWarnings("unchecked")
       @Override
       public Class<V> getValueType() {
         return (Class<V>) String.class;
@@ -73,7 +71,7 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       }
 
       @Override
-      public Expiry<? super K, ? super V> getExpiry() {
+      public ExpiryPolicy<? super K, ? super V> getExpiry() {
         return expiry;
       }
 
@@ -96,7 +94,12 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public int getDispatcherConcurrency() {
         return 0;
       }
-    }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), eventDispatcher);
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
+      }
+    }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), new NoopSizeOfEngine(), (StoreEventDispatcher<K, V>) eventDispatcher, new DefaultStatisticsService());
   }
 
 }

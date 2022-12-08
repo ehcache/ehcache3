@@ -58,16 +58,15 @@ public class FloatSerializer implements Serializer<Float> {
    * {@inheritDoc}
    */
   @Override
-  public Float read(ByteBuffer binary) throws ClassNotFoundException {
-    float f = binary.getFloat();
-    return f;
+  public Float read(ByteBuffer binary) {
+    return binary.getFloat();
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public boolean equals(Float object, ByteBuffer binary) throws ClassNotFoundException {
+  public boolean equals(Float object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
 }

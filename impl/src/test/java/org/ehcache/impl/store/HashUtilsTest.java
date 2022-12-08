@@ -20,8 +20,8 @@ import org.junit.Test;
 
 import java.util.Random;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * HashUtilsTest

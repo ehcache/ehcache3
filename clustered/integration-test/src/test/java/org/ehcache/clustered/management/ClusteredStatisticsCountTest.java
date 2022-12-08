@@ -16,13 +16,13 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.Cache;
-import org.junit.Assert;
 import org.junit.Test;
 import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTest {
 
@@ -61,25 +61,29 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
         if (stat.getContext().contains("cacheName") && stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
 
           // please leave it there - it's really useful to see what's coming
-          /*System.out.println("stats:");
-          for (Map.Entry<String, Statistic<?, ?>> entry : stat.getStatistics().entrySet()) {
+          /*
+          System.out.println("stats:");
+
+          Set<Map.Entry<String, Statistic<?>>> entries = stat.getStatistics().entrySet();
+          for (Map.Entry<String, Statistic<?>> entry : entries) {
             System.out.println(" - " + entry.getKey() + " : " + entry.getValue());
           }*/
 
-          cacheHitCount = stat.getStatistic("Cache:HitCount").longValue();
-          clusteredHitCount = stat.getStatistic("Clustered:HitCount").longValue();
-          clusteredMissCount = stat.getStatistic("Clustered:MissCount").longValue();
-          cacheMissCount = stat.getStatistic("Cache:MissCount").longValue();
+          cacheHitCount = stat.<Long>getLatestSampleValue("Cache:HitCount").get();
+          clusteredHitCount = stat.<Long>getLatestSampleValue("Clustered:HitCount").get();
+          clusteredMissCount = stat.<Long>getLatestSampleValue("Clustered:MissCount").get();
+          cacheMissCount = stat.<Long>getLatestSampleValue("Cache:MissCount").get();
         }
       }
     } while(!Thread.currentThread().isInterrupted() &&
-            (cacheHitCount != CACHE_HIT_COUNT) && (clusteredHitCount != CLUSTERED_HIT_COUNT) &&
-            (cacheMissCount != CACHE_MISS_COUNT) && (clusteredMissCount != CLUSTERED_MISS_COUNT));
+            ((cacheHitCount != CACHE_HIT_COUNT) || (clusteredHitCount != CLUSTERED_HIT_COUNT) ||
+            (cacheMissCount != CACHE_MISS_COUNT) || (clusteredMissCount != CLUSTERED_MISS_COUNT)));
 
-    Assert.assertThat(cacheHitCount,is(CACHE_HIT_COUNT));
-    Assert.assertThat(clusteredHitCount,is(CLUSTERED_HIT_COUNT));
-    Assert.assertThat(cacheMissCount,is(CACHE_MISS_COUNT));
-    Assert.assertThat(clusteredMissCount,is(CLUSTERED_MISS_COUNT));
+
+    assertThat(cacheHitCount,is(CACHE_HIT_COUNT));
+    assertThat(clusteredHitCount,is(CLUSTERED_HIT_COUNT));
+    assertThat(cacheMissCount,is(CACHE_MISS_COUNT));
+    assertThat(clusteredMissCount,is(CLUSTERED_MISS_COUNT));
 
   }
 

@@ -16,7 +16,9 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.core.statistics.Jsr107LatencyMonitor;
 
 import java.net.URI;
 
@@ -25,76 +27,90 @@ import java.net.URI;
  */
 class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.management.CacheStatisticsMXBean {
 
-  private final String cacheName;
-  private final StatisticsService statisticsService;
+  private final CacheStatistics cacheStatistics;
+
+  private final Jsr107LatencyMonitor<CacheOperationOutcomes.GetOutcome> averageGetTime;
+  private final Jsr107LatencyMonitor<CacheOperationOutcomes.PutOutcome> averagePutTime;
+  private final Jsr107LatencyMonitor<CacheOperationOutcomes.RemoveOutcome> averageRemoveTime;
 
   Eh107CacheStatisticsMXBean(String cacheName, URI cacheManagerURI, StatisticsService statisticsService) {
     super(cacheName, cacheManagerURI, "CacheStatistics");
-    this.cacheName = cacheName;
-    this.statisticsService = statisticsService;
+
+    cacheStatistics = statisticsService.getCacheStatistics(cacheName);
+
+    averageGetTime = registerDerivedStatistics(CacheOperationOutcomes.GetOutcome.class, "get");
+    averagePutTime = registerDerivedStatistics(CacheOperationOutcomes.PutOutcome.class, "put");
+    averageRemoveTime = registerDerivedStatistics(CacheOperationOutcomes.RemoveOutcome.class, "remove");
+  }
+
+  private <T extends Enum<T>> Jsr107LatencyMonitor<T> registerDerivedStatistics(Class<T> outcome, String name) {
+    Jsr107LatencyMonitor<T> monitor = new Jsr107LatencyMonitor<>(outcome);
+    CacheStatistics cacheStatistics = this.cacheStatistics;
+    cacheStatistics.registerDerivedStatistic(outcome, name, monitor);
+    return monitor;
   }
 
   @Override
   public void clear() {
-    getCacheStatistics().clear();
+    cacheStatistics.clear();
+    averageGetTime.clear();
+    averagePutTime.clear();
+    averageRemoveTime.clear();
   }
 
   @Override
   public long getCacheHits() {
-    return getCacheStatistics().getCacheHits();
+    return cacheStatistics.getCacheHits();
   }
 
   @Override
   public float getCacheHitPercentage() {
-    return getCacheStatistics().getCacheHitPercentage();
+    return cacheStatistics.getCacheHitPercentage();
   }
 
   @Override
   public long getCacheMisses() {
-    return getCacheStatistics().getCacheMisses();
+    return cacheStatistics.getCacheMisses();
   }
 
   @Override
   public float getCacheMissPercentage() {
-    return getCacheStatistics().getCacheMissPercentage();
+    return cacheStatistics.getCacheMissPercentage();
   }
 
   @Override
   public long getCacheGets() {
-    return getCacheStatistics().getCacheGets();
+    return cacheStatistics.getCacheGets();
   }
 
   @Override
   public long getCachePuts() {
-    return getCacheStatistics().getCachePuts();
+    return cacheStatistics.getCachePuts();
   }
 
   @Override
   public long getCacheRemovals() {
-    return getCacheStatistics().getCacheRemovals();
+    return cacheStatistics.getCacheRemovals();
   }
 
   @Override
   public long getCacheEvictions() {
-    return getCacheStatistics().getCacheEvictions();
+    return cacheStatistics.getCacheEvictions();
   }
 
   @Override
   public float getAverageGetTime() {
-    return getCacheStatistics().getCacheAverageGetTime();
+    return (float) averageGetTime.average();
   }
 
   @Override
   public float getAveragePutTime() {
-    return getCacheStatistics().getCacheAveragePutTime();
+    return (float) averagePutTime.average();
   }
 
   @Override
   public float getAverageRemoveTime() {
-    return getCacheStatistics().getCacheAverageRemoveTime();
+    return (float) averageRemoveTime.average();
   }
 
-  private CacheStatistics getCacheStatistics() {
-    return statisticsService.getCacheStatistics(cacheName);
-  }
 }

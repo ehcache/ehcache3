@@ -41,7 +41,16 @@ public interface StoreEventSource<K, V> {
    *
    * @param ordering {@code true} if ordering is desired, {@code false} for no ordering
    */
-  void setEventOrdering(boolean ordering);
+  void setEventOrdering(boolean ordering) throws IllegalArgumentException;
+
+  /**
+   * Toggles event synchronicity.
+   * <p>
+   * If {@code true} it means events will be fire synchronously.
+   *
+   * @param synchronous {@code true} if synchronicity is desired, {@code false} for asynchronous.
+   */
+  void setSynchronous(boolean synchronous) throws IllegalArgumentException;
 
   /**
    * Indicates if the related {@link org.ehcache.core.spi.store.Store} is delivering events ordered or not.

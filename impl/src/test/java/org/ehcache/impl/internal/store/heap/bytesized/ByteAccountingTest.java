@@ -18,14 +18,15 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
@@ -39,18 +40,15 @@ import org.ehcache.sizeof.SizeOfFilterSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -68,7 +66,6 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  */
 public class ByteAccountingTest {
 
-  private static final Copier DEFAULT_COPIER = new IdentityCopier();
   private static final SizeOfEngine SIZE_OF_ENGINE = new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE);
 
   private static final String KEY = "key";
@@ -80,22 +77,22 @@ public class ByteAccountingTest {
 
 
   <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice());
+    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice());
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(int capacity) {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(), capacity);
+    return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice(), capacity);
   }
 
-  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
+  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, ExpiryPolicy<? super K, ? super V> expiry) {
     return newStore(timeSource, expiry, Eviction.noAdvice());
   }
 
-  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
+  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, ExpiryPolicy<? super K, ? super V> expiry, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
     return newStore(timeSource, expiry, evictionAdvisor, 100);
   }
 
-  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
+  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final ExpiryPolicy<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
       final int capacity) {
 
     return new OnHeapStoreForTests<>(new Store.Configuration<K, V>() {
@@ -122,7 +119,7 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public Expiry<? super K, ? super V> getExpiry() {
+      public ExpiryPolicy<? super K, ? super V> getExpiry() {
         return expiry;
       }
 
@@ -144,6 +141,11 @@ public class ByteAccountingTest {
       @Override
       public int getDispatcherConcurrency() {
         return 0;
+      }
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
       }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>());
   }
@@ -173,7 +175,7 @@ public class ByteAccountingTest {
   @Test
   public void testPutExpiryOnCreate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setCreate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().create(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
 
@@ -183,7 +185,7 @@ public class ByteAccountingTest {
   @Test
   public void testPutExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.put(KEY, "otherValue");
@@ -240,7 +242,7 @@ public class ByteAccountingTest {
   @Test
   public void testRemoveTwoArgExpiresOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.remove(KEY, "whatever value, it expires on access");
@@ -282,7 +284,7 @@ public class ByteAccountingTest {
   @Test
   public void testReplaceTwoArgExpiresOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.replace(KEY, "whatever value, it expires on update");
@@ -324,7 +326,7 @@ public class ByteAccountingTest {
   @Test
   public void testReplaceThreeArgExpiresOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.replace(KEY, VALUE, "whatever value, it expires on update");
@@ -335,11 +337,11 @@ public class ByteAccountingTest {
   public void testPutIfAbsent() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.putIfAbsent(KEY, VALUE);
+    store.putIfAbsent(KEY, VALUE, b -> {});
     long current = store.getCurrentUsageInBytes();
     assertThat(current, is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.putIfAbsent(KEY, "New Value to Put");
+    store.putIfAbsent(KEY, "New Value to Put", b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(current));
   }
 
@@ -350,17 +352,17 @@ public class ByteAccountingTest {
 
     store.put(KEY, "an expired value");
     timeSource.advanceTime(1000L);
-    store.putIfAbsent(KEY, VALUE);
+    store.putIfAbsent(KEY, VALUE, b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
   }
 
   @Test
   public void testPutIfAbsentExpiresOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.putIfAbsent(KEY, "another value ... whatever");
+    store.putIfAbsent(KEY, "another value ... whatever", b -> {});
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
@@ -392,11 +394,11 @@ public class ByteAccountingTest {
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute("another", (a, b) -> null);
+    store.getAndCompute("another", (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
-    store.compute(KEY, (a, b) -> null);
+    store.getAndCompute(KEY, (a, b) -> null);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -405,14 +407,14 @@ public class ByteAccountingTest {
   public void testCompute() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.compute(KEY, (a, b) -> VALUE);
+    store.getAndCompute(KEY, (a, b) -> VALUE);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
     final String replace = "Replace the original value";
     long delta = SIZEOF.deepSizeOf(replace) - SIZEOF.deepSizeOf(VALUE);
 
-    store.compute(KEY, (a, b) -> replace);
+    store.getAndCompute(KEY, (a, b) -> replace);
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
   }
@@ -420,21 +422,21 @@ public class ByteAccountingTest {
   @Test
   public void testComputeExpiryOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, (s, s2) -> s2, () -> false);
+    store.computeAndGet(KEY, (s, s2) -> s2, () -> false, () -> false);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
-  public void testComputeExpiryOnUpdate() throws StoreAccessException {
+  public void testGetAndComputeExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setUpdate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.compute(KEY, (s, s2) -> s2);
+    store.getAndCompute(KEY, (s, s2) -> s2);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -455,7 +457,7 @@ public class ByteAccountingTest {
   @Test
   public void testComputeIfAbsentExpireOnCreate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setCreate(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().create(Duration.ZERO).build());
 
     store.computeIfAbsent(KEY, s -> VALUE);
 
@@ -465,7 +467,7 @@ public class ByteAccountingTest {
   @Test
   public void testComputeIfAbsentExpiryOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.builder().setAccess(Duration.ZERO).build());
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
     store.computeIfAbsent(KEY, s -> {
@@ -479,14 +481,14 @@ public class ByteAccountingTest {
   @Test
   public void testExpiry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1)));
 
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
     timeSource.advanceTime(1);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
     assertThat(store.get(KEY), nullValue());
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
@@ -517,13 +519,12 @@ public class ByteAccountingTest {
 
   }
 
-  private Expiry<Object, Object> ttlCreation600ms() {
-    return Expirations.builder().setCreate(new Duration(600L, TimeUnit.MILLISECONDS)).build();
+  private ExpiryPolicy<Object, Object> ttlCreation600ms() {
+    return expiry().create(Duration.ofMillis(600L)).build();
   }
 
   static long getSize(String key, String value) {
-    @SuppressWarnings("unchecked")
-    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0L, 0L, true, DEFAULT_COPIER);
+    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<>(value, 0L, 0L, true, IdentityCopier.identityCopier());
     long size = 0L;
     try {
       size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
@@ -535,12 +536,10 @@ public class ByteAccountingTest {
 
   static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
-    private static final Copier DEFAULT_COPIER = new IdentityCopier();
-
     @SuppressWarnings("unchecked")
     OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
                         final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
-      super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);
+      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, eventDispatcher, new DefaultStatisticsService());
     }
 
     long getCurrentUsageInBytes() {

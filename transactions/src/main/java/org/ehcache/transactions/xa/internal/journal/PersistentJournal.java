@@ -34,6 +34,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
+
 /**
  * A persistent, but not durable {@link Journal} implementation.
  * This implementation will persist saved states during close and restore them during open. If close is not called,
@@ -47,6 +49,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
   private static final String JOURNAL_FILENAME = "journal.data";
 
   protected static class SerializableEntry<K> implements Serializable {
+    private static final long serialVersionUID = -6586025792671381923L;
     final XAState state;
     final boolean heuristic;
     final Collection<byte[]> serializedKeys;
@@ -91,13 +94,11 @@ public class PersistentJournal<K> extends TransientJournal<K> {
   public void open() throws IOException {
     File file = new File(directory, JOURNAL_FILENAME);
     if (file.isFile()) {
-      ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
-      try {
+      try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
         boolean valid = ois.readBoolean();
         states.clear();
         if (valid) {
-          @SuppressWarnings("unchecked")
-          Map<TransactionId, SerializableEntry<K>> readStates = (Map<TransactionId, SerializableEntry<K>>) ois.readObject();
+          Map<TransactionId, SerializableEntry<K>> readStates = uncheckedCast(ois.readObject());
           for (Map.Entry<TransactionId, SerializableEntry<K>> entry : readStates.entrySet()) {
             SerializableEntry<K> value = entry.getValue();
             states.put(entry.getKey(), new Entry<>(value.state, value.heuristic, value.deserializeKeys(keySerializer)));
@@ -108,12 +109,8 @@ public class PersistentJournal<K> extends TransientJournal<K> {
       } catch (ClassNotFoundException cnfe) {
         LOGGER.warn("Cannot deserialize XA journal contents, truncating it", cnfe);
       } finally {
-        ois.close();
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
-        try {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
           oos.writeObject(false);
-        } finally {
-          oos.close();
         }
       }
     }
@@ -121,8 +118,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
 
   @Override
   public void close() throws IOException {
-    ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(directory, JOURNAL_FILENAME)));
-    try {
+    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(directory, JOURNAL_FILENAME)))) {
       oos.writeBoolean(true);
       Map<TransactionId, SerializableEntry<K>> toSerialize = new HashMap<>();
       for (Map.Entry<TransactionId, Entry<K>> entry : states.entrySet()) {
@@ -132,8 +128,6 @@ public class PersistentJournal<K> extends TransientJournal<K> {
       }
       oos.writeObject(toSerialize);
       states.clear();
-    } finally {
-      oos.close();
     }
   }
 }

@@ -26,13 +26,13 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Exchanger;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -46,9 +46,9 @@ public class SerializedOnHeapValueHolderTest {
     String o = "foo";
     ValueHolder<?> vh1 = newValueHolder(o);
     ValueHolder<?> vh2 = newValueHolder(o);
-    assertFalse(vh1.value() == vh2.value());
-    assertEquals(vh1.value(), vh2.value());
-    assertNotSame(vh1.value(), vh1.value());
+    assertFalse(vh1.get() == vh2.get());
+    assertEquals(vh1.get(), vh2.get());
+    assertNotSame(vh1.get(), vh1.get());
   }
 
   @Test
@@ -56,10 +56,10 @@ public class SerializedOnHeapValueHolderTest {
     ValueHolder<Integer> vh1 = newValueHolder(10);
     ValueHolder<Integer> vh2 = newValueHolder(10);
     // make sure reading the value multiple times doesn't change the hashcode
-    vh1.value();
-    vh1.value();
-    vh2.value();
-    vh2.value();
+    vh1.get();
+    vh1.get();
+    vh2.get();
+    vh2.get();
     assertThat(vh1.hashCode(), is(vh2.hashCode()));
   }
 
@@ -87,9 +87,9 @@ public class SerializedOnHeapValueHolderTest {
     final SerializedOnHeapValueHolder<String> valueHolder = new SerializedOnHeapValueHolder<>("test it!", System
       .currentTimeMillis(), false, serializer);
 
-    new Thread(() -> valueHolder.value()).start();
+    new Thread(valueHolder::get).start();
 
-    valueHolder.value();
+    valueHolder.get();
   }
 
   private static class ReadExchangeSerializer implements Serializer<String> {

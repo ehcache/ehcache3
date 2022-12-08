@@ -16,8 +16,10 @@
 
 package org.ehcache.impl.internal.store.heap.bytesized;
 
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.core.statistics.DefaultStatisticsService;
+import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
@@ -32,12 +34,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +48,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   protected <K, V> Store.Configuration<K, V> mockStoreConfig() {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(CharSequence.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build());
@@ -55,10 +56,10 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   }
 
   @SuppressWarnings("unchecked")
-  protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
+  protected OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
+    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
   @SuppressWarnings("unchecked")
@@ -66,14 +67,14 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
-    when(config.getExpiry()).thenReturn(Expirations.noExpiration());
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
     when(config.getKeyType()).thenReturn(Number.class);
     when(config.getValueType()).thenReturn(Number.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build());
     Store.Configuration<Number, Number> configuration = config;
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<Number, Number>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher());
+    OnHeapStore<Number, Number> store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher(), new DefaultStatisticsService());
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);
@@ -104,17 +105,17 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     check.put(5, 0);
     check.put(6, 0);
 
-    assertThat(result.get(1).value(), Matchers.<Number>is(check.get(1)));
-    assertThat(result.get(2).value(), Matchers.<Number>is(check.get(2)));
-    assertThat(result.get(3).value(), Matchers.<Number>is(check.get(3)));
+    assertThat(result.get(1).get(), Matchers.is(check.get(1)));
+    assertThat(result.get(2).get(), Matchers.is(check.get(2)));
+    assertThat(result.get(3).get(), Matchers.is(check.get(3)));
     assertThat(result.get(4), nullValue());
-    assertThat(result.get(5).value(), Matchers.<Number>is(check.get(5)));
-    assertThat(result.get(6).value(), Matchers.<Number>is(check.get(6)));
+    assertThat(result.get(5).get(), Matchers.is(check.get(5)));
+    assertThat(result.get(6).get(), Matchers.is(check.get(6)));
 
     for (Number key : check.keySet()) {
       final Store.ValueHolder<Number> holder = store.get(key);
       if(holder != null) {
-        check.remove(key, holder.value());
+        check.remove(key, holder.get());
       }
     }
     assertThat(check.size(), is(1));

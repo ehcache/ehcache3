@@ -16,7 +16,7 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.transactions.xa.EhcacheXAException;
 import org.ehcache.transactions.xa.internal.journal.Journal;
@@ -104,12 +104,12 @@ public class EhcacheXAResource<K, V> implements XAResource {
   }
 
   @Override
-  public int getTransactionTimeout() throws XAException {
+  public int getTransactionTimeout() {
     return transactionTimeoutInSeconds;
   }
 
   @Override
-  public boolean isSameRM(XAResource xaResource) throws XAException {
+  public boolean isSameRM(XAResource xaResource) {
     return xaResource == this;
   }
 

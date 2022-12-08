@@ -66,7 +66,7 @@ public class Tiering {
   public void threeTiersCacheManager() throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(cluster(CLUSTER_URI).autoCreate()) // <1>
+      .with(cluster(CLUSTER_URI).autoCreate(c -> c)) // <1>
       .withCache("threeTierCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()

@@ -31,7 +31,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * Utility methods and common data for {@link EhcacheWithLoaderWriter Ehcache}
+ * Utility methods and common data for {@link Ehcache}
  * bulk method unit tests.
  *
  * @author Clifford W. Johnson

@@ -28,7 +28,6 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -37,9 +36,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
-import org.ehcache.impl.internal.util.ByteBufferInputStream;
+import org.ehcache.core.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
+
+import static java.lang.Math.max;
 
 /**
  * A trivially compressed Java serialization based serializer.
@@ -51,12 +52,13 @@ import org.ehcache.spi.serialization.StatefulSerializer;
  */
 public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
-  private volatile StateHolder<Integer, ObjectStreamClass> readLookup;
-  private final ConcurrentMap<Integer, ObjectStreamClass> readLookupLocalCache = new ConcurrentHashMap<>();
-  private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<>();
+  private volatile StateHolder<Integer, ObjectStreamClass> persistentState;
+  private final ConcurrentMap<Integer, ObjectStreamClass> readLookupCache = new ConcurrentHashMap<>();
+  private final ConcurrentMap<SerializableDataKey, Integer> writeLookupCache = new ConcurrentHashMap<>();
 
   private final Lock lock = new ReentrantLock();
   private int nextStreamIndex = 0;
+  private boolean potentiallyInconsistent;
 
   private final transient ClassLoader loader;
 
@@ -78,8 +80,8 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
   @Override
   public void init(final StateRepository stateRepository) {
-    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
-    loadMappingsInWriteContext(readLookup.entrySet(), true);
+    this.persistentState = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class, c -> true, null);
+    refreshMappingsFromStateRepository();
   }
 
   /**
@@ -89,11 +91,8 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
   public ByteBuffer serialize(T object) throws SerializerException {
     try {
       ByteArrayOutputStream bout = new ByteArrayOutputStream();
-      ObjectOutputStream oout = getObjectOutputStream(bout);
-      try {
+      try (ObjectOutputStream oout = getObjectOutputStream(bout)) {
         oout.writeObject(object);
-      } finally {
-        oout.close();
       }
       return ByteBuffer.wrap(bout.toByteArray());
     } catch (IOException e) {
@@ -107,13 +106,10 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
   @Override
   public T read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     try {
-      ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary));
-      try {
+      try (ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary))) {
         @SuppressWarnings("unchecked")
         T value = (T) oin.readObject();
         return value;
-      } finally {
-        oin.close();
       }
     } catch (IOException e) {
       throw new SerializerException(e);
@@ -136,57 +132,80 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     return object.equals(read(binary));
   }
 
-  private int getOrAddMapping(ObjectStreamClass desc) throws IOException {
+  private int getOrAddMapping(ObjectStreamClass desc) {
     SerializableDataKey probe = new SerializableDataKey(desc, false);
-    Integer rep = writeLookup.get(probe);
-    if (rep != null) {
+    Integer rep = writeLookupCache.get(probe);
+    if (rep == null) {
+      return addMappingUnderLock(desc, probe);
+    } else {
       return rep;
     }
+  }
 
-    // Install new rep - locking
+  private int addMappingUnderLock(ObjectStreamClass desc, SerializableDataKey probe) {
     lock.lock();
     try {
-      return addMappingUnderLock(desc, probe);
+      if (potentiallyInconsistent) {
+        refreshMappingsFromStateRepository();
+        potentiallyInconsistent = false;
+      }
+      while (true) {
+        Integer rep = writeLookupCache.get(probe);
+        if (rep != null) {
+          return rep;
+        }
+        rep = nextStreamIndex++;
+
+        try {
+          ObjectStreamClass disconnected = disconnect(desc);
+          ObjectStreamClass existingOsc = persistentState.putIfAbsent(rep, disconnected);
+          if (existingOsc == null) {
+            cacheMapping(rep, disconnected);
+            return rep;
+          } else {
+            cacheMapping(rep, disconnect(existingOsc));
+          }
+        } catch (Throwable t) {
+          potentiallyInconsistent = true;
+          throw t;
+        }
+      }
     } finally {
       lock.unlock();
     }
   }
 
-  private int addMappingUnderLock(ObjectStreamClass desc, SerializableDataKey probe) throws IOException {
-    ObjectStreamClass disconnected = disconnect(desc);
-    SerializableDataKey key = new SerializableDataKey(disconnected, true);
-    while (true) {
-      Integer rep = writeLookup.get(probe);
-      if (rep != null) {
-        return rep;
-      }
-      rep = nextStreamIndex++;
-
-      ObjectStreamClass existingOsc = readLookup.putIfAbsent(rep, disconnected);
-      if (existingOsc == null) {
-        writeLookup.put(key, rep);
-        readLookupLocalCache.put(rep, disconnected);
-        return rep;
-      } else {
-        ObjectStreamClass discOsc = disconnect(existingOsc);
-        writeLookup.put(new SerializableDataKey(discOsc, true), rep);
-        readLookupLocalCache.put(rep, discOsc);
-      }
+  private void refreshMappingsFromStateRepository() {
+    int highestIndex = -1;
+    for (Entry<Integer, ObjectStreamClass> entry : persistentState.entrySet()) {
+      Integer index = entry.getKey();
+      cacheMapping(entry.getKey(), disconnect(entry.getValue()));
+      highestIndex = max(highestIndex, index);
     }
+    nextStreamIndex = highestIndex + 1;
   }
 
-  private void loadMappingsInWriteContext(Set<Entry<Integer, ObjectStreamClass>> entries, boolean throwOnFailedPutIfAbsent) {
-    for (Entry<Integer, ObjectStreamClass> entry : entries) {
-      Integer index = entry.getKey();
-      ObjectStreamClass discOsc = disconnect(entry.getValue());
-      readLookupLocalCache.put(index, discOsc);
-      if (writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), index) != null && throwOnFailedPutIfAbsent) {
-        throw new AssertionError("Corrupted data " + readLookup);
+  private void cacheMapping(Integer index, ObjectStreamClass disconnectedOsc) {
+    readLookupCache.merge(index, disconnectedOsc, (existing, update) -> {
+      if (equals(existing, update)) {
+        return existing;
+      } else {
+        throw new AssertionError("Corrupted data:\n"
+            + "State Repository: " + persistentState + "\n"
+            + "Local Write Lookup: " + writeLookupCache + "\n"
+            + "Local Read Lookup: " + readLookupCache);
       }
-      if (nextStreamIndex < index + 1) {
-        nextStreamIndex = index + 1;
+    });
+    writeLookupCache.merge(new SerializableDataKey(disconnectedOsc, true), index, (existing, update) -> {
+      if (existing.equals(update)) {
+        return existing;
+      } else {
+        throw new AssertionError("Corrupted data:\n"
+            + "State Repository: " + persistentState + "\n"
+            + "Local Write Lookup: " + writeLookupCache + "\n"
+            + "Local Read Lookup: " + readLookupCache);
       }
-    }
+    });
   }
 
   class OOS extends ObjectOutputStream {
@@ -211,16 +230,13 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
 
     @Override
-    protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+    protected ObjectStreamClass readClassDescriptor() throws IOException {
       int key = readInt();
-      ObjectStreamClass objectStreamClass = readLookupLocalCache.get(key);
-      if (objectStreamClass != null) {
-        return objectStreamClass;
+      ObjectStreamClass objectStreamClass = readLookupCache.get(key);
+      if (objectStreamClass == null) {
+        objectStreamClass = persistentState.get(key);
+        cacheMapping(key, disconnect(objectStreamClass));
       }
-      objectStreamClass = readLookup.get(key);
-      ObjectStreamClass discOsc = disconnect(objectStreamClass);
-      readLookupLocalCache.put(key, discOsc);
-      writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), key);
       return objectStreamClass;
     }
 
@@ -337,9 +353,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
       };
 
       return (ObjectStreamClass) oin.readObject();
-    } catch (ClassNotFoundException e) {
-      throw new AssertionError(e);
-    } catch (IOException e) {
+    } catch (ClassNotFoundException | IOException e) {
       throw new AssertionError(e);
     }
   }
@@ -347,11 +361,8 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
   private static byte[] getSerializedForm(ObjectStreamClass desc) throws IOException {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     try {
-      ObjectOutputStream oout = new ObjectOutputStream(bout);
-      try {
+      try (ObjectOutputStream oout = new ObjectOutputStream(bout)) {
         oout.writeObject(desc);
-      } finally {
-        oout.close();
       }
     } finally {
       bout.close();

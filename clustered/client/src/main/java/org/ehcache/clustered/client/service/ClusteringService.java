@@ -19,10 +19,11 @@ package org.ehcache.clustered.client.service;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.Configuration;
 import org.ehcache.spi.persistence.PersistableResourceService;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Provides support for accessing server-based resources.
@@ -51,14 +52,30 @@ public interface ClusteringService extends PersistableResourceService {
    *
    * @throws CachePersistenceException if the {@code cacheIdentifier} is unknown or the {@code ServerStoreProxy} cannot be created
    */
-  <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier, final Store.Configuration<K, V> storeConfig, Consistency consistency) throws CachePersistenceException;
+  <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier, final Configuration<K, V> storeConfig,
+                                              Consistency consistency, ServerCallback invalidation) throws CachePersistenceException;
 
   /**
    * Releases access to a {@link ServerStoreProxy} and the server-resident {@code ServerStore} it represents.
    *
    * @param serverStoreProxy a {@link ServerStoreProxy} obtained through {@link #getServerStoreProxy}
+   * @param isReconnect whether client is trying to reconnect
    */
-  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
+  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy, boolean isReconnect);
+
+  /**
+   * Add a block to execute when the connection is recovered after it was closed.
+   *
+   * @param runnable the execution block
+   */
+  void addConnectionRecoveryListener(Runnable runnable);
+
+  /**
+   * Remove a block to execute when the connection is recovered after it was closed.
+   *
+   * @param runnable the execution block
+   */
+  void removeConnectionRecoveryListener(Runnable runnable);
 
   /**
    * A {@link org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier PersistenceSpaceIdentifier}

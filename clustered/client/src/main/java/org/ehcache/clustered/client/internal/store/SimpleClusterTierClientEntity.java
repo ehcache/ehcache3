@@ -16,9 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.config.TimeoutDuration;
-import org.ehcache.clustered.client.internal.Timeouts;
-import org.ehcache.clustered.client.internal.service.ClusterTierException;
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -38,20 +36,26 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityResponse;
+import org.terracotta.entity.InvocationBuilder;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
 
 /**
  * ClusterTierClientEntity
@@ -59,30 +63,35 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SimpleClusterTierClientEntity implements InternalClusterTierClientEntity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimpleClusterTierClientEntity.class);
-  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(EhcacheMessageType.GET_STORE);
+  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(
+    EhcacheMessageType.GET_STORE,
+    EhcacheMessageType.ITERATOR_ADVANCE,
+    EhcacheMessageType.ITERATOR_OPEN,
+    EhcacheMessageType.ITERATOR_CLOSE);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
-  private final AtomicLong sequenceGenerator = new AtomicLong(0L);
   private final Object lock = new Object();
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
+  private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
+  private final Timeouts timeouts;
+  private final String storeIdentifier;
 
-  private UUID clientId;
-  private ReconnectListener reconnectListener = reconnectMessage -> {
-    // No op
-  };
-  private DisconnectionListener disconnectionListener = () -> {
-    // No op
-  };
-  private Timeouts timeouts = Timeouts.builder().build();
-  private String storeIdentifier;
+  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<>();
+
   private volatile boolean connected = true;
+  private volatile boolean eventsEnabled;
 
+  private final Executor asyncWorker;
 
-  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
+                                       Timeouts timeouts, String storeIdentifier, Executor asyncWorker) {
     this.endpoint = endpoint;
+    this.timeouts = timeouts;
+    this.storeIdentifier = storeIdentifier;
+    this.asyncWorker = requireNonNull(asyncWorker);
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
@@ -94,27 +103,23 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       @Override
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
-          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(clientId);
-          reconnectListener.onHandleReconnect(reconnectMessage);
+          ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage(eventsEnabled);
+          reconnectListeners.forEach(reconnectListener -> reconnectListener.onHandleReconnect(reconnectMessage));
           return reconnectMessageCodec.encode(reconnectMessage);
         }
       }
 
       @Override
       public void didDisconnectUnexpectedly() {
+        LOGGER.info("Cluster tier for cache {} disconnected", storeIdentifier);
         fireDisconnectionEvent();
       }
     });
   }
 
-  @Override
-  public void setTimeouts(Timeouts timeouts) {
-    this.timeouts = timeouts;
-  }
-
   void fireDisconnectionEvent() {
     connected = false;
-    disconnectionListener.onDisconnection();
+    disconnectionListeners.forEach(DisconnectionListener::onDisconnection);
   }
 
   private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
@@ -126,39 +131,55 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
     LOGGER.debug("{} registered response listener(s) for {}", responseListeners.size(), response.getClass());
     for (ResponseListener<T> responseListener : responseListeners) {
-      responseListener.onResponse(response);
+      Runnable responseProcessing = () -> {
+        try {
+          responseListener.onResponse(response);
+        } catch (TimeoutException e) {
+          LOGGER.debug("Timeout exception processing: {} - resubmitting", response, e);
+          fireResponseEvent(response);
+        } catch (Exception e) {
+          LOGGER.warn("Unhandled failure processing: {}", response, e);
+        }
+      };
+      try {
+        asyncWorker.execute(responseProcessing);
+      } catch (RejectedExecutionException f) {
+        LOGGER.warn("Response task execution rejected using inline execution: {}", response, f);
+        responseProcessing.run();
+      }
     }
   }
 
   @Override
   public void close() {
-    reconnectListener = null;
-    disconnectionListener = null;
     endpoint.close();
+    reconnectListeners.clear();
+    disconnectionListeners.clear();
   }
 
   @Override
-  public void setClientId(UUID clientId) {
-    this.clientId = clientId;
-    messageFactory.setClientId(clientId);
+  public Timeouts getTimeouts() {
+    return timeouts;
   }
 
   @Override
-  public UUID getClientId() {
-    if (clientId == null) {
-      throw new IllegalStateException("Client Id cannot be null");
+  public void addReconnectListener(ReconnectListener reconnectListener) {
+    this.reconnectListeners.add(reconnectListener);
+  }
+
+  @Override
+  public void enableEvents(boolean enable) throws ClusterException, TimeoutException {
+    if (enable == this.eventsEnabled) {
+      return;
     }
-    return this.clientId;
+    // make sure the server received and processed the message before returning
+    this.invokeAndWaitForComplete(new ServerStoreOpMessage.EnableEventListenerMessage(enable), true);
+    this.eventsEnabled = enable;
   }
 
   @Override
-  public void setReconnectListener(ReconnectListener reconnectListener) {
-    this.reconnectListener = reconnectListener;
-  }
-
-  @Override
-  public void setDisconnectionListener(DisconnectionListener disconnectionListener) {
-    this.disconnectionListener = disconnectionListener;
+  public void addDisconnectionListener(DisconnectionListener disconnectionListener) {
+    this.disconnectionListeners.add(disconnectionListener);
   }
 
   @Override
@@ -177,61 +198,59 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException {
+  public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierValidationException, TimeoutException {
     try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
+      invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getConnectionTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
   }
 
   @Override
-  public void setStoreIdentifier(String storeIdentifier) {
-    this.storeIdentifier = storeIdentifier;
-  }
-
-  void setConnected(boolean connected) {
-    this.connected = connected;
-  }
-
-  @Override
-  public EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean track) throws ClusterException, TimeoutException {
-    return invoke(message, track);
-  }
-
-  @Override
   public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException {
-    return invoke(message, track);
+    return invokeAndWaitForRetired(message, track);
   }
 
   @Override
-  public void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean track)
-      throws MessageCodecException {
-    internalInvokeAsync(message, track);
+  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws TimeoutException {
+    invokeInternal(endpoint.beginInvoke().ackSent(), getTimeoutDuration(message), message, track);
   }
 
-  private EhcacheEntityResponse invoke(EhcacheOperationMessage message, boolean track)
-      throws ClusterException, TimeoutException {
-    TimeoutDuration timeLimit = timeouts.getMutativeOperationTimeout();
-    if (GET_STORE_OPS.contains(message.getMessageType())) {
-      timeLimit = timeouts.getReadOperationTimeout();
-    }
-    return invokeInternal(timeLimit, message, track);
+  @Override
+  public void invokeAndWaitForReceive(EhcacheOperationMessage message, boolean track)
+          throws ClusterException, TimeoutException  {
+    invokeInternalAndWait(endpoint.beginInvoke().ackReceived(), message, track);
   }
 
-  private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean track)
-      throws ClusterException, TimeoutException {
+  @Override
+  public EhcacheEntityResponse invokeAndWaitForComplete(EhcacheOperationMessage message, boolean track)
+    throws ClusterException, TimeoutException {
+    return invokeInternalAndWait(endpoint.beginInvoke().blockGetOnRetire(false), message, track);
+  }
 
+  @Override
+  public EhcacheEntityResponse invokeAndWaitForRetired(EhcacheOperationMessage message, boolean track)
+    throws ClusterException, TimeoutException {
+    return invokeInternalAndWait(endpoint.beginInvoke().blockGetOnRetire(true), message, track);
+  }
+
+  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, EhcacheOperationMessage message, boolean track)
+      throws ClusterException, TimeoutException {
+    return invokeInternalAndWait(invocationBuilder, getTimeoutDuration(message), message, track);
+  }
+
+  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeLimit, EhcacheEntityMessage message, boolean track)
+      throws ClusterException, TimeoutException {
     try {
-      EhcacheEntityResponse response = waitFor(timeLimit, internalInvokeAsync(message, track));
+      LongSupplier nanosRemaining = nanosStartingFromNow(timeLimit);
+      InvokeFuture<EhcacheEntityResponse> future = invokeInternal(invocationBuilder, Duration.ofNanos(nanosRemaining.getAsLong()), message, track);
+      EhcacheEntityResponse response = waitFor(nanosRemaining.getAsLong(), future);
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
         return response;
       }
     } catch (EntityException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
-    } catch (MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
     } catch (TimeoutException e) {
       String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
@@ -242,24 +261,48 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private InvokeFuture<EhcacheEntityResponse> internalInvokeAsync(EhcacheEntityMessage message, boolean track)
-        throws MessageCodecException {
-    getClientId();
-    if (track) {
-      message.setId(sequenceGenerator.getAndIncrement());
+  private InvokeFuture<EhcacheEntityResponse> invokeInternal(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeout, EhcacheEntityMessage message, boolean track) throws TimeoutException {
+    boolean interrupted = Thread.interrupted();
+    try {
+      LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
+      while (true) {
+        try {
+          long nanos = nanosRemaining.getAsLong();
+          if (nanos > 0) {
+            return invocationBuilder.message(message).invokeWithTimeout(nanos, NANOSECONDS);
+          } else {
+            throw new TimeoutException("Timed out waiting for server response to message: " + message);
+          }
+        } catch (InterruptedException e) {
+          interrupted = true;
+        }
+      }
+    } catch (MessageCodecException e) {
+      throw new RuntimeException(message + " error: " + e.getMessage(), e);
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
     }
-    return endpoint.beginInvoke().message(message).invoke();
   }
 
-  private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)
+  private Duration getTimeoutDuration(EhcacheOperationMessage message) {
+    if (GET_STORE_OPS.contains(message.getMessageType())) {
+      return timeouts.getReadOperationTimeout();
+    } else {
+      return timeouts.getWriteOperationTimeout();
+    }
+  }
+
+  private static <T extends EntityResponse> T waitFor(long nanos, InvokeFuture<T> future)
       throws EntityException, TimeoutException {
     boolean interrupted = false;
-    long deadlineTimeout = System.nanoTime() + timeLimit.toNanos();
+    long deadlineTimeout = System.nanoTime() + nanos;
     try {
       while (true) {
         try {
           long timeRemaining = deadlineTimeout - System.nanoTime();
-          return future.getWithTimeout(timeRemaining, TimeUnit.NANOSECONDS);
+          return future.getWithTimeout(timeRemaining, NANOSECONDS);
         } catch (InterruptedException e) {
           interrupted = true;
         }

@@ -30,8 +30,8 @@ import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 
@@ -89,7 +89,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
     return diskResourceService.getPersistenceSpaceIdentifier(name, config);
   }
 
@@ -109,7 +109,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier identifier, String name) throws CachePersistenceException {
+  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
     return diskResourceService.createPersistenceContextWithin(identifier, name);
   }
 

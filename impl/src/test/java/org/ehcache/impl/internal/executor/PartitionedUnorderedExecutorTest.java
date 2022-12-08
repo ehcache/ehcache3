@@ -29,10 +29,10 @@ import org.junit.Test;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
@@ -86,7 +86,7 @@ public class PartitionedUnorderedExecutorTest {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(() -> semaphore.acquireUninterruptibly());
+      executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
       try {
         executor.execute(() -> {
@@ -112,7 +112,7 @@ public class PartitionedUnorderedExecutorTest {
       PartitionedUnorderedExecutor executor = new PartitionedUnorderedExecutor(queue, service, 1);
 
       final Semaphore semaphore = new Semaphore(0);
-      executor.execute(() -> semaphore.acquireUninterruptibly());
+      executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
@@ -143,7 +143,7 @@ public class PartitionedUnorderedExecutorTest {
         testSemaphore.release();
         jobSemaphore.acquireUninterruptibly();
       });
-      executor.submit(() -> jobSemaphore.acquireUninterruptibly());
+      executor.submit((Runnable) jobSemaphore::acquireUninterruptibly);
       testSemaphore.acquireUninterruptibly();
       executor.shutdown();
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));

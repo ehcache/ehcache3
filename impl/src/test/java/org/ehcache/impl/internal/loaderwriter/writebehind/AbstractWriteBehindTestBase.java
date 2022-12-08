@@ -33,26 +33,22 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -64,7 +60,7 @@ import static org.mockito.Mockito.when;
  */
 public abstract class AbstractWriteBehindTestBase {
 
-  protected abstract CacheManagerBuilder managerBuilder();
+  protected abstract CacheManagerBuilder<CacheManager> managerBuilder();
 
   protected abstract CacheConfigurationBuilder<String, String> configurationBuilder();
 
@@ -73,11 +69,11 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testWriteOrdering", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 8).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 8).build())
+        .build());
 
       CountDownLatch countDownLatch = new CountDownLatch(8);
 
@@ -94,9 +90,8 @@ public abstract class AbstractWriteBehindTestBase {
 
       countDownLatch.await(4, SECONDS);
 
-      assertThat(loaderWriter.getData().get("key"), contains(null, "value1", null, "value2", null, "value3", null, "value4"));
-    } finally {
-      cacheManager.close();
+      assertThat(loaderWriter.getData()
+        .get("key"), contains(null, "value1", null, "value2", null, "value3", null, "value4"));
     }
   }
 
@@ -105,11 +100,11 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, heap(10))
-          .add(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
+        .build());
 
       CountDownLatch countDownLatch = new CountDownLatch(4);
       loaderWriter.setLatch(countDownLatch);
@@ -123,8 +118,6 @@ public abstract class AbstractWriteBehindTestBase {
       assertThat(loaderWriter.getData().get("test1"), contains("test1"));
       assertThat(loaderWriter.getData().get("test2"), contains("test2", null));
       assertThat(loaderWriter.getData().get("test3"), contains("test3"));
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -133,22 +126,22 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testBulkWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, heap(100))
-          .add(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
+        .build());
 
       CountDownLatch countDownLatch = new CountDownLatch(20);
       loaderWriter.setLatch(countDownLatch);
-      for(int i=0 ; i<10; i++)
-        testCache.put("test"+i, "test"+i);
+      for (int i = 0; i < 10; i++)
+        testCache.put("test" + i, "test" + i);
 
       Map<String, String> entries = new HashMap<>(10);
       Set<String> keys = new HashSet<>(10);
-      for(int i=10 ; i<20; i++) {
-        entries.put("test"+i, "test"+i);
-        keys.add("test"+i);
+      for (int i = 10; i < 20; i++) {
+        entries.put("test" + i, "test" + i);
+        keys.add("test" + i);
       }
 
       testCache.putAll(entries);
@@ -170,33 +163,31 @@ public abstract class AbstractWriteBehindTestBase {
       for (int i = 10; i < 20; i++) {
         assertThat("Key : " + i, loaderWriter.getData().get("test" + i), contains("test" + i, null));
       }
-    } finally {
-      cacheManager.close();
     }
   }
 
   @Test
-  public void testThatAllGetsReturnLatestData() throws BulkCacheWritingException, Exception {
+  public void testThatAllGetsReturnLatestData() throws Exception {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testThatAllGetsReturnLatestData", configurationBuilder()
-          .add(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
+        .build());
 
-      for(int i=0 ; i<10; i++) {
-        String val = "test"+i;
-        testCache.put(val, val );
+      for (int i = 0; i < 10; i++) {
+        String val = "test" + i;
+        testCache.put(val, val);
       }
       testCache.remove("test8");
 
       assertThat(testCache.get("test8"), nullValue());
 
-      for(int i=10; i<30; i++){
-        String val = "test"+i;
+      for (int i = 10; i < 30; i++) {
+        String val = "test" + i;
         testCache.put(val, val);
       }
 
@@ -204,7 +195,6 @@ public abstract class AbstractWriteBehindTestBase {
 
       testCache.remove("test19");
       testCache.remove("test1");
-
 
 
       assertThat(testCache.get("test19"), nullValue());
@@ -218,8 +208,6 @@ public abstract class AbstractWriteBehindTestBase {
 
 
       assertThat(testCache.get("test7"), is("test7New"));
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -228,17 +216,17 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testAllGetsReturnLatestDataWithKeyCollision", configurationBuilder()
-          .add(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
+        .build());
 
       Random random = new Random();
       Set<String> keys = new HashSet<>();
-      for(int i = 0; i< 40; i++) {
+      for (int i = 0; i < 40; i++) {
         int index = random.nextInt(15);
-        String key = "key"+ index;
+        String key = "key" + index;
         testCache.put(key, key);
         keys.add(key);
       }
@@ -248,8 +236,6 @@ public abstract class AbstractWriteBehindTestBase {
       for (String key : keys) {
         assertThat(testCache.get(key), is(key + "new"));
       }
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -260,25 +246,23 @@ public abstract class AbstractWriteBehindTestBase {
     when(loaderWriter.load("key")).thenReturn("value");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testBatchedDeletedKeyReturnsNull", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
+        .build());
 
       assertThat(testCache.get("key"), is("value"));
 
       testCache.remove("key");
 
       assertThat(testCache.get("key"), nullValue());
-    } finally {
-      cacheManager.close();
     }
   }
 
   @Test
   public void testUnBatchedDeletedKeyReturnsNull() throws Exception {
-    final Semaphore semaphore = new Semaphore(0);
+    Semaphore semaphore = new Semaphore(0);
 
     @SuppressWarnings("unchecked")
     CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
@@ -292,7 +276,8 @@ public abstract class AbstractWriteBehindTestBase {
     CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
       Cache<String, String> testCache = cacheManager.createCache("testUnBatchedDeletedKeyReturnsNull", configurationBuilder()
-          .add(newUnBatchedWriteBehindConfiguration().build())
+          .withLoaderWriter(loaderWriter)
+          .withService(newUnBatchedWriteBehindConfiguration().build())
           .build());
 
       assertThat(testCache.get("key"), is("value"));
@@ -313,19 +298,17 @@ public abstract class AbstractWriteBehindTestBase {
     when(loaderWriter.load("key")).thenReturn("value");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testBatchedOverwrittenKeyReturnsNewValue", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
+        .build());
 
       assertThat(testCache.get("key"), is("value"));
 
       testCache.put("key", "value2");
 
       assertThat(testCache.get("key"), is("value2"));
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -345,7 +328,8 @@ public abstract class AbstractWriteBehindTestBase {
     CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
       Cache<String, String> testCache = cacheManager.createCache("testUnBatchedOverwrittenKeyReturnsNewValue", configurationBuilder()
-          .add(newUnBatchedWriteBehindConfiguration().build())
+          .withLoaderWriter(loaderWriter)
+          .withService(newUnBatchedWriteBehindConfiguration().build())
           .build());
 
       assertThat(testCache.get("key"), is("value"));
@@ -364,11 +348,11 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testCoaslecedWritesAreNotSeen", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).enableCoalescing().build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).enableCoalescing().build())
+        .build());
 
       CountDownLatch latch = new CountDownLatch(2);
       loaderWriter.setLatch(latch);
@@ -381,8 +365,6 @@ public abstract class AbstractWriteBehindTestBase {
       latch.await();
       assertThat(loaderWriter.getValueList("keyA"), contains("value2"));
       assertThat(loaderWriter.getValueList("keyB"), contains("value3"));
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -391,15 +373,13 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testUnBatchedWriteBehindStopWaitsForEmptyQueue", configurationBuilder()
-          .add(newUnBatchedWriteBehindConfiguration().build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newUnBatchedWriteBehindConfiguration().build())
+        .build());
 
       testCache.put("key", "value");
-    } finally {
-      cacheManager.close();
     }
     assertThat(loaderWriter.getValueList("key"), contains("value"));
   }
@@ -409,15 +389,13 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testBatchedWriteBehindStopWaitsForEmptyQueue", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
+        .build());
 
       testCache.put("key", "value");
-    } finally {
-      cacheManager.close();
     }
     assertThat(loaderWriter.getValueList("key"), contains("value"));
   }
@@ -434,11 +412,11 @@ public abstract class AbstractWriteBehindTestBase {
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       final Cache<String, String> testCache = cacheManager.createCache("testUnBatchedWriteBehindBlocksWhenFull", configurationBuilder()
-          .add(newUnBatchedWriteBehindConfiguration().queueSize(1).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newUnBatchedWriteBehindConfiguration().queueSize(1).build())
+        .build());
 
       testCache.put("key1", "value");
       testCache.put("key2", "value");
@@ -459,8 +437,6 @@ public abstract class AbstractWriteBehindTestBase {
       } finally {
         executor.shutdown();
       }
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -476,11 +452,11 @@ public abstract class AbstractWriteBehindTestBase {
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       final Cache<String, String> testCache = cacheManager.createCache("testBatchedWriteBehindBlocksWhenFull", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 1).queueSize(1).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 1).queueSize(1).build())
+        .build());
 
       testCache.put("key1", "value");
       testCache.put("key2", "value");
@@ -501,8 +477,6 @@ public abstract class AbstractWriteBehindTestBase {
       } finally {
         executor.shutdown();
       }
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -511,11 +485,11 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testFilledBatchedIsWritten", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(Long.MAX_VALUE, SECONDS, 2).build())
+        .build());
 
       CountDownLatch latch = new CountDownLatch(2);
       loaderWriter.setLatch(latch);
@@ -529,8 +503,6 @@ public abstract class AbstractWriteBehindTestBase {
       } else {
         fail("Took too long to write, assuming batch is not going to be written");
       }
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -539,11 +511,11 @@ public abstract class AbstractWriteBehindTestBase {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
-    CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testAgedBatchedIsWritten", configurationBuilder()
-          .add(newBatchedWriteBehindConfiguration(1, SECONDS, 2).build())
-          .build());
+        .withLoaderWriter(loaderWriter)
+        .withService(newBatchedWriteBehindConfiguration(1, SECONDS, 2).build())
+        .build());
 
       CountDownLatch latch = new CountDownLatch(1);
       loaderWriter.setLatch(latch);
@@ -555,8 +527,6 @@ public abstract class AbstractWriteBehindTestBase {
       } else {
         fail("Took too long to write, assuming batch is not going to be written");
       }
-    } finally {
-      cacheManager.close();
     }
   }
 
@@ -565,16 +535,16 @@ public abstract class AbstractWriteBehindTestBase {
 
     class TestWriteBehindProvider extends WriteBehindProviderFactory.Provider {
 
-      private WriteBehind writeBehind = null;
+      private WriteBehind<?, ?> writeBehind = null;
 
       @Override
       @SuppressWarnings("unchecked")
-      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(final CacheLoaderWriter<K, V> cacheLoaderWriter, final WriteBehindConfiguration configuration) {
+      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
         this.writeBehind = super.createWriteBehindLoaderWriter(cacheLoaderWriter, configuration);
-        return writeBehind;
+        return (WriteBehind<K, V>) writeBehind;
       }
 
-      public WriteBehind getWriteBehind() {
+      public WriteBehind<?, ?> getWriteBehind() {
         return writeBehind;
       }
     }
@@ -582,26 +552,23 @@ public abstract class AbstractWriteBehindTestBase {
     TestWriteBehindProvider writeBehindProvider = new TestWriteBehindProvider();
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
 
-    CacheManager cacheManager = managerBuilder().using(writeBehindProvider).build(true);
-    try {
+    try (CacheManager cacheManager = managerBuilder().using(writeBehindProvider).build(true)) {
       Cache<String, String> testCache = cacheManager.createCache("testAgedBatchedIsWritten", configurationBuilder()
-          .add(new DefaultCacheLoaderWriterConfiguration(loaderWriter))
-          .add(newBatchedWriteBehindConfiguration(5, SECONDS, 2).build())
-          .build());
+        .withService(new DefaultCacheLoaderWriterConfiguration(loaderWriter))
+        .withService(newBatchedWriteBehindConfiguration(5, SECONDS, 2).build())
+        .build());
 
       testCache.put("key1", "value1");
       assertThat(writeBehindProvider.getWriteBehind().getQueueSize(), is(1L));
       testCache.put("key2", "value2");
 
-    } finally {
-      cacheManager.close();
     }
   }
 
-  @SuppressWarnings("unchecked")
-  protected CacheLoaderWriterProvider getMockedCacheLoaderWriterProvider(CacheLoaderWriter loaderWriter) {
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  protected CacheLoaderWriterProvider getMockedCacheLoaderWriterProvider(CacheLoaderWriter<String, String> loaderWriter) {
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
-    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)any())).thenReturn(loaderWriter);
+    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<String, String>)any())).thenReturn((CacheLoaderWriter) loaderWriter);
     return cacheLoaderWriterProvider;
   }
 

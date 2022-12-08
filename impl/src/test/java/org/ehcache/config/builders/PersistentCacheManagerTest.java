@@ -23,8 +23,7 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,10 +32,14 @@ import java.util.Arrays;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.terracotta.utilities.io.Files.delete;
 
 /**
  * @author Alex Snaps
@@ -44,9 +47,6 @@ import static org.junit.Assert.assertTrue;
 public class PersistentCacheManagerTest {
 
   private static final String TEST_CACHE_ALIAS = "test123";
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
@@ -57,7 +57,7 @@ public class PersistentCacheManagerTest {
   @Before
   public void setup() throws IOException {
     rootDirectory = folder.newFolder("testInitializesDiskResourceService");
-    assertTrue(rootDirectory.delete());
+    delete(rootDirectory.toPath());
     builder = newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory));
   }
 
@@ -79,9 +79,8 @@ public class PersistentCacheManagerTest {
   @Test
   public void testDestroyCache_NullAliasNotAllowed() throws CachePersistenceException {
     PersistentCacheManager manager = builder.build(true);
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("Alias cannot be null");
-    manager.destroyCache(null);
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> manager.destroyCache(null));
+    assertThat(thrown, hasProperty("message", is("Alias cannot be null")));
   }
 
   @Test

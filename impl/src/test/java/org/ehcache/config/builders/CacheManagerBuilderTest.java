@@ -25,9 +25,7 @@ import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,18 +35,18 @@ import static org.mockito.Mockito.mock;
 
 public class CacheManagerBuilderTest {
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void testIsExtensible() {
 
-    final AtomicInteger counter = new AtomicInteger(0);
+    AtomicInteger counter = new AtomicInteger(0);
 
-    final PersistentCacheManager cacheManager = newCacheManagerBuilder().with((CacheManagerConfiguration<PersistentCacheManager>) other -> {
+    @SuppressWarnings("unchecked")
+    CacheManagerConfiguration<PersistentCacheManager> managerConfiguration = other -> {
       counter.getAndIncrement();
       return mock(CacheManagerBuilder.class);
-    }).build(true);
+    };
+
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(managerConfiguration).build(true);
 
     assertThat(cacheManager).isNull();
     assertThat(counter.get()).isEqualTo(1);
@@ -73,32 +71,41 @@ public class CacheManagerBuilderTest {
     assertThat(managerBuilder.withSerializer(String.class, serializer2)).isNotNull();
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testDuplicateServiceCreationConfigurationFails() {
-    newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
-        .using(new DefaultCopyProviderConfiguration());
+  @Test
+  public void testDuplicateServiceCreationConfigurationOk() {
+    DefaultCopyProviderConfiguration configOne = new DefaultCopyProviderConfiguration();
+    DefaultCopyProviderConfiguration configTwo = new DefaultCopyProviderConfiguration();
+    CacheManagerBuilder<CacheManager> builder = newCacheManagerBuilder()
+      .using(configOne)
+      .using(configTwo);
+
+    assertThat(builder.build().getRuntimeConfiguration().getServiceCreationConfigurations()).contains(configTwo).doesNotContain(configOne);
   }
 
-  @Test
+  @Test @SuppressWarnings("deprecation")
   public void testDuplicateServiceCreationConfigurationOkWhenExplicit() {
-    assertThat(newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
-        .replacing(new DefaultCopyProviderConfiguration())).isNotNull();
+    CacheManagerBuilder<CacheManager> builder = newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
+      .replacing(new DefaultCopyProviderConfiguration());
+
+    assertThat(builder.build()).isNotNull();
   }
 
   @Test
   public void testShouldNotBeAllowedToRegisterTwoCachesWithSameAlias() {
-    String cacheAlias = "cacheAliasSameName";
+    String cacheAlias = "alias";
 
-    CacheConfiguration<Long, String> cacheConfig = CacheConfigurationBuilder
-      .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
-      .heap(10))
+    CacheConfiguration<Integer, String> configOne = CacheConfigurationBuilder
+      .newCacheConfigurationBuilder(Integer.class, String.class, ResourcePoolsBuilder.heap(10))
       .build();
 
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Cache alias 'cacheAliasSameName' already exists");
+    CacheConfiguration<Long, String> configTwo = CacheConfigurationBuilder
+      .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
+      .build();
 
-    CacheManagerBuilder.newCacheManagerBuilder()
-      .withCache(cacheAlias, cacheConfig)
-      .withCache(cacheAlias, cacheConfig);
+    CacheManager build = newCacheManagerBuilder()
+      .withCache(cacheAlias, configOne)
+      .withCache(cacheAlias, configTwo).build();
+
+    assertThat(build.getRuntimeConfiguration().getCacheConfigurations().get(cacheAlias).getKeyType()).isEqualTo(Long.class);
   }
 }

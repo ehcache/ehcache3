@@ -24,14 +24,14 @@ import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.integration.domain.Person;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class StatefulSerializerWithStateRepositoryTest {
 
@@ -43,7 +43,7 @@ public class StatefulSerializerWithStateRepositoryTest {
     CacheManagerBuilder<PersistentCacheManager> cmBuilder = newCacheManagerBuilder().with(persistence(temporaryFolder.newFolder()
         .getAbsolutePath()))
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10).disk(50, MemoryUnit.MB, true))
-            .withValueSerializer((Class) CompactJavaSerializer.class));
+            .withValueSerializer(CompactJavaSerializer.asTypedSerializer()));
     PersistentCacheManager cacheManager = cmBuilder.build(true);
 
     Cache<Long, Person> myCache = cacheManager.getCache("myCache", Long.class, Person.class);
@@ -65,7 +65,7 @@ public class StatefulSerializerWithStateRepositoryTest {
     CacheManagerBuilder<PersistentCacheManager> cmBuilder = newCacheManagerBuilder().with(persistence(temporaryFolder.newFolder()
         .getAbsolutePath()))
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10).disk(50, MemoryUnit.MB, true))
-            .withValueSerializer((Class) CompactJavaSerializer.class));
+            .withValueSerializer(CompactJavaSerializer.asTypedSerializer()));
     PersistentCacheManager cacheManager = cmBuilder.build(true);
 
     Cache<Long, Person> myCache = cacheManager.getCache("myCache", Long.class, Person.class);

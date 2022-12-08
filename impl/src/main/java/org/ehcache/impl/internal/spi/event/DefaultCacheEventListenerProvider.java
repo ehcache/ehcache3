@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 /**
  * @author rism
  */
-public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<String, CacheEventListener<?, ?>> implements CacheEventListenerProvider {
+public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<String, DefaultCacheEventListenerConfiguration, CacheEventListener<?, ?>> implements CacheEventListenerProvider {
 
   public DefaultCacheEventListenerProvider() {
     super(null, DefaultCacheEventListenerConfiguration.class);
@@ -33,7 +33,7 @@ public class DefaultCacheEventListenerProvider extends ClassInstanceProvider<Str
 
   @SuppressWarnings("unchecked")
   @Override
-  public <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider> serviceConfiguration) {
+  public <K, V> CacheEventListener<K, V> createEventListener(String alias, ServiceConfiguration<CacheEventListenerProvider, ?> serviceConfiguration) {
     return (CacheEventListener<K, V>) newInstance(alias, serviceConfiguration);
   }
 

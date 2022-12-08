@@ -16,17 +16,16 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.ClusterTierReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.terracotta.connection.entity.Entity;
-import org.terracotta.entity.MessageCodecException;
 
-import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -34,26 +33,32 @@ import java.util.concurrent.TimeoutException;
  */
 public interface ClusterTierClientEntity extends Entity {
 
-  UUID getClientId();
+  Timeouts getTimeouts();
 
   boolean isConnected();
 
   void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierException, TimeoutException;
 
-  EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message, boolean track) throws ClusterException, TimeoutException;
+  void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws ClusterException, TimeoutException;
 
-  void invokeServerStoreOperationAsync(ServerStoreOpMessage message, boolean track) throws MessageCodecException;
+  void invokeAndWaitForReceive(EhcacheOperationMessage message, boolean track) throws ClusterException, TimeoutException;
+
+  EhcacheEntityResponse invokeAndWaitForComplete(EhcacheOperationMessage message, boolean track) throws ClusterException, TimeoutException;
+
+  EhcacheEntityResponse invokeAndWaitForRetired(EhcacheOperationMessage message, boolean track) throws ClusterException, TimeoutException;
 
   EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException;
 
   <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener);
 
-  void setDisconnectionListener(DisconnectionListener disconnectionListener);
+  void addDisconnectionListener(DisconnectionListener disconnectionListener);
 
-  void setReconnectListener(ReconnectListener reconnectListener);
+  void addReconnectListener(ReconnectListener reconnectListener);
+
+  void enableEvents(boolean enable) throws ClusterException, TimeoutException;
 
   interface ResponseListener<T extends EhcacheEntityResponse> {
-    void onResponse(T response);
+    void onResponse(T response) throws TimeoutException;
   }
 
   interface DisconnectionListener {

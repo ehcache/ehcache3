@@ -18,8 +18,9 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
@@ -29,7 +30,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Collections.unmodifiableSet;
@@ -69,8 +68,6 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       }
     });
 
-    StatisticsManager.associate(higher).withParent(this);
-    StatisticsManager.associate(lower).withParent(this);
   }
 
   private void notifyInvalidation(K key, Store.ValueHolder<V> p) {
@@ -81,6 +78,9 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   static class ComputationException extends RuntimeException {
+
+    private static final long serialVersionUID = 6832417052348277644L;
+
     public ComputationException(StoreAccessException cause) {
       super(cause);
     }
@@ -102,6 +102,26 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       return higher.getOrComputeIfAbsent(key, keyParam -> {
         try {
           Store.ValueHolder<V> valueHolder = lower.getAndRemove(keyParam);
+          if (valueHolder != null) {
+            return valueHolder;
+          }
+
+          return source.apply(keyParam);
+        } catch (StoreAccessException cae) {
+          throw new ComputationException(cae);
+        }
+      });
+    } catch (ComputationException ce) {
+      throw ce.getStoreAccessException();
+    }
+  }
+
+  @Override
+  public Store.ValueHolder<V> getOrDefault(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException {
+    try {
+      return higher.getOrDefault(key, keyParam -> {
+        try {
+          Store.ValueHolder<V> valueHolder = lower.get(keyParam);
           if (valueHolder != null) {
             return valueHolder;
           }
@@ -188,13 +208,13 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
 
-  @ServiceDependencies({HigherCachingTier.Provider.class, LowerCachingTier.Provider.class})
+  @ServiceDependencies({HigherCachingTier.Provider.class, LowerCachingTier.Provider.class, StatisticsService.class})
   public static class Provider implements CachingTier.Provider {
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new RuntimeException("ServiceProvider is null.");
       }
@@ -214,6 +234,8 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<>(higherCachingTier, lowerCachingTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(higherCachingTier, compoundCachingTier);
+      serviceProvider.getService(StatisticsService.class).registerWithParent(lowerCachingTier, compoundCachingTier);
       providersMap.put(compoundCachingTier, new AbstractMap.SimpleEntry<>(higherProvider, lowerProvider));
       return compoundCachingTier;
     }
@@ -223,7 +245,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       if (!providersMap.containsKey(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
-      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      CompoundCachingTier<?, ?> compoundCachingTier = (CompoundCachingTier<?, ?>) resource;
       Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
       entry.getKey().releaseHigherCachingTier(compoundCachingTier.higher);
@@ -235,7 +257,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       if (!providersMap.containsKey(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
-      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      CompoundCachingTier<?, ?> compoundCachingTier = (CompoundCachingTier<?, ?>) resource;
       Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
       entry.getValue().initCachingTier(compoundCachingTier.lower);
@@ -243,7 +265,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     }
 
     @Override
-    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       return resourceTypes.equals(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP))) ? 2 : 0;
 
     }

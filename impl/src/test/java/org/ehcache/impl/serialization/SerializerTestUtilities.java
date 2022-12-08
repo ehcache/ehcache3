@@ -23,13 +23,12 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Optional;
 
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
-import org.objectweb.asm.commons.RemappingClassAdapter;
 
 /**
  *
@@ -52,7 +51,7 @@ public final class SerializerTestUtilities {
   }
 
   private static Map<String, String> createRemappings(Class<?> initial) {
-    HashMap<String, String> remappings = new HashMap<>();
+    Map<String, String> remappings = new HashMap<>();
     remappings.put(initial.getName(), newClassName(initial));
     for (Class<?> inner : initial.getDeclaredClasses()) {
       remappings.put(inner.getName(), newClassName(inner));
@@ -124,44 +123,44 @@ public final class SerializerTestUtilities {
       return c;
     }
 
+    private Optional<String> findKeyFromValue(String value) {
+      return remappings.entrySet().stream()
+        .filter(e -> e.getValue().equals(value))
+        .findAny()
+        .map(e -> e.getKey());
+    }
 
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
-      for (Entry<String, String> mapping : remappings.entrySet()) {
-        if (name.equals(mapping.getValue())) {
-          String path = mapping.getKey().replace('.', '/').concat(".class");
-          try {
-            InputStream resource = getResourceAsStream(path);
-            try {
-              ClassReader reader = new ClassReader(resource);
-
-              ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-              ClassVisitor visitor = new RemappingClassAdapter(writer, new Remapper() {
-
-                @Override
-                public String map(String from) {
-                  String to = remappings.get(from.replace('/', '.'));
-                  if (to == null) {
-                    return from;
-                  } else {
-                    return to.replace('.', '/');
-                  }
-                }
-              });
-
-              reader.accept(visitor, ClassReader.EXPAND_FRAMES);
-              byte[] classBytes = writer.toByteArray();
-
-              return defineClass(name, classBytes, 0, classBytes.length);
-            } finally {
-              resource.close();
-            }
-          } catch (IOException e) {
-            throw new ClassNotFoundException("IOException while loading", e);
-          }
-        }
+      String key = findKeyFromValue(name).orElseGet(() -> null);
+      if(key == null) {
+        return super.findClass(name);
       }
-      return super.findClass(name);
+
+      String path = key.replace('.', '/').concat(".class");
+      try (InputStream resource = getResourceAsStream(path)) {
+        ClassReader reader = new ClassReader(resource);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+
+        Remapper remapper = new Remapper() {
+          @Override
+          public String map(String from) {
+            String to = remappings.get(from.replace('/', '.'));
+            if (to == null) {
+              return from;
+            }
+            return to.replace('.', '/');
+          }
+        };
+
+        reader.accept(new ClassRemapper(writer, remapper), ClassReader.EXPAND_FRAMES);
+
+        byte[] classBytes = writer.toByteArray();
+
+        return defineClass(name, classBytes, 0, classBytes.length);
+      } catch (IOException e) {
+        throw new ClassNotFoundException("IOException while loading", e);
+      }
     }
   }
 }

@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+plugins {
+  id 'org.ehcache.build.deploy'
+  id 'biz.aQute.bnd.builder'
+}
 
 checkstyle {
   configFile = file("$projectDir/config/checkstyle.xml")
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
+jar {
+  bnd(
+    'Export-Package': 'org.ehcache.*',
+    'Import-Package': '*'
+  )
 }
+
+check.dependsOn(baseline)

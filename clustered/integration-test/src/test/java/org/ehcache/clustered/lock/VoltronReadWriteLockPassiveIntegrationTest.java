@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.lock;
 
-import java.io.File;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -24,49 +22,51 @@ import java.util.concurrent.TimeoutException;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
+import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.util.runners.Parallel;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
 import org.terracotta.connection.Connection;
-import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.async;
 import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@RunWith(Parallel.class)
 public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster(2).in(new File("build/cluster")).build();
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).build());
+  @Rule
+  public final TestName testName = new TestName();
 
   @Before
-  public void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  public void startAllServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
   }
 
   @Test
   public void testSingleThreadSingleClientInteraction() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
-      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
+    try (Connection client = CLUSTER.newConnection()) {
+      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, testName.getMethodName());
 
       Hold hold = lock.writeLock();
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       hold.unlock();
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testMultipleThreadsSingleConnection() throws Throwable {
-    Connection client = CLUSTER.newConnection();
-    try {
-      final VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
+    try (Connection client = CLUSTER.newConnection()) {
+      final VoltronReadWriteLock lock = new VoltronReadWriteLock(client, testName.getMethodName());
 
       Hold hold = lock.writeLock();
 
@@ -82,8 +82,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
         //expected
       }
 
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().startOneServer();
 
       try {
         waiter.get(100, TimeUnit.MILLISECONDS);
@@ -95,51 +95,42 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
       hold.unlock();
 
       waiter.get();
-    } finally {
-      client.close();
     }
   }
 
   @Test
   public void testMultipleClients() throws Throwable {
-    Connection clientA = CLUSTER.newConnection();
-    try {
-      VoltronReadWriteLock lockA = new VoltronReadWriteLock(clientA, "test");
+    try (Connection clientA = CLUSTER.newConnection();
+         Connection clientB = CLUSTER.newConnection()) {
+      VoltronReadWriteLock lockA = new VoltronReadWriteLock(clientA, testName.getMethodName());
 
       Hold hold = lockA.writeLock();
 
-      final Connection clientB = CLUSTER.newConnection();
+      Future<Void> waiter = async(() -> {
+        new VoltronReadWriteLock(clientB, testName.getMethodName()).writeLock().unlock();
+        return null;
+      });
+
       try {
-        Future<Void> waiter = async(() -> {
-          new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
-          return null;
-        });
-
-        try {
-          waiter.get(100, TimeUnit.MILLISECONDS);
-          fail("TimeoutException expected");
-        } catch (TimeoutException e) {
-          //expected
-        }
-
-        CLUSTER.getClusterControl().terminateActive();
-        CLUSTER.getClusterControl().startOneServer();
-
-        try {
-          waiter.get(100, TimeUnit.MILLISECONDS);
-          fail("TimeoutException expected");
-        } catch (TimeoutException e) {
-          //expected
-        }
-
-        hold.unlock();
-
-        waiter.get();
-      } finally {
-        clientB.close();
+        waiter.get(100, TimeUnit.MILLISECONDS);
+        fail("TimeoutException expected");
+      } catch (TimeoutException e) {
+        //expected
       }
-    } finally {
-      clientA.close();
+
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+      CLUSTER.getClusterControl().terminateActive();
+
+      try {
+        waiter.get(100, TimeUnit.MILLISECONDS);
+        fail("TimeoutException expected");
+      } catch (TimeoutException e) {
+        //expected
+      }
+
+      hold.unlock();
+
+      waiter.get();
     }
   }
 }

@@ -15,18 +15,18 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
 
 public class EventualServerStoreProxy implements ServerStoreProxy {
 
   private final ServerStoreProxy delegate;
 
-  public EventualServerStoreProxy(String cacheId, final ServerStoreMessageFactory messageFactory, final ClusterTierClientEntity entity) {
-    this.delegate = new CommonServerStoreProxy(cacheId, messageFactory, entity);
+  public EventualServerStoreProxy(String cacheId, final ClusterTierClientEntity entity, final ServerCallback invalidation) {
+    this.delegate = new CommonServerStoreProxy(cacheId, entity, invalidation);
   }
 
   @Override
@@ -35,22 +35,12 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void addInvalidationListener(InvalidationListener listener) {
-    delegate.addInvalidationListener(listener);
-  }
-
-  @Override
-  public boolean removeInvalidationListener(InvalidationListener listener) {
-    return delegate.removeInvalidationListener(listener);
-  }
-
-  @Override
   public void close() {
     delegate.close();
   }
 
   @Override
-  public Chain get(long key) throws TimeoutException {
+  public ChainEntry get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
@@ -60,8 +50,13 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
+  public ChainEntry getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return delegate.getAndAppend(key, payLoad);
+  }
+
+  @Override
+  public void enableEvents(boolean enable) throws TimeoutException {
+    delegate.enableEvents(enable);
   }
 
   @Override
@@ -72,5 +67,10 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   @Override
   public void clear() throws TimeoutException {
     delegate.clear();
+  }
+
+  @Override
+  public Iterator<Chain> iterator() throws TimeoutException {
+    return delegate.iterator();
   }
 }

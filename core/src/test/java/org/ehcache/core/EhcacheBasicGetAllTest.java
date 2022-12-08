@@ -19,18 +19,18 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
-import org.terracotta.statistics.jsr166e.LongAdder;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
 import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_A;
@@ -40,10 +40,10 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.fanIn;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getEntryMap;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getNullEntryMap;
 import static org.ehcache.core.EhcacheBasicBulkUtil.union;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -91,7 +91,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>empty request key set</li>
    *    <li>no {@code CacheLoaderWriter}</li>
@@ -109,14 +109,14 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     assertThat(actual.isEmpty(), is(true));
 
     verify(this.store, never()).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
-    verify(this.spiedResilienceStrategy, never()).getAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
+    verify(this.resilienceStrategy, never()).getAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -135,7 +135,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -143,7 +143,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -161,13 +161,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
-    final Map<String, String> actual = ehcache.getAll(fetchKeys);
-
-    assertThat(actual, equalTo(getNullEntryMap(fetchKeys)));
+    ehcache.getAll(fetchKeys);
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -175,7 +173,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -196,7 +194,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -204,7 +202,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -221,13 +219,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
-    final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
-    assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
+    ehcache.getAll(KEY_SET_A);
 
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    verify(this.spiedResilienceStrategy)
-        .getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).getAllFailure(eq(KEY_SET_A), any(StoreAccessException.class));
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -236,7 +232,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -257,7 +253,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
-    verifyZeroInteractions(this.spiedResilienceStrategy);
+    verifyZeroInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -265,7 +261,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -283,13 +279,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
-    final Map<String, String> actual = ehcache.getAll(fetchKeys);
-
-    assertThat(actual, equalTo(getNullEntryMap(fetchKeys)));
+    ehcache.getAll(fetchKeys);
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     // ResilienceStrategy invoked: no assertion for Store content
-    verify(this.spiedResilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
+    verify(this.resilienceStrategy).getAllFailure(eq(fetchKeys), any(StoreAccessException.class));
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
@@ -298,9 +292,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   private void validateStatsNoneof(Ehcache<String, String> cache) {
     validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
-    if (!(cache instanceof Ehcache)) {
-      validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
-    }
   }
 
   /**
@@ -308,12 +299,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    *
    * @return a new {@code Ehcache} instance
    */
+  @SuppressWarnings("unchecked")
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
       .getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
-    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
   }
 
@@ -345,5 +336,4 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   static Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> getAnyIterableFunction() {
     return any(Function.class);   // unchecked
   }
-
 }

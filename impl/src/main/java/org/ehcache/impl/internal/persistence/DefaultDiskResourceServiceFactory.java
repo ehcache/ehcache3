@@ -16,15 +16,16 @@
 
 package org.ehcache.impl.internal.persistence;
 
-import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.osgi.service.component.annotations.Component;
 
+@Component
 public class DefaultDiskResourceServiceFactory implements ServiceFactory<DefaultDiskResourceService> {
 
   @Override
-  public DefaultDiskResourceService create(final ServiceCreationConfiguration<DefaultDiskResourceService> serviceConfiguration) {
+  public DefaultDiskResourceService create(final ServiceCreationConfiguration<DefaultDiskResourceService, ?> serviceConfiguration) {
     return new DefaultDiskResourceService();
   }
 

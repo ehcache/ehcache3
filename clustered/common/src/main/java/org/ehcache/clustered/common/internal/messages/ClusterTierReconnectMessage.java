@@ -18,27 +18,33 @@ package org.ehcache.clustered.common.internal.messages;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 public class ClusterTierReconnectMessage {
 
-  private final UUID clientId;
-  private final Set<Long> hashInvalidationsInProgress = new HashSet<>();
+  private final Set<Long> hashInvalidationsInProgress;
   private boolean clearInProgress = false;
+  private final Set<Long> locksHeld;
+  private boolean eventsEnabled;
 
-  public ClusterTierReconnectMessage(UUID clientId) {
-    if (clientId == null) {
-      throw new IllegalStateException("ClientID cannot be null");
-    }
-    this.clientId = clientId;
+  public ClusterTierReconnectMessage(boolean eventsEnabled) {
+    this.eventsEnabled = eventsEnabled;
+    hashInvalidationsInProgress = new HashSet<>();
+    locksHeld = new HashSet<>();
   }
 
-  public UUID getClientId() {
-    return clientId;
+  public ClusterTierReconnectMessage(Set<Long> hashInvalidationsInProgress, Set<Long> locksHeld, boolean clearInProgress, boolean eventsEnabled) {
+    this.hashInvalidationsInProgress = hashInvalidationsInProgress;
+    this.locksHeld = locksHeld;
+    this.clearInProgress = clearInProgress;
+    this.eventsEnabled = eventsEnabled;
   }
 
   public void addInvalidationsInProgress(Set<Long> hashInvalidationsInProgress) {
     this.hashInvalidationsInProgress.addAll(hashInvalidationsInProgress);
+  }
+
+  public void addLocksHeld(Set<Long> locksHeld) {
+    this.locksHeld.addAll(locksHeld);
   }
 
   public Set<Long> getInvalidationsInProgress() {
@@ -53,4 +59,11 @@ public class ClusterTierReconnectMessage {
     return clearInProgress;
   }
 
+  public Set<Long> getLocksHeld() {
+    return locksHeld;
+  }
+
+  public boolean isEventsEnabled() {
+    return eventsEnabled;
+  }
 }

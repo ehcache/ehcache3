@@ -37,7 +37,7 @@ public interface WriteBehindProvider extends Service {
    *
    * @return the write-behind decorated loader writer
    */
-  <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration);
+  <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration);
 
   /**
    * Releases a write-behind decorator when the associated {@link org.ehcache.Cache Cache}

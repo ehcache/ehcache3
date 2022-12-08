@@ -36,10 +36,10 @@ import org.ehcache.event.EventType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.terracotta.org.junit.rules.TemporaryFolder;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tiering
@@ -54,7 +54,7 @@ public class Tiering {
     // tag::heap[]
     ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES); // <1>
     // or
-    ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10); // <2>
+    ResourcePoolsBuilder.heap(10); // <2>
     // or
     ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, MemoryUnit.MB); // <3>
     // end::heap[]
@@ -112,7 +112,7 @@ public class Tiering {
       .withCache("less-segments",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB))
-        .add(new OffHeapDiskStoreConfiguration(2)) // <1>
+        .withService(new OffHeapDiskStoreConfiguration(2)) // <1>
       )
       .build(true);
 
@@ -128,7 +128,7 @@ public class Tiering {
 
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
       ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES))
-      .add(cacheEventListenerConfiguration)
+      .withService(cacheEventListenerConfiguration)
       .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
@@ -172,7 +172,7 @@ public class Tiering {
   @Test
   public void testNotShared() {
     // tag::notShared[]
-    ResourcePools pool = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10).build();
+    ResourcePools pool = ResourcePoolsBuilder.heap(10).build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("test-cache1", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, pool))

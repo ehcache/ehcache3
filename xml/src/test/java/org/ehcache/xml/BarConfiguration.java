@@ -22,7 +22,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 /**
  * BarConfiguration
  */
-public class BarConfiguration implements ServiceCreationConfiguration<Service> {
+public class BarConfiguration implements ServiceCreationConfiguration<Service, Void> {
   @Override
   public Class<Service> getServiceType() {
     return Service.class;

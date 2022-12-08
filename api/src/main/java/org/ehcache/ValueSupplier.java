@@ -22,7 +22,11 @@ package org.ehcache;
  * This indicates that the value needs to be computed before it can be retrieved, such as deserialization.
  *
  * @param <V> the value type
+ *
+ * @deprecated Now using {@code Supplier} for {@link org.ehcache.expiry.ExpiryPolicy}
  */
+@Deprecated
+@FunctionalInterface
 public interface ValueSupplier<V> {
 
   /**

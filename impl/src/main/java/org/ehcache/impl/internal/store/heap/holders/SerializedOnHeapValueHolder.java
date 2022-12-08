@@ -16,7 +16,6 @@
 package org.ehcache.impl.internal.store.heap.holders;
 
 import org.ehcache.spi.serialization.SerializerException;
-import org.ehcache.expiry.Duration;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
@@ -49,22 +48,20 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
     this(-1, value, creationTime, expirationTime, evictionAdvice, serializer);
   }
 
-  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Serializer<V> serializer, long now, Duration expiration) {
-    this(valueHolder.getId(), value, valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice, serializer);
-    this.setHits(valueHolder.hits());
+  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Serializer<V> serializer, long now, java.time.Duration expiration) {
+    this(valueHolder.getId(), value, valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice, serializer);
     this.accessed(now, expiration);
   }
 
-  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, ByteBuffer binaryValue, boolean evictionAdvice, Serializer<V> serializer, long now, Duration expiration) {
-    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice);
+  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, ByteBuffer binaryValue, boolean evictionAdvice, Serializer<V> serializer, long now, java.time.Duration expiration) {
+    super(valueHolder.getId(), valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice);
     this.buffer = binaryValue;
     this.serializer = serializer;
-    this.setHits(valueHolder.hits());
     this.accessed(now, expiration);
   }
 
   @Override
-  public final V value() {
+  public final V get() {
     try {
       return serializer.read(buffer.duplicate());
     } catch (ClassNotFoundException cnfe) {
@@ -92,7 +89,7 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
 
     if (!super.equals(that)) return false;
     try {
-      if (!serializer.equals(that.value(), buffer)) return false;
+      if (!serializer.equals(that.get(), buffer)) return false;
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }

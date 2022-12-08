@@ -19,26 +19,24 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.SequencedElement;
-import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
-import org.terracotta.runnel.encoding.StructEncoderFunction;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.ehcache.clustered.common.internal.util.ChainBuilder.chainFromList;
 
 public final class ChainCodec {
 
   private ChainCodec() {
     //no implementations please
   }
-
-  public static final StructEncoderFunction<Chain> CHAIN_ENCODER_FUNCTION = (encoder, chain) -> encode(encoder, chain);
 
   private static final Struct ELEMENT_STRUCT = StructBuilder.newStructBuilder()
     .int64("sequence", 10)
@@ -87,14 +85,29 @@ public final class ChainCodec {
       elementDecoder.end();
 
       if (sequence == null) {
-        elements.add(Util.getElement(byteBuffer));
+        elements.add(byteBuffer::asReadOnlyBuffer);
       } else {
-        elements.add(Util.getElement(sequence, byteBuffer));
+        elements.add(new SequencedElement() {
+          @Override
+          public long getSequenceNumber() {
+            return sequence;
+          }
+
+          @Override
+          public ByteBuffer getPayload() {
+            return byteBuffer.asReadOnlyBuffer();
+          }
+
+          @Override
+          public String toString() {
+            return "SequencedElement{sequence=" + sequence + " size=" + byteBuffer.capacity() + "}";
+          }
+        });
       }
     }
 
     elementsDecoder.end();
 
-    return Util.getChain(elements);
+    return chainFromList(elements);
   }
 }

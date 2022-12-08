@@ -17,15 +17,18 @@
 package org.ehcache.jsr107;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
 import javax.cache.Cache;
+import javax.cache.CacheException;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Factory;
 import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryListener;
+
+import static org.ehcache.jsr107.CloseUtil.closeAllAfter;
+import static org.ehcache.jsr107.CloseUtil.closeAll;
 
 /**
  * ListenerResources
@@ -37,8 +40,7 @@ class ListenerResources<K, V> implements Closeable {
   private List<EventListenerAdaptors.EventListenerAdaptor<K, V>> ehListeners = null;
 
   @SuppressWarnings("unchecked")
-  static <K, V> ListenerResources<K, V> createListenerResources(CacheEntryListenerConfiguration<K, V> listenerConfig,
-      MultiCacheException mce) {
+  static <K, V> ListenerResources<K, V> createListenerResources(CacheEntryListenerConfiguration<K, V> listenerConfig) {
     CacheEntryListener<? super K, ? super V> listener = listenerConfig.getCacheEntryListenerFactory().create();
 
     // create the filter, closing the listener above upon exception
@@ -49,21 +51,16 @@ class ListenerResources<K, V> implements Closeable {
       if (filterFactory != null) {
         filter = listenerConfig.getCacheEntryEventFilterFactory().create();
       } else {
-        filter = (CacheEntryEventFilter<? super K, ? super V>) NullCacheEntryEventFilter.INSTANCE;
+        filter = event -> true;
       }
     } catch (Throwable t) {
-      mce.addThrowable(t);
-      CacheResources.close(listener, mce);
-      throw mce;
+      throw closeAllAfter(new CacheException(t), listener);
     }
 
     try {
       return new ListenerResources<>(listener, filter);
     } catch (Throwable t) {
-      mce.addThrowable(t);
-      CacheResources.close(filter, mce);
-      CacheResources.close(listener, mce);
-      throw mce;
+      throw closeAllAfter(new CacheException(t), filter, listener);
     }
   }
 
@@ -91,11 +88,12 @@ class ListenerResources<K, V> implements Closeable {
   }
 
   @Override
-  public void close() throws IOException {
-    MultiCacheException mce = new MultiCacheException();
-    CacheResources.close(listener, mce);
-    CacheResources.close(filter, mce);
-    mce.throwIfNotEmpty();
+  public void close() {
+    try {
+      closeAll(listener, filter);
+    } catch (Throwable t) {
+      throw new CacheException(t);
+    }
   }
 
 }

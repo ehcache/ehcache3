@@ -19,7 +19,13 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A time duration in a given {@link TimeUnit}.
+ *
+ * @see java.time.Duration
+ * @see ExpiryPolicy
+ *
+ * @deprecated Replaced with {@link java.time.Duration}
  */
+@Deprecated
 public final class Duration {
 
   /**

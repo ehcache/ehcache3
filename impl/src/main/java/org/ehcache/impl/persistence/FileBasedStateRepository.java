@@ -17,7 +17,6 @@
 package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.serialization.TransientStateHolder;
@@ -28,7 +27,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -36,6 +34,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 
@@ -65,22 +64,16 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void loadMaps() throws CachePersistenceException {
     try {
+      //noinspection ConstantConditions
       for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
-        FileInputStream fis = new FileInputStream(file);
-        try {
-          ObjectInputStream oin = new ObjectInputStream(fis);
-          try {
-            String name = (String) oin.readObject();
-            Tuple tuple = (Tuple) oin.readObject();
-            if (nextIndex.get() <= tuple.index) {
-              nextIndex.set(tuple.index + 1);
-            }
-            knownHolders.put(name, tuple);
-          } finally {
-            oin.close();
+        try (FileInputStream fis = new FileInputStream(file);
+             ObjectInputStream oin = new ObjectInputStream(fis)) {
+          String name = (String) oin.readObject();
+          Tuple tuple = (Tuple) oin.readObject();
+          if (nextIndex.get() <= tuple.index) {
+            nextIndex.set(tuple.index + 1);
           }
-        } finally {
-          fis.close();
+          knownHolders.put(name, tuple);
         }
       }
     } catch (Exception e) {
@@ -92,17 +85,10 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   private void saveMaps() throws IOException {
     for (Map.Entry<String, Tuple> entry : knownHolders.entrySet()) {
       File outFile = new File(dataDirectory, createFileName(entry));
-      FileOutputStream fos = new FileOutputStream(outFile);
-      try {
-        ObjectOutputStream oos = new ObjectOutputStream(fos);
-        try {
-          oos.writeObject(entry.getKey());
-          oos.writeObject(entry.getValue());
-        } finally {
-          oos.close();
-        }
-      } finally {
-        fos.close();
+      try (FileOutputStream fos = new FileOutputStream(outFile);
+           ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+        oos.writeObject(entry.getKey());
+        oos.writeObject(entry.getValue());
       }
     }
   }
@@ -110,7 +96,12 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   private String createFileName(Map.Entry<String, Tuple> entry) {return HOLDER_FILE_PREFIX + entry.getValue().index + "-" + safeIdentifier(entry.getKey(), false) + HOLDER_FILE_SUFFIX;}
 
   @Override
-  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
+  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name,
+                                                                                                     Class<K> keyClass,
+                                                                                                     Class<V> valueClass,
+                                                                                                     Predicate<Class<?>> isClassPermitted,
+                                                                                                     ClassLoader classLoader) {
+    // isClassPermitted and  classLoader are ignored because this state repository has already being read from file and cached in
     Tuple result = knownHolders.get(name);
     if (result == null) {
       StateHolder<K, V> holder = new TransientStateHolder<>();
@@ -132,6 +123,9 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   }
 
   static class Tuple implements Serializable {
+
+    private static final long serialVersionUID = 664492058736170101L;
+
     final int index;
     final StateHolder<?, ?> holder;
 

@@ -24,7 +24,6 @@ import java.util.List;
  */
 public class Result {
   private       long              startTime;
-  private       long              endTime;
   private       long              runTime;
   private       int               runCount;
   private final List<ResultState> failedTests  = new ArrayList<>();
@@ -48,7 +47,7 @@ public class Result {
   }
 
   public void testRunFinished() {
-    endTime = System.nanoTime();
+    long endTime = System.nanoTime();
     runTime = (endTime - startTime) / 1000L;
   }
 

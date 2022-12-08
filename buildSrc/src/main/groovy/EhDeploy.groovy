@@ -1,9 +1,9 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.maven.Conf2ScopeMappingContainer
 import org.gradle.api.artifacts.maven.MavenDeployment
 import org.gradle.api.plugins.MavenPlugin
-import org.gradle.plugins.signing.Sign
 import scripts.Utils
 
 /*
@@ -36,17 +36,11 @@ class EhDeploy implements Plugin<Project> {
     project.plugins.apply EhPomGenerate // for generating pom.*
 
     project.configurations {
-        provided
-    }
+      providedApi
+      providedImplementation
 
-    project.sourceSets {
-        main {
-          compileClasspath += project.configurations.provided
-        }
-        test {
-          compileClasspath += project.configurations.provided
-          runtimeClasspath += project.configurations.provided
-        }
+      api.extendsFrom providedApi
+      implementation.extendsFrom providedImplementation
     }
 
     project.signing {
@@ -55,9 +49,16 @@ class EhDeploy implements Plugin<Project> {
     }
 
     def artifactFiltering = {
-      pom.scopeMappings.mappings.remove(project.configurations.testCompile)
-      pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
-      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.provided, Conf2ScopeMappingContainer.PROVIDED)
+      project.configurations.matching {it.name.startsWith('test')}.forEach {
+        pom.scopeMappings.mappings.remove(it)
+      }
+      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.providedApi, Conf2ScopeMappingContainer.PROVIDED)
+      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.providedImplementation, Conf2ScopeMappingContainer.PROVIDED)
+      project.configurations.configureEach { Configuration conf ->
+        if (conf.name in [EhVoltron.VOLTRON_CONFIGURATION_NAME, EhVoltron.SERVICE_CONFIGURATION_NAME]) {
+          pom.scopeMappings.addMapping(MavenPlugin.PROVIDED_COMPILE_PRIORITY, conf, Conf2ScopeMappingContainer.PROVIDED)
+        }
+      }
 
       utils.pomFiller(pom, project.subPomName, project.subPomDesc)
 

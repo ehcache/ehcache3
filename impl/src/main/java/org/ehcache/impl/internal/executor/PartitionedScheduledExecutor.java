@@ -29,7 +29,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.ehcache.impl.internal.executor.OutOfBandScheduledExecutor;
 import org.ehcache.impl.internal.executor.OutOfBandScheduledExecutor.OutOfBandRsf;
 
 import static java.util.Collections.emptyList;
@@ -113,25 +112,7 @@ class PartitionedScheduledExecutor extends AbstractExecutorService implements Sc
   public void shutdown() {
     shutdown = true;
     try {
-      final Long longestDelay = waitFor(scheduler.schedule(null, () -> {
-        long maxDelay = 0;
-        for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
-          Runnable job = it.next();
-
-          if (job instanceof OutOfBandRsf) {
-            OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
-            if (oobJob.getExecutor() == worker) {
-              if (oobJob.isPeriodic()) {
-                oobJob.cancel(false);
-                it.remove();
-              } else {
-                maxDelay = Math.max(maxDelay, oobJob.getDelay(NANOSECONDS));
-              }
-            }
-          }
-        }
-        return maxDelay;
-      }, 0, NANOSECONDS));
+      final Long longestDelay = waitFor(scheduler.schedule(null, this::getMaxDelay, 0, NANOSECONDS));
 
       termination = scheduler.schedule(worker, () -> {
         worker.shutdown();
@@ -142,33 +123,55 @@ class PartitionedScheduledExecutor extends AbstractExecutorService implements Sc
     }
   }
 
+  private long getMaxDelay() {
+    long maxDelay = 0;
+    for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
+      Runnable job = it.next();
+
+      if (job instanceof OutOfBandRsf) {
+        OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
+        if (oobJob.getExecutor() == worker) {
+          if (oobJob.isPeriodic()) {
+            oobJob.cancel(false);
+            it.remove();
+          } else {
+            maxDelay = Math.max(maxDelay, oobJob.getDelay(NANOSECONDS));
+          }
+        }
+      }
+    }
+    return maxDelay;
+  }
+
   @Override
   public List<Runnable> shutdownNow() {
     shutdown = true;
     try {
-      termination = scheduler.schedule(null, () -> {
-        List<Runnable> abortedTasks = new ArrayList<>();
-        for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
-          Runnable job = it.next();
-
-          if (job instanceof OutOfBandRsf) {
-            OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
-            if (oobJob.getExecutor() == worker) {
-              abortedTasks.add(job);
-              it.remove();
-            }
-          }
-        }
-
-        abortedTasks.addAll(worker.shutdownNow());
-        return abortedTasks;
-      }, 0L, NANOSECONDS);
+      termination = scheduler.schedule(null, this::abortTasks, 0L, NANOSECONDS);
 
 
       return waitFor(termination);
     } catch (ExecutionException e) {
       throw new RuntimeException(e.getCause());
     }
+  }
+
+  private List<Runnable> abortTasks() {
+    List<Runnable> abortedTasks = new ArrayList<>();
+    for (Iterator<Runnable> it = scheduler.getQueue().iterator(); it.hasNext(); ) {
+      Runnable job = it.next();
+
+      if (job instanceof OutOfBandRsf) {
+        OutOfBandRsf<?> oobJob = (OutOfBandRsf<?>) job;
+        if (oobJob.getExecutor() == worker) {
+          abortedTasks.add(job);
+          it.remove();
+        }
+      }
+    }
+
+    abortedTasks.addAll(worker.shutdownNow());
+    return abortedTasks;
   }
 
   @Override

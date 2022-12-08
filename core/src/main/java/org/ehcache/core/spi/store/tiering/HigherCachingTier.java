@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -77,7 +77,7 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
      *
      * @return the new higher caching tier
      */
-    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link HigherCachingTier}.
