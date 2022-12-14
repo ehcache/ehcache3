@@ -48,8 +48,8 @@ import java.net.URI;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.Eviction.noAdvice;
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -109,7 +109,7 @@ public class ClusterStateRepositoryReplicationTest {
 
     ClusterStateRepository stateRepository = new ClusterStateRepository(spaceIdentifier, "test", clientEntity);
 
-    StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class);
+    StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class, c -> true, null);
     testHolder.putIfAbsent("One", "One");
     testHolder.putIfAbsent("Two", "Two");
 
@@ -154,7 +154,7 @@ public class ClusterStateRepositoryReplicationTest {
       }
     }, "test", clientEntity);
 
-    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class);
+    StateHolder<TestVal, TestVal> testMap = stateRepository.getPersistentStateHolder("testMap", TestVal.class, TestVal.class, c -> true, null);
     testMap.putIfAbsent(new TestVal("One"), new TestVal("One"));
     testMap.putIfAbsent(new TestVal("Two"), new TestVal("Two"));
 
@@ -176,6 +176,9 @@ public class ClusterStateRepositoryReplicationTest {
   }
 
   private static class TestVal implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final String val;
 
 

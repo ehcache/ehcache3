@@ -106,4 +106,31 @@ public class ServerStoreOpCodecTest {
     assertThat(decodedInvalidationAckMessage.getInvalidationId(), is(123));
     assertThat(decodedInvalidationAckMessage.getMessageType(), is(EhcacheMessageType.CLIENT_INVALIDATION_ACK));
   }
+
+  @Test
+  public void testLockMessage() throws Exception {
+    ServerStoreOpMessage lockMessage = new ServerStoreOpMessage.LockMessage(2L);
+
+    byte[] encoded = STORE_OP_CODEC.encode(lockMessage);
+    EhcacheEntityMessage decoded = STORE_OP_CODEC.decode(lockMessage.getMessageType(), wrap(encoded));
+
+    ServerStoreOpMessage.LockMessage decodedLockMessage = (ServerStoreOpMessage.LockMessage) decoded;
+
+    assertThat(decodedLockMessage.getHash(), is(2L));
+    assertThat(decodedLockMessage.getMessageType(), is(EhcacheMessageType.LOCK));
+  }
+
+  @Test
+  public void testUnlockMessage() throws Exception {
+    ServerStoreOpMessage unlockMessage = new ServerStoreOpMessage.UnlockMessage(2L);
+
+    byte[] encoded = STORE_OP_CODEC.encode(unlockMessage);
+    EhcacheEntityMessage decoded = STORE_OP_CODEC.decode(unlockMessage.getMessageType(), wrap(encoded));
+
+    ServerStoreOpMessage.UnlockMessage decodedLockMessage = (ServerStoreOpMessage.UnlockMessage) decoded;
+
+    assertThat(decodedLockMessage.getHash(), is(2L));
+    assertThat(decodedLockMessage.getMessageType(), is(EhcacheMessageType.UNLOCK));
+  }
+
 }

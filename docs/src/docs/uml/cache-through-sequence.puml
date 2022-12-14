@@ -1,0 +1,60 @@
+@startuml
+
+participant "Client A" as A
+participant "Server" as S
+participant "Client B" as B
+
+participant "SOR" as SOR
+
+[o-> B: put(k, u)
+activate B
+
+[o-> A: put(k, v)
+activate A
+
+B-> S: append(put(k, u))
+activate S
+B<--S
+deactivate S
+
+A-> S: append(put(k, v))
+activate S
+A<--S
+deactivate S
+
+critical
+B-> S: get(k.hash)
+activate B
+activate S
+B<--S: chain
+deactivate S
+
+B-> SOR: write(k, u)
+B-> SOR: write(k, v)
+
+B-> S: replace(k.hash, chain, {k, v})
+activate S
+B<--S: success
+deactivate S
+deactivate B
+end
+[<--B
+deactivate B
+
+critical
+A-> S: get(k.hash)
+activate A
+activate S
+A<--S: chain
+deactivate S
+
+A-> S: replace(k.hash, {k, v}, {k, v})
+activate S
+A<--S: success (no-op)
+deactivate S
+deactivate A
+end
+[<--A:
+deactivate A
+
+@enduml

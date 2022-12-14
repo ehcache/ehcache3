@@ -33,7 +33,6 @@ import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
-import org.terracotta.entity.ReconnectRejectedException;
 import org.terracotta.entity.StateDumpCollector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -99,7 +98,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
   }
 
   @Override
-  public EhcacheEntityResponse invokeActive(ActiveInvokeContext invokeContext, EhcacheEntityMessage message) {
+  public EhcacheEntityResponse invokeActive(ActiveInvokeContext<EhcacheEntityResponse> invokeContext, EhcacheEntityMessage message) {
     try {
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
@@ -129,7 +128,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
 
   @Override
   public void createNew() {
-    management.init();
+    management.entityCreated();
     management.sharedPoolsConfigured();
   }
 
@@ -139,7 +138,7 @@ public class ClusterTierManagerActiveEntity implements ActiveServerEntity<Ehcach
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     reconnectComplete.set(false);
 
-    management.reload();
+    management.entityPromotionCompleted();
     management.sharedPoolsConfigured();
   }
 

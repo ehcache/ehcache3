@@ -184,9 +184,9 @@ public class DefaultSharedManagementServiceTest {
     assertThat(allCounters.getResult(contextList.get(2)).size(), equalTo(1));
 
 
-    assertThat(allCounters.getResult(contextList.get(0)).getStatistic(statisticName).longValue(), equalTo(1L));
-    assertThat(allCounters.getResult(contextList.get(1)).getStatistic(statisticName).longValue(), equalTo(1L));
-    assertThat(allCounters.getResult(contextList.get(2)).getStatistic(statisticName).longValue(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(0)).getLatestSampleValue(statisticName).get(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(1)).getLatestSampleValue(statisticName).get(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(2)).getLatestSampleValue(statisticName).get(), equalTo(1L));
 
   }
 
@@ -197,9 +197,9 @@ public class DefaultSharedManagementServiceTest {
     while(!Thread.currentThread().isInterrupted()) {
       counters = builder.build().execute();
 
-      if(counters.getResult(contextList.get(0)).getStatistic(statisticsName).longValue()> 0 &&
-         counters.getResult(contextList.get(1)).getStatistic(statisticsName).longValue() > 0 &&
-         counters.getResult(contextList.get(2)).getStatistic(statisticsName).longValue() > 0) {
+      if(counters.getResult(contextList.get(0)).<Long>getLatestSampleValue(statisticsName).get()> 0 &&
+         counters.getResult(contextList.get(1)).<Long>getLatestSampleValue(statisticsName).get() > 0 &&
+         counters.getResult(contextList.get(2)).<Long>getLatestSampleValue(statisticsName).get() > 0) {
         break;
       }
     }

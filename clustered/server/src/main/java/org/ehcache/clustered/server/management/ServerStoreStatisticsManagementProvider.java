@@ -27,7 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
-import static org.terracotta.context.extended.ValueStatisticDescriptor.descriptor;
+import static org.terracotta.statistics.registry.ValueStatisticDescriptor.descriptor;
 
 @Named("ServerStoreStatistics")
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
@@ -48,17 +48,17 @@ class ServerStoreStatisticsManagementProvider extends AbstractStatisticsManageme
     ServerStoreExposedStatistics(Context context, ServerStoreBinding binding, StatisticRegistry statisticRegistry) {
       super(context.with("type", "ServerStore"), binding, statisticRegistry);
 
-      getRegistry().registerSize("AllocatedMemory", descriptor("allocatedMemory", tags("tier", "Store")));
-      getRegistry().registerSize("DataAllocatedMemory", descriptor("dataAllocatedMemory", tags("tier", "Store")));
-      getRegistry().registerSize("OccupiedMemory", descriptor("occupiedMemory", tags("tier", "Store")));
-      getRegistry().registerSize("DataOccupiedMemory", descriptor("dataOccupiedMemory", tags("tier", "Store")));
-      getRegistry().registerCounter("Entries", descriptor("entries", tags("tier", "Store")));
-      getRegistry().registerCounter("UsedSlotCount", descriptor("usedSlotCount", tags("tier", "Store")));
-      getRegistry().registerSize("DataVitalMemory", descriptor("dataVitalMemory", tags("tier", "Store")));
-      getRegistry().registerSize("VitalMemory", descriptor("vitalMemory", tags("tier", "Store")));
-      getRegistry().registerCounter("RemovedSlotCount", descriptor("removedSlotCount", tags("tier", "Store")));
-      getRegistry().registerSize("DataSize", descriptor("dataSize", tags("tier", "Store")));
-      getRegistry().registerSize("TableCapacity", descriptor("tableCapacity", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("AllocatedMemory", descriptor("allocatedMemory", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("DataAllocatedMemory", descriptor("dataAllocatedMemory", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("OccupiedMemory", descriptor("occupiedMemory", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("DataOccupiedMemory", descriptor("dataOccupiedMemory", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("Entries", descriptor("entries", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("UsedSlotCount", descriptor("usedSlotCount", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("DataVitalMemory", descriptor("dataVitalMemory", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("VitalMemory", descriptor("vitalMemory", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("RemovedSlotCount", descriptor("removedSlotCount", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("DataSize", descriptor("dataSize", tags("tier", "Store")));
+      getStatisticRegistry().registerStatistic("TableCapacity", descriptor("tableCapacity", tags("tier", "Store")));
     }
 
   }

@@ -44,7 +44,7 @@ class EhPomMangle implements Plugin<Project> {
   void apply(Project project) {
     def utils = new Utils(project.baseVersion, project.logger)
 
-    project.plugins.apply 'java'
+    project.plugins.apply 'java-library'
     project.plugins.apply 'maven'
     project.plugins.apply 'signing'
 
@@ -56,10 +56,10 @@ class EhPomMangle implements Plugin<Project> {
     }
 
     def artifactFiltering = {
-      pom.scopeMappings.mappings.remove(project.configurations.compile)
-      pom.scopeMappings.mappings.remove(project.configurations.runtime)
-      pom.scopeMappings.mappings.remove(project.configurations.testCompile)
-      pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
+      project.configurations.forEach {
+        pom.scopeMappings.mappings.remove(it)
+      }
+
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowCompile, Conf2ScopeMappingContainer.COMPILE)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
 

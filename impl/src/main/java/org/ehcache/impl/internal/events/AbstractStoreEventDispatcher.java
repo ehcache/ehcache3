@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
@@ -26,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Supplier;
 
 /**
  * AbstractStoreEventDispatcher
@@ -49,17 +49,17 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void removed(Object key, ValueSupplier<Object> value) {
+    public void removed(Object key, Supplier<Object> value) {
       // Do nothing
     }
 
     @Override
-    public void updated(Object key, ValueSupplier<Object> oldValue, Object newValue) {
+    public void updated(Object key, Supplier<Object> oldValue, Object newValue) {
       // Do nothing
     }
 
     @Override
-    public void expired(Object key, ValueSupplier<Object> value) {
+    public void expired(Object key, Supplier<Object> value) {
       // Do nothing
     }
 
@@ -69,7 +69,7 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void evicted(Object key, ValueSupplier<Object> value) {
+    public void evicted(Object key, Supplier<Object> value) {
       // Do nothing
     }
   };
@@ -84,7 +84,8 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
       throw new IllegalArgumentException("Dispatcher concurrency must be an integer greater than 0");
     }
     @SuppressWarnings("unchecked")
-    LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = new LinkedBlockingQueue[dispatcherConcurrency];
+    LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[] queues = (LinkedBlockingQueue<FireableStoreEventHolder<K, V>>[])
+      new LinkedBlockingQueue<?>[dispatcherConcurrency];
     orderedQueues = queues;
     for (int i = 0; i < orderedQueues.length; i++) {
       orderedQueues[i] = new LinkedBlockingQueue<>(10000);

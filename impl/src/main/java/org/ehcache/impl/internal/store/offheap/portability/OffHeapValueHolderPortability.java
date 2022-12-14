@@ -32,9 +32,8 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
 
   public static final int ACCESS_TIME_OFFSET = 16;
   public static final int EXPIRE_TIME_OFFSET = 24;
-  public static final int HITS_OFFSET = 32;
 
-  // 5 longs: id, access, expire, creation time, hits
+  // 5 longs: id, access, expire, creation time, hits (which is kept for compatibility)
   private static final int FIELDS_OVERHEAD = 40;
 
   private final Serializer<V> serializer;
@@ -49,14 +48,14 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder)valueHolder).isBinaryValueAvailable()) {
       serialized = ((BinaryValueHolder)valueHolder).getBinaryValue();
     } else {
-      serialized = serializer.serialize(valueHolder.value());
+      serialized = serializer.serialize(valueHolder.get());
     }
     ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
     byteBuffer.putLong(valueHolder.getId());
     byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
     byteBuffer.putLong(valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT));
     byteBuffer.putLong(valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT));
-    byteBuffer.putLong(valueHolder.hits());
+    byteBuffer.putLong(0L); // represent the hits on previous versions. It is kept for compatibility reasons with previously saved data
     byteBuffer.put(serialized);
     byteBuffer.flip();
     return byteBuffer;
@@ -78,8 +77,8 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
     long creationTime = byteBuffer.getLong();
     long lastAccessTime = byteBuffer.getLong();
     long expireTime = byteBuffer.getLong();
-    long hits = byteBuffer.getLong();
+    byteBuffer.getLong(); // hits read from disk. It is kept for compatibility reasons with previously saved data
     return new LazyOffHeapValueHolder<>(id, byteBuffer.slice(), serializer,
-      creationTime, expireTime, lastAccessTime, hits, writeContext);
+      creationTime, expireTime, lastAccessTime, writeContext);
   }
 }

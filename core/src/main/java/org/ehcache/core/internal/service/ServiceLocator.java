@@ -17,6 +17,7 @@
 package org.ehcache.core.internal.service;
 
 import org.ehcache.config.Builder;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -29,8 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,7 +49,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.newSetFromMap;
+import static java.util.Collections.singleton;
+import static java.util.Collections.unmodifiableSet;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Provides discovery and tracking services for {@link Service} implementations.
@@ -91,7 +99,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return services.contains(serviceConfig.getServiceType());
   }
 
-  public void startAllServices() throws Exception {
+  public void startAllServices() {
     Deque<Service> started = new LinkedList<>();
     final Lock lock = runningLock.writeLock();
     lock.lock();
@@ -163,7 +171,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         boolean stoppedSomething = false;
         for (Iterator<Service> it = running.iterator(); it.hasNext(); ) {
           Service s = it.next();
-          if (hasRunningDependencies(s, running)) {
+          if (hasRunningDependents(s, running)) {
             LOGGER.trace("Delaying stopping {}", s);
           } else {
             LOGGER.trace("Stopping {}", s);
@@ -206,10 +214,11 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return false;
   }
 
-  private boolean hasRunningDependencies(Service service, Iterable<Service> running) {
-    for (Class<? extends Service> dep : identifyTransitiveDependenciesOf(service.getClass())) {
-      for (Service s : running) {
-        if (dep.isInstance(s)) {
+  private boolean hasRunningDependents(Service service, Iterable<Service> running) {
+    for (Service runningService : running) {
+      Set<Class<? extends Service>> dependencyClasses = identifyTransitiveDependenciesOf(runningService.getClass());
+      for (Class<? extends Service> dependencyClass : dependencyClasses) {
+        if (dependencyClass.isInstance(service)) {
           return true;
         }
       }
@@ -224,6 +233,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
     private final ServiceMap provided = new ServiceMap();
     private final Set<Class<? extends Service>> requested = new HashSet<>();
+    private boolean includeMandatoryServices = true;
 
     public DependencySet with(Service service) {
       provided.add(service);
@@ -245,18 +255,15 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         return this;
       }
 
-      Iterable<ServiceFactory<Service>> serviceFactories = ServiceLocator.getServiceFactories(serviceLoader);
-      boolean success = false;
-      for (ServiceFactory<?> factory : serviceFactories) {
-        final Class<?> factoryServiceType = factory.getServiceType();
-        if (serviceType.isAssignableFrom(factoryServiceType)) {
-          @SuppressWarnings("unchecked")
-          ServiceFactory<T> serviceFactory = (ServiceFactory<T>) factory;
-          with(serviceFactory.create(config));
-          success = true;
-        }
-      }
-      if (success) {
+      @SuppressWarnings("unchecked")
+      Collection<ServiceFactory<T>> serviceFactories = getServiceFactories(serviceLoader).stream()
+        .filter(f -> serviceType.isAssignableFrom(f.getServiceType())).map(f -> (ServiceFactory<T>) f)
+        .collect(toList());
+
+      OptionalInt highestRank = serviceFactories.stream().mapToInt(ServiceFactory::rank).max();
+
+      if (highestRank.isPresent()) {
+        serviceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> with(f.create(config)));
         return this;
       } else {
         throw new IllegalStateException("No factories exist for " + serviceType);
@@ -265,6 +272,12 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
     public DependencySet with(Class<? extends Service> clazz) {
       requested.add(clazz);
+      return this;
+    }
+
+
+    public DependencySet withoutMandatoryServices() {
+      includeMandatoryServices = false;
       return this;
     }
 
@@ -315,6 +328,21 @@ public final class ServiceLocator implements ServiceProvider<Service> {
           }
         }
 
+        if (includeMandatoryServices) {
+          for (List<ServiceFactory<Service>> factories : getServiceFactories(serviceLoader).stream().collect(groupingBy(ServiceFactory::getServiceType)).values()) {
+            OptionalInt highestRank = factories.stream().mapToInt(ServiceFactory::rank).max();
+
+            if (highestRank.isPresent()) {
+              for (ServiceFactory<?> manadatory : factories.stream().filter(ServiceFactory::isMandatory).filter(f -> highestRank.getAsInt() == f.rank()).collect(toList())) {
+                if (!resolvedServices.contains(manadatory.getServiceType())) {
+                  Service service = manadatory.create(null);
+                  resolvedServices = lookupDependenciesOf(resolvedServices, service.getClass()).add(service);
+                }
+              }
+            }
+          }
+        }
+
         return new ServiceLocator(resolvedServices);
       } catch (DependencyException e) {
         throw new IllegalStateException(e);
@@ -323,7 +351,16 @@ public final class ServiceLocator implements ServiceProvider<Service> {
 
     ServiceMap lookupDependenciesOf(ServiceMap resolved, Class<? extends Service> requested) throws DependencyException {
       for (Class<? extends Service> dependency : identifyImmediateDependenciesOf(requested)) {
-        resolved = lookupService(resolved, dependency);
+        try {
+          resolved = lookupService(resolved, dependency);
+        } catch (DependencyException de) {
+          OptionalServiceDependencies optionalAnnotation = requested.getAnnotation(OptionalServiceDependencies.class);
+          if (optionalAnnotation != null && Arrays.asList(optionalAnnotation.value()).contains(dependency.getName())) {
+            LOGGER.debug("Skipping optional dependency of {} that cannot be looked up: {}", requested, dependency);
+            continue;
+          }
+          throw de;
+        }
       }
       return resolved;
     }
@@ -376,21 +413,22 @@ public final class ServiceLocator implements ServiceProvider<Service> {
      *        implements a {@code Service} subtype that is not marked with the {@link PluralService} annotation
      *        but is already registered
      */
-    private <T> Collection<ServiceFactory<? extends T>> discoverServices(ServiceMap resolved, Class<T> serviceClass) {
-      Collection<ServiceFactory<? extends T>> serviceFactories = new ArrayList<>();
-      for (ServiceFactory<?> factory : ServiceLocator.getServiceFactories(serviceLoader)) {
-        final Class<? extends Service> factoryServiceType = factory.getServiceType();
-        if (serviceClass.isAssignableFrom(factoryServiceType) && !factory.getClass().isAnnotationPresent(ServiceFactory.RequiresConfiguration.class)) {
-          if (provided.contains(factoryServiceType) || resolved.contains(factoryServiceType)) {
-            // Can have only one service registered under a concrete type
-            continue;
-          }
-          @SuppressWarnings("unchecked")
-          ServiceFactory<? extends T> serviceFactory = (ServiceFactory<? extends T>) factory;
-          serviceFactories.add(serviceFactory);
-        }
+    private <T, V> Collection<ServiceFactory<? extends T>> discoverServices(ServiceMap resolved, Class<T> serviceClass) {
+      @SuppressWarnings("unchecked")
+      Collection<ServiceFactory<? extends T>> serviceFactories = getServiceFactories(serviceLoader).stream()
+        .filter(f -> serviceClass.isAssignableFrom(f.getServiceType())).map(f -> (ServiceFactory<? extends T>) f)
+        .filter(f -> !f.getClass().isAnnotationPresent(ServiceFactory.RequiresConfiguration.class))
+        .filter(f -> !provided.contains(f.getServiceType()))
+        .filter(f -> !resolved.contains(f.getServiceType()))
+        .collect(toList());
+
+      OptionalInt highestRank = serviceFactories.stream().mapToInt(ServiceFactory::rank).max();
+
+      if (highestRank.isPresent()) {
+        return serviceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).collect(toList());
+      } else {
+        return emptyList();
       }
-      return serviceFactories;
     }
   }
 
@@ -411,7 +449,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
 
     Set<Class<? extends Service>> dependencies = new HashSet<>();
-    final ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
+    ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
     if (annotation != null) {
       for (final Class<?> dependency : annotation.value()) {
         if (Service.class.isAssignableFrom(dependency)) {
@@ -421,6 +459,23 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         } else {
           throw new IllegalStateException("Service dependency declared by " + clazz.getName() +
             " is not a Service: " + dependency.getName());
+        }
+      }
+    }
+    OptionalServiceDependencies optionalAnnotation = clazz.getAnnotation(OptionalServiceDependencies.class);
+    if (optionalAnnotation != null) {
+      for (String className : optionalAnnotation.value()) {
+        try {
+          Class<?> dependencyClass = ClassLoading.getDefaultClassLoader().loadClass(className);
+          if (Service.class.isAssignableFrom(dependencyClass)) {
+            @SuppressWarnings("unchecked")
+            Class<? extends Service> serviceDependency = (Class<? extends Service>) dependencyClass;
+            dependencies.add(serviceDependency);
+          } else {
+            throw new IllegalStateException("Service dependency declared by " + className + " is not a Service: " + dependencyClass.getName());
+          }
+        } catch (ClassNotFoundException ignored) {
+          // dependency is optional so we ignore it
         }
       }
     }
@@ -437,20 +492,31 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   private static Set<Class<? extends Service>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
-    Set<Class<? extends Service>> transitive = new HashSet<>();
 
     Set<Class<? extends Service>> dependencies = identifyImmediateDependenciesOf(clazz);
+    for (Class<? extends Service> dependencyClass : dependencies) {
+      if (dependencyClass == clazz) {
+        throw new IllegalStateException("Circular dependency found. Service " + clazz.getName() + " cannot depend on itself.");
+      }
+    }
+    Set<Class<? extends Service>> transitive = new HashSet<>(dependencies.size() * 3); // 3 is my feeling of how many there should be per class at most
     transitive.addAll(dependencies);
 
     for (Class<? extends Service> klazz : dependencies) {
-      transitive.addAll(identifyTransitiveDependenciesOf(klazz));
+      Set<Class<? extends Service>> identified = identifyTransitiveDependenciesOf(klazz);
+      for (Class<? extends Service> dep : identified) {
+        if(dep == clazz) {
+          throw new IllegalStateException("Circular dependency found. A dependency of service " + clazz.getName() + " depends on it.");
+        }
+      }
+      transitive.addAll(identified);
     }
 
     return transitive;
   }
 
   @SuppressWarnings("unchecked")
-  private static <T extends Service> Iterable<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
+  private static <T extends Service> Collection<ServiceFactory<T>> getServiceFactories(@SuppressWarnings("rawtypes") ServiceLoader<ServiceFactory> serviceFactory) {
     List<ServiceFactory<T>> list = new ArrayList<>();
     for (ServiceFactory<?> factory : serviceFactory) {
       list.add((ServiceFactory<T>)factory);
@@ -459,6 +525,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   private static class DependencyException extends Exception {
+    private static final long serialVersionUID = -5269926129639323941L;
+
     public DependencyException(String s) {
       super(s);
     }

@@ -16,7 +16,6 @@
 
 package org.ehcache.core.spi.store;
 
-import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.time.TimeSource;
 import org.junit.Test;
 
@@ -107,7 +106,7 @@ public class AbstractValueHolderTest {
   public void testSubclassEquals() throws Exception {
     assertThat(new AbstractValueHolder<String>(-1, 1000L) {
       @Override
-      public String value() {
+      public String get() {
         return "aaa";
       }
 
@@ -118,19 +117,19 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
     }.equals(new AbstractValueHolder<String>(-1, 1L) {
       @Override
-      public String value() {
+      public String get() {
         return "aaa";
       }
 
@@ -141,14 +140,14 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
 
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>)obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
@@ -156,7 +155,7 @@ public class AbstractValueHolderTest {
 
     assertThat(new AbstractValueHolder<String>(-1, 1000L) {
       @Override
-      public String value() {
+      public String get() {
         return "aaa";
       }
 
@@ -167,19 +166,19 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>) obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
     }.equals(new AbstractValueHolder<String>(-1, 1L) {
       @Override
-      public String value() {
+      public String get() {
         return "bbb";
       }
 
@@ -190,41 +189,19 @@ public class AbstractValueHolderTest {
 
       @Override
       public int hashCode() {
-        return super.hashCode() + value().hashCode();
+        return super.hashCode() + get().hashCode();
       }
 
       @Override
       public boolean equals(Object obj) {
         if (obj instanceof AbstractValueHolder) {
           AbstractValueHolder<?> other = (AbstractValueHolder<?>)obj;
-          return super.equals(obj) && value().equals(other.value());
+          return super.equals(obj) && get().equals(other.get());
         }
         return false;
       }
     }), is(false));
   }
-
-  @Test
-  public void testAbstractValueHolderHitRate() {
-    TestTimeSource timeSource = new TestTimeSource();
-    timeSource.advanceTime(1);
-    AbstractValueHolder<String> valueHolder = new AbstractValueHolder<String>(-1, timeSource.getTimeMillis()) {
-      @Override
-      protected TimeUnit nativeTimeUnit() {
-        return TimeUnit.MILLISECONDS;
-      }
-
-      @Override
-      public String value() {
-        return "abc";
-      }
-    };
-    valueHolder.accessed((timeSource.getTimeMillis()), new Duration(1L, TimeUnit.MILLISECONDS));
-    timeSource.advanceTime(1000);
-    assertThat(valueHolder.hitRate(timeSource.getTimeMillis(),
-        TimeUnit.SECONDS), is(1.0f));
-  }
-
 
   private AbstractValueHolder<String> newAbstractValueHolder(final TimeUnit timeUnit, long creationTime) {
     return new AbstractValueHolder<String>(-1, creationTime) {
@@ -233,7 +210,7 @@ public class AbstractValueHolderTest {
         return timeUnit;
       }
       @Override
-      public String value() {
+      public String get() {
         throw new UnsupportedOperationException();
       }
     };
@@ -245,7 +222,7 @@ public class AbstractValueHolderTest {
         return timeUnit;
       }
       @Override
-      public String value() {
+      public String get() {
         throw new UnsupportedOperationException();
       }
     };
@@ -258,7 +235,7 @@ public class AbstractValueHolderTest {
       }
 
       @Override
-      public String value() {
+      public String get() {
         throw new UnsupportedOperationException();
       }
     };

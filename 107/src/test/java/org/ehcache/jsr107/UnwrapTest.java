@@ -77,7 +77,6 @@ public class UnwrapTest {
     assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.NormalEvent.class)));
   }
 
-  @SuppressWarnings("unchecked")
   private class EhEvent implements CacheEvent<String,String> {
     @Override
     public org.ehcache.event.EventType getType() {
@@ -99,8 +98,9 @@ public class UnwrapTest {
       throw new UnsupportedOperationException("Implement me!");
     }
 
+    @SuppressWarnings("deprecation")
     @Override
-    public org.ehcache.Cache getSource() {
+    public org.ehcache.Cache<String, String> getSource() {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

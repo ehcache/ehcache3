@@ -37,6 +37,7 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.management.ClusterTierManagement;
+import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
 import org.slf4j.Logger;
@@ -51,6 +52,7 @@ import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceException;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.StateDumpCollector;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 
 import java.util.concurrent.TimeoutException;
 
@@ -111,7 +113,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
   @Override
   public void createNew() throws ConfigurationException {
     stateService.createStore(storeIdentifier, configuration, false);
-    management.init();
+    management.entityCreated();
   }
 
   private boolean isEventual() {
@@ -160,11 +162,12 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     messageHandler.invoke(realContext, message, this::invokePassiveInternal);
   }
 
+  @SuppressWarnings("try")
   private EhcacheEntityResponse invokePassiveInternal(InvokeContext context, EhcacheEntityMessage message) {
     if (message instanceof EhcacheOperationMessage) {
       EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
-      EhcacheMessageType messageType = operationMessage.getMessageType();
-      try {
+      try (EhcacheStateContext ignored = stateService.beginProcessing(operationMessage, storeIdentifier)) {
+        EhcacheMessageType messageType = operationMessage.getMessageType();
         if (isStoreOperationMessage(messageType)) {
           invokeServerStoreOperation((ServerStoreOpMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
@@ -174,16 +177,12 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         } else {
           throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
         }
-      } catch (ClusterException e) {
+      } catch (ClusterException | OversizeMappingException e) {
         // The above operations are not critical enough to fail a passive, so just log the exception
         LOGGER.error("Unexpected exception raised during operation: " + message, e);
       }
     } else if (message instanceof EhcacheSyncMessage) {
-      try {
-        invokeSyncOperation(context, (EhcacheSyncMessage) message);
-      } catch (ClusterException e) {
-        throw new IllegalStateException("Sync operation failed", e);
-      }
+      invokeSyncOperation(context, (EhcacheSyncMessage) message);
     } else {
       throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
     }
@@ -192,7 +191,7 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
     return success();
   }
 
-  private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) throws ClusterException {
+  private void invokeSyncOperation(InvokeContext context, EhcacheSyncMessage message) {
     switch (message.getMessageType()) {
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;

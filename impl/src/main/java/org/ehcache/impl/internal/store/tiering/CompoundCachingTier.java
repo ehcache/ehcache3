@@ -19,7 +19,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Collections.unmodifiableSet;
@@ -81,6 +80,9 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   static class ComputationException extends RuntimeException {
+
+    private static final long serialVersionUID = 6832417052348277644L;
+
     public ComputationException(StoreAccessException cause) {
       super(cause);
     }
@@ -223,7 +225,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       if (!providersMap.containsKey(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
-      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      CompoundCachingTier<?, ?> compoundCachingTier = (CompoundCachingTier<?, ?>) resource;
       Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
       entry.getKey().releaseHigherCachingTier(compoundCachingTier.higher);
@@ -235,7 +237,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       if (!providersMap.containsKey(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
-      CompoundCachingTier compoundCachingTier = (CompoundCachingTier) resource;
+      CompoundCachingTier<?, ?> compoundCachingTier = (CompoundCachingTier<?, ?>) resource;
       Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider> entry = providersMap.get(resource);
 
       entry.getValue().initCachingTier(compoundCachingTier.lower);

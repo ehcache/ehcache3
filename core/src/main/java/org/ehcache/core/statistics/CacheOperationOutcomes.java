@@ -45,7 +45,7 @@ public interface CacheOperationOutcomes {
     MISS,
     /** failure */
     FAILURE
-  };
+  }
 
   /**
    * Outcomes for cache getAll operation
@@ -71,7 +71,7 @@ public interface CacheOperationOutcomes {
     NOOP,
     /** failure */
     FAILURE
-  };
+  }
 
   /**
    * Outcomes for cache putAll operation
@@ -97,7 +97,7 @@ public interface CacheOperationOutcomes {
     NOOP,
     /** failure */
     FAILURE
-  };
+  }
 
   /**
    * Outcomes for cache removeAll operation
@@ -133,17 +133,7 @@ public interface CacheOperationOutcomes {
      * Operation failure
      */
     FAILURE
-  };
-
-  /**
-   * The cache loading outcomes.
-   */
-  enum CacheLoadingOutcome implements CacheOperationOutcomes {
-    /** success. */
-    SUCCESS,
-    /** failure */
-    FAILURE
-  };
+  }
 
   /**
    * The putIfAbsent outcomes.
@@ -161,7 +151,7 @@ public interface CacheOperationOutcomes {
      * operation failure
      */
     FAILURE
-  };
+  }
 
   /**
    * The replace outcomes.
@@ -183,5 +173,5 @@ public interface CacheOperationOutcomes {
      * operation failure
      */
     FAILURE
-  };
+  }
 }

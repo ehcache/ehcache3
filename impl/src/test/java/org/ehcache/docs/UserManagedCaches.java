@@ -29,11 +29,16 @@ import org.ehcache.event.EventType;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.concurrent.Executors;
+
+import javax.print.URIException;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -42,6 +47,9 @@ import static org.junit.Assert.assertThat;
  * UserManagedCaches
  */
 public class UserManagedCaches {
+
+  @Rule
+  public final TemporaryFolder diskPath = new TemporaryFolder();
 
   @Test
   public void userManagedCacheExample() {
@@ -101,8 +109,8 @@ public class UserManagedCaches {
     // end::userManagedListenerCache[]
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
 
 }

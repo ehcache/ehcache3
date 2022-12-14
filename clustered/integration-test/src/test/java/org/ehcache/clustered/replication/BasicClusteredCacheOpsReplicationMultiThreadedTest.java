@@ -158,7 +158,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   @Test(timeout=180000)
   public void testCRUD() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
 
     caches.forEach(cache -> {
       for (int i = 0; i < NUM_OF_THREADS; i++) {
@@ -199,7 +199,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   @Test(timeout=180000)
   public void testBulkOps() throws Exception {
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
 
     caches.forEach(cache -> {
       for (int i = 0; i < NUM_OF_THREADS; i++) {
@@ -245,7 +245,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
           "dealing with in-flight invalidation reconstructed from reconnect data")
   @Test(timeout=180000)
   public void testClear() throws Exception {
-    List<Future> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();
 
     caches.forEach(cache -> {
@@ -265,7 +265,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
       CACHE2.get(x);
     });
 
-    Future clearFuture = executorService.submit(() -> CACHE1.clear());
+    Future<?> clearFuture = executorService.submit(() -> CACHE1.clear());
 
     CLUSTER.getClusterControl().terminateActive();
 
@@ -275,10 +275,10 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
 
   }
 
-  private void drainTasks(List<Future> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
+  private void drainTasks(List<Future<?>> futures) throws InterruptedException, java.util.concurrent.ExecutionException {
     for (int i = 0; i < futures.size(); i++) {
       try {
-        futures.get(i).get(10, TimeUnit.SECONDS);
+        futures.get(i).get(60, TimeUnit.SECONDS);
       } catch (TimeoutException e) {
         fail("Stuck on number " + i);
       }
@@ -286,6 +286,9 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   }
 
   private static class BlobValue implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private final byte[] data = new byte[10 * 1024];
   }
 

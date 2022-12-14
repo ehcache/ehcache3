@@ -38,7 +38,7 @@ public class BinaryOffHeapValueHolderTest {
   public void setUp() {
     serializer = new StringSerializer();
     value = "aValue";
-    valueHolder = new BinaryOffHeapValueHolder<>(-1, value, serializer.serialize(value), 0, 0, 0, 0);
+    valueHolder = new BinaryOffHeapValueHolder<>(-1, value, serializer.serialize(value), 0, 0, 0);
   }
 
   @Test
@@ -50,7 +50,7 @@ public class BinaryOffHeapValueHolderTest {
 
   @Test
   public void testCanAccessValue() {
-    assertThat(valueHolder.value(), is(value));
+    assertThat(valueHolder.get(), is(value));
   }
 
   @Test(expected = UnsupportedOperationException.class)

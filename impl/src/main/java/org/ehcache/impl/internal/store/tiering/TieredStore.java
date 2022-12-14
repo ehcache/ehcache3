@@ -20,8 +20,9 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -29,8 +30,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
@@ -44,6 +43,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -51,8 +51,6 @@ import java.util.function.Supplier;
  * A {@link Store} implementation supporting a tiered caching model.
  */
 public class TieredStore<K, V> implements Store<K, V> {
-
-  private static final Logger LOG = LoggerFactory.getLogger(TieredStore.class);
 
   private final AtomicReference<CachingTier<K, V>> cachingTierRef;
   private final CachingTier<K, V> noopCachingTier;
@@ -84,7 +82,6 @@ public class TieredStore<K, V> implements Store<K, V> {
     StatisticsManager.associate(authoritativeTier).withParent(this);
   }
 
-
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
     try {
@@ -92,27 +89,11 @@ public class TieredStore<K, V> implements Store<K, V> {
         try {
           return authoritativeTier.getAndFault(keyParam);
         } catch (StoreAccessException cae) {
-          throw new ComputationException(cae);
+          throw new StorePassThroughException(cae);
         }
       });
-    } catch (ComputationException ce) {
-      throw ce.getStoreAccessException();
-    }
-  }
-
-  static class ComputationException extends RuntimeException {
-
-    public ComputationException(StoreAccessException cause) {
-      super(cause);
-    }
-
-    public StoreAccessException getStoreAccessException() {
-      return (StoreAccessException) getCause();
-    }
-
-    @Override
-    public synchronized Throwable fillInStackTrace() {
-      return this;
+    } catch (StoreAccessException ce) {
+      return handleStoreAccessException(ce);
     }
   }
 
@@ -131,9 +112,9 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException {
     try {
-      return authoritativeTier.putIfAbsent(key, value);
+      return authoritativeTier.putIfAbsent(key, value, put);
     } finally {
       cachingTier().invalidate(key);
     }
@@ -236,18 +217,18 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> getAndCompute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
     try {
-      return authoritativeTier.compute(key, mappingFunction);
+      return authoritativeTier.getAndCompute(key, mappingFunction);
     } finally {
       cachingTier().invalidate(key);
     }
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     try {
-      return authoritativeTier.compute(key, mappingFunction, replaceEqual);
+      return authoritativeTier.computeAndGet(key, mappingFunction, replaceEqual, () -> false);
     } finally {
       cachingTier().invalidate(key);
     }
@@ -259,11 +240,11 @@ public class TieredStore<K, V> implements Store<K, V> {
         try {
           return authoritativeTier.computeIfAbsentAndFault(keyParam, mappingFunction);
         } catch (StoreAccessException cae) {
-          throw new ComputationException(cae);
+          throw new StorePassThroughException(cae);
         }
       });
-    } catch (ComputationException ce) {
-      throw ce.getStoreAccessException();
+    } catch (StoreAccessException ce) {
+      return handleStoreAccessException(ce);
     }
   }
 
@@ -313,6 +294,20 @@ public class TieredStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
+  private ValueHolder<V> handleStoreAccessException(StoreAccessException ce) throws StoreAccessException {
+    Throwable cause = ce.getCause();
+    if (cause instanceof StorePassThroughException) {
+      throw (StoreAccessException) cause.getCause();
+    }
+    if (cause instanceof Error) {
+      throw (Error) cause;
+    }
+    if (cause instanceof RuntimeException) {
+      throw (RuntimeException) cause;
+    }
+    throw new RuntimeException("Unexpected checked exception wrapped in StoreAccessException", cause);
+  }
+
   @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class})
   public static class Provider implements Store.Provider {
 
@@ -336,8 +331,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       if (authorityRank == 0) {
         return 0;
       }
-      Set<ResourceType<?>> cachingResources = new HashSet<>();
-      cachingResources.addAll(resourceTypes);
+      Set<ResourceType<?>> cachingResources = new HashSet<>(resourceTypes);
       cachingResources.remove(authorityResource);
       int cachingTierRank = 0;
       Collection<CachingTier.Provider> cachingTierProviders = serviceProvider.getServicesOfType(CachingTier.Provider.class);
@@ -376,8 +370,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       ResourceType<?> authorityResource = getAuthorityResource(resourcePools.getResourceTypeSet());
       AuthoritativeTier.Provider authoritativeTierProvider = getAuthoritativeTierProvider(authorityResource, enhancedServiceConfigs);
 
-      Set<ResourceType<?>> cachingResources = new HashSet<>();
-      cachingResources.addAll(resourcePools.getResourceTypeSet());
+      Set<ResourceType<?>> cachingResources = new HashSet<>(resourcePools.getResourceTypeSet());
       cachingResources.remove(authorityResource);
 
       CachingTier.Provider cachingTierProvider = getCachingTierProvider(cachingResources, enhancedServiceConfigs);
@@ -407,13 +400,17 @@ public class TieredStore<K, V> implements Store<K, V> {
       return cachingTierProvider;
     }
 
-    private AuthoritativeTier.Provider getAuthoritativeTierProvider(ResourceType<?> authorityResource, List<ServiceConfiguration<?>> enhancedServiceConfigs) {
+    AuthoritativeTier.Provider getAuthoritativeTierProvider(ResourceType<?> authorityResource, List<ServiceConfiguration<?>> enhancedServiceConfigs) {
       AuthoritativeTier.Provider authoritativeTierProvider = null;
       Collection<AuthoritativeTier.Provider> authorityProviders = serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class);
+      int highestRank = 0;
       for (AuthoritativeTier.Provider provider : authorityProviders) {
-        if (provider.rankAuthority(authorityResource, enhancedServiceConfigs) != 0) {
-          authoritativeTierProvider = provider;
-          break;
+        int rank = provider.rankAuthority(authorityResource, enhancedServiceConfigs);
+        if (rank != 0) {
+          if (highestRank < rank) {
+            authoritativeTierProvider = provider;
+            highestRank = rank;
+          }
         }
       }
       if (authoritativeTierProvider == null) {
@@ -434,16 +431,16 @@ public class TieredStore<K, V> implements Store<K, V> {
       if (entry == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      TieredStore tieredStore = (TieredStore) resource;
+      TieredStore<?, ?> tieredStore = (TieredStore<?, ?>) resource;
       // Stop propagating invalidation to higher tier since they will be released before the authoritative tier
       // and thus not be in a state when they can invalidate anymore
       tieredStore.authoritativeTier.setInvalidationValve(new AuthoritativeTier.InvalidationValve() {
         @Override
-        public void invalidateAll() throws StoreAccessException {
+        public void invalidateAll() {
         }
 
         @Override
-        public void invalidateAllWithHash(long hash) throws StoreAccessException {
+        public void invalidateAllWithHash(long hash) {
         }
       });
       entry.getKey().releaseCachingTier(tieredStore.realCachingTier);
@@ -456,7 +453,7 @@ public class TieredStore<K, V> implements Store<K, V> {
       if (entry == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      TieredStore tieredStore = (TieredStore) resource;
+      TieredStore<?, ?> tieredStore = (TieredStore<?, ?>) resource;
       entry.getKey().initCachingTier(tieredStore.realCachingTier);
       entry.getValue().initAuthoritativeTier(tieredStore.authoritativeTier);
     }
@@ -482,14 +479,14 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws StoreAccessException {
+    public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) {
       final ValueHolder<V> apply = source.apply(key);
       authoritativeTier.flush(key, apply);
       return apply;
     }
 
     @Override
-    public void invalidate(final K key) throws StoreAccessException {
+    public void invalidate(final K key) {
       // noop
     }
 
@@ -499,7 +496,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void clear() throws StoreAccessException {
+    public void clear() {
       // noop
     }
 
@@ -509,7 +506,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void invalidateAllWithHash(long hash) throws StoreAccessException {
+    public void invalidateAllWithHash(long hash) {
       // noop
     }
 

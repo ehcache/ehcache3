@@ -20,7 +20,6 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 
 import java.time.Duration;
 
-import java.time.temporal.ChronoUnit;
 import java.util.function.LongSupplier;
 
 /**
@@ -30,8 +29,9 @@ import java.util.function.LongSupplier;
 public final class Timeouts {
 
   public static final Duration DEFAULT_OPERATION_TIMEOUT = Duration.ofSeconds(5);
+  public static final Duration DEFAULT_CONNECTION_TIMEOUT = Duration.ofSeconds(150);
   public static final Duration INFINITE_TIMEOUT = Duration.ofNanos(Long.MAX_VALUE);
-  public static final Timeouts DEFAULT = new Timeouts(DEFAULT_OPERATION_TIMEOUT, DEFAULT_OPERATION_TIMEOUT, INFINITE_TIMEOUT);
+  public static final Timeouts DEFAULT = new Timeouts(DEFAULT_OPERATION_TIMEOUT, DEFAULT_OPERATION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT);
 
   private final Duration readOperationTimeout;
   private final Duration writeOperationTimeout;

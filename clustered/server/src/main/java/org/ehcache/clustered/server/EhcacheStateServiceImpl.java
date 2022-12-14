@@ -25,7 +25,9 @@ import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressExcepti
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
+import org.ehcache.clustered.server.state.EhcacheStateContext;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -39,21 +41,23 @@ import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.ValueStatistic;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
 import static org.terracotta.offheapresource.OffHeapResourceIdentifier.identifier;
+import static org.terracotta.statistics.StatisticsManager.tags;
+import static org.terracotta.statistics.ValueStatistics.supply;
+import static org.terracotta.statistics.StatisticType.COUNTER;
+import static org.terracotta.statistics.StatisticType.GAUGE;
 
 
 public class EhcacheStateServiceImpl implements EhcacheStateService {
@@ -65,23 +69,23 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private static final String PROPERTY_STORE_KEY = "storeName";
   private static final String PROPERTY_POOL_KEY = "poolName";
 
-  private static final Map<String, Function<ServerStoreImpl,Number>> STAT_STORE_METHOD_REFERENCES = new HashMap<>();
-  private static final Map<String, Function<ResourcePageSource,Number>> STAT_POOL_METHOD_REFERENCES = new HashMap<>();
+  private static final Map<String, Function<ServerStoreImpl, ValueStatistic<Number>>> STAT_STORE_METHOD_REFERENCES = new HashMap<>(11);
+  private static final Map<String, Function<ResourcePageSource, ValueStatistic<Number>>> STAT_POOL_METHOD_REFERENCES = new HashMap<>(1);
 
   static {
-    STAT_STORE_METHOD_REFERENCES.put("allocatedMemory", ServerStoreImpl::getAllocatedMemory);
-    STAT_STORE_METHOD_REFERENCES.put("dataAllocatedMemory", ServerStoreImpl::getDataAllocatedMemory);
-    STAT_STORE_METHOD_REFERENCES.put("occupiedMemory", ServerStoreImpl::getOccupiedMemory);
-    STAT_STORE_METHOD_REFERENCES.put("dataOccupiedMemory", ServerStoreImpl::getDataOccupiedMemory);
-    STAT_STORE_METHOD_REFERENCES.put("entries", ServerStoreImpl::getSize);
-    STAT_STORE_METHOD_REFERENCES.put("usedSlotCount", ServerStoreImpl::getUsedSlotCount);
-    STAT_STORE_METHOD_REFERENCES.put("dataVitalMemory", ServerStoreImpl::getDataVitalMemory);
-    STAT_STORE_METHOD_REFERENCES.put("vitalMemory", ServerStoreImpl::getVitalMemory);
-    STAT_STORE_METHOD_REFERENCES.put("removedSlotCount", ServerStoreImpl::getRemovedSlotCount);
-    STAT_STORE_METHOD_REFERENCES.put("dataSize", ServerStoreImpl::getDataSize);
-    STAT_STORE_METHOD_REFERENCES.put("tableCapacity", ServerStoreImpl::getTableCapacity);
+    STAT_STORE_METHOD_REFERENCES.put("allocatedMemory", store -> supply(GAUGE, store::getAllocatedMemory));
+    STAT_STORE_METHOD_REFERENCES.put("dataAllocatedMemory", store -> supply(GAUGE, store::getDataAllocatedMemory));
+    STAT_STORE_METHOD_REFERENCES.put("occupiedMemory", store -> supply(GAUGE, store::getOccupiedMemory));
+    STAT_STORE_METHOD_REFERENCES.put("dataOccupiedMemory", store -> supply(GAUGE, store::getDataOccupiedMemory));
+    STAT_STORE_METHOD_REFERENCES.put("entries", store -> supply(COUNTER, store::getSize));
+    STAT_STORE_METHOD_REFERENCES.put("usedSlotCount", store -> supply(COUNTER, store::getUsedSlotCount));
+    STAT_STORE_METHOD_REFERENCES.put("dataVitalMemory", store -> supply(GAUGE, store::getDataVitalMemory));
+    STAT_STORE_METHOD_REFERENCES.put("vitalMemory", store -> supply(GAUGE, store::getVitalMemory));
+    STAT_STORE_METHOD_REFERENCES.put("removedSlotCount", store -> supply(COUNTER, store::getRemovedSlotCount));
+    STAT_STORE_METHOD_REFERENCES.put("dataSize", store -> supply(GAUGE, store::getDataSize));
+    STAT_STORE_METHOD_REFERENCES.put("tableCapacity", store -> supply(GAUGE, store::getTableCapacity));
 
-    STAT_POOL_METHOD_REFERENCES.put("allocatedSize", ResourcePageSource::getAllocatedSize);
+    STAT_POOL_METHOD_REFERENCES.put("allocatedSize", pool -> supply(GAUGE, pool::getAllocatedSize));
   }
 
   private final OffHeapResources offHeapResources;
@@ -303,14 +307,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   private void registerStoreStatistics(ServerStoreImpl store, String storeName) {
-    STAT_STORE_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
-      registerStatistic(store, storeName, entry.getKey(), STATISTICS_STORE_TAG, PROPERTY_STORE_KEY, () -> entry.getValue().apply(store) ));
+    STAT_STORE_METHOD_REFERENCES.forEach((key, value) ->
+      registerStatistic(store, storeName, key, STATISTICS_STORE_TAG, PROPERTY_STORE_KEY, value.apply(store)));
   }
 
   private void registerPoolStatistics(String poolName, ResourcePageSource pageSource) {
-    STAT_POOL_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
-      registerStatistic(pageSource, poolName, entry.getKey(), STATISTICS_POOL_TAG, PROPERTY_POOL_KEY, () -> entry.getValue().apply(pageSource))
-    );
+    STAT_POOL_METHOD_REFERENCES.forEach((key, value) ->
+      registerStatistic(pageSource, poolName, key, STATISTICS_POOL_TAG, PROPERTY_POOL_KEY, value.apply(pageSource)));
   }
 
   private void unRegisterStoreStatistics(ServerStoreImpl store) {
@@ -329,13 +332,12 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
   }
 
-  private void registerStatistic(Object context, String name, String observerName, String tag, String propertyKey, Callable<Number> callable) {
-    Set<String> tags = new HashSet<>(Arrays.asList(tag, "tier"));
+  private void registerStatistic(Object context, String name, String observerName, String tag, String propertyKey, ValueStatistic<Number> source) {
     Map<String, Object> properties = new HashMap<>();
     properties.put("discriminator", tag);
     properties.put(propertyKey, name);
 
-    StatisticsManager.createPassThroughStatistic(context, observerName, tags, properties, callable);
+    StatisticsManager.createPassThroughStatistic(context, observerName, tags(tag, "tier"), properties, source);
   }
 
   private void releaseDedicatedPool(String name, PageSource pageSource) {
@@ -407,7 +409,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     ServerStoreImpl serverStore;
     ResourcePageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     try {
-      serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
+      serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper, serverStoreConfiguration.isWriteBehindConfigured());
     } catch (RuntimeException rte) {
       releaseDedicatedPool(name, resourcePageSource);
       throw new ConfigurationException("Failed to create ServerStore.", rte);
@@ -488,6 +490,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
                                "Existing: defaultResource: " + getDefaultServerResource() + "\n" +
                                "\tsharedPools: " + sharedResourcePools);
     }
+  }
+
+  @Override
+  public EhcacheStateContext beginProcessing(EhcacheOperationMessage message, String name) {
+    return () -> {};
   }
 
   public boolean isConfigured() {

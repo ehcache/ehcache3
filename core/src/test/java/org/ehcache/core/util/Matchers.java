@@ -16,10 +16,11 @@
 
 package org.ehcache.core.util;
 
-import org.ehcache.ValueSupplier;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+
+import java.util.function.Supplier;
 
 import static org.hamcrest.Matchers.equalTo;
 
@@ -28,15 +29,15 @@ import static org.hamcrest.Matchers.equalTo;
  */
 public class Matchers {
 
-  public static <V> Matcher<ValueSupplier<V>> holding(final V value) {
+  public static <V> Matcher<Supplier<V>> holding(final V value) {
     return holding(equalTo(value));
   }
 
-  public static <V> Matcher<ValueSupplier<V>> holding(final Matcher<? super V> matcher) {
-    return new TypeSafeMatcher<ValueSupplier<V>>() {
+  public static <V> Matcher<Supplier<V>> holding(final Matcher<? super V> matcher) {
+    return new TypeSafeMatcher<Supplier<V>>() {
       @Override
-      protected boolean matchesSafely(ValueSupplier<V> item) {
-        return matcher.matches(item.value());
+      protected boolean matchesSafely(Supplier<V> item) {
+        return matcher.matches(item.get());
       }
 
       @Override

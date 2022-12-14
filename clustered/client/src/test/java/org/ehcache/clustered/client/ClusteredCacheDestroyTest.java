@@ -60,15 +60,15 @@ public class ClusteredCacheDestroyTest {
           .with(cluster(CLUSTER_URI).autoCreate())
           .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
               .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Before
   public void definePassthroughServer() throws Exception {
     UnitTestConnectionService.add(CLUSTER_URI,
         new UnitTestConnectionService.PassthroughServerBuilder()
-            .resource("primary-server-resource", 64, MemoryUnit.MB)
-            .resource("secondary-server-resource", 64, MemoryUnit.MB)
+            .resource("primary-server-resource", 16, MemoryUnit.MB)
+            .resource("secondary-server-resource", 16, MemoryUnit.MB)
             .build());
   }
 
@@ -97,7 +97,7 @@ public class ClusteredCacheDestroyTest {
 
     CacheConfigurationBuilder<Long, String> configBuilder = newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 34, MemoryUnit.MB)));
+            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)));
 
     try {
       Cache<Long, String> anotherCache = persistentCacheManager.createCache("another-cache", configBuilder);
@@ -132,6 +132,16 @@ public class ClusteredCacheDestroyTest {
       assertThat(e.getMessage(), containsString(CLUSTERED_CACHE));
     }
     cacheManager.close();
+  }
+
+  @Test
+  public void testDestroyNonExistentCache() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+
+    String nonExistent = "this-is-not-the-cache-you-are-looking-for";
+    assertThat(persistentCacheManager.getCache(nonExistent, Long.class, String.class), nullValue());
+    persistentCacheManager.destroyCache(nonExistent);
+    persistentCacheManager.close();
   }
 
   @Test
@@ -181,6 +191,23 @@ public class ClusteredCacheDestroyTest {
     assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
   }
 
+  @Test
+  public void testDestroyNonExistentCacheWithCacheManagerStopped() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+    persistentCacheManager.close();
+    persistentCacheManager.destroyCache("this-is-not-the-cache-you-are-looking-for");
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
+  }
+
+  @Test
+  public void testDestroyCacheOnNonExistentCacheManager() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+    persistentCacheManager.close();
+    persistentCacheManager.destroy();
+
+    persistentCacheManager.destroyCache("this-is-not-the-cache-you-are-looking-for");
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
+  }
   @Test
   public void testDestroyCacheWithTwoCacheManagerOnSameCache_forbiddenWhenInUse() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);

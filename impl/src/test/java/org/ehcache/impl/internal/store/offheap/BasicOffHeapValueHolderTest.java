@@ -38,7 +38,7 @@ public class BasicOffHeapValueHolderTest {
 
   @Test
   public void testCanAccessValue() {
-    assertThat(valueHolder.value(), is(value));
+    assertThat(valueHolder.get(), is(value));
   }
 
   @Test(expected = UnsupportedOperationException.class)

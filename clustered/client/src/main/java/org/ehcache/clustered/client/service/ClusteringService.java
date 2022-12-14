@@ -59,8 +59,23 @@ public interface ClusteringService extends PersistableResourceService {
    * Releases access to a {@link ServerStoreProxy} and the server-resident {@code ServerStore} it represents.
    *
    * @param serverStoreProxy a {@link ServerStoreProxy} obtained through {@link #getServerStoreProxy}
+   * @param isReconnect whether client is trying to reconnect
    */
-  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
+  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy, boolean isReconnect);
+
+  /**
+   * Add a block to execute when the connection is recovered after it was closed.
+   *
+   * @param runnable the execution block
+   */
+  void addConnectionRecoveryListener(Runnable runnable);
+
+  /**
+   * Remove a block to execute when the connection is recovered after it was closed.
+   *
+   * @param runnable the execution block
+   */
+  void removeConnectionRecoveryListener(Runnable runnable);
 
   /**
    * A {@link org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier PersistenceSpaceIdentifier}

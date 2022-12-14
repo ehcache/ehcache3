@@ -16,45 +16,106 @@
 
 package org.ehcache.core.spi.service;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * ServiceUtils
+ * Helper class to find a service or service configuration matching the wanted type. Note that the class
+ * is named {@code ServiceUtils} but it would actually work with anything, not only service implementations.
  */
-public class ServiceUtils {
+public final class ServiceUtils {
 
   private ServiceUtils() {
     // No instance possible
   }
 
+  private static <T> Stream<T> findStreamAmongst(Class<T> clazz, Collection<?> instances) {
+    return instances.stream()
+      .filter(clazz::isInstance)
+      .map(clazz::cast);
+  }
+
+  /**
+   * Find instances of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instances
+   * @return the list of compatible instances
+   */
   public static <T> Collection<T> findAmongst(Class<T> clazz, Collection<?> instances) {
-    return findAmongst(clazz, instances.toArray());
+    return findStreamAmongst(clazz, instances)
+      .collect(Collectors.toList());
   }
 
+  /**
+   * Find instances of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instances
+   * @return the list of compatible instances
+   */
   public static <T> Collection<T> findAmongst(Class<T> clazz, Object ... instances) {
-    Collection<T> matches = new ArrayList<>();
-    for (Object instance : instances) {
-      if (instance != null && clazz.isAssignableFrom(instance.getClass())) {
-        matches.add(clazz.cast(instance));
-      }
-    }
-    return Collections.unmodifiableCollection(matches);
+    return findAmongst(clazz, Arrays.asList(instances));
   }
 
+  /**
+   * Find the only expected instance of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instance
+   * @return the compatible instance or null if none are found
+   * @throws IllegalArgumentException if more than one matching instance
+   */
   public static <T> T findSingletonAmongst(Class<T> clazz, Collection<?> instances) {
-    return findSingletonAmongst(clazz, instances.toArray());
+    return findOptionalAmongst(clazz, instances)
+      .orElse(null);
   }
 
+  /**
+   * Find the only expected instance of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instance
+   * @return the optionally found compatible instance
+   * @throws IllegalArgumentException if more than one matching instance
+   */
+  public static <T> Optional<T> findOptionalAmongst(Class<T> clazz, Collection<?> instances) {
+    return findStreamAmongst(clazz, instances)
+      .reduce((i1, i2) -> {
+        throw new IllegalArgumentException("More than one " + clazz.getName() + " found");
+      });
+  }
+
+  /**
+   * Find the only expected instance of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instance
+   * @return the compatible instance or null if none are found
+   * @throws IllegalArgumentException if more than one matching instance
+   */
   public static <T> T findSingletonAmongst(Class<T> clazz, Object ... instances) {
-    final Collection<T> matches = findAmongst(clazz, instances);
-    if (matches.isEmpty()) {
-      return null;
-    } else if (matches.size() == 1) {
-      return matches.iterator().next();
-    } else {
-      throw new IllegalArgumentException("More than one " + clazz.getName() + " found");
-    }
+    return findSingletonAmongst(clazz, Arrays.asList(instances));
+  }
+
+  /**
+   * Find the only expected instance of {@code clazz} among the {@code instances}.
+   *
+   * @param clazz searched class
+   * @param instances instances looked at
+   * @param <T> type of the searched instance
+   * @return the optionally found compatible instance
+   * @throws IllegalArgumentException if more than one matching instance
+   */
+  public static <T> Optional<T> findOptionalAmongst(Class<T> clazz, Object ... instances) {
+    return findOptionalAmongst(clazz, Arrays.asList(instances));
   }
 }

@@ -18,12 +18,12 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
@@ -55,26 +55,26 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
       @Override
       public AuthoritativeTier<String, String> newStore() {
-        return newStore(null, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
       public AuthoritativeTier<String, String> newStoreWithCapacity(long capacity) {
-        return newStore(capacity, null, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(capacity, null, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
       @Override
-      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      public AuthoritativeTier<String, String> newStoreWithExpiry(ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
       @Override
       public AuthoritativeTier<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
-        return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+        return newStore(null, evictionAdvisor, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
 
-      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
 
@@ -114,7 +114,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override

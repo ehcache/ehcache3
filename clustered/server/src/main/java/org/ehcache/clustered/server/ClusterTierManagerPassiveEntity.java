@@ -68,25 +68,20 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
 
   @Override
   public void invokePassive(InvokeContext context, EhcacheEntityMessage message) {
-    try {
-      if (message instanceof EhcacheOperationMessage) {
-        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
-        EhcacheMessageType messageType = operationMessage.getMessageType();
-        if (isLifecycleMessage(messageType)) {
-          invokeLifeCycleOperation((LifecycleMessage) message);
-        } else {
-          throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
-        }
+    if (message instanceof EhcacheOperationMessage) {
+      EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+      EhcacheMessageType messageType = operationMessage.getMessageType();
+      if (isLifecycleMessage(messageType)) {
+        invokeLifeCycleOperation((LifecycleMessage) message);
       } else {
-        throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
+        throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
       }
-    } catch (ClusterException e) {
-      // Reaching here means a lifecycle or sync operation failed
-      throw new IllegalStateException("A lifecycle or sync operation failed", e);
+    } else {
+      throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
     }
   }
 
-  private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
+  private void invokeLifeCycleOperation(LifecycleMessage message) {
     switch (message.getMessageType()) {
       case PREPARE_FOR_DESTROY:
         ehcacheStateService.prepareForDestroy();
@@ -118,7 +113,7 @@ public class ClusterTierManagerPassiveEntity implements PassiveServerEntity<Ehca
 
   @Override
   public void createNew() {
-    management.init();
+    management.entityCreated();
     management.sharedPoolsConfigured();
   }
 

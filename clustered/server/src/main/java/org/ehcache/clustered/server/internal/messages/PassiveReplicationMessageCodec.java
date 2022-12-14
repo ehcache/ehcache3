@@ -26,7 +26,6 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;

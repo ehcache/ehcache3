@@ -22,7 +22,6 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -31,6 +30,25 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * A factory abstraction that can create {@link Service} instances.
  */
 public interface ServiceFactory<T extends Service> {
+
+  /**
+   * Returns {@code true} if this factory's services are mandatory in all environments.
+   *
+   * @return {@code true} if this factory's services are mandatory
+   */
+  default boolean isMandatory() {
+    return false;
+  }
+
+  /**
+   * Returns an optional ranking integer is used to choose a service factory when multiple factories are available for
+   * the same service type. <em>Higher ranking value service factories are preferred.</em>
+   *
+   * @return a factory ranking value
+   */
+  default int rank() {
+    return 1;
+  }
 
   /**
    * Creates an instance of the service using the passed in {@link ServiceCreationConfiguration}.

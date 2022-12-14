@@ -27,7 +27,6 @@ import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
-import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
@@ -46,12 +45,15 @@ import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHo
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConfigurationException;
+import org.terracotta.entity.EntityMessage;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
@@ -72,7 +74,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
@@ -99,7 +102,6 @@ import static org.mockito.Mockito.when;
 
 public class ClusterTierActiveEntityTest {
 
-  private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   private String defaultStoreName = "store";
@@ -216,7 +218,7 @@ public class ClusterTierActiveEntityTest {
     ServerSideServerStore store = mock(ServerSideServerStore.class);
     when(stateService.loadStore(eq(defaultStoreName), any())).thenReturn(store);
 
-    IEntityMessenger entityMessenger = mock(IEntityMessenger.class);
+    IEntityMessenger<EhcacheEntityMessage, EhcacheEntityResponse> entityMessenger = mock(IEntityMessenger.class);
     ServiceRegistry registry = getCustomMockedServiceRegistry(stateService, null, entityMessenger, null, null);
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(registry, defaultConfiguration, DEFAULT_MAPPER);
     activeEntity.loadExisting();
@@ -291,9 +293,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
-
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
 
     // attach to the store
     assertSuccess(
@@ -396,9 +395,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
     // attach to the store
     assertSuccess(
         activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration))
@@ -449,9 +445,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
 
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
-
     // attach to the store
     assertSuccess(
         activeEntity.invokeActive(context1, new LifecycleMessage.ValidateServerStore(defaultStoreName, serverStoreConfiguration))
@@ -491,9 +484,6 @@ public class ClusterTierActiveEntityTest {
     activeEntity.connected(context1.getClientDescriptor());
     activeEntity.connected(context2.getClientDescriptor());
     activeEntity.connected(context3.getClientDescriptor());
-
-    UUID client2Id = UUID.randomUUID();
-    UUID client3Id = UUID.randomUUID();
 
     // attach to the store
     assertSuccess(
@@ -877,34 +867,51 @@ public class ClusterTierActiveEntityTest {
 
   @Test
   public void testDataSyncToPassiveCustomBatchSize() throws Exception {
-    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
-    activeEntity.createNew();
-
-    TestInvokeContext context = new TestInvokeContext();
-    activeEntity.connected(context.getClientDescriptor());
-
-
-    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
-
-    ByteBuffer payload = ByteBuffer.allocate(512);
-    // Put keys that maps to the same concurrency key
-    ServerStoreOpMessage.AppendMessage testMessage = new ServerStoreOpMessage.AppendMessage(1L, payload);
-    activeEntity.invokeActive(context, testMessage);
-    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(-2L, payload));
-    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(17L, payload));
-    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(33L, payload));
-
     System.setProperty(ClusterTierActiveEntity.SYNC_DATA_SIZE_PROP, "512");
-    ConcurrencyStrategies.DefaultConcurrencyStrategy concurrencyStrategy = new ConcurrencyStrategies.DefaultConcurrencyStrategy(DEFAULT_MAPPER);
-    int concurrencyKey = concurrencyStrategy.concurrencyKey(testMessage);
     try {
-      @SuppressWarnings("unchecked")
-      PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-      activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
-
-      verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+      prepareAndRunActiveEntityForPassiveSync((activeEntity, concurrencyKey) -> {
+        @SuppressWarnings("unchecked")
+        PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+        activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
+        verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+      });
     } finally {
       System.clearProperty(ClusterTierActiveEntity.SYNC_DATA_SIZE_PROP);
+    }
+  }
+
+  @Test
+  public void testDataSyncToPassiveCustomGets() throws Exception {
+    System.setProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP, "2");
+    try {
+      prepareAndRunActiveEntityForPassiveSync((activeEntity, concurrencyKey) -> {
+        @SuppressWarnings("unchecked")
+        PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+        activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
+        verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+      });
+    } finally {
+      System.clearProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP);
+    }
+  }
+
+  @Test
+  public void testDataSyncToPassiveException() throws Exception {
+    System.setProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP, "1");
+    try {
+      prepareAndRunActiveEntityForPassiveSync((activeEntity, concurrencyKey) -> {
+        @SuppressWarnings("unchecked")
+        PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+        activeEntity.destroy();
+        try {
+          activeEntity.synchronizeKeyToPassive(syncChannel, concurrencyKey);
+          fail("Destroyed entity not expected to sync");
+        } catch (RuntimeException e) {
+          assertThat(e.getCause(), instanceOf(ExecutionException.class));
+        }
+      });
+    } finally {
+      System.clearProperty(ClusterTierActiveEntity.SYNC_DATA_GETS_PROP);
     }
   }
 
@@ -1009,6 +1016,28 @@ public class ClusterTierActiveEntityTest {
     assertThat(actual, sameInstance(expected));
   }
 
+  private void prepareAndRunActiveEntityForPassiveSync(BiConsumer<ClusterTierActiveEntity, Integer> testConsumer) throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
+    activeEntity.createNew();
+
+    TestInvokeContext context = new TestInvokeContext();
+    activeEntity.connected(context.getClientDescriptor());
+
+    assertSuccess(activeEntity.invokeActive(context, new LifecycleMessage.ValidateServerStore(defaultStoreName, defaultStoreConfiguration)));
+
+    ByteBuffer payload = ByteBuffer.allocate(512);
+    // Put keys that maps to the same concurrency key
+    ServerStoreOpMessage.AppendMessage testMessage = new ServerStoreOpMessage.AppendMessage(1L, payload);
+    activeEntity.invokeActive(context, testMessage);
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(-2L, payload));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(17L, payload));
+    activeEntity.invokeActive(context, new ServerStoreOpMessage.AppendMessage(33L, payload));
+
+    ConcurrencyStrategies.DefaultConcurrencyStrategy concurrencyStrategy = new ConcurrencyStrategies.DefaultConcurrencyStrategy(DEFAULT_MAPPER);
+    int concurrencyKey = concurrencyStrategy.concurrencyKey(testMessage);
+    testConsumer.accept(activeEntity, concurrencyKey);
+  }
+
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
     if (!EhcacheResponseType.SUCCESS.equals(response.getResponseType())) {
       throw ((EhcacheEntityResponse.Failure) response).getCause();
@@ -1029,7 +1058,7 @@ public class ClusterTierActiveEntityTest {
 
   @SuppressWarnings("unchecked")
   ServiceRegistry getCustomMockedServiceRegistry(EhcacheStateService stateService, ClientCommunicator clientCommunicator,
-                                                 IEntityMessenger entityMessenger, EntityMonitoringService entityMonitoringService,
+                                                 IEntityMessenger<?, ?> entityMessenger, EntityMonitoringService entityMonitoringService,
                                                  EntityManagementRegistry entityManagementRegistry) {
     return new ServiceRegistry() {
       @Override
@@ -1046,7 +1075,7 @@ public class ClusterTierActiveEntityTest {
         } else if (serviceType.isAssignableFrom(EntityManagementRegistry.class)) {
           return (T) entityManagementRegistry;
         } else if (serviceType.isAssignableFrom(OOOMessageHandler.class)) {
-          return (T) new OOOMessageHandlerImpl(message -> true, 1, message -> 0);
+          return (T) new OOOMessageHandlerImpl<>(message -> true, 1, message -> 0);
         }
         throw new AssertionError("Unknown service configuration of type: " + serviceType);
       }
@@ -1112,7 +1141,7 @@ public class ClusterTierActiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-        keySerializerType, valueSerializerType, consistency);
+        keySerializerType, valueSerializerType, consistency, false, false);
     }
   }
 
@@ -1233,8 +1262,8 @@ public class ClusterTierActiveEntityTest {
       } else if(serviceConfiguration instanceof EntityManagementRegistryConfiguration) {
         return null;
       } else if(serviceConfiguration instanceof OOOMessageHandlerConfiguration) {
-        OOOMessageHandlerConfiguration oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
-        return (T) new OOOMessageHandlerImpl(oooMessageHandlerConfiguration.getTrackerPolicy(),
+        OOOMessageHandlerConfiguration<EntityMessage, EntityResponse> oooMessageHandlerConfiguration = (OOOMessageHandlerConfiguration) serviceConfiguration;
+        return (T) new OOOMessageHandlerImpl<>(oooMessageHandlerConfiguration.getTrackerPolicy(),
           oooMessageHandlerConfiguration.getSegments(), oooMessageHandlerConfiguration.getSegmentationStrategy());
       }
 
@@ -1293,5 +1322,10 @@ public class ClusterTierActiveEntityTest {
     private long getUsed() {
       return used;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T mock(Class<?> clazz) {
+    return Mockito.mock((Class<T>) clazz);
   }
 }

@@ -29,7 +29,7 @@ import java.util.function.Predicate;
  */
 public class TransientStateRepository implements StateRepository {
 
-  private ConcurrentMap<String, StateHolder<?, ?>> knownHolders = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, StateHolder<?, ?>> knownHolders = new ConcurrentHashMap<>();
 
   @Override
   @SuppressWarnings("unchecked")

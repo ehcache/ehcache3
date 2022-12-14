@@ -26,23 +26,21 @@ dependencies {
   testCompileOnly project(':xml')
   testCompileOnly "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   testCompileOnly "org.terracotta:runnel:$terracottaPlatformVersion"
+  testCompileOnly "org.terracotta:lease-api:$terracottaPlatformVersion"
 
-  testCompile project(':management')
-  testCompile "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
-  testCompile "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
-  testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
-  testRuntime project(':clustered:clustered-dist')
-  testRuntime project(':dist')
+  testImplementation project(':management')
+  testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
+  testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
+  testRuntimeOnly project(':clustered:clustered-dist')
+  testRuntimeOnly project(':dist')
 
-  testCompile (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion) {
-    // galvan-support depends on junit 4.11 and version enforcement plugin won't allow that
-    exclude group:'junit', module:'junit'
-  }
-  testCompile (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
+  testImplementation (group:'org.terracotta.internal', name:'galvan-support', version: terracottaCoreVersion)
+  testImplementation (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
     exclude group:'junit', module:'junit'
     exclude group:'org.hamcrest', module:'hamcrest-core'
   }
-  testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
+  testImplementation group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
   serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {
     exclude group:'org.terracotta.management.dist', module:'mnm-common'
@@ -74,6 +72,3 @@ test {
   // testLogging.showStandardStreams = true
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}

@@ -26,15 +26,15 @@ import static org.assertj.core.api.Assertions.*;
 public class TimeoutsBuilderTest {
 
   @Test
-  public void build_empty() throws Exception {
+  public void build_empty() {
     Timeouts t = TimeoutsBuilder.timeouts().build();
     assertThat(t.getReadOperationTimeout()).isEqualTo(Timeouts.DEFAULT_OPERATION_TIMEOUT);
     assertThat(t.getWriteOperationTimeout()).isEqualTo(Timeouts.DEFAULT_OPERATION_TIMEOUT);
-    assertThat(t.getConnectionTimeout()).isEqualTo(Timeouts.INFINITE_TIMEOUT);
+    assertThat(t.getConnectionTimeout()).isEqualTo(Timeouts.DEFAULT_CONNECTION_TIMEOUT);
   }
 
   @Test
-  public void build_filled() throws Exception {
+  public void build_filled() {
     Timeouts t = TimeoutsBuilder.timeouts()
       .read(Duration.ofDays(1))
       .write(Duration.ofDays(2))

@@ -34,6 +34,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.core.internal.util.TypeUtil.uncheckedCast;
+
 /**
  * A persistent, but not durable {@link Journal} implementation.
  * This implementation will persist saved states during close and restore them during open. If close is not called,
@@ -47,6 +49,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
   private static final String JOURNAL_FILENAME = "journal.data";
 
   protected static class SerializableEntry<K> implements Serializable {
+    private static final long serialVersionUID = -6586025792671381923L;
     final XAState state;
     final boolean heuristic;
     final Collection<byte[]> serializedKeys;
@@ -95,8 +98,7 @@ public class PersistentJournal<K> extends TransientJournal<K> {
         boolean valid = ois.readBoolean();
         states.clear();
         if (valid) {
-          @SuppressWarnings("unchecked")
-          Map<TransactionId, SerializableEntry<K>> readStates = (Map<TransactionId, SerializableEntry<K>>) ois.readObject();
+          Map<TransactionId, SerializableEntry<K>> readStates = uncheckedCast(ois.readObject());
           for (Map.Entry<TransactionId, SerializableEntry<K>> entry : readStates.entrySet()) {
             SerializableEntry<K> value = entry.getValue();
             states.put(entry.getKey(), new Entry<>(value.state, value.heuristic, value.deserializeKeys(keySerializer)));

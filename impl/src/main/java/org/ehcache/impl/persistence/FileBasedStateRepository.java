@@ -64,6 +64,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private void loadMaps() throws CachePersistenceException {
     try {
+      //noinspection ConstantConditions
       for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
         try (FileInputStream fis = new FileInputStream(file);
              ObjectInputStream oin = new ObjectInputStream(fis)) {
@@ -122,6 +123,9 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   }
 
   static class Tuple implements Serializable {
+
+    private static final long serialVersionUID = 664492058736170101L;
+
     final int index;
     final StateHolder<?, ?> holder;
 

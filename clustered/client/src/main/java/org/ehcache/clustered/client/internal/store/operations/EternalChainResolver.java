@@ -16,9 +16,10 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
-
-import static java.lang.Math.max;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.Result;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 
 /**
  * A specialized chain resolver for eternal caches.
@@ -43,7 +44,7 @@ public class EternalChainResolver<K, V> extends ChainResolver<K, V> {
    * @param now current time
    * @return the equivalent put operation
    */
-  protected PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
+  public PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now) {
     final Result<K, V> newValue = operation.apply(existing);
     if (newValue == null) {
       return null;

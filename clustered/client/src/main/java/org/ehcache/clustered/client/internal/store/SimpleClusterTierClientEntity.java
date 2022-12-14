@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
-import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.service.ClusterTierException;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -69,20 +68,19 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners =
     new ConcurrentHashMap<>();
+  private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<>();
+  private final Timeouts timeouts;
+  private final String storeIdentifier;
 
-  private ReconnectListener reconnectListener = reconnectMessage -> {
-    // No op
-  };
-  private DisconnectionListener disconnectionListener = () -> {
-    // No op
-  };
-  private Timeouts timeouts = TimeoutsBuilder.timeouts().build();
-  private String storeIdentifier;
+  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<>();
+
   private volatile boolean connected = true;
 
-
-  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public SimpleClusterTierClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint,
+                                       Timeouts timeouts, String storeIdentifier) {
     this.endpoint = endpoint;
+    this.timeouts = timeouts;
+    this.storeIdentifier = storeIdentifier;
     this.messageFactory = new LifeCycleMessageFactory();
     endpoint.setDelegate(new EndpointDelegate<EhcacheEntityResponse>() {
       @Override
@@ -95,26 +93,22 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
       public byte[] createExtendedReconnectData() {
         synchronized (lock) {
           ClusterTierReconnectMessage reconnectMessage = new ClusterTierReconnectMessage();
-          reconnectListener.onHandleReconnect(reconnectMessage);
+          reconnectListeners.forEach(reconnectListener -> reconnectListener.onHandleReconnect(reconnectMessage));
           return reconnectMessageCodec.encode(reconnectMessage);
         }
       }
 
       @Override
       public void didDisconnectUnexpectedly() {
+        LOGGER.info("Cluster tier for cache {} disconnected", storeIdentifier);
         fireDisconnectionEvent();
       }
     });
   }
 
-  @Override
-  public void setTimeouts(Timeouts timeouts) {
-    this.timeouts = timeouts;
-  }
-
   void fireDisconnectionEvent() {
     connected = false;
-    disconnectionListener.onDisconnection();
+    disconnectionListeners.forEach(DisconnectionListener::onDisconnection);
   }
 
   private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
@@ -133,8 +127,8 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void close() {
     endpoint.close();
-    reconnectListener = null;
-    disconnectionListener = null;
+    reconnectListeners.clear();
+    disconnectionListeners.clear();
   }
 
   @Override
@@ -143,13 +137,13 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setReconnectListener(ReconnectListener reconnectListener) {
-    this.reconnectListener = reconnectListener;
+  public void addReconnectListener(ReconnectListener reconnectListener) {
+    this.reconnectListeners.add(reconnectListener);
   }
 
   @Override
-  public void setDisconnectionListener(DisconnectionListener disconnectionListener) {
-    this.disconnectionListener = disconnectionListener;
+  public void addDisconnectionListener(DisconnectionListener disconnectionListener) {
+    this.disconnectionListeners.add(disconnectionListener);
   }
 
   @Override
@@ -177,28 +171,19 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void setStoreIdentifier(String storeIdentifier) {
-    this.storeIdentifier = storeIdentifier;
-  }
-
-  void setConnected(boolean connected) {
-    this.connected = connected;
-  }
-
-  @Override
   public EhcacheEntityResponse invokeStateRepositoryOperation(StateRepositoryOpMessage message, boolean track) throws ClusterException, TimeoutException {
     return invokeAndWaitForRetired(message, track);
   }
 
   @Override
-  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws ClusterException, TimeoutException {
+  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws TimeoutException {
     invokeInternal(endpoint.beginInvoke().ackSent(), getTimeoutDuration(message), message, track);
   }
 
   @Override
   public void invokeAndWaitForReceive(EhcacheOperationMessage message, boolean track)
-    throws ClusterException, TimeoutException {
-    invokeInternal(endpoint.beginInvoke().ackReceived(), getTimeoutDuration(message), message, track);
+          throws ClusterException, TimeoutException  {
+    invokeInternalAndWait(endpoint.beginInvoke().ackReceived(), message, track);
   }
 
   @Override

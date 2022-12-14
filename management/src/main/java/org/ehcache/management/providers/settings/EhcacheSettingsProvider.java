@@ -32,10 +32,12 @@ import java.util.Collection;
 @RequiredContext({@Named("cacheManagerName")})
 public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
 
+  private final ManagementRegistryServiceConfiguration configuration;
   private final CacheManager cacheManager;
 
   public EhcacheSettingsProvider(ManagementRegistryServiceConfiguration configuration, CacheManager cacheManager) {
     super(configuration);
+    this.configuration = configuration;
     this.cacheManager = cacheManager;
   }
 
@@ -54,9 +56,11 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
   private Descriptor cacheManagerSettings() {
     return new Settings()
         .set("cacheManagerDescription", ((HumanReadable)cacheManager.getRuntimeConfiguration()).readableString())
-        .set("status", cacheManager.getStatus())
+        // NEVER DO THAT: This might block cm.close() because getStatus() is blocking.
+        //.set("status", cacheManager.getStatus())
+        .set("instanceId", configuration.getInstanceId())
         .set("managementContext", new Settings(registryConfiguration.getContext()))
-        .set("tags", registryConfiguration.getTags().toArray(new String[registryConfiguration.getTags().size()]));
+        .set("tags", registryConfiguration.getTags().toArray(new String[0]));
   }
 
 }

@@ -22,8 +22,6 @@ import org.ehcache.Status;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -61,7 +59,7 @@ import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
-import org.terracotta.statistics.MappedOperationStatistic;
+import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
@@ -70,10 +68,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,8 +90,6 @@ import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
-
-  private static final String STATISTICS_TAG = "Disk";
 
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
@@ -121,7 +114,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
                           ExecutionService executionService, String threadPoolAlias, int writerConcurrency, int diskSegments,
                           final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super(STATISTICS_TAG, config, timeSource, eventDispatcher);
+    super(config, timeSource, eventDispatcher);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
@@ -144,6 +137,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     if (!status.compareAndSet(Status.UNINITIALIZED, Status.AVAILABLE)) {
       throw new AssertionError();
     }
+  }
+
+  @Override
+  protected String getStatisticsTag() {
+    return "Disk";
   }
 
   @Override
@@ -294,10 +292,10 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
-  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
+  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
 
-    private final Map<OffHeapDiskStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
-    private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<OffHeapDiskStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
+    private final Map<Store<?, ?>, PersistenceSpaceIdentifier<?>> createdStores = new ConcurrentWeakIdentityHashMap<>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile DiskResourceService diskPersistenceService;
@@ -311,33 +309,29 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
+    protected ResourceType<SizedResourcePool> getResourceType() {
+      return ResourceType.Core.DISK;
+    }
+
+    @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return resourceTypes.equals(Collections.singleton(ResourceType.Core.DISK)) ? 1 : 0;
+      return resourceTypes.equals(Collections.singleton(getResourceType())) ? 1 : 0;
     }
 
     @Override
     public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return authorityResource.equals(ResourceType.Core.DISK) ? 1 : 0;
+      return authorityResource.equals(getResourceType()) ? 1 : 0;
     }
 
     @Override
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapDiskStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
-      MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
-        new MappedOperationStatistic<>(
-          store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "get", STATISTICS_TAG);
-      StatisticsManager.associate(get).withParent(store);
-      tieredOps.add(get);
+      tierOperationStatistics.put(store, new OperationStatistic<?>[] {
+        createTranslatedStatistic(store, "get", TierOperationOutcomes.GET_TRANSLATION, "get"),
+        createTranslatedStatistic(store, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
+      });
 
-      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-        new MappedOperationStatistic<>(
-          store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
-      StatisticsManager.associate(evict).withParent(store);
-      tieredOps.add(evict);
-
-      tierOperationStatistics.put(store, tieredOps);
       return store;
     }
 
@@ -348,7 +342,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
 
-      SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+      SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(getResourceType());
       if (!(diskPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapDiskStore only supports resources configuration expressed in \"memory\" unit");
       }
@@ -414,15 +408,15 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      PersistenceSpaceIdentifier identifier = createdStores.get(resource);
+      PersistenceSpaceIdentifier<?> identifier = createdStores.get(resource);
       if (identifier == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       OffHeapDiskStore<?, ?> diskStore = (OffHeapDiskStore) resource;
 
-      Serializer keySerializer = diskStore.keySerializer;
+      Serializer<?> keySerializer = diskStore.keySerializer;
       if (keySerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
         } catch (CachePersistenceException e) {
@@ -430,9 +424,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         }
         ((StatefulSerializer)keySerializer).init(stateRepository);
       }
-      Serializer valueSerializer = diskStore.valueSerializer;
+      Serializer<?> valueSerializer = diskStore.valueSerializer;
       if (valueSerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository = null;
+        StateRepository stateRepository;
         try {
           stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
         } catch (CachePersistenceException e) {
@@ -468,21 +462,12 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
-      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<>();
 
-      MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome> get =
-        new MappedOperationStatistic<>(
-          authoritativeTier, TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "getAndFault", STATISTICS_TAG);
-      StatisticsManager.associate(get).withParent(authoritativeTier);
-      tieredOps.add(get);
+      tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {
+        createTranslatedStatistic(authoritativeTier, "get", TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "getAndFault"),
+        createTranslatedStatistic(authoritativeTier, "eviction", TierOperationOutcomes.EVICTION_TRANSLATION, "eviction")
+      });
 
-      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-        new MappedOperationStatistic<>(
-          authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
-      StatisticsManager.associate(evict).withParent(authoritativeTier);
-      tieredOps.add(evict);
-
-      tierOperationStatistics.put(authoritativeTier, tieredOps);
       return authoritativeTier;
     }
 

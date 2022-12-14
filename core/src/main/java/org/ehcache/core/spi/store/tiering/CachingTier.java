@@ -17,7 +17,7 @@
 package org.ehcache.core.spi.store.tiering;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;

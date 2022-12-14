@@ -17,10 +17,12 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Set;
 
 import javax.xml.transform.Source;
 
@@ -36,4 +38,8 @@ public interface CacheResourceConfigurationParser {
   URI getNamespace();
 
   ResourcePool parseResourceConfiguration(Element fragment);
+
+  Element unparseResourcePool(ResourcePool resourcePool);
+
+  Set<Class<? extends ResourcePool>> getResourceTypes();
 }

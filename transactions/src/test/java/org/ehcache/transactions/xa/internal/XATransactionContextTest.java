@@ -26,16 +26,12 @@ import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.transactions.xa.utils.TestXid;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,6 +39,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -51,7 +48,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
@@ -67,22 +63,24 @@ import static org.mockito.Mockito.when;
  */
 public class XATransactionContextTest {
 
+  @Rule
+  public MockitoRule rule = MockitoJUnit.rule();
+
   @Mock
   private Store<Long, SoftLock<String>> underlyingStore;
   @Mock
   private Journal<Long> journal;
 
-  @Before
-  public void setUp() {
-    MockitoAnnotations.initMocks(this);
+  private final TestTimeSource timeSource = new TestTimeSource();
+
+  private XATransactionContext<Long, String> getXaTransactionContext() {
+    return new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource,
+      timeSource.getTimeMillis() + 30000);
   }
 
   @Test
-  public void testSimpleCommands() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
-                                                                                                                                                         .getTimeMillis() + 30000);
+  public void testSimpleCommands() {
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     assertThat(xaTransactionContext.touched(1L), is(false));
     assertThat(xaTransactionContext.removed(1L), is(false));
@@ -97,7 +95,7 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
@@ -121,18 +119,14 @@ public class XATransactionContextTest {
   }
 
   @Test
-  public void testCommandsOverrideEachOther() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
-                                                                                                                                                         .getTimeMillis() + 30000);
-
+  public void testCommandsOverrideEachOther() {
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("old", new XAValueHolder<>("new", timeSource.getTimeMillis())));
     assertThat(xaTransactionContext.touched(1L), is(true));
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
@@ -159,24 +153,21 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new2"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new2"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old2"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new2"));
   }
 
   @Test
-  public void testEvictCommandCannotBeOverridden() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
-                                                                                                                                                         .getTimeMillis() + 30000);
+  public void testEvictCommandCannotBeOverridden() {
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("old", new XAValueHolder<>("new", timeSource.getTimeMillis())));
     assertThat(xaTransactionContext.touched(1L), is(true));
     assertThat(xaTransactionContext.removed(1L), is(false));
     assertThat(xaTransactionContext.updated(1L), is(true));
     assertThat(xaTransactionContext.evicted(1L), is(false));
-    assertThat(xaTransactionContext.newValueHolderOf(1L).value(), equalTo("new"));
+    assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
     assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
@@ -200,12 +191,9 @@ public class XATransactionContextTest {
   }
 
   @Test
-  public void testHasTimedOut() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
+  public void testHasTimedOut() {
     XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), null, null, timeSource, timeSource
                                                                                                                                                          .getTimeMillis() + 30000);
-
     assertThat(xaTransactionContext.hasTimedOut(), is(false));
     timeSource.advanceTime(30000);
     assertThat(xaTransactionContext.hasTimedOut(), is(true));
@@ -213,14 +201,11 @@ public class XATransactionContextTest {
 
   @Test
   public void testPrepareReadOnly() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     assertThat(xaTransactionContext.prepare(), is(0));
 
-    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), eq(Collections.<Long>emptySet()));
+    verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), eq(Collections.emptySet()));
     verify(journal, times(0)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
     verify(journal, times(1)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), eq(false));
   }
@@ -228,21 +213,18 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testPrepare() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>(null, new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
     xaTransactionContext.addCommand(3L, new StoreEvictCommand<>("three"));
 
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
-    when(mockValueHolder.value()).thenReturn(new SoftLock<>(null, "two", null));
+    when(mockValueHolder.get()).thenReturn(new SoftLock<>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
     when(underlyingStore.replace(eq(2L), eq(new SoftLock<>(null, "two", null)), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null)))).thenReturn(ReplaceStatus.HIT);
 
-    final AtomicReference<Collection<Long>> savedInDoubt = new AtomicReference<>();
+    AtomicReference<Collection<Long>> savedInDoubt = new AtomicReference<>();
     // doAnswer is required to make a copy of the keys collection because xaTransactionContext.prepare() clears it before the verify(journal, times(1)).saveInDoubt(...) assertion can be made.
     // See: http://stackoverflow.com/questions/17027368/mockito-what-if-argument-passed-to-mock-is-modified
     doAnswer(invocation -> {
@@ -261,7 +243,7 @@ public class XATransactionContextTest {
 
     verify(underlyingStore, times(0)).get(1L);
     verify(underlyingStore, times(1)).putIfAbsent(eq(1L), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), null, new XAValueHolder<>("un", timeSource
-      .getTimeMillis()))));
+      .getTimeMillis()))), any(Consumer.class));
     verify(underlyingStore, times(0)).get(2L);
     verify(underlyingStore, times(1)).replace(eq(2L), eq(new SoftLock<>(null, "two", null)), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null)));
     verify(underlyingStore, times(0)).get(3L);
@@ -270,17 +252,13 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitNotPreparedInFlightThrows() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
-
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StorePutCommand<>("two", new XAValueHolder<>("deux", timeSource.getTimeMillis())));
 
     @SuppressWarnings("unchecked")
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
-    when(mockValueHolder.value()).thenReturn(new SoftLock<>(null, "two", null));
+    when(mockValueHolder.get()).thenReturn(new SoftLock<>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
 
     try {
@@ -294,24 +272,21 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCommit() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
     xaTransactionContext.addCommand(3L, new StoreEvictCommand<>("three"));
 
     Store.ValueHolder<SoftLock<String>> mockValueHolder1 = mock(Store.ValueHolder.class);
-    when(mockValueHolder1.value()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<>("un", timeSource
+    when(mockValueHolder1.get()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<>("un", timeSource
       .getTimeMillis())));
     when(underlyingStore.get(eq(1L))).thenReturn(mockValueHolder1);
     Store.ValueHolder<SoftLock<String>> mockValueHolder2 = mock(Store.ValueHolder.class);
-    when(mockValueHolder2.value()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null));
+    when(mockValueHolder2.get()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder2);
     Store.ValueHolder<SoftLock<String>> mockValueHolder3 = mock(Store.ValueHolder.class);
-    when(mockValueHolder3.value()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "three", null));
+    when(mockValueHolder3.get()).thenReturn(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "three", null));
     when(underlyingStore.get(eq(3L))).thenReturn(mockValueHolder3);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
@@ -336,10 +311,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitInOnePhasePreparedThrows() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
 
@@ -354,30 +326,27 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCommitInOnePhase() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>(null, new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
     xaTransactionContext.addCommand(3L, new StoreEvictCommand<>("three"));
 
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
-    when(mockValueHolder.value()).thenReturn(new SoftLock<>(null, "two", null));
+    when(mockValueHolder.get()).thenReturn(new SoftLock<>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
 
-    final AtomicReference<Collection<Long>> savedInDoubtCollectionRef = new AtomicReference<>();
+    AtomicReference<Collection<Long>> savedInDoubtCollectionRef = new AtomicReference<>();
     doAnswer(invocation -> {
       savedInDoubtCollectionRef.set(new HashSet<>((Collection<Long>) invocation.getArguments()[1]));
       return null;
     }).when(journal).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).then(invocation -> savedInDoubtCollectionRef.get() != null);
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).then(invocation -> savedInDoubtCollectionRef.get());
-    final AtomicReference<SoftLock> softLock1Ref = new AtomicReference<>();
-    when(underlyingStore.get(eq(1L))).then(invocation -> softLock1Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
+    AtomicReference<SoftLock<Object>> softLock1Ref = new AtomicReference<>();
+    when(underlyingStore.get(eq(1L))).then(invocation -> softLock1Ref.get() == null ? null : new AbstractValueHolder<Object>(-1, -1) {
       @Override
-      public Object value() {
+      public Object get() {
         return softLock1Ref.get();
       }
       @Override
@@ -385,7 +354,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
     });
-    when(underlyingStore.putIfAbsent(eq(1L), isA(SoftLock.class))).then(invocation -> {
+    when(underlyingStore.putIfAbsent(eq(1L), isA(SoftLock.class), any(Consumer.class))).then(invocation -> {
       softLock1Ref.set((SoftLock) invocation.getArguments()[1]);
       return null;
     });
@@ -395,10 +364,10 @@ public class XATransactionContextTest {
       }
       return ReplaceStatus.MISS_PRESENT;
     });
-    final AtomicReference<SoftLock> softLock2Ref = new AtomicReference<>(new SoftLock(null, "two", null));
-    when(underlyingStore.get(eq(2L))).then(invocation -> softLock2Ref.get() == null ? null : new AbstractValueHolder(-1, -1) {
+    AtomicReference<SoftLock<Object>> softLock2Ref = new AtomicReference<>(new SoftLock<>(null, "two", null));
+    when(underlyingStore.get(eq(2L))).then(invocation -> softLock2Ref.get() == null ? null : new AbstractValueHolder<Object>(-1, -1) {
       @Override
-      public Object value() {
+      public Object get() {
         return softLock2Ref.get();
       }
       @Override
@@ -422,7 +391,7 @@ public class XATransactionContextTest {
     verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
 
     verify(underlyingStore, times(1)).putIfAbsent(eq(1L), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), null, new XAValueHolder<>("un", timeSource
-      .getTimeMillis()))));
+      .getTimeMillis()))), any(Consumer.class));
     verify(underlyingStore, times(1)).replace(eq(2L), eq(new SoftLock<>(null, "two", null)), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null)));
     verify(underlyingStore, times(1)).remove(eq(3L));
 
@@ -437,10 +406,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testRollbackPhase1() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
@@ -453,10 +419,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testRollbackPhase2() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
@@ -470,7 +433,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "one", new XAValueHolder<>("un", timeSource.getTimeMillis()));
       }
     });
@@ -480,7 +443,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "two", null);
       }
     });
@@ -497,11 +460,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testCommitInOnePhaseTimeout() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
-
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
 
@@ -517,11 +476,7 @@ public class XATransactionContextTest {
 
   @Test
   public void testPrepareTimeout() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
-
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
 
@@ -538,11 +493,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testCommitConflictsEvicts() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
-
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L));
     when(underlyingStore.get(eq(1L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
@@ -551,7 +502,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old1", new XAValueHolder<>("new1", timeSource
           .getTimeMillis()));
       }
@@ -562,7 +513,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null);
       }
     });
@@ -582,11 +533,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testPrepareConflictsEvicts() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
-
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("one", new XAValueHolder<>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<>("two"));
 
@@ -604,11 +551,7 @@ public class XATransactionContextTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testRollbackConflictsEvicts() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-
-    XATransactionContext<Long, String> xaTransactionContext = new XATransactionContext<>(new TransactionId(new TestXid(0, 0)), underlyingStore, journal, timeSource, timeSource
-                                                                                                                                                                       .getTimeMillis() + 30000);
-
+    XATransactionContext<Long, String> xaTransactionContext = getXaTransactionContext();
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L));
     when(underlyingStore.get(eq(1L))).thenReturn(new AbstractValueHolder<SoftLock<String>>(-1, -1) {
@@ -617,7 +560,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old1", new XAValueHolder<>("new1", timeSource
           .getTimeMillis()));
       }
@@ -628,7 +571,7 @@ public class XATransactionContextTest {
         return TimeUnit.MILLISECONDS;
       }
       @Override
-      public SoftLock<String> value() {
+      public SoftLock<String> get() {
         return new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null);
       }
     });
@@ -644,19 +587,4 @@ public class XATransactionContextTest {
     verify(underlyingStore, times(1)).replace(eq(2L), eq(new SoftLock<>(new TransactionId(new TestXid(0, 0)), "old2", null)), eq(new SoftLock<>(null, "old2", null)));
     verify(underlyingStore, times(1)).remove(eq(2L));
   }
-
-
-  private static <T> Matcher<Collection<T>> isACollectionThat(
-      final Matcher<Iterable<? extends T>> matcher) {
-    return new BaseMatcher<Collection<T>>() {
-      @Override public boolean matches(Object item) {
-        return matcher.matches(item);
-      }
-
-      @Override public void describeTo(Description description) {
-        matcher.describeTo(description);
-      }
-    };
-  }
-
 }

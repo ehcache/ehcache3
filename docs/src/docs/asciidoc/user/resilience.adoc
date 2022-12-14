@@ -1,0 +1,96 @@
+---
+---
+= Resilience
+ifndef::sourcedir36[]
+include::common.adoc[]
+endif::sourcedir36[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+In case of failures, Ehcache will do its best to do two things
+
+* Keep a coherent state for every tier
+* Answer requests
+
+No failures should occur from Ehcache itself. However, the surrounding environment can fail. e.g.:
+
+* Disk failure of a disk tier
+* Server loss of a clustered tier
+* Network failure of a clustered tier
+
+[[resilience-strategy]]
+== Resilience strategy
+
+A cache provides an answer to the caller even if the underlying tiers fail to do so.
+For instance, if the cache fails to `get()` a value, it will return `null`.
+
+This behavior is handled by the `ResilienceStrategy`.
+Each time a backend tier fails, it throws a `StoreAccessException` that is then handled by the resilience strategy.
+
+Ehcache provides two implementations by default. One use by the classical cache called the `RobustResilienceStrategy` and one
+for a cache with a link:writers{outfilesuffix}[loader-writer] called the `RobustLoaderWriterResilienceStrategy`.
+
+The `RobustResilienceStrategy` behaves like an always empty cache where everything added to it is immediately evicted.
+The result is that the caller will more or less behave as if the cache was disabled.
+
+The `RobustLoaderWriterResilienceStrategy` knows about the loader-writer and will try to keep it coherent.
+It will also answer by calling it. So a `get()` will load the value from the loader-writer.
+A `putIfAbsent()` will load the value from the loader-writer and see if it's there.
+If not, it will write it, if it is, it will return it.
+
+Both strategies will also try to clean up the store that failed by removing the failed key or keys.
+
+[[clustering-resilience]]
+== Clustering resilience
+
+Let's be honest, your on-heap storage won't fail. Your off-heap won't either.
+Your disk storage might, rarely, unless you used a network drive. But then, you are asking for it.
+
+So, what will fail is clustering.
+
+=== Timeouts
+
+There are 3 timeouts that can be configured.
+
+* Read operation: For any read-only operations: get, contains, getAll, iterator step (default: 5 seconds)
+* Write operation: For any write operation: put, remove, putAll, removeAll, clear, putIfAbsent, remove, replace (default: 5 seconds)
+* Connection: When establishing connection to the server (default: 150 seconds)
+
+Timeouts can be configured using a dedicated builder or in XML.
+
+[source%nowrap,java,indent=0]
+----
+include::{sourcedir36}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/Resilience.java[tag=timeoutsExample]
+----
+
+<1> Start setting timeouts using the build
+<2> Set the read timeout to 10 seconds
+<3> Set the write timeout to the default. This line could actually be skipped since that's what the builder will set it to anyway
+<4> Set the connection timeout to be infinite
+
+=== Lease
+
+A client establishes a lease with the server. A lease is a contract between the client and the server.
+It means the server can't make a change without getting the client acknowledgment.
+
+The client takes care of renewing the lease before it expires.
+The connection is closed by one of the two parties if it fails to do so.
+As soon as this happens, link:tiering{outfilesuffix}[caching tiers] are cleared.
+The resilience strategy will then start answering every call.
+
+By default, a lease lasts 150 seconds.
+It is decided by the server and can be overridden in the server configuration.
+
+=== Reconnect
+
+When a client gets disconnected, it will try to reconnect periodically.
+As soon as it manages to reconnect, it will resume operation.
+The caching tier will start filling again.
+
+This should rarely occur in a production environment.
+It generally means there was a network failure that cuts the client from its server.
+It won't occur if the active server goes down since we are expecting a failover to a mirror.

@@ -167,14 +167,14 @@ public class ClusterTierManagerPassiveEntityTest {
   public void testConfigureLargeSharedPool() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
     registry.addResource("defaultServerResource", 64, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
       .defaultResource("defaultServerResource")
       .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-      .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("tooBig", "serverResource2", 16, MemoryUnit.MEGABYTES)
       .build();
     ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));

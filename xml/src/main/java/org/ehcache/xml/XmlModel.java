@@ -61,4 +61,47 @@ public class XmlModel {
         throw new IllegalArgumentException("Unknown time unit: " + unit);
     }
   }
+
+  public static TemporalUnit convertToJavaTemporalUnit(org.ehcache.xml.model.TimeUnit unit) {
+    switch (unit) {
+      case NANOS:
+        return ChronoUnit.NANOS;
+      case MICROS:
+      return ChronoUnit.MICROS;
+      case MILLIS:
+        return ChronoUnit.MILLIS;
+      case SECONDS:
+        return ChronoUnit.SECONDS;
+      case MINUTES:
+        return ChronoUnit.MINUTES;
+      case HOURS:
+        return ChronoUnit.HOURS;
+      case DAYS:
+        return ChronoUnit.DAYS;
+      default:
+        throw new IllegalArgumentException("Unknown time unit: " + unit);
+    }
+  }
+
+  public static org.ehcache.xml.model.TimeUnit convertToXmlTimeUnit(TimeUnit unit) {
+    switch (unit) {
+      case NANOSECONDS:
+        return org.ehcache.xml.model.TimeUnit.NANOS;
+      case MICROSECONDS:
+        return org.ehcache.xml.model.TimeUnit.MICROS;
+      case MILLISECONDS:
+        return org.ehcache.xml.model.TimeUnit.MILLIS;
+      case SECONDS:
+        return org.ehcache.xml.model.TimeUnit.SECONDS;
+      case MINUTES:
+        return org.ehcache.xml.model.TimeUnit.MINUTES;
+      case HOURS:
+        return org.ehcache.xml.model.TimeUnit.HOURS;
+      case DAYS:
+        return org.ehcache.xml.model.TimeUnit.DAYS;
+      default:
+        throw new IllegalArgumentException("Unknown time unit: " + unit);
+    }
+  }
+
 }

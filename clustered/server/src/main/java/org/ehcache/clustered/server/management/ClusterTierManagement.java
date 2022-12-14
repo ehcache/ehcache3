@@ -71,32 +71,38 @@ public class ClusterTierManagement implements Closeable {
     }
   }
 
-  public void reload() {
+  public void entityCreated() {
     if (managementRegistry != null) {
+      LOGGER.trace("entityCreated({})", storeIdentifier);
+      managementRegistry.entityCreated();
+      init();
+    }
+  }
+
+  public void entityPromotionCompleted() {
+    if (managementRegistry != null) {
+      LOGGER.trace("entityPromotionCompleted({})", storeIdentifier);
       managementRegistry.entityPromotionCompleted();
       init();
     }
   }
 
   // the goal of the following code is to send the management metadata from the entity into the monitoring tree AFTER the entity creation
-  public void init() {
-    if (managementRegistry != null) {
-      LOGGER.trace("init({})", storeIdentifier);
-      ServerSideServerStore serverStore = ehcacheStateService.getStore(storeIdentifier);
-      ServerStoreBinding serverStoreBinding = new ServerStoreBinding(storeIdentifier, serverStore);
-      CompletableFuture<Void> r1 = managementRegistry.register(serverStoreBinding);
-      ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(storeIdentifier);
-      CompletableFuture<Void> allOf;
-      if (pool != null) {
-        allOf = CompletableFuture.allOf(r1, managementRegistry.register(new PoolBinding(storeIdentifier, pool, PoolBinding.AllocationType.DEDICATED)));
-      } else {
-        allOf = r1;
-      }
-      allOf.thenRun(() -> {
-          managementRegistry.refresh();
-          managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
-          });
+  private void init() {
+    ServerSideServerStore serverStore = ehcacheStateService.getStore(storeIdentifier);
+    ServerStoreBinding serverStoreBinding = new ServerStoreBinding(storeIdentifier, serverStore);
+    CompletableFuture<Void> r1 = managementRegistry.register(serverStoreBinding);
+    ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(storeIdentifier);
+    CompletableFuture<Void> allOf;
+    if (pool != null) {
+      allOf = CompletableFuture.allOf(r1, managementRegistry.register(new PoolBinding(storeIdentifier, pool, PoolBinding.AllocationType.DEDICATED)));
+    } else {
+      allOf = r1;
     }
+    allOf.thenRun(() -> {
+      managementRegistry.refresh();
+      managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
+    });
   }
 
 }

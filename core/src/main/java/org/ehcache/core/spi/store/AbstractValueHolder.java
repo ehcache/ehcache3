@@ -16,26 +16,30 @@
 
 package org.ehcache.core.spi.store;
 
-import org.ehcache.expiry.Duration;
+import org.ehcache.core.config.ExpiryUtils;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 import static java.lang.String.format;
+import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 
 /**
  * @author Ludovic Orban
  */
 public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
 
-  private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;
   private final long creationTime;
+  @SuppressWarnings("CanBeFinal")
   private volatile long lastAccessTime;
+  @SuppressWarnings("CanBeFinal")
   private volatile long expirationTime;
-  private volatile long hits;
 
+  @SuppressWarnings("rawtypes")
   private static final AtomicLongFieldUpdater<AbstractValueHolder> ACCESSTIME_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "lastAccessTime");
+  @SuppressWarnings("rawtypes")
   private static final AtomicLongFieldUpdater<AbstractValueHolder> EXPIRATIONTIME_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "expirationTime");
 
   protected AbstractValueHolder(long id, long creationTime) {
@@ -75,30 +79,20 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
       if (EXPIRATIONTIME_UPDATER.compareAndSet(this, current, update)) {
         break;
       }
-    };
+    }
   }
 
   public void accessed(long now, Duration expiration) {
     final TimeUnit timeUnit = nativeTimeUnit();
     if (expiration != null) {
-      if (expiration.isInfinite()) {
+      if (isExpiryDurationInfinite(expiration)) {
         setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
       } else {
-        long millis = timeUnit.convert(expiration.getLength(), expiration.getTimeUnit());
-        long newExpirationTime ;
-        if (millis == Long.MAX_VALUE) {
-          newExpirationTime = Long.MAX_VALUE;
-        } else {
-          newExpirationTime = now + millis;
-          if (newExpirationTime < 0) {
-            newExpirationTime = Long.MAX_VALUE;
-          }
-        }
+        long newExpirationTime = ExpiryUtils.getExpirationMillis(now, expiration);
         setExpirationTime(newExpirationTime, timeUnit);
       }
     }
     setLastAccessTime(now, timeUnit);
-    HITS_UPDATER.getAndIncrement(this);
   }
 
   @Override
@@ -134,7 +128,7 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
       if (ACCESSTIME_UPDATER.compareAndSet(this, current, update)) {
         break;
       }
-    };
+    }
   }
 
   @Override
@@ -159,29 +153,12 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public float hitRate(long now, TimeUnit unit) {
-    final long endTime = TimeUnit.NANOSECONDS.convert(now, TimeUnit.MILLISECONDS);
-    final long startTime = TimeUnit.NANOSECONDS.convert(creationTime, nativeTimeUnit());
-    float duration = (endTime - startTime)/(float)TimeUnit.NANOSECONDS.convert(1, unit);
-    return (hits/duration);
-  }
-
-  @Override
-  public long hits() {
-    return this.hits;
-  }
-
-  protected void setHits(long hits) {
-    HITS_UPDATER.set(this, hits);
-  }
-
-  @Override
   public long getId() {
     return id;
   }
 
   @Override
   public String toString() {
-    return format("%s", value());
+    return format("%s", get());
   }
 }

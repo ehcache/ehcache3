@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
@@ -31,6 +32,7 @@ import org.junit.BeforeClass;
 import org.terracotta.connection.Connection;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 
@@ -62,18 +64,28 @@ public abstract class AbstractServerStoreProxyTest {
   protected static SimpleClusterTierClientEntity createClientEntity(String name,
                                                                   ServerStoreConfiguration configuration,
                                                                   boolean create) throws Exception {
+    return createClientEntity(name, configuration, create, true);
+  }
+
+  protected static SimpleClusterTierClientEntity createClientEntity(String name,
+                                                                    ServerStoreConfiguration configuration,
+                                                                    boolean create,
+                                                                    boolean validate) throws Exception {
     Connection connection = CONNECTION_SERVICE.connect(CLUSTER_URI, new Properties());
 
     // Create ClusterTierManagerClientEntity if needed
-    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
+    ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(
+      connection,
+      TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)).build());
     if (create) {
       entityFactory.create(name, new ServerSideConfiguration("defaultResource", Collections.emptyMap()));
     }
     // Create or fetch the ClusterTierClientEntity
     SimpleClusterTierClientEntity clientEntity = (SimpleClusterTierClientEntity) entityFactory.fetchOrCreateClusteredStoreEntity(name, name, configuration, create);
-    clientEntity.validate(configuration);
+    if (validate) {
+      clientEntity.validate(configuration);
+    }
     return clientEntity;
   }
-
 
 }

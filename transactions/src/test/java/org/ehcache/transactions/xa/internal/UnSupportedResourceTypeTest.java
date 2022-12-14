@@ -16,13 +16,14 @@
 
 package org.ehcache.transactions.xa.internal;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 
 import static org.junit.Assert.fail;
@@ -41,8 +42,7 @@ public class UnSupportedResourceTypeTest {
     Store.Configuration<Object, Object> configuration = mock(Store.Configuration.class);
 
     ResourcePools resourcePools = mock(ResourcePools.class);
-    Set<ResourceType<?>> resourceTypes = new HashSet<>();
-    resourceTypes.add(new TestResourceType());
+    Set<ResourceType<?>> resourceTypes = Collections.singleton(new TestResourceType());
 
     when(configuration.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getResourceTypeSet()).thenReturn(resourceTypes);
@@ -57,11 +57,11 @@ public class UnSupportedResourceTypeTest {
   }
 
 
-  private static class TestResourceType implements ResourceType {
+  private static class TestResourceType implements ResourceType<ResourcePool> {
 
     @Override
-    public Class getResourcePoolClass() {
-      return TestResourceType.class;
+    public Class<ResourcePool> getResourcePoolClass() {
+      return ResourcePool.class;
     }
 
     @Override

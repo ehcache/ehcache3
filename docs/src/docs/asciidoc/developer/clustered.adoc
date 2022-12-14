@@ -1,0 +1,174 @@
+= Clustered Ehcache Server Side Data Store and Operation API Proposal
+
+This document outlines a proposal for storing, retrieving and mutating cache
+state stored within the Voltron server.  First I will outline the basics of the
+proposal, then I will give some examples of its usage to implement a variety of
+single key operations on the cache.  Finally I will outline some implementation
+decisions we may face around performance tradeoffs with the proposal.
+
+== The Proposal
+
+Ehcache supports an open type system on its keys.  This means users can use any
+'serializable' type as a key, this in turn means the server cannot perform
+equals comparisons on keys (or values in the case of concurrent operations).
+Therefore to support equality comparison on clients without performing CAS loops
+or taking exclusive locks across a network this scheme has been proposed.
+
+== Server Side Data Structure
+
+The server will store cache data as a multi-map where the key is the cache-key
+hash (minimally just the Java hashcode, but potentially something wider than
+that), and the value is a sequence of binary payloads:
+
+["ditaa", "server-data-structure", "png"]
+--------------------------------------------------------------------------------
+             +----+    +----------------------------------------------+
+             |    |    | +-----------+ +-----------+ +-----------+    |
+             |hash| => | |binary blob| |binary blob| |binary blob| ...|
+             |    |    | +-----------+ +-----------+ +-----------+    |
+             +----+    +----------------------------------------------+
+
+             +----+    +----------------------------------------------+
+             |    |    | +-----------+ +-----------+ +-----------+    |
+             |hash| => | |binary blob| |binary blob| |binary blob| ...|
+             |    |    | +-----------+ +-----------+ +-----------+    |
+             +----+    +----------------------------------------------+
+
+             +----+    +----------------------------------------------+
+             |    |    | +-----------+ +-----------+ +-----------+    |
+             |hash| => | |binary blob| |binary blob| |binary blob| ...|
+             |    |    | +-----------+ +-----------+ +-----------+    |
+             +----+    +----------------------------------------------+
+--------------------------------------------------------------------------------
+
+The server supports the following operations:
+
+ * `List<binary-blob> get(hash)`: returns the list for the given hash
+ * `void append(hash, binary-blob)`: adds the given binary blob to the end of
+   the list for the given hash
+ * `list<binary-blob> getAndAppend(hash, binary-blob)`: the same as append but
+   also returns the list immediately prior to mutation (atomically).
+ * `void replace(hash, list<binary-blob>, list<binary-blob>)`: replaces the
+   first occurrence of the given subsequence with the supplied sequence
+
+This is the entirety of the functionality and data structure exposed to the
+client that is of relevance to single key operations.
+
+== Client Side Interpretation
+
+The server side view of the data structure above is fairly primitive.  The
+client however, understands the structure within the binary blobs, and so has
+a much richer picture of what this data structure presents.
+
+["ditaa", "client-data-structure", "png"]
+--------------------------------------------------------------------------------
+      +----+    +----------------------------------------------------------+
+      |    |    | +------+ /----------\ +------+ /----------\ /----------\ |
+      |hash| => | |k1, v1| |k1, f(k,v)| |k2, v1| |k1, g(k,v)| |k2, f(k,v)| |
+      |    |    | +------+ \----------/ +------+ \----------/ \----------/ |
+      +----+    +----------------------------------------------------------+
+                                             |
+                                             V
+                +----------------------------------------------------------+
+                |                       +------+              /----------\ |
+                |                       |k2, v1|              |k2, f(k,v)| |
+                |                       +------+              \----------/ |
+                +----------------------------------------------------------+
+                                             +
+                +----------------------------------------------------------+
+                | +------+ /----------\          /----------\              |
+                | |k1, v1| |k1, f(k,v)|          |k1, g(k,v)|              |
+                | +------+ \----------/          \----------/              |
+                +----------------------------------------------------------+
+--------------------------------------------------------------------------------
+
+The structure above is interpreted by the client as meaning the current value of
+the k1 mapping is `g(f({k1, v1}))`, and that of the k2 mappings is
+`f({k2, v1})`.  More generally the current value of a mapping is always equal
+to a recursive application of the functions in its sequence (treating the
+'value' as an initial generator function).
+
+At this point we define a critical client side operation:
+
+[source]
+----
+value resolve(chain, key) {
+  resolved = [];
+  transform = () -> {};
+  for (function f : chain)) {
+    if (f.for(key)) {
+      transform = transform.andThen(f);
+    } else {
+      resolved.add(f);
+    }
+  }
+  value = transform.apply();
+  resolved.add(value)
+
+  asynchronously(server.replace(key.hash, chain, resolved));
+
+  return value;
+}
+----
+
+Invocation of this operation resolves the current value of the key, and
+asynchronously updates the servers representation:
+
+["ditaa", "resolve-operation", "png"]
+--------------------------------------------------------------------------------
+      +----+    +----------------------------------------------------------+
+      |    |    | +------+ /----------\ +------+ /----------\ /----------\ |
+      |hash| => | |k1, v1| |k1, f(k,v)| |k2, v1| |k1, g(k,v)| |k2, f(k,v)| |
+      |    |    | +------+ \----------/ +------+ \----------/ \----------/ |
+      +----+    +----------------------------------------------------------+
+                                             |
+
+                                     resolve(chain, k1)
+
+                                             |
+                                             V
+                            +--------------------------------+
+                            | +------+ /----------\ +------+ |
+                            | |k2, v1| |k2, f(k,v)| |k1, v2| |
+                            | +------+ \----------/ +------+ |
+                            +--------------------------------+
+                                             |
+
+                                     resolve(chain, k2)
+
+                                             |
+                                             V
+                                   +-------------------+
+                                   | +------+ +------+ |
+                                   | |k1, v2| |k2, v2| |
+                                   | +------+ +------+ |
+                                   +-------------------+
+--------------------------------------------------------------------------------
+
+== Example Operations
+
+[source]
+----
+void put(key, value) {
+  server.append(key.hash, function(put(key, value)));
+}
+
+value get(key) {
+  return resolve(server.get(key.hash), key);
+}
+
+value putIfAbsent(key, value) {
+  return resolve(server.getAndAppend(key.hash, operation(putIfAbsent(key, value))), key);
+}
+----
+
+== Something to Ponder
+
+Mutative operations will have to trigger invalidation of the clients cached
+entries for the corresponding hash.  In eventual consistency the operation can
+proceed and 'complete' without waiting for the other clients invalidations to
+finish.  When in strong consistency we have to wait for invalidations to
+complete before the originating operation can complete.  None of this is new,
+but the interesting question surrounds when the invalidations should be
+triggered.  Generally this is a tradeoff between strong mutative operation and
+get operation latency.

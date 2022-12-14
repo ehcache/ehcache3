@@ -106,14 +106,13 @@ public class HeuristicConfiguration {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("Heuristic Configuration: \n");
-    sb.append("Maximum Size (specified)   : ").append(DebuggingUtils.toBase2SuffixedString(getMaximumSize())).append("B\n");
-    sb.append("Minimum Chunk Size         : ").append(DebuggingUtils.toBase2SuffixedString(getMinimumChunkSize())).append("B\n");
-    sb.append("Maximum Chunk Size         : ").append(DebuggingUtils.toBase2SuffixedString(getMaximumChunkSize())).append("B\n");
-    sb.append("Concurrency                : ").append(getConcurrency()).append("\n");
-    sb.append("Initial Segment Table Size : ").append(DebuggingUtils.toBase2SuffixedString(getInitialSegmentTableSize())).append(" slots\n");
-    sb.append("Segment Data Page Size     : ").append(DebuggingUtils.toBase2SuffixedString(getSegmentDataPageSize())).append("B\n");
-    return sb.toString();
+    String sb = "Heuristic Configuration: \n" + "Maximum Size (specified)   : " + DebuggingUtils.toBase2SuffixedString(getMaximumSize()) + "B\n" +
+                "Minimum Chunk Size         : " + DebuggingUtils.toBase2SuffixedString(getMinimumChunkSize()) + "B\n" +
+                "Maximum Chunk Size         : " + DebuggingUtils.toBase2SuffixedString(getMaximumChunkSize()) + "B\n" +
+                "Concurrency                : " + getConcurrency() + "\n" +
+                "Initial Segment Table Size : " + DebuggingUtils.toBase2SuffixedString(getInitialSegmentTableSize()) + " slots\n" +
+                "Segment Data Page Size     : " + DebuggingUtils.toBase2SuffixedString(getSegmentDataPageSize()) + "B\n";
+    return sb;
   }
 
 }

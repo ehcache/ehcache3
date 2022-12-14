@@ -15,11 +15,11 @@
  */
 package org.ehcache.integration.statistics;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.data.MapEntry;
 import org.ehcache.Cache;
@@ -27,10 +27,10 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
@@ -65,7 +65,8 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     CacheConfiguration<Integer, String> cacheConfiguration =
       CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Integer.class, String.class, resources)
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(TIME_TO_EXPIRATION, TimeUnit.MILLISECONDS)))
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
+        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();
@@ -127,6 +128,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     changesOf(1, 0, 0, 0);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void getAll() {
     expect(cache.getAll(asSet(1))).containsExactly(MapEntry.entry(1, null));
@@ -289,15 +291,6 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     assertThat(tierStatistics.getMappings()).isEqualTo(0);
     cache.put(1, "a");
     assertThat(tierStatistics.getMappings()).isEqualTo(1);
-  }
-
-  @Test
-  public void testMaxMappingCount() {
-    assertThat(tierStatistics.getMaxMappings()).isEqualTo(-1); // FIXME Shouldn't it be 0?
-    cache.put(1, "a");
-    cache.put(2, "b");
-    cache.remove(1);
-    assertThat(tierStatistics.getMappings()).isEqualTo(1); // FIXME: I was expecting 2
   }
 
   @Test

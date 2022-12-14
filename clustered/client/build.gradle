@@ -17,28 +17,34 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compileOnly project(':api')
+  compileOnly project(':impl')
   compileOnly project(':xml')
-  compile project(':clustered:common'), "org.slf4j:slf4j-api:$slf4jVersion"
-  provided "org.terracotta:entity-client-api:$terracottaApisVersion"
-  provided "org.terracotta:runnel:$terracottaPlatformVersion"
+  implementation project(':clustered:common')
+  implementation "org.terracotta:statistics:$parent.statisticVersion"
+  providedImplementation "org.terracotta:entity-client-api:$terracottaApisVersion"
+  providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  providedImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  providedImplementation "org.terracotta:connection-api:$terracottaApisVersion"
 
-  testCompile project(':api')
-  testCompile project(':xml')
-  testCompile project(':transactions')
-  testCompile(project(':clustered:server')) {
+  testImplementation project(':api')
+  testImplementation project(':impl')
+  testImplementation project(':xml')
+  testImplementation project(':transactions')
+  testImplementation(project(':clustered:server')) {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
-  testCompile "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
-  testCompile "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
+  testImplementation "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
+  testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
+  testImplementation "org.terracotta.internal:common:$terracottaCoreVersion"
+  testImplementation "org.terracotta:passthrough-leased-connection-api:$terracottaPlatformVersion"
+  testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 test {
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
 }

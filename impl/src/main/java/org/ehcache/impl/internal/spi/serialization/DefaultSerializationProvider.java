@@ -211,13 +211,15 @@ public class DefaultSerializationProvider implements SerializationProvider {
   private static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultSerializerConfiguration<T> result = null;
 
-    Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceUtils.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
-    for (DefaultSerializerConfiguration serializationProviderConfiguration : serializationProviderConfigurations) {
+    @SuppressWarnings("rawtypes")
+    Collection<DefaultSerializerConfiguration<?>> serializationProviderConfigurations =
+      (Collection) ServiceUtils.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
+    for (DefaultSerializerConfiguration<?> serializationProviderConfiguration : serializationProviderConfigurations) {
       if (serializationProviderConfiguration.getType() == type) {
         if (result != null) {
           throw new IllegalArgumentException("Duplicate " + type + " serialization provider : " + serializationProviderConfiguration);
         }
-        result = serializationProviderConfiguration;
+        result = (DefaultSerializerConfiguration<T>) serializationProviderConfiguration;
       }
     }
 

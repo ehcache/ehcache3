@@ -21,7 +21,9 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.store.InternalCacheManager;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.internal.statistics.StatsUtils;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
@@ -29,11 +31,12 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.notification.ContextualNotification;
-import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.collect.DefaultStatisticCollector;
-import org.terracotta.management.registry.collect.StatisticCollector;
+import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
+import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.derived.OperationResultFilter;
 
-import java.util.Collection;
+import java.util.EnumSet;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
@@ -44,6 +47,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   private enum EhcacheNotification {
     CACHE_ADDED,
     CACHE_REMOVED,
+    CACHE_CLEARED,
     CACHE_MANAGER_AVAILABLE,
     CACHE_MANAGER_MAINTENANCE,
     CACHE_MANAGER_CLOSED,
@@ -73,10 +77,13 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
     scheduledExecutorService = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getCollectorExecutorAlias());
 
+    TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+
     statisticCollector = new DefaultStatisticCollector(
       managementRegistry,
       scheduledExecutorService,
-      collector::onStatistics);
+      collector::onStatistics,
+      timeSource::getTimeMillis);
 
     cacheManager.registerListener(this);
   }
@@ -87,12 +94,19 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     // so deregisterListener is done in the stateTransition listener
     //cacheManager.deregisterListener(this);
 
+    collector.onNotification(
+      new ContextualNotification(
+        configuration.getContext(),
+        EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
+
     statisticCollector.stopStatisticCollector();
     shutdownNow(scheduledExecutorService);
   }
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
+    registerClearNotification(alias, cache);
+
     collector.onNotification(
       new ContextualNotification(
         configuration.getContext().with("cacheName", alias),
@@ -105,6 +119,20 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
       new ContextualNotification(
         configuration.getContext().with("cacheName", alias),
         EhcacheNotification.CACHE_REMOVED.name()));
+  }
+
+  private void cacheCleared(String alias) {
+    collector.onNotification(
+      new ContextualNotification(
+        configuration.getContext().with("cacheName", alias),
+        EhcacheNotification.CACHE_CLEARED.name()));
+  }
+
+  private void registerClearNotification(String alias, Cache<?, ?> cache) {
+    OperationStatistic<ClearOutcome> clear = StatsUtils.findOperationStatisticOnChildren(cache,
+      ClearOutcome.class, "clear");
+    clear.addDerivedStatistic(new OperationResultFilter<>(EnumSet.of(ClearOutcome.SUCCESS),
+      (time, latency) -> cacheCleared(alias)));
   }
 
   @Override
@@ -130,11 +158,6 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
         break;
 
       case UNINITIALIZED:
-        collector.onNotification(
-          new ContextualNotification(
-            configuration.getContext(),
-            EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
-
         // deregister me - should not be in stop() - see other comments
         cacheManager.deregisterListener(this);
         break;

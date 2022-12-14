@@ -17,9 +17,9 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -74,7 +74,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
-          ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0,
+          ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0,
           new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
 
         return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
@@ -112,7 +112,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
@@ -126,7 +126,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
       }
 
       @Override

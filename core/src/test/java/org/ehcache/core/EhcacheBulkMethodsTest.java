@@ -18,9 +18,10 @@ package org.ehcache.core;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -68,8 +69,11 @@ public class EhcacheBulkMethodsTest {
   public void testGetAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
     when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(invocation -> {
-      Function function = (Function)invocation.getArguments()[1];
-      function.apply(invocation.getArguments()[0]);
+      Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function =
+        (Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
+      Set<? extends Number> keys = (Set<? extends Number>) invocation.getArguments()[0];
+
+      function.apply(keys);
 
       Map<Number, ValueHolder<String>> map =  new HashMap<>();
       map.put(1, null);
@@ -101,9 +105,10 @@ public class EhcacheBulkMethodsTest {
 
   protected InternalCache<Number, CharSequence> getCache(Store<Number, CharSequence> store) {
     CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
-    when(cacheConfig.getExpiry()).thenReturn(mock(Expiry.class));
+    when(cacheConfig.getExpiryPolicy()).thenReturn(mock(ExpiryPolicy.class));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    return new Ehcache<>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
+    ResilienceStrategy<Number, CharSequence> resilienceStrategy = mock(ResilienceStrategy.class);
+    return new Ehcache<>(cacheConfig, store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
   }
 
   static <K, V> Map.Entry<K, V> entry(final K key, final V value) {
@@ -149,7 +154,7 @@ public class EhcacheBulkMethodsTest {
   static <V> ValueHolder<V> valueHolder(final V value) {
     return new ValueHolder<V>() {
       @Override
-      public V value() {
+      public V get() {
         return value;
       }
 
@@ -171,16 +176,6 @@ public class EhcacheBulkMethodsTest {
       @Override
       public long lastAccessTime(TimeUnit unit) {
         throw new AssertionError();
-      }
-
-      @Override
-      public float hitRate(long now, TimeUnit unit) {
-        throw new AssertionError();
-      }
-
-      @Override
-      public long hits() {
-        throw new UnsupportedOperationException("Implement me!");
       }
 
       @Override

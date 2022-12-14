@@ -16,7 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -24,6 +25,7 @@ import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -204,7 +206,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       });
 
       for (K inputKey : inputKeys) {
-        assertThat(kvStore.get(inputKey).value(), is(computedEntries.get(inputKey)));
+        assertThat(kvStore.get(inputKey).get(), is(computedEntries.get(inputKey)));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -276,6 +278,33 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       //expected
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void exception() throws Exception {
+    Set<K> inputKeys = Collections.singleton(factory.createKey(0));
+
+    RuntimeException exception = new RuntimeException("error");
+
+    try {
+      kvStore.bulkCompute(inputKeys, entries -> { throw exception; });
+    } catch (StoreAccessException e) {
+      assertThat(e.getCause(), is(exception));
+    }
+  }
+
+  @SPITest
+  public void passThroughException() throws Exception {
+    Set<K> inputKeys = Collections.singleton(factory.createKey(0));
+
+    RuntimeException exception = new RuntimeException("error");
+    StorePassThroughException ste = new StorePassThroughException(exception);
+
+    try {
+      kvStore.bulkCompute(inputKeys, entries -> { throw ste; });
+    } catch (RuntimeException e) {
+      assertThat(e, is(exception));
     }
   }
 }

@@ -17,7 +17,6 @@ package org.ehcache.jsr107;
 
 import org.ehcache.core.InternalCache;
 import org.ehcache.Status;
-import org.ehcache.UserManagedCache;
 import org.ehcache.core.Jsr107Cache;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.event.EventFiring;
@@ -36,11 +35,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.cache.Cache;
+import javax.cache.CacheException;
 import javax.cache.CacheManager;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
@@ -68,7 +65,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      InternalCache<K, V> ehCache, Eh107CacheManager cacheManager) {
+             InternalCache<K, V> ehCache, StatisticsService statisticsService, Eh107CacheManager cacheManager) {
     this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
@@ -76,15 +73,14 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     this.name = name;
     this.cacheResources = cacheResources;
     this.managementBean = new Eh107CacheMXBean(name, cacheManager.getURI(), config);
-    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager.getURI(),
-      cacheManager.getEhCacheManager().getServiceProvider().getService(StatisticsService.class));
+    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager.getURI(), statisticsService);
 
     for (Map.Entry<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> entry : cacheResources
         .getListenerResources().entrySet()) {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = ehCache.getJsr107Cache();
+    this.jsr107Cache = ehCache.createJsr107Cache();
   }
 
   @Override
@@ -138,19 +134,24 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       jsr107Cache.loadAll(keys, replaceExistingValues, this::loadAllFunction);
     } catch (Exception e) {
       final CacheLoaderException cle;
-      if (e instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e;
-      } else if (e.getCause() instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e.getCause();
-      } else {
-        cle = new CacheLoaderException(e);
-      }
-
+      cle = getCacheLoaderException(e);
       completionListener.onException(cle);
       return;
     }
 
     completionListener.onCompletion();
+  }
+
+  private CacheLoaderException getCacheLoaderException(Exception e) {
+    CacheLoaderException cle;
+    if (e instanceof CacheLoaderException) {
+      cle = (CacheLoaderException) e;
+    } else if (e.getCause() instanceof CacheLoaderException) {
+      cle = (CacheLoaderException) e.getCause();
+    } else {
+      cle = new CacheLoaderException(e);
+    }
+    return cle;
   }
 
   private Map<K, V> loadAllFunction(Iterable<? extends K> keysIterable) {
@@ -162,15 +163,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       }
       return resultMap;
     } catch (Exception e) {
-      final CacheLoaderException cle;
-      if (e instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e;
-      } else if (e.getCause() instanceof CacheLoaderException) {
-        cle = (CacheLoaderException) e.getCause();
-      } else {
-        cle = new CacheLoaderException(e);
-      }
-
+      CacheLoaderException cle = getCacheLoaderException(e);
       throw cle;
     }
   }
@@ -422,9 +415,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public void close() {
-    MultiCacheException closeException = new MultiCacheException();
-    cacheManager.close(this, closeException);
-    closeException.throwIfNotEmpty();
+    cacheManager.close(this);
   }
 
   @Override
@@ -432,33 +423,40 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     return syncedIsClose();
   }
 
-  void closeInternal(MultiCacheException closeException) {
-    closeInternal(false, closeException);
+  CacheException closeInternalAfter(CacheException failure) {
+    if (hypotheticallyClosed.compareAndSet(false, true)) {
+      return cacheResources.closeResourcesAfter(failure);
+    } else {
+      return failure;
+    }
   }
 
-  private void closeInternal(boolean destroy, MultiCacheException closeException) {
+  void closeInternal() {
+    closeInternal(false);
+  }
+
+  private void closeInternal(boolean destroy) {
     if (hypotheticallyClosed.compareAndSet(false, true)) {
       if (destroy) {
         try {
           clear(false);
         } catch (Throwable t) {
-          closeException.addThrowable(t);
+          throw cacheResources.closeResourcesAfter(new CacheException(t));
         }
       }
-
-      cacheResources.closeResources(closeException);
+      cacheResources.closeResources();
     }
   }
 
   private boolean syncedIsClose() {
-    if (((UserManagedCache)ehCache).getStatus() == Status.UNINITIALIZED && !hypotheticallyClosed.get()) {
+    if (ehCache.getStatus() == Status.UNINITIALIZED && !hypotheticallyClosed.get()) {
       close();
     }
     return hypotheticallyClosed.get();
   }
 
-  void destroy(MultiCacheException destroyException) {
-    closeInternal(true, destroyException);
+  void destroy() {
+    closeInternal(true);
   }
 
   @Override
@@ -622,8 +620,8 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     }
   }
 
-  private static enum MutableEntryOperation {
-    NONE, ACCESS, CREATE, LOAD, REMOVE, UPDATE;
+  private enum MutableEntryOperation {
+    NONE, ACCESS, CREATE, LOAD, REMOVE, UPDATE
   }
 
   private static final Object UNDEFINED = new Object();

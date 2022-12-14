@@ -46,7 +46,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -183,14 +182,14 @@ public class ClusterTierManagerActiveEntityTest {
   public void testConfigureLargeSharedPool() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
     registry.addResource("defaultServerResource", 64, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
       .defaultResource("defaultServerResource")
       .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-      .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("tooBig", "serverResource2", 16, MemoryUnit.MEGABYTES)
       .build();
     ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", serverSideConfiguration);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
@@ -231,7 +230,6 @@ public class ClusterTierManagerActiveEntityTest {
 
     assertSuccess(activeEntity.invokeActive(context, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
-    UUID client2Id = UUID.randomUUID();
     TestInvokeContext context2 = new TestInvokeContext();
     activeEntity.connected(context2.getClientDescriptor());
 
@@ -410,7 +408,7 @@ public class ClusterTierManagerActiveEntityTest {
     ServerSideConfiguration configure = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource1")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 32, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusterTierManagerConfiguration configuration = new ClusterTierManagerConfiguration("identifier", configure);
     EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));

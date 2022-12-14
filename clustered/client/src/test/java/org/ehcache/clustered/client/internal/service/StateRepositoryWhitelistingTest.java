@@ -48,8 +48,8 @@ import java.util.Arrays;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.Eviction.noAdvice;
+import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -169,6 +169,9 @@ public class StateRepositoryWhitelistingTest {
   }
 
   private static class Parent implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final int val;
 
     private Parent(int val) {
@@ -192,6 +195,9 @@ public class StateRepositoryWhitelistingTest {
   }
 
   private static class Child extends Parent implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     final long longValue;
 
     private Child(int val, long longValue) {

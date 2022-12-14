@@ -25,12 +25,11 @@ import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,7 +45,6 @@ import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -63,7 +61,7 @@ public class LoaderWriterErrorEhcacheTest {
 
   private CacheManager cacheManager;
   private Cache<Number, CharSequence> testCache;
-  private CacheLoaderWriter<? super Number, ? super CharSequence> cacheLoaderWriter;
+  private CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter;
 
   @SuppressWarnings("unchecked")
   @Before
@@ -72,7 +70,10 @@ public class LoaderWriterErrorEhcacheTest {
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) any())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
     cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
-    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)).build());
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder
+            .newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10))
+            .withLoaderWriter(cacheLoaderWriter)
+            .build());
   }
 
   @After

@@ -25,19 +25,20 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.ResourcePoolsImpl;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.tiering.TieredStore;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
@@ -168,8 +169,8 @@ public class ClusteredStoreProviderTest {
       }
 
       @Override
-      public Expiry<? super Long, ? super String> getExpiry() {
-        return Expirations.noExpiration();
+      public ExpiryPolicy<? super Long, ? super String> getExpiry() {
+        return ExpiryPolicyBuilder.noExpiration();
       }
 
       @Override
@@ -194,10 +195,15 @@ public class ClusteredStoreProviderTest {
       public int getDispatcherConcurrency() {
         return 1;
       }
+
+      @Override
+      public CacheLoaderWriter<? super Long, String> getCacheLoaderWriter() {
+        return null;
+      }
     };
   }
 
-  private static class UnmatchedResourceType implements ResourceType<ResourcePool> {
+  public static class UnmatchedResourceType implements ResourceType<ResourcePool> {
     @Override
     public Class<ResourcePool> getResourcePoolClass() {
       return ResourcePool.class;

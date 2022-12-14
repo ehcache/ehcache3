@@ -48,9 +48,8 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
      *
      * @return an array containing the constants of {@code ClusteredResourceType} in the order declared
      */
-    @SuppressWarnings("unchecked")
     public static ClusteredResourceType<? extends ClusteredResourcePool>[] values() {
-      return new ClusteredResourceType[] {DEDICATED, SHARED, UNKNOWN};   // unchecked
+      return new ClusteredResourceType<?>[] {DEDICATED, SHARED, UNKNOWN};
     }
 
     /**

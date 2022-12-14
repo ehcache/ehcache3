@@ -17,11 +17,11 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -77,7 +77,7 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
 
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
-          ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0, new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
+          ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
 
         StoreEventDispatcher<String, String> eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
         OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, SystemTimeSource.INSTANCE, eventDispatcher, 10 * 1024 * 1024);
@@ -119,21 +119,21 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[0];
+        return new ServiceConfiguration<?>[0];
       }
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
-      public void disposeOf(CachingTier tier) {
+      public void disposeOf(CachingTier<String, String> tier) {
         OffHeapStore<?, ?> offHeapStore = map.remove(tier);
         OffHeapStoreLifecycleHelper.close(offHeapStore);
       }

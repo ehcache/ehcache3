@@ -34,7 +34,7 @@ public class EmptyValueHolder<V> implements Store.ValueHolder<V> {
   }
 
   @Override
-  public V value() {
+  public V get() {
     return null;
   }
 
@@ -55,16 +55,6 @@ public class EmptyValueHolder<V> implements Store.ValueHolder<V> {
 
   @Override
   public long lastAccessTime(TimeUnit unit) {
-    return 0;
-  }
-
-  @Override
-  public float hitRate(long now, TimeUnit unit) {
-    return 0;
-  }
-
-  @Override
-  public long hits() {
     return 0;
   }
 

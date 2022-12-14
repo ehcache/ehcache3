@@ -78,8 +78,8 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
   @Override
   public void init(final StateRepository stateRepository) {
-    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
-    loadMappingsInWriteContext(readLookup.entrySet(), true);
+    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class, c -> true, null);
+    loadMappingsInWriteContext(readLookup.entrySet());
   }
 
   /**
@@ -146,7 +146,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
   }
 
-  private int addMappingUnderLock(ObjectStreamClass desc, SerializableDataKey probe) throws IOException {
+  private int addMappingUnderLock(ObjectStreamClass desc, SerializableDataKey probe) {
     ObjectStreamClass disconnected = disconnect(desc);
     SerializableDataKey key = new SerializableDataKey(disconnected, true);
     while (true) {
@@ -169,12 +169,12 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
   }
 
-  private void loadMappingsInWriteContext(Set<Entry<Integer, ObjectStreamClass>> entries, boolean throwOnFailedPutIfAbsent) {
+  private void loadMappingsInWriteContext(Set<Entry<Integer, ObjectStreamClass>> entries) {
     for (Entry<Integer, ObjectStreamClass> entry : entries) {
       Integer index = entry.getKey();
       ObjectStreamClass discOsc = disconnect(entry.getValue());
       readLookupLocalCache.put(index, discOsc);
-      if (writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), index) != null && throwOnFailedPutIfAbsent) {
+      if (writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), index) != null) {
         throw new AssertionError("Corrupted data " + readLookup);
       }
       if (nextStreamIndex < index + 1) {
@@ -205,7 +205,7 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     }
 
     @Override
-    protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+    protected ObjectStreamClass readClassDescriptor() throws IOException {
       int key = readInt();
       ObjectStreamClass objectStreamClass = readLookupLocalCache.get(key);
       if (objectStreamClass != null) {

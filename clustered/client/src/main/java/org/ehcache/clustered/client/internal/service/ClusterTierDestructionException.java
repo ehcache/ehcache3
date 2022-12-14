@@ -21,6 +21,8 @@ package org.ehcache.clustered.client.internal.service;
  */
 public class ClusterTierDestructionException extends ClusterTierException {
 
+  private static final long serialVersionUID = -7314374512451335435L;
+
   public ClusterTierDestructionException(String message, Throwable cause) {
     super(message, cause);
   }

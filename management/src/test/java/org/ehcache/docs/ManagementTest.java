@@ -231,7 +231,7 @@ public class ManagementTest {
 
         ContextualStatistics statisticsContext1 = counters.getResult(context1);
 
-        Number counterContext1 = statisticsContext1.getStatistic("Cache:MissCount");
+        Long counterContext1 = statisticsContext1.<Long>getLatestSampleValue("Cache:MissCount").get();
 
         // miss count is a sampled stat, for example its values could be [0,1,2].
         // In the present case, only the last value is important to us , the cache was eventually missed 2 times

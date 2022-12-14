@@ -15,8 +15,10 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
@@ -51,6 +53,7 @@ public class EhcacheStatisticsProviderTest {
   Context cmContext_0 = Context.create("cacheManagerName", "cache-manager-0");
   ManagementRegistryServiceConfiguration cmConfig_0 = new DefaultManagementRegistryConfiguration()
       .setContext(cmContext_0);
+  TimeSource timeSource = SystemTimeSource.INSTANCE;
 
   @After
   public void tearDown() throws Exception {
@@ -60,7 +63,7 @@ public class EhcacheStatisticsProviderTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testDescriptions() throws Exception {
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService, timeSource) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
         StandardEhcacheStatistics mock = mock(StandardEhcacheStatistics.class);
@@ -73,7 +76,7 @@ public class EhcacheStatisticsProviderTest {
       }
     };
 
-    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(EhcacheWithLoaderWriter.class)));
+    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(Ehcache.class)));
 
     Collection<? extends Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
     assertThat(descriptions.size(), is(3));
@@ -86,7 +89,7 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testCapabilityContext() throws Exception {
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService) {
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService, timeSource) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
         return mock(StandardEhcacheStatistics.class);
@@ -94,7 +97,7 @@ public class EhcacheStatisticsProviderTest {
     };
 
 
-    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(EhcacheWithLoaderWriter.class)));
+    ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(Ehcache.class)));
 
     CapabilityContext capabilityContext = ehcacheStatisticsProvider.getCapabilityContext();
 
@@ -111,7 +114,7 @@ public class EhcacheStatisticsProviderTest {
 
   @Test
   public void testCallAction() throws Exception {
-    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService);
+    EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService, timeSource);
 
     try {
       ehcacheStatisticsProvider.callAction(null, null);

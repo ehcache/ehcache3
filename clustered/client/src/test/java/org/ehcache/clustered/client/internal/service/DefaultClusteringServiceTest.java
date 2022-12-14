@@ -175,7 +175,7 @@ public class DefaultClusteringServiceTest {
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
-    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", null);
     assertThat(spaceIdentifier, is(instanceOf(ClusteredCacheIdentifier.class)));
     assertThat(((ClusteredCacheIdentifier)spaceIdentifier).getId(), is("cacheAlias"));
     assertThat(service.getPersistenceSpaceIdentifier("cacheAlias", null), sameInstance(spaceIdentifier));
@@ -193,7 +193,7 @@ public class DefaultClusteringServiceTest {
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
-    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", configBuilder
+    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", configBuilder
         .build());
     assertThat(spaceIdentifier, instanceOf(ClusteredCacheIdentifier.class));
     assertThat(((ClusteredCacheIdentifier) spaceIdentifier).getId(), is("cacheAlias"));
@@ -807,7 +807,7 @@ public class DefaultClusteringServiceTest {
     ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
     assertThat(clusterTierActiveEntity.getConnectedClients().size(), is(1));
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
 
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
@@ -815,7 +815,7 @@ public class DefaultClusteringServiceTest {
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
     try {
-      creationService.releaseServerStoreProxy(serverStoreProxy);
+      creationService.releaseServerStoreProxy(serverStoreProxy, false);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("Endpoint closed"));
@@ -1120,7 +1120,7 @@ public class DefaultClusteringServiceTest {
     ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
     assertThat(clusterTierActiveEntity.getConnectedClients(), not(empty()));
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
 
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
@@ -1128,7 +1128,7 @@ public class DefaultClusteringServiceTest {
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
     try {
-      creationService.releaseServerStoreProxy(serverStoreProxy);
+      creationService.releaseServerStoreProxy(serverStoreProxy, false);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("Endpoint closed"));
@@ -1178,7 +1178,7 @@ public class DefaultClusteringServiceTest {
       assertThat(getRootCause(e).getMessage(), containsString(" in use by "));
     }
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
@@ -1231,7 +1231,7 @@ public class DefaultClusteringServiceTest {
       assertThat(getRootCause(e).getMessage(), containsString(" in use by "));
     }
 
-    creationService.releaseServerStoreProxy(serverStoreProxy);
+    creationService.releaseServerStoreProxy(serverStoreProxy, false);
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
@@ -1996,7 +1996,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
     StateRepository repository1 = service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
     StateRepository repository2 = service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
     assertThat(repository1, sameInstance(repository2));
@@ -2007,8 +2007,8 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier1 = service.getPersistenceSpaceIdentifier("myCache1", null);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier2 = service.getPersistenceSpaceIdentifier("myCache2", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier1 = service.getPersistenceSpaceIdentifier("myCache1", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier2 = service.getPersistenceSpaceIdentifier("myCache2", null);
     StateRepository repository1 = service.getStateRepositoryWithin(cacheIdentifier1, "myRepo");
     StateRepository repository2 = service.getStateRepositoryWithin(cacheIdentifier2, "myRepo");
     assertThat(repository1, not(sameInstance(repository2)));
@@ -2045,7 +2045,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
-    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
+    PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
     try {
       service.releasePersistenceSpaceIdentifier(cacheIdentifier);
     } catch (CachePersistenceException e) {

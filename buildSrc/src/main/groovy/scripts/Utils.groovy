@@ -37,7 +37,7 @@ class Utils {
       try {
         def proc = cmd.execute()
         revision = proc.text.trim()
-      } catch (IOException ioex) {
+      } catch (IOException) {
         revision = 'Unknown'
       }
     }
@@ -96,7 +96,7 @@ class Utils {
 
   static def jvmForHome(File home) {
     def java = Jvm.forHome(home).javaExecutable
-    def versionCommand = "$java -version".execute();
+    def versionCommand = "$java -version".execute()
     def version = JavaVersion.toVersion((versionCommand.err.text =~ /\w+ version "(.+)"/)[0][1])
     return Jvm.discovered(home, version)
   }

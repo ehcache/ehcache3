@@ -15,5 +15,5 @@
  */
 
 dependencies {
-  compile 'com.beust:jcommander:1.47'
+  implementation 'com.beust:jcommander:1.47'
 }

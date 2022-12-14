@@ -43,7 +43,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -52,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -60,7 +60,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -95,8 +94,7 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
-    @SuppressWarnings("unchecked")
-    DefaultSerializerConfiguration dspConfig = new DefaultSerializerConfiguration(getSerializerClass(), DefaultSerializerConfiguration.Type.VALUE);
+    DefaultSerializerConfiguration<?> dspConfig = new DefaultSerializerConfiguration<>(getSerializerClass(), DefaultSerializerConfiguration.Type.VALUE);
 
     assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
     assertThat(dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
@@ -165,7 +163,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testReleaseSerializerWithProvidedCloseableSerializerDoesNotClose() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    CloseableSerializer closeableSerializer = new CloseableSerializer();
+    CloseableSerializer<?> closeableSerializer = new CloseableSerializer<>();
     provider.providedVsCount.put(closeableSerializer, new AtomicInteger(1));
 
     provider.releaseSerializer(closeableSerializer);
@@ -178,7 +176,7 @@ public class DefaultSerializationProviderTest {
     Class<? extends Serializer<String>> serializerClass = (Class) CloseableSerializer.class;
     DefaultSerializerConfiguration<String> config = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.KEY);
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    Serializer serializer = provider.createKeySerializer(String.class, getSystemClassLoader(), config);
+    Serializer<?> serializer = provider.createKeySerializer(String.class, getSystemClassLoader(), config);
 
     provider.releaseSerializer(serializer);
     assertTrue(((CloseableSerializer)serializer).closed);
@@ -541,8 +539,8 @@ public class DefaultSerializationProviderTest {
     assertThat(StatefulLegacyComboSerializer.legacyConstructorInvoked, is(false));
   }
 
-  private PersistableResourceService.PersistenceSpaceIdentifier getPersistenceSpaceIdentifierMock() {
-    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = mock(DiskResourceService.PersistenceSpaceIdentifier.class);
+  private PersistableResourceService.PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifierMock() {
+    PersistableResourceService.PersistenceSpaceIdentifier<DiskResourceService> spaceIdentifier = mock(DiskResourceService.PersistenceSpaceIdentifier.class);
     when(spaceIdentifier.getServiceType()).thenReturn(DiskResourceService.class);
     return spaceIdentifier;
   }

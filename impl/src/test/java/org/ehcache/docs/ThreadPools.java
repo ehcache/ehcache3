@@ -30,10 +30,12 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.builders.PooledExecutionServiceConfigurationBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.net.URISyntaxException;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -43,6 +45,9 @@ import static java.util.Collections.singletonMap;
  */
 @SuppressWarnings("unused")
 public class ThreadPools {
+
+  @Rule
+  public final TemporaryFolder diskPath = new TemporaryFolder();
 
   @Test
   public void diskStore() throws Exception {
@@ -149,8 +154,8 @@ public class ThreadPools {
     // end::events[]
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return diskPath.newFolder().getAbsolutePath();
   }
 
 }

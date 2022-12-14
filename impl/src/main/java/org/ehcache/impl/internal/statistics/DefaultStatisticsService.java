@@ -63,9 +63,11 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     LOGGER.debug("Starting service");
+
     CacheManagerProviderService cacheManagerProviderService = serviceProvider.getService(CacheManagerProviderService.class);
     cacheManager = cacheManagerProviderService.getCacheManager();
     cacheManager.registerListener(this);
+
     started = true;
   }
 
@@ -80,7 +82,7 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   @Override
   public void stateTransition(Status from, Status to) {
     LOGGER.debug("Moving from " + from + " to " + to);
-    switch(to) {
+    switch (to) {
       case AVAILABLE:
         registerAllCaches();
         break;

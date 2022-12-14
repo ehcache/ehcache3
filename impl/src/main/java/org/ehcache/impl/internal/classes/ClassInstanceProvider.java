@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.classes;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -88,6 +89,16 @@ public class ClassInstanceProvider<K, T> {
     return newInstance(alias, config);
   }
 
+  protected T newInstance(K alias, ServiceConfiguration... serviceConfigurations) {
+    ClassInstanceConfiguration<T> config = null;
+    Iterator<? extends ClassInstanceConfiguration<T>> iterator =
+            findAmongst(cacheLevelConfig, serviceConfigurations).iterator();
+    if (iterator.hasNext()) {
+      config = iterator.next();
+    }
+    return newInstance(alias, config);
+  }
+
   protected T newInstance(K alias, ServiceConfiguration<?> serviceConfiguration) {
     ClassInstanceConfiguration<T> config = null;
     if (serviceConfiguration != null && cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
@@ -104,7 +115,7 @@ public class ClassInstanceProvider<K, T> {
       }
     }
 
-    T instance = null;
+    T instance;
 
     if(config.getInstance() != null) {
       instance = config.getInstance();

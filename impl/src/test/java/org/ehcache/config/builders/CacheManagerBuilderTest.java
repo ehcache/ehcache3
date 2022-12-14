@@ -43,12 +43,15 @@ public class CacheManagerBuilderTest {
   @Test
   public void testIsExtensible() {
 
-    final AtomicInteger counter = new AtomicInteger(0);
+    AtomicInteger counter = new AtomicInteger(0);
 
-    final PersistentCacheManager cacheManager = newCacheManagerBuilder().with((CacheManagerConfiguration<PersistentCacheManager>) other -> {
+    @SuppressWarnings("unchecked")
+    CacheManagerConfiguration<PersistentCacheManager> managerConfiguration = other -> {
       counter.getAndIncrement();
       return mock(CacheManagerBuilder.class);
-    }).build(true);
+    };
+
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(managerConfiguration).build(true);
 
     assertThat(cacheManager).isNull();
     assertThat(counter.get()).isEqualTo(1);
@@ -90,8 +93,7 @@ public class CacheManagerBuilderTest {
     String cacheAlias = "cacheAliasSameName";
 
     CacheConfiguration<Long, String> cacheConfig = CacheConfigurationBuilder
-      .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
-      .heap(10))
+      .newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
       .build();
 
     expectedException.expect(IllegalArgumentException.class);

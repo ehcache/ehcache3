@@ -15,12 +15,11 @@
  */
 
 dependencies {
-  compile project(':spi-tester'), project(':core'), "org.hamcrest:hamcrest-library:$hamcrestVersion", "junit:junit:$junitVersion"
-  compile ("org.mockito:mockito-core:$mockitoVersion") {
-    exclude group:'org.hamcrest', module:'hamcrest-core'
-  }
+  api project(':spi-tester')
+  implementation project(':core')
+  implementation project(':impl')
+  implementation "junit:junit:$junitVersion"
+  implementation "org.mockito:mockito-core:$mockitoVersion"
+  implementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
-}

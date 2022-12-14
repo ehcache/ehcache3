@@ -84,7 +84,7 @@ public class ClusteredResourcePoolUpdationTest {
     expectedException.expectMessage("Updating CLUSTERED resource is not supported");
     dedicatedCache.getRuntimeConfiguration().updateResourcePools(
       ResourcePoolsBuilder.newResourcePoolsBuilder()
-        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB))
+        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))
         .build()
     );
   }

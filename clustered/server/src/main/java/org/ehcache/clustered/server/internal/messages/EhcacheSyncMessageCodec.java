@@ -20,7 +20,6 @@ import org.ehcache.clustered.common.internal.messages.ChainCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
-import org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +31,7 @@ import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -105,7 +105,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .int32(MESSAGE_TRACKER_SEGMENT_FIELD, 30)
     .build();
 
-  private ResponseCodec responseCodec;
+  private final ResponseCodec responseCodec;
 
   public EhcacheSyncMessageCodec(ResponseCodec responseCodec) {
     this.responseCodec = responseCodec;
@@ -258,11 +258,12 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   }
 
   private Map<Long, Chain> decodeChainMapEntries(StructDecoder<Void> decoder) {
-    Map<Long, Chain> chainMap = new HashMap<>();
-
     StructArrayDecoder<? extends StructDecoder<?>> entriesDecoder = decoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT);
+
     if (entriesDecoder != null) {
-      for (int i = 0; i < entriesDecoder.length(); i++) {
+      int len = entriesDecoder.length();
+      Map<Long, Chain> chainMap = new HashMap<>((int) ((float) len / 0.75f + 1.0f));
+      for (int i = 0; i < len; i++) {
         StructDecoder<?> entryDecoder = entriesDecoder.next();
         Long key = entryDecoder.int64(KEY_FIELD);
         StructDecoder<?> chainDecoder = entryDecoder.struct(CHAIN_FIELD);
@@ -270,8 +271,9 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
         chainMap.put(key, chain);
         entryDecoder.end();
       }
+      return chainMap;
+    } else {
+      return Collections.emptyMap();
     }
-    return chainMap;
   }
-
 }

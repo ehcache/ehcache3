@@ -18,16 +18,15 @@ package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.clustered.common.internal.store.operations.Operation;
+import org.ehcache.clustered.common.internal.store.operations.PutOperation;
+import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An abstract chain resolver.
@@ -41,8 +40,6 @@ import java.util.concurrent.TimeUnit;
  * @param <V> value type
  */
 public abstract class ChainResolver<K, V> {
-  protected static final Logger LOG = LoggerFactory.getLogger(EternalChainResolver.class);
-  protected static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
   protected final OperationsCodec<K, V> codec;
 
   public ChainResolver(final OperationsCodec<K, V> codec) {
@@ -124,5 +121,5 @@ public abstract class ChainResolver<K, V> {
    * @param now current time
    * @return an equivalent put operation
    */
-  protected abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now);
+  public abstract PutOperation<K, V> applyOperation(K key, PutOperation<K, V> existing, Operation<K, V> operation, long now);
 }

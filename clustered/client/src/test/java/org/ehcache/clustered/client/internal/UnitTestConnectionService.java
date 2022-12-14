@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -149,6 +150,7 @@ public class UnitTestConnectionService implements ConnectionService {
     // TODO rework that better
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
+    server.addPermanentEntities();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -238,7 +240,7 @@ public class UnitTestConnectionService implements ConnectionService {
         String stringArg = (String) args[1];
 
         try {
-          EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
+          EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
           LOGGER.error("Entity destroy failed (not provided???): ", ex);
@@ -283,7 +285,7 @@ public class UnitTestConnectionService implements ConnectionService {
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
     private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<>();
-    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void>> clientEntityServices =
+    private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?>> clientEntityServices =
       new ArrayList<>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
       new IdentityHashMap<>();
@@ -336,7 +338,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service) {
+    public PassthroughServerBuilder clientEntityService(EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service) {
       this.clientEntityServices.add(service);
       return this;
     }
@@ -360,7 +362,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(service);
       }
 
-      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, Void> service : clientEntityServices) {
+      for (EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse, ?> service : clientEntityServices) {
         newServer.registerClientEntityService(service);
       }
 
@@ -385,6 +387,11 @@ public class UnitTestConnectionService implements ConnectionService {
     }
   }
 
+  public static Collection<Connection> getConnections(URI uri) {
+    ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
+    return serverDescriptor.getConnections().keySet();
+  }
+
   @Override
   public boolean handlesURI(URI uri) {
     if (PASSTHROUGH.equals(uri.getScheme())) {
@@ -392,6 +399,11 @@ public class UnitTestConnectionService implements ConnectionService {
     }
     checkURI(uri);
     return SERVERS.containsKey(uri);
+  }
+
+  @Override
+  public boolean handlesConnectionType(String s) {
+    throw new UnsupportedOperationException("Operation not supported. Use handlesURI(URI) instead.");
   }
 
   @Override
@@ -436,8 +448,13 @@ public class UnitTestConnectionService implements ConnectionService {
      * Uses a Proxy around Connection so closed connections can be removed from the ServerDescriptor.
      */
     return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-        new Class[] { Connection.class },
+        new Class<?>[] { Connection.class },
         new ConnectionInvocationHandler(serverDescriptor, connection));
+  }
+
+  @Override
+  public Connection connect(Iterable<InetSocketAddress> iterable, Properties properties) {
+    throw new UnsupportedOperationException("Operation not supported. Use connect(URI, Properties) instead");
   }
 
   /**

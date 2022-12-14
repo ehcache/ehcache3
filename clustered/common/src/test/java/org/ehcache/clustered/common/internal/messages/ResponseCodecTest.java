@@ -163,4 +163,21 @@ public class ResponseCodecTest {
     assertThat(decodedResponse.getKey(), is(42L));
     Util.assertChainHas(decodedResponse.getChain(), 1L, 11L, 111L);
   }
+
+  @Test
+  public void testLockResponse() {
+    EhcacheEntityResponse.LockSuccess lockSuccess = new EhcacheEntityResponse.LockSuccess(getChain(false, createPayload(1L), createPayload(10L)));
+
+    byte[] sucessEncoded = RESPONSE_CODEC.encode(lockSuccess);
+    EhcacheEntityResponse.LockSuccess successDecoded = (EhcacheEntityResponse.LockSuccess) RESPONSE_CODEC.decode(sucessEncoded);
+
+    assertThat(successDecoded.getResponseType(), is(EhcacheResponseType.LOCK_SUCCESS));
+    Util.assertChainHas(successDecoded.getChain(), 1L, 10L);
+
+    EhcacheEntityResponse.LockFailure lockFailure = EhcacheEntityResponse.lockFailure();
+    byte[] failureEncoded = RESPONSE_CODEC.encode(lockFailure);
+    EhcacheEntityResponse.LockFailure failureDecoded = (EhcacheEntityResponse.LockFailure) RESPONSE_CODEC.decode(failureEncoded);
+
+    assertThat(failureDecoded.getResponseType(), is(EhcacheResponseType.LOCK_FAILURE));
+  }
 }

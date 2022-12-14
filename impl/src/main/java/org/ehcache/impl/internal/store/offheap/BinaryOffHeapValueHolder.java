@@ -18,7 +18,6 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
-import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -31,12 +30,11 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements
   private final ByteBuffer binaryValue;
   private final V value;
 
-  BinaryOffHeapValueHolder(long id, V value, ByteBuffer binaryValue, long creationTime, long expireTime, long lastAccessTime, long hits) {
+  BinaryOffHeapValueHolder(long id, V value, ByteBuffer binaryValue, long creationTime, long expireTime, long lastAccessTime) {
     super(id, creationTime, expireTime);
     this.value = value;
     setLastAccessTime(lastAccessTime, TIME_UNIT);
     this.binaryValue = binaryValue;
-    this.setHits(hits);
   }
 
 
@@ -71,11 +69,11 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements
   }
 
   @Override
-  public V value() {
+  public V get() {
     return value;
   }
 
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+  private void writeObject(java.io.ObjectOutputStream out) {
     throw new UnsupportedOperationException("This subclass of AbstractValueHolder is NOT serializable");
   }
 }

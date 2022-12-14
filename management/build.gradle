@@ -28,20 +28,15 @@ dependencies {
   compileOnly project(':api')
   compileOnly project(':core')
   compileOnly project(':impl')
-  testCompile ("org.terracotta.management:management-registry:$terracottaPlatformVersion") {
-    exclude group: 'org.terracotta', module: 'statistics'
-  }
-
-  testCompile project(':xml')
-  testCompile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+  testImplementation "org.terracotta.management:management-registry:$terracottaPlatformVersion"
+  testImplementation project(':xml')
+  testImplementation project(':impl')
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+  testCompile project(path: ':xml', configuration: 'testArchives')
 }
 
 test {
   if (testJava.javaVersion.isJava9Compatible()) {
     jvmArgs += ['--add-modules', 'java.xml.bind']
   }
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
 }
