@@ -18,137 +18,64 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.ClusteredTests;
-import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.util.runners.Parallel;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.runner.RunWith;
 
-import java.io.File;
-import java.util.List;
-import java.util.Map;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
 
-import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
+@RunWith(Parallel.class)
+public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBase {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+  @ClassRule @Rule
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(
+      newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build()
+  );
 
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster(2).in(new File("build/cluster")).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
-
-  private static final String CACHE_NAME = "cache-1";
-  private static final long KEY = 1L;
-
-  private RecordingLoaderWriter<Long, String> loaderWriter;
+  private PersistentCacheManager cacheManager;
+  private Cache<Long, String> cache;
 
   @Before
-  public void setUp() {
-    loaderWriter = new RecordingLoaderWriter<>();
+  public void setUp() throws Exception {
+    super.setUp();
+
+    CLUSTER.getClusterControl().startAllServers();
+
+    cacheManager = createCacheManager(CLUSTER.getConnectionURI());
+    cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    if (cacheManager != null) {
+      cacheManager.close();
+    }
   }
 
   @Test
   public void testBasicClusteredWriteBehind() throws Exception {
-    PersistentCacheManager cacheManager = createCacheManager();
-    Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
-
     for (int i = 0; i < 10; i++) {
       cache.put(KEY, String.valueOf(i));
     }
 
-    assertValue(cache, String.valueOf(9));
+    assertValue(cache, "9");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().startOneServer();
 
-    assertValue(cache, String.valueOf(9));
+    assertValue(cache, "9");
     checkValueFromLoaderWriter(cache, String.valueOf(9));
-
-    cache.clear();
-  }
-
-  @Test
-  public void testWriteBehindMultipleClients() throws Exception {
-    PersistentCacheManager cacheManager1 = createCacheManager();
-    PersistentCacheManager cacheManager2 = createCacheManager();
-    Cache<Long, String> client1 = cacheManager1.getCache(CACHE_NAME, Long.class, String.class);
-    Cache<Long, String> client2 = cacheManager2.getCache(CACHE_NAME, Long.class, String.class);
-
-    client1.put(KEY, "The one from client1");
-    client2.put(KEY, "The one one from client2");
-    assertValue(client1, "The one one from client2");
-    client1.remove(KEY);
-    client2.put(KEY, "The one from client2");
-    client1.put(KEY, "The one one from client1");
-    assertValue(client2, "The one one from client1");
-    client2.remove(KEY);
-    assertValue(client1, null);
-    client1.put(KEY, "The one from client1");
-    client1.put(KEY, "The one one from client1");
-    client2.remove(KEY);
-    client2.put(KEY, "The one from client2");
-    client2.put(KEY, "The one one from client2");
-    client1.remove(KEY);
-    assertValue(client2, null);
-
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().startOneServer();
-
-    assertValue(client1, null);
-    assertValue(client2, null);
-    checkValueFromLoaderWriter(client1, null);
-
-    client1.clear();
-  }
-
-  private void checkValueFromLoaderWriter(Cache<Long, String> cache, String expected) {
-
-    tryFlushingUpdatesToSOR(cache);
-
-    Map<Long, List<String>> records = loaderWriter.getRecords();
-    List<String> keyRecords = records.get(KEY);
-
-    int index = keyRecords.size() - 1;
-    while (index >= 0 && keyRecords.get(index) != null && keyRecords.get(index).startsWith("flush_")) {
-      index--;
-    }
-
-    assertThat(keyRecords.get(index), is(expected));
-
   }
 
   @Test
   public void testClusteredWriteBehindCAS() throws Exception {
-    PersistentCacheManager cacheManager = createCacheManager();
-    Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
     cache.putIfAbsent(KEY, "First value");
     assertValue(cache,"First value");
     cache.putIfAbsent(KEY, "Second value");
@@ -168,51 +95,10 @@ public class BasicClusteredWriteBehindWithPassiveTest extends ClusteredTests {
     cache.put(KEY, "new value");
     assertValue(cache, "new value");
 
+    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().startOneServer();
 
-    cache.clear();
-  }
-
-  private void assertValue(Cache<Long, String> cache, String value) {
-    assertThat(cache.get(KEY), is(value));
-  }
-
-  private void tryFlushingUpdatesToSOR(Cache<Long, String> cache) {
-    int retryCount = 1000;
-    int i = 0;
-    while (true) {
-      String value = "flush_queue_" + i;
-      cache.put(KEY, value);
-      try {
-        Thread.sleep(100);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-      if (value.equals(loaderWriter.load(KEY))) break;
-      if (i > retryCount) {
-        throw new RuntimeException("Couldn't flush updates to SOR after " + retryCount + " tries");
-      }
-      i++;
-    }
-  }
-
-  private PersistentCacheManager createCacheManager() {
-    CacheConfiguration<Long, String> cacheConfiguration =
-      newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
-                                                                                 .heap(10, EntryUnit.ENTRIES)
-                                                                                 .offheap(1, MemoryUnit.MB)
-                                                                                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-        .withLoaderWriter(loaderWriter)
-        .add(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
-        .add(new ClusteredStoreConfiguration(Consistency.STRONG))
-        .build();
-
-    return CacheManagerBuilder
-      .newCacheManagerBuilder()
-      .with(cluster(CLUSTER.getConnectionURI().resolve("/cm-wb")).autoCreate())
-      .withCache(CACHE_NAME, cacheConfiguration)
-      .build(true);
+    assertValue(cache, "new value");
+    checkValueFromLoaderWriter(cache,"new value");
   }
 }

@@ -1,6 +1,6 @@
 = The Ehcache 3.x line is currently the development line.
 
-Status of the build: 
+Status of the build:
 [link="https://dev.azure.com/TerracottaCI/ehcache/_build/latest?definitionId=14"]
 image::https://dev.azure.com/TerracottaCI/ehcache/_apis/build/status/ehcache3[Build Status]
 
@@ -12,16 +12,15 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.6.1 on September 21st 2018.
+We released 3.9.0 on August 25th 2020.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.6.1[release notes] contain the links to the artifacts and the documentation to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.9.0[release notes] contain the links to the artifacts and the documentation to help you get started.
 
-You should consider upgrading to 3.6.x as it does all previous 3.x do and more with a fully compatible API.
-The only thing to note compared to 3.0.x is that transactional support has been moved to a separate jar.
+You should consider upgrading to 3.9.x as it does all previous 3.x do and more with a fully compatible API.
 
 == Current development & next release
 
-We are still working on the missing features of the clustering tier of Ehcache 3 which will be included in upcoming releases.
+We released the missing features of the clustering tier of Ehcache 3 in 3.7.0.
 
 Starting with version 3.5, Ehcache only supports Java 8 and later.
 

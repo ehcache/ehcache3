@@ -1,12 +1,12 @@
 ---
 ---
 = Examples
-ifndef::sourcedir36[]
-include::common.adoc[]
-endif::sourcedir36[]
+ifndef::sourcedir39[]
+include::{includedir}/common.adoc[]
+endif::sourcedir39[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Peeper - a simple message board
@@ -102,5 +102,5 @@ Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and
 
 [source,xml,indent=0]
 ----
-include::{sourcedir36}/107/src/test/resources/ehcache-example.xml[]
+include::{sourcedir39}/ehcache-107/src/test/resources/ehcache-example.xml[]
 ----

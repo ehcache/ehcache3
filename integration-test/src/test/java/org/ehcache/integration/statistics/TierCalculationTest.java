@@ -33,7 +33,7 @@ import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.integration.TestTimeSource;
 import org.junit.After;
 import org.junit.Before;
@@ -66,7 +66,7 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
       CacheConfigurationBuilder
         .newCacheConfigurationBuilder(Integer.class, String.class, resources)
         .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
-        .add(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
+        .withService(new StoreStatisticsConfiguration(true)) // explicitly enable statistics
         .build();
 
     StatisticsService statisticsService = new DefaultStatisticsService();
@@ -149,16 +149,16 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
     changesOf(0, 0, 2, 0);
 
     Iterator<Cache.Entry<Integer, String>> iterator = cache.iterator();
-    changesOf(1, 0, 0, 0); // FIXME Why one?!?
+    changesOf(0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(1, 0, 0, 0); // FIXME One hit and on the cache we have two
+    changesOf(0, 0, 0, 0);
 
     expect(iterator.hasNext()).isTrue();
     changesOf(0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(0, 0, 0, 0); // FIXME No hit on a next
+    changesOf(0, 0, 0, 0);
 
     expect(iterator.hasNext()).isFalse();
     changesOf(0, 0, 0, 0);

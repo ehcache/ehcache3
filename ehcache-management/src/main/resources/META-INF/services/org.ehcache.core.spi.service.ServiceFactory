@@ -1,0 +1,2 @@
+org.ehcache.management.registry.DefaultManagementRegistryFactory
+org.ehcache.management.statistics.DefaultExtendedStatisticsServiceFactory

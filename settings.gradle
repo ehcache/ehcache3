@@ -14,10 +14,23 @@
  * limitations under the License.
  */
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:common", "clustered:client", "clustered:server", "clustered:integration-test", "clustered:clustered-dist", "clustered:ops-tool",
-        "integration-test", "dist", "osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"
+pluginManagement {
+  plugins {
+    id 'io.codearte.nexus-staging' version '0.30.0'
+    id 'org.owasp.dependencycheck' version '6.2.2'
+    id 'org.gretty' version '3.0.6'
+    id 'org.asciidoctor.jvm.base' version '3.3.2'
+    id 'org.unbroken-dome.xjc' version '2.0.0'
+  }
 
-// This is recommended to make sure publishing works correctly with the new default to be established
-// in Gradle 5. It can be removed when moving to Gradle 5.
-enableFeaturePreview('STABLE_PUBLISHING')
+  includeBuild 'build-logic'
+}
+
+include "ehcache-api", "ehcache-core", "ehcache-impl", "ehcache-107", "ehcache-xml",
+  "ehcache-management", "ehcache-transactions", "ehcache",
+  "spi-tester", "core-spi-test",
+  "clustered:ehcache-common-api", "clustered:ehcache-common",
+  "clustered:server:ehcache-service-api", "clustered:server:ehcache-service", "clustered:server:ehcache-entity",
+  "clustered:ehcache-client", "clustered:ehcache-clustered", "clustered:ops-tool",
+  "clustered:test-utils", "clustered:integration-test",
+  "integration-test", "osgi-test", "clustered:osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"

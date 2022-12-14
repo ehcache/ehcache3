@@ -16,7 +16,6 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.CacheManager;
-import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
@@ -25,44 +24,44 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
-import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
+import static java.util.Collections.unmodifiableMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResources;
 
-public class EhcacheConfigWithManagementTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
+public class EhcacheConfigWithManagementTest {
+
+  private static final Map<String, Long> resources;
+  static {
+    HashMap<String, Long> map = new HashMap<>();
+    map.put("primary-server-resource", 64L);
+    map.put("secondary-server-resource", 64L);
+    resources = unmodifiableMap(map);
+  }
 
   @ClassRule
-  public static Cluster CLUSTER = newCluster().in(new File("build/cluster"))
-                                              .withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResources(resources)).build();
 
   @Test
   public void create_cache_manager() throws Exception {
     CacheManager cacheManager = newCacheManagerBuilder()
       // cluster config
       .with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-3"))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")
-        .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
-        .resourcePool("resource-pool-b", 8, MemoryUnit.MB)) // will take from primary-server-resource
+        .autoCreate(server -> server
+          .defaultServerResource("primary-server-resource")
+          .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
+          .resourcePool("resource-pool-b", 8, MemoryUnit.MB))) // will take from primary-server-resource
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")
