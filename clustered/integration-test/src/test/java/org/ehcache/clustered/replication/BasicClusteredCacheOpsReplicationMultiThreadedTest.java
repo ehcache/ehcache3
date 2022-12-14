@@ -35,7 +35,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -101,7 +100,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
     .withServerHeap(512)
-    .withServiceFragment(offheapResource("primary-server-resource", 16)).build());
+    .withServiceFragment(offheapResource("primary-server-resource", 24)).build());
 
   @Rule
   public final TestName testName = new TestName();
@@ -240,9 +239,6 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   }
 
-  @Ignore("This is currently unstable as if the clear does not complete before the failover," +
-          "there is no future operation that will trigger the code in ClusterTierActiveEntity.invokeServerStoreOperation" +
-          "dealing with in-flight invalidation reconstructed from reconnect data")
   @Test(timeout=180000)
   public void testClear() throws Exception {
     List<Future<?>> futures = new ArrayList<>();
