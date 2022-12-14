@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.internal.Store.operations;
+package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.clustered.common.internal.store.operations.OperationCode;
 import org.junit.Test;
