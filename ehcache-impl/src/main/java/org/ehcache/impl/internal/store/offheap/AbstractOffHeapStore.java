@@ -857,19 +857,22 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
 
     flushObserver.begin();
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
+    boolean result = false;
 
     try {
-      boolean result = backingMap().computeIfPinned(key, (k, valuePresent) -> {
-        if (valuePresent.getId() == valueFlushed.getId()) {
-          if (valueFlushed.isExpired(timeSource.getTimeMillis())) {
-            onExpiration(k, valuePresent, eventSink);
-            return null;
+      if (valueFlushed != null) {
+        result = backingMap().computeIfPinned(key, (k, valuePresent) -> {
+          if (valuePresent.getId() == valueFlushed.getId()) {
+            if (valueFlushed.isExpired(timeSource.getTimeMillis())) {
+              onExpiration(k, valuePresent, eventSink);
+              return null;
+            }
+            valuePresent.updateMetadata(valueFlushed);
+            valuePresent.writeBack();
           }
-          valuePresent.updateMetadata(valueFlushed);
-          valuePresent.writeBack();
-        }
-        return valuePresent;
-      }, valuePresent -> valuePresent.getId() == valueFlushed.getId());
+          return valuePresent;
+        }, valuePresent -> valuePresent.getId() == valueFlushed.getId());
+      }
       eventDispatcher.releaseEventSink(eventSink);
       if (result) {
         flushObserver.end(AuthoritativeTierOperationOutcomes.FlushOutcome.HIT);
