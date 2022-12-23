@@ -48,6 +48,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private final File rootDirectory;
   private final File lockFile;
+  private final File cleanShutdown;
+  private final File unCleanShutdown;
 
   private FileLock lock;
   private RandomAccessFile rw;
@@ -65,6 +67,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
     lockFile = new File(rootDirectory, ".lock");
+    cleanShutdown = new File(rootDirectory, ".cleanShutdown");
+    unCleanShutdown = new File(rootDirectory, ".unCleanShutdown");
   }
 
   /**
@@ -82,6 +86,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
+      verifyCleanShutdown(rootDirectory);
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
         rw = new RandomAccessFile(lockFile, "rw");
@@ -131,6 +136,18 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       }
       started = false;
       LOGGER.debug("RootDirectory Unlocked");
+      try {
+        if (cleanShutdown.createNewFile()) {
+          LOGGER.debug(".cleanShutdown file is created.");
+          if (unCleanShutdown.exists()) {
+            LOGGER.debug(".unCleanShutdown file is exists.");
+            Files.delete(unCleanShutdown.toPath());
+            LOGGER.debug(".unCleanShutdown file is deleted.");
+          }
+        }
+      } catch (IOException e) {
+        LOGGER.debug("Either '.cleanShutdown' file is not created or '.unCleanShutdown' is not deleted.");
+      }
     }
   }
 
@@ -242,6 +259,35 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     @Override
     public File getRoot() {
       return safeSpace.directory;
+    }
+  }
+
+  private void verifyCleanShutdown(final File rootDirectory) {
+    if (rootDirectory.exists()) {
+      try {
+        if (!cleanShutdown.exists() && !unCleanShutdown.exists()) {
+          if (unCleanShutdown.createNewFile()) {
+            LOGGER.debug("unCleanShutdown file is created.");
+          }
+        } else if (cleanShutdown.exists()) {
+          Files.delete(cleanShutdown.toPath());
+          LOGGER.debug("cleanShutdown file is deleted.");
+          if (unCleanShutdown.createNewFile()) {
+            LOGGER.debug("unCleanShutdown file is created.");
+          }
+        } else if (unCleanShutdown.exists()) {
+          LOGGER.debug("Probably unclean shutdown was done.");
+          if (rootDirectory.exists()) {
+            FileUtils.tryRecursiveDelete(rootDirectory);
+            LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
+          }
+        }
+      } catch (IOException e) {
+        LOGGER.debug("Unable to verify clean shutdown.");
+      }
+    }
+    else {
+      LOGGER.debug("Root directory is not exists.");
     }
   }
 }
