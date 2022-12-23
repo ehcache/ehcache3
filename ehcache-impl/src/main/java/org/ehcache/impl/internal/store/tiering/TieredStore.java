@@ -572,7 +572,10 @@ public class TieredStore<K, V> implements Store<K, V> {
     @Override
     public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) {
       final ValueHolder<V> apply = source.apply(key);
-      authoritativeTier.flush(key, apply);
+      //this null check is to handle the null pointer exception that can be thrown from the flush method
+      if (apply!=null){
+        authoritativeTier.flush(key, apply);
+      }
       return apply;
     }
 
