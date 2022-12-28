@@ -271,11 +271,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
             valueSerializer = valueSer;
           }
         } catch (UnsupportedTypeException e) {
-          if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
-            throw new RuntimeException(e);
-          } else {
-            LOGGER.debug("Serializers for cache '{}' failed creation ({}). However, depending on the configuration, they might not be needed", id, e.getMessage());
-          }
         }
       }
 
@@ -570,7 +565,14 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    */
   public final UserManagedCacheBuilder<K, V, T> withResourcePools(ResourcePools resourcePools) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
+    Set<ResourceType<?>> resources=resourcePools.getResourceTypeSet();
     otherBuilder.resourcePools = resourcePools;
+    if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
+      LOGGER.debug("Runtime Exception found");
+    } else {
+      LOGGER.debug("Could not create Serializers for user Managed cache");
+      LOGGER.debug("Serializers for cache failed creation. However, depending on the configuration, they might not be needed");
+    }
     return otherBuilder;
   }
 
@@ -584,6 +586,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @see #withResourcePools(ResourcePools)
    */
   public final UserManagedCacheBuilder<K, V, T> withResourcePools(ResourcePoolsBuilder resourcePoolsBuilder) {
+    Set<ResourceType<?>> resources1 = resourcePoolsBuilder.build().getResourceTypeSet();
+    if (resources1.contains(OFFHEAP) || resources1.contains(DISK)) {
+      LOGGER.debug("Runtime Exception found");
+    } else {
+      LOGGER.debug("Could not create Serializers for user Managed cache");
+      LOGGER.debug("Serializers for cache failed creation. However, depending on the configuration, they might not be needed");
+    }
     return withResourcePools(resourcePoolsBuilder.build());
   }
 
