@@ -23,12 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
-import org.terracotta.exception.EntityAlreadyExistsException;
-import org.terracotta.exception.EntityConfigurationException;
-import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.exception.EntityNotProvidedException;
-import org.terracotta.exception.EntityVersionMismatchException;
-import org.terracotta.exception.PermanentEntityException;
+import org.terracotta.exception.*;
 
 public class VoltronReadWriteLock {
 
@@ -119,9 +114,13 @@ public class VoltronReadWriteLock {
 
     @Override
     public void unlock() {
-      client.unlock(type);
-      client.close();
-      tryDestroy();
+      try {
+        client.unlock(type);
+        client.close();
+        tryDestroy();
+      } catch (ConnectionClosedException ex) {
+        LOGGER.info("Connection already been closed");
+      }
     }
   }
 
