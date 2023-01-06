@@ -858,7 +858,6 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     flushObserver.begin();
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
 
-
     try {
         boolean result = backingMap().computeIfPinned(key, (k, valuePresent) -> {
           if (valuePresent.getId() == valueFlushed.getId()) {

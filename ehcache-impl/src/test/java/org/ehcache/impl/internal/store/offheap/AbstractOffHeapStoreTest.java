@@ -242,6 +242,32 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
+  public void testFlushUpdatesAccessStatsForNullPointerException() throws StoreAccessException {
+    ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L));
+    offHeapStore = createAndInitStore(timeSource, expiry);
+    try {
+      final String key = "foo";
+      final String value = "bar";
+      offHeapStore.put(key, value);
+      final Store.ValueHolder<String> firstValueHolder = offHeapStore.getAndFault(key);
+      offHeapStore.put(key, value);
+      final Store.ValueHolder<String> secondValueHolder = offHeapStore.getAndFault(key);
+      timeSource.advanceTime(10);
+      ((AbstractValueHolder) firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, () -> value));
+      timeSource.advanceTime(10);
+      ((AbstractValueHolder) secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, () -> value));
+      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(null)), is(false));
+      assertThat(offHeapStore.flush(key, new DelegatingValueHolder<>(null)), is(true));
+      timeSource.advanceTime(10); // this should NOT affect
+      assertThat(offHeapStore.getAndFault(key).lastAccessTime(), is(secondValueHolder.creationTime() + 20));
+    } catch (NullPointerException e){
+      e.printStackTrace();
+    } finally {
+      destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
   public void testExpiryEventFiredOnExpiredCachedEntry() throws StoreAccessException {
     offHeapStore = createAndInitStore(timeSource, ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(10L)));
 
