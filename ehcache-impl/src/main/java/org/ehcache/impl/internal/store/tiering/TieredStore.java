@@ -48,6 +48,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.Optional;
 
 /**
  * A {@link Store} implementation supporting a tiered caching model.
@@ -572,8 +573,9 @@ public class TieredStore<K, V> implements Store<K, V> {
     @Override
     public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) {
       final ValueHolder<V> apply = source.apply(key);
-      //this null check is to handle the null pointer exception that can be thrown from the flush method
-      if (apply!=null){
+      Optional<ValueHolder<V>> ap = Optional.ofNullable(apply);
+      if (ap.isPresent()) {
+        //immediately flushes any entries faulted from authority as this tier has no capacity
         authoritativeTier.flush(key, apply);
       }
       return apply;
