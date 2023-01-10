@@ -561,6 +561,33 @@ public class TieredStoreTest {
   }
 
   @Test
+  public void AuthoritativeTierNullCheckDuringFlush() throws StoreAccessException, BrokenBarrierException, InterruptedException {
+    final TieredStore<String, String> tieredStore = new TieredStore<>(stringCachingTier, stringAuthoritativeTier);
+
+    final CyclicBarrier barrier = new CyclicBarrier(2);
+
+    doAnswer((Answer<Void>) invocation -> {
+      barrier.await();
+      barrier.await();
+      return null;
+    }).when(stringAuthoritativeTier).clear();
+    Thread t = new Thread(() -> {
+      try {
+        tieredStore.clear();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    });
+
+    t.start();
+    barrier.await();
+    tieredStore.get("foo");
+    barrier.await();
+    t.join();
+    verify(stringAuthoritativeTier,never()).flush("foo",null);
+  }
+
+  @Test
   @SuppressWarnings("unchecked")
   public void testReleaseStoreFlushes() throws Exception {
     TieredStore.Provider tieredStoreProvider = new TieredStore.Provider();
