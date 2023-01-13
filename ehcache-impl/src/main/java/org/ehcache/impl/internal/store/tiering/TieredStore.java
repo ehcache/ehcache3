@@ -42,13 +42,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.Optional;
 
 /**
  * A {@link Store} implementation supporting a tiered caching model.
@@ -573,8 +573,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     @Override
     public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) {
       final ValueHolder<V> apply = source.apply(key);
-      Optional<ValueHolder<V>> ap = Optional.ofNullable(apply);
-      if (ap.isPresent()) {
+      if (Objects.nonNull(apply)) {
         //immediately flushes any entries faulted from authority as this tier has no capacity
         authoritativeTier.flush(key, apply);
       }

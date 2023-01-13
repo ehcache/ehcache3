@@ -584,7 +584,7 @@ public class TieredStoreTest {
     tieredStore.get("foo");
     barrier.await();
     t.join();
-    verify(stringAuthoritativeTier,never()).flush("foo",null);
+    verify(stringAuthoritativeTier, never()).flush("foo", null);
   }
 
   @Test
