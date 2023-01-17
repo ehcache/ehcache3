@@ -14,6 +14,7 @@ Contents
      └─documentation -- Directory for Ehcache documentation
    └─lib -- Directory containing third-party client libraries
    legal -- Directory containing the licenses associated with this distribution
+   docker -- Directory containing Dockerfile examples to be able to build your own Terracotta images to run a clustered Ehcache
 
 
 Resources

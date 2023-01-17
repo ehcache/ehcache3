@@ -139,6 +139,7 @@ distributions {
       }
       into ('') {
         from 'src/assemble'
+        filter(org.apache.tools.ant.filters.ReplaceTokens, tokens: [version: project.version])
       }
     }
   }
@@ -153,4 +154,10 @@ distZip {
   archiveClassifier = 'kit'
 }
 
-[distTar, distZip, installDist]*.dependsOn copyDocs, javadocJar, project(':dist').jar, project(':dist').javadocJar
+tasks.register('distDir', Sync) {
+  description = 'Creates an expanded kit'
+  into("${project.buildDir}/kit")
+  with(distributions.main.contents)
+}
+
+[distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':dist').jar, project(':dist').javadocJar
