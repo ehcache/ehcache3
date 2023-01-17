@@ -158,6 +158,7 @@ distributions {
       }
       into ('') {
         from 'src/assemble'
+        filter(org.apache.tools.ant.filters.ReplaceTokens, tokens: [version: project.version])
       }
     }
   }
@@ -172,9 +173,21 @@ distZip {
   archiveClassifier = 'kit'
 }
 
+tasks.register('distDir', Sync) {
+  description = 'Creates an expanded kit'
+  into("${project.buildDir}/kit")
+  with(distributions.main.contents)
+}
+
+artifacts {
+  add(configurations.kit.name, tasks.named('distDir', Sync).map {
+    copy -> copy.destinationDir
+  })
+}
+
 publishing.publications.withType(MavenPublication) {
   artifact distZip
   artifact distTar
 }
 
-[distTar, distZip, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar
+[distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar
