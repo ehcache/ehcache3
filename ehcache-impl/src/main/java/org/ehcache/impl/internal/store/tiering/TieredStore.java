@@ -573,7 +573,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     @Override
     public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) {
       final ValueHolder<V> apply = source.apply(key);
-      if (Objects.nonNull(apply)) {
+      if (apply != null) {
         //immediately flushes any entries faulted from authority as this tier has no capacity
         authoritativeTier.flush(key, apply);
       }
