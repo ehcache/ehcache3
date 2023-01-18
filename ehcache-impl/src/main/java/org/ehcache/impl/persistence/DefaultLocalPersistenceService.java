@@ -48,8 +48,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private final File rootDirectory;
   private final File lockFile;
-  private final File cleanShutdown;
-  private final File unCleanShutdown;
+  private final File clean;
 
   private FileLock lock;
   private RandomAccessFile rw;
@@ -67,8 +66,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
     lockFile = new File(rootDirectory, ".lock");
-    cleanShutdown = new File(rootDirectory, ".cleanShutdown");
-    unCleanShutdown = new File(rootDirectory, ".unCleanShutdown");
+    clean = new File(rootDirectory, ".clean");
   }
 
   /**
@@ -86,8 +84,28 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
-      verifyCleanShutdown(rootDirectory);
       createLocationIfRequiredAndVerify(rootDirectory);
+      if (!clean.exists()) {
+        if (lockFile.exists()) {
+          onStartupIfLockFileExists();
+        } else {
+          LOGGER.debug("lock file is not exists.");
+        }
+        if (tryRecursiveDelete(rootDirectory)) {
+          LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
+          createLocationIfRequiredAndVerify(rootDirectory);
+        } else {
+          LOGGER.warn("Could not delete root directory.");
+        }
+      } else if (clean.exists()) {
+        try {
+          Files.delete(clean.toPath());
+          LOGGER.debug("clean file is deleted.");
+        } catch (IOException e) {
+          LOGGER.warn("clean file was not deleted {}.", clean.getPath());
+        }
+      }
+
       try {
         rw = new RandomAccessFile(lockFile, "rw");
       } catch (FileNotFoundException e) {
@@ -134,20 +152,16 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       } catch (IOException e) {
         throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
-      started = false;
-      LOGGER.debug("RootDirectory Unlocked");
+
       try {
-        if (cleanShutdown.createNewFile()) {
-          LOGGER.debug(".cleanShutdown file is created.");
-          if (unCleanShutdown.exists()) {
-            LOGGER.debug(".unCleanShutdown file is exists.");
-            Files.delete(unCleanShutdown.toPath());
-            LOGGER.debug(".unCleanShutdown file is deleted.");
-          }
+        if (clean.createNewFile()) {
+          LOGGER.debug("clean file is created.");
         }
       } catch (IOException e) {
-        LOGGER.debug("Either '.cleanShutdown' file is not created or '.unCleanShutdown' is not deleted.");
+        LOGGER.warn("clean file is not created.");
       }
+      started = false;
+      LOGGER.debug("RootDirectory Unlocked");
     }
   }
 
@@ -262,32 +276,37 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
-  private void verifyCleanShutdown(final File rootDirectory) {
-    if (rootDirectory.exists()) {
-      try {
-        if (!cleanShutdown.exists() && !unCleanShutdown.exists()) {
-          if (unCleanShutdown.createNewFile()) {
-            LOGGER.debug("unCleanShutdown file is created.");
-          }
-        } else if (cleanShutdown.exists()) {
-          Files.delete(cleanShutdown.toPath());
-          LOGGER.debug("cleanShutdown file is deleted.");
-          if (unCleanShutdown.createNewFile()) {
-            LOGGER.debug("unCleanShutdown file is created.");
-          }
-        } else if (unCleanShutdown.exists()) {
-          LOGGER.debug("Probably unclean shutdown was done.");
-          if (rootDirectory.exists()) {
-            FileUtils.tryRecursiveDelete(rootDirectory);
-            LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
-          }
-        }
-      } catch (IOException e) {
-        LOGGER.debug("Unable to verify clean shutdown.");
-      }
+  private void onStartupIfLockFileExists() {
+    RandomAccessFile file;
+    FileLock filelock;
+    try {
+      file = new RandomAccessFile(lockFile, "rw");
+    } catch (FileNotFoundException e) {
+      // should not happen normally since we checked that everything is fine right above
+      throw new RuntimeException(e);
     }
-    else {
-      LOGGER.debug("Root directory is not exists.");
+    try {
+      filelock = file.getChannel().tryLock();
+    } catch (OverlappingFileLockException e) {
+      throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.getAbsolutePath(), e);
+    } catch (Exception e) {
+      try {
+        file.close();
+      } catch (IOException e1) {
+        // ignore silently
+      }
+      throw new RuntimeException("Persistence directory couldn't be locked: " + rootDirectory.getAbsolutePath(), e);
+    }
+    try {
+      if (filelock == null) {
+        file.close();
+        throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
+      } else {
+        filelock.release();
+        file.close();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }
