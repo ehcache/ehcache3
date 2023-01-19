@@ -639,6 +639,44 @@ public class CacheStoreTest {
         org.mockito.Matchers.<String>any(), org.mockito.Matchers.<Function<String, Store.ValueHolder<String>>>anyObject());
   }
 
+  @Test
+  public void AuthoritativeTierNullCheckDuringFlush() throws CacheAccessException, BrokenBarrierException, InterruptedException {
+
+
+    final CachingTier<String, String> cachingTier = mock(CachingTier.class);
+    final AuthoritativeTier<String, String> authoritativeTier = mock(AuthoritativeTier.class);
+
+    final CacheStore<String, String> cacheStore = new CacheStore<String, String>(cachingTier, authoritativeTier);
+
+    final CyclicBarrier barrier = new CyclicBarrier(2);
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(final InvocationOnMock invocation) throws Throwable {
+        barrier.await();
+        barrier.await();
+        return null;
+      }
+    }).when(authoritativeTier).clear();
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          cacheStore.clear();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    });
+
+    t.start();
+    barrier.await();
+    cacheStore.get("foo");
+    barrier.await();
+    t.join();
+    verify(stringAuthoritativeTier, never()).flush("foo", null);
+  }
+
   public Map.Entry<? extends Number, ? extends CharSequence> newMapEntry(Number key, CharSequence value) {
     return new AbstractMap.SimpleEntry<Number, CharSequence>(key, value);
   }
