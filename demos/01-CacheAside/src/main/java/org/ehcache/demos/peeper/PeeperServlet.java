@@ -16,6 +16,7 @@
 package org.ehcache.demos.peeper;
 
 import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,7 +27,13 @@ import java.util.List;
 /**
  * @author Ludovic Orban
  */
+@WebServlet(
+  name = "PeeperServlet",
+  urlPatterns = {"/*"}
+)
 public class PeeperServlet extends HttpServlet {
+
+  private static final long serialVersionUID = 1L;
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -63,7 +70,7 @@ public class PeeperServlet extends HttpServlet {
 
 
   @Override
-  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
     String peepText = req.getParameter("peep");
 
     try {

@@ -1,12 +1,19 @@
-ifndef::sourcedir[]
+---
+---
+ifndef::sourcedir39[]
+:version: 3.9
 :notBuildingForSite: true
 ifdef::basebackend-html[:outfilesuffix: .html]
-:source-highlighter: prettify
+:source-highlighter: coderay
+:stylesdir: css
 :stylesheet: ehcache.css
 :linkcss:
 :icons: font
-:sourcedir: ../../../../../
+:iconfont-remote!:
+:iconfont-name: font-awesome.min
+:sourcedir39: {gradle-rootdir}
+:imagesdir: images
 :sectanchors:
 :idprefix:
 :idseparator: -
-endif::sourcedir[]
+endif::sourcedir39[]

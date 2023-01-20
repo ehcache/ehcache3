@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * Test the {@link Store#iterator()} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -76,12 +75,12 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(key3, value3);
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
-    List<K> keys = new ArrayList<K>();
-    List<V> values = new ArrayList<V>();
+    List<K> keys = new ArrayList<>();
+    List<V> values = new ArrayList<>();
     while (iterator.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> nextEntry = iterator.next();
       keys.add(nextEntry.getKey());
-      values.add(nextEntry.getValue().value());
+      values.add(nextEntry.getValue().get());
     }
     assertThat(keys, containsInAnyOrder(equalTo(key1), equalTo(key2), equalTo(key3)));
     assertThat(values, containsInAnyOrder(equalTo(value1), equalTo(value2), equalTo(value3)));

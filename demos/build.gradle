@@ -1,8 +1,26 @@
+plugins {
+  id 'org.ehcache.build.conventions.war' apply false
+  id 'org.gretty' apply false
+}
+
 subprojects {
-  apply plugin: 'war'
-  apply plugin: 'jetty'
+  apply plugin: 'org.ehcache.build.conventions.war'
+  apply plugin: 'org.gretty'
+
+  repositories {
+    jcenter()
+  }
+
+  gretty {
+    httpPort = 8080
+    contextPath = '/'
+    servletContainer = 'jetty9'
+  }
 
   dependencies {
-      compile 'ch.qos.logback:logback-classic:1.0.13', 'javax.servlet:servlet-api:2.5', 'com.h2database:h2:1.4.186', project(':impl')
+    implementation project(':ehcache-impl')
+    implementation 'javax.servlet:javax.servlet-api:3.1.0'
+    runtimeOnly 'ch.qos.logback:logback-classic:1.2.3'
+    runtimeOnly 'com.h2database:h2:1.4.196'
   }
 }

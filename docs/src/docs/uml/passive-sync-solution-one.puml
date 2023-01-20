@@ -1,0 +1,47 @@
+@startuml
+
+title Passive Replication Proposal One ('The Chris')
+participant "Client" as C
+participant "Active Server" as AS
+participant "Passive Server" as PS
+
+[o->C: putIfAbsent(k, v)
+activate C
+C->AS: getAndAppend(putIfAbsent(k, v))
+activate AS
+AS->PS: append(putIfAbsent(k, v))
+activate PS
+AS<--PS
+deactivate PS
+C<--AS: chain
+deactivate AS
+
+C->C: resolve
+
+C->AS: replace(k.hash, chain, resolved)
+activate AS
+AS->PS: replace(k.hash, chain, resolved)
+activate PS
+AS<--PS: passive response
+deactivate PS
+C<--AS: active & passive responses
+deactivate AS
+
+alt active response ≠ passive response
+C->AS: evict(k.hash)
+activate AS
+AS->PS: evict(k.hash)
+activate PS
+AS<--PS
+deactivate PS
+C<--AS
+deactivate AS
+note over AS, PS
+Servers now forced back in sync
+end note
+end
+
+[<--C:
+deactivate C
+
+@enduml

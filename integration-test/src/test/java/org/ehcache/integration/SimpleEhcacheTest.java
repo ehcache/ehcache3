@@ -30,11 +30,11 @@ import java.util.Map;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Ludovic Orban
@@ -79,7 +79,7 @@ public class SimpleEhcacheTest {
   public void testSimplePutAll() throws Exception {
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
-    Map<Integer, String> values = new HashMap<Integer, String>();
+    Map<Integer, String> values = new HashMap<>();
     values.put(1, "one");
     values.put(2, "two");
     values.put(3, "three");

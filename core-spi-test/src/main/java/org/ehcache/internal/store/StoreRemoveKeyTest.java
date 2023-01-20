@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store#remove(Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -40,17 +39,12 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   protected Store<K, V> kvStore;
-  protected Store kvStore2;
 
   @After
   public void tearDown() {
     if (kvStore != null) {
       factory.close(kvStore);
       kvStore = null;
-    }
-    if (kvStore2 != null) {
-      factory.close(kvStore2);
-      kvStore2 = null;
     }
   }
 
@@ -94,10 +88,8 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore = factory.newStore();
 
-    K key = null;
-
     try {
-      kvStore.remove(key);
+      kvStore.remove(null);
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
@@ -110,13 +102,13 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore2.remove(1.0f);
+        kvStore.remove((K) (Float) 1.0f);
       } else {
-        kvStore2.remove("key");
+        kvStore.remove((K) "key");
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {

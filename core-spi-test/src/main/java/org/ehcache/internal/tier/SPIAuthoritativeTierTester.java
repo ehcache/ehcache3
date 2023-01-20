@@ -20,7 +20,7 @@ import org.ehcache.spi.test.SPITester;
 
 /**
  * Parent class for all AuthoritativeTier tester classes.
- * <p/>
+ *
  * @author Aurelien Broszniowski
  */
 

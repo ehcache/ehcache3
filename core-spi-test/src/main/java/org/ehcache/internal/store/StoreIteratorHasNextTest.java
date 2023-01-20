@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store.Iterator#hasNext()} contract of the
  * {@link Store.Iterator Store.Iterator} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

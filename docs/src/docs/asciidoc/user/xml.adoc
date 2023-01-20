@@ -1,49 +1,49 @@
 ---
 ---
-ifndef::sourcedir[]
-include::common.adoc[]
-endif::sourcedir[]
-
 = XML Configuration
+ifndef::sourcedir39[]
+include::{includedir}/common.adoc[]
+endif::sourcedir39[]
 
 ifdef::notBuildingForSite[]
-include::menu.adoc[]
+include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
 
 == Introduction
 
 Using an XML file you can configure a `CacheManager` at creation time, according to
-link:xsds{outfilesuffix}#core[this schema definition].
+<<xsds.adoc#core,this schema definition>>.
 
 === `<config>` root element
 
-The root element of our XML configuration. One `<config>` element and, by implication, one XML file,
-provides the definition for a `CacheManager`.  With Ehcache 3.0, however, you may create multiple
-`CacheManager` instances using the same XML configuration file.  Unlike the JSR-107
-`javax.cache.spi.CachingProvider`, Ehcache does not maintain a registry of `CacheManager` instances.
+The root element of our XML configuration. One `<config>` element in an XML file provides the definition for a `CacheManager`.
 
+NOTE: Ehcache allows for creating multiple `CacheManager` instances using the same XML configuration file.
+In contrast to the JSR-107 `javax.cache.spi.CachingProvider`, Ehcache does not maintain a registry of `CacheManager` instances.
 
 === `<service>` elements
 
-Currently, no built-in services are provided. `<service>` elements are an extension point for
-specifying `CacheManager` managed services.  Each `Service` defined in this way is managed with the
-same lifecycle as the `CacheManager` -- for each `Service` defined for a `CacheManager, the `Service.start`
+`<service>` elements are extension points for specifying services managed by the `CacheManager`.
+
+Each `Service` defined in this way is managed with the
+same lifecycle as the `CacheManager` -- for each `Service` defined for a `CacheManager`, the `Service.start`
 is called during `CacheManager.init` processing and the `Service.stop` method is called during
 `CacheManager.close` processing.
 
-These `Service` instances can then be used by `Cache` instances managed by the `CacheManager`.  JSR-107 uses this
-extension point of the XML configuration (and Ehcache 3's modular architecture), as explained in the
-link:107{outfilesuffix}#supplement-jsr-107-s-configurations[JSR-107 configuration section].
+These `Service` instances can then be used by `Cache` instances managed by the `CacheManager`.
+
+JSR-107 uses this extension point of the XML configuration (and Ehcache 3's modular architecture), as explained in the
+<<107.adoc#supplement-jsr-107-configurations,JSR-107 configuration section>>.
 
 === `<default-serializers>` element
 
-A `<default-serializers>` element represents `Serializers` configured at `CacheManager` level. 
-It is a collection of `serializer` tags that require a `type` and a fully qualified class name of the `Serializer`.   
+A `<default-serializers>` element represents `Serializers` configured at `CacheManager` level.
+It is a collection of `<serializer>` elements that require a `type` and a fully qualified class name of the `Serializer`.
 
 === `<default-copiers>` element
 
 A `<default-copiers>` element represents `Copiers` configured at `CacheManager` level.
-It is a collection of `copier` tags that requires a `type` and a fully qualified class name of the `Copier`.
+It is a collection of `<copier>` elements that requires a `type` and a fully qualified class name of the `Copier`.
 
 === `<persistence>` element
 
@@ -54,8 +54,8 @@ It requires the `directory` location where data needs be stored on disk.
 
 A `<cache>` element represent a `Cache` instance that will be created and managed by the `CacheManager`.
 Each `<cache>` requires the `alias` attribute, used at runtime to retrieve the corresponding `Cache<K, V>` instance using
-the `org.ehcache.CacheManager.getCache(String, Class<K>, Class<V>)` method. The optional `uses-template` attribute, lets you reference
-a `<cache-template>` element's `name` attribute. See the <<code-cache-template-code-elements,cache-template section>>
+the `org.ehcache.CacheManager.getCache(String, Class<K>, Class<V>)` method. The optional `uses-template` attribute lets you reference
+a `<cache-template>` element's `name` attribute. See the <<cache-template-elements,cache-template section>>
 for further details on using them.
 
 Supported nested elements are optional:
@@ -67,49 +67,195 @@ Supported nested elements are optional:
  . `<integration>`: configure a `CacheLoaderWriter` for a _cache-through_ pattern
  . `<resources>`: configure the tiers and their capacity. When using on-heap only, you can replace this element by the `<heap>` one.
 
+[[cache-template-elements]]
 === `<cache-template>` elements
 
 `<cache-template>` elements represent a uniquely named (specified using the mandatory `name` attribute) template for
 `<cache>` elements to inherit from.  A `<cache>` element that references a `<cache-template>` by
 its `name` using the `uses-template` attribute, will inherit all properties of the `<cache-template>`. A `<cache>`
-can override these properties as it needs.
+can override these properties as required.
 
 A `<cache-template>` element may contain all the same child elements as a `<cache>` element.
 
-NOTE: We've setup a complete configuration link:examples{outfilesuffix}#xml-with-107-extension[example] to inspire you.
+NOTE: We've set up a complete configuration <<examples.adoc#xml-with-107-extension,example>> to inspire you.
+
+WARNING: Processing of cache template configurations can be triggered lazily by actions that dynamically bind new caches
+ to existing cache templates. Errors within such templates may not be revealed until this lazy processing is triggered.
+
+== Property replacement in XML configuration files
+
+Certain elements inside XML configuration files can use `${property-name}` syntax. The value of the given
+system-property will replace the property reference during the configuration parsing.
+
+WARNING: If the system property does not exist, this will make the configuration parsing fail.
+
+A classical use case for this feature is for disk files location inside the `directory` attribute of the `persistence` tag:
+
+[source,xml]
+----
+<persistence directory="${user.home}/cache-data"/> <!--1-->
+----
+<1> Here `user.home` will be replaced by the value of the system property, something like `/home/user`
+
+Attributes within the core configuration that can use system properties are:
+
+ * Local persistence directory (supports substitution within a string).
+ * Thread pool minimum and maximum size attributes.
+ * Write-behind queue size, concurrency, batch size and maximum batch delay.
+ * Cache TTI and TTL
+ * Core resource sizes (heap, offheap and disk)
+ * Disk store writer concurrency and segment count
 
 == XML programmatic parsing
 
 NOTE: If you are obtaining your `CacheManager` through the JSR-107 API, what follows is done automatically
       when invoking `javax.cache.spi.CachingProvider.getCacheManager(java.net.URI, java.lang.ClassLoader)`.
 
-[source,java]
+[source,java,indent=0]
 ----
-final URL myUrl = this.getClass().getResource("/my-config.xml"); // <1>
-XmlConfiguration xmlConfig = new XmlConfiguration(myUrl); // <2>
-CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); // <3>
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlConfig]
 ----
 <1> Obtain a `URL` to your XML file's location
 <2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
 <3> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` allows you
-    to create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
+    to create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`.
+<4> Initialize the `cacheManager` before it is used.
 
 We can also use `<cache-template>` declared in the XML file to seed instances of `CacheConfigurationBuilder`. In order
-to use a `<cache-template>` element from a XML file, e.g. the `/my-config.xml` contained this XML fragment:
+to use a `<cache-template>` element from an XML file, e.g. the `/my-config.xml` contains this XML fragment:
 
-[source,xml]
+[source,xml,indent=0]
 ----
-<ehcache:cache-template name="example">
-  <ehcache:capacity>120</ehcache:capacity>
-</ehcache:cache-template>
+include::{sourcedir39}/ehcache-xml/src/test/resources/configs/docs/template-sample.xml[tag=templateSample]
 ----
 
 Creating a `CacheConfigurationBuilder` of that `example` `<cache-template>` element, would be done as follows:
 
-[source,java]
+[source,java,indent=0]
 ----
-CacheConfigurationBuilder<String, Object> cacheBuilder = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, Object.class); // <1>
-cacheBuilder.capacityConstraint(100L); // <2>
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlTemplate]
 ----
-<1> Creates a builder, inheriting the capacity constraint of 120 entries, specializing the key type to `java.lang.String`
+<1> Creates a builder, inheriting the capacity constraint of 200 entries
 <2> The inherent properties can be overridden by simply providing a different value prior to building the `CacheConfiguration`
+
+== Programmatic configuration to XML
+
+Just like getting a cache manager configuration from its XML equivalent, the reverse translation is supported too.
+You can instantiate an `XmlConfiguration` object by passing the cache manager `Configuration`
+and the string representation of that object will give you the XML equivalent of the provided `Configuration`.
+
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlTemplate]
+----
+<1> Creates a builder, inheriting the capacity constraint of 200 entries
+<2> The inherent properties can be overridden by simply providing a different value prior to building the `CacheConfiguration`
+
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/GettingStarted.java[tag=xmlTranslation]
+----
+<1> Instantiate an `XmlConfiguration` passing the cache manager `Configuration`
+<2> Retrieve the XML representation using the `toString` method.
+
+Not every programmatic configuration can be translated to its XML equivalent in this manner.
+Translation is not supported if the cache manager configuration contains a cache with any one of the following configured:
+
+. `EvictionAdvisor`
+. A custom `ExpiryPolicy` other than `timeToLiveExpiration` or `timeToIdleExpiration` from ExpiryPolicyBuilder`
+. Using an instance of the following instead of their classes:
+.. `Serializer`
+.. `Copier`
+.. `CacheLoaderWriter`
+.. `CacheEventListener`
+.. `ResilienceStrategy`
+
+== Multiple XML Configurations In One Document
+
+The `XmlMultiConfiguration` class and the associated `ehcache-multi.xsd` XML schema provide support for multiple Ehcache
+configurations to be housed within a single XML container format.
+
+=== Multiple Ehcache Manager Configurations
+
+The simplest use of the multi-configuration features is to embed multiple cache manager configurations in a single xml
+file:
+[source,xml,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/resources/configs/docs/multi/multiple-managers.xml[]
+----
+<1> A top-level `<configurations>` container with namespace declarations for the `multi` and core schemas
+<2> Each Ehcache configuration is embedded inside a `configuration` tag with a required (unique) `identity` attribute
+
+These embedded configurations can then be retrieved via an `XmlMultiConfiguration` instance built from the XML document.
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/MultiGettingStarted.java[tag=multipleManagers]
+----
+<1> The `XmlMultiConfiguration` is assembled from the XML resource.
+<2> Once assembled the configuration is built.
+<3> `Configuration` instances can then be retrieved using their identities.
+
+=== Multiple Cache Manager Variants
+
+Multiple variant configurations for a given manager can be provided by including a sequence of `<variant>` tags, each
+with a required `type` attribute:
+[source,xml,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/resources/configs/docs/multi/multiple-variants.xml[tag=variants]
+----
+
+A specific cache configuration can then be retrieved by choosing both a variant and an identity explicitly on retrieval.
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/MultiGettingStarted.java[tag=multipleVariants]
+----
+The samples above are just samples, variant types can be used to represent any kind of variation: development
+vs production, clustered vs unclustered, red vs blue, etc.
+
+[NOTE]
+Configurations with multiple variants must have a variant type specified when they are retrieved otherwise an
+`IllegalStateException` will be thrown. Configurations without multiple variants will always return their single
+configuration for all requested variants.
+
+=== Multiple Cache Manager Retrieval
+
+Multiple cache managers can be retrieved from an `XmlMultiConfiguration` by iterating over the configurations
+`identities()`:
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/MultiGettingStarted.java[tag=multipleRetrieval]
+----
+<1> From a stream over the set of identities in a mult-configuration.
+<2> Map each identity to it's unique (non-varianted) configuration.
+<3> Alternatively, map each identity to a specific variant configuration.
+
+=== Building XML Multi Configurations
+
+`XmlMultiConfiguration` instance can be assembled and modified using the associated builder API.  The previous examples
+of parsing XML multi-configuration documents are all just simple invocations of the richer builder API.
+
+Configurations can be built from scratch as show below:
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/MultiGettingStarted.java[tag=building]
+----
+<1> Starting with an initially empty set of configurations.
+<2> Add a configuration without variants.
+<3> Add a configuration with two different variants: heap and offheap.
+<4> Build the final configuration instance.
+
+They can also be built from existing configurations:
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/MultiGettingStarted.java[tag=modifying]
+----
+<1> Starting with an existing `XmlMultiConfiguration`.
+<2> Remove the configuration with identity `"foo"`.
+
+Once built a multi-configuration can be retrieved in XML form:
+[source,java,indent=0]
+----
+include::{sourcedir39}/ehcache-xml/src/test/java/org/ehcache/docs/MultiGettingStarted.java[tag=rendering]
+----
+<1> Retrieving the XML as a rendered string.
+<2> Retrieving the XML as a DOM (`org.w3c.Document`).

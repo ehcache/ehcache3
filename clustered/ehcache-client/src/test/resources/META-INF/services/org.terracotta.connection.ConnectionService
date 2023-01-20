@@ -1,0 +1,2 @@
+org.ehcache.clustered.client.internal.UnitTestConnectionService
+org.ehcache.clustered.client.internal.MockConnectionService

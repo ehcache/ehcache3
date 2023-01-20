@@ -15,100 +15,174 @@
  */
 package org.ehcache.clustered;
 
-import java.util.UUID;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import java.net.URI;
+
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
+import org.ehcache.clustered.common.EhcacheEntityVersion;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.management.cluster.DefaultClusteringManagementService;
+import org.ehcache.management.statistics.DefaultExtendedStatisticsService;
+import org.hamcrest.Matchers;
+import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.passthrough.PassthroughServer;
+import org.terracotta.testing.rules.Cluster;
 
-import static org.ehcache.clustered.TestUtils.createServer;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static java.util.Collections.emptyMap;
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
+import static org.ehcache.config.units.EntryUnit.ENTRIES;
+import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.newCluster;
+import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 
 public class BasicEntityInteractionTest {
 
+  @ClassRule
+  public static Cluster CLUSTER = newCluster().in(clusterPath())
+    .withServiceFragment(offheapResource("primary-server-resource", 4)).build();
+  private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
+
+  @Rule
+  public TestName testName= new TestName();
+
+  @Test
+  public void testClusteringServiceConfigurationBuilderThrowsNPE() throws Exception {
+    String cacheName = "myCACHE";
+    String offheap = "primary-server-resource";
+    URI tsaUri = CLUSTER.getConnectionURI();
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .heap(100, ENTRIES)
+        .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+        .autoCreate(server -> server.defaultServerResource(offheap))
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.put(1L, "one");
+    }
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .heap(100, ENTRIES)
+          .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
+        )
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+      ).using(new DefaultExtendedStatisticsService()
+      ).using(new DefaultClusteringManagementService()
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.get(1L);
+    }
+
+  }
+
+  @Test
+  public void testServicesStoppedTwice() throws Exception {
+    String cacheName = "myCACHE";
+    String offheap = "primary-server-resource";
+    URI tsaUri = CLUSTER.getConnectionURI();
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .heap(100, ENTRIES)
+        .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+        .autoCreate(server -> server.defaultServerResource(offheap))
+        // manually adding the following two services should work
+      ).using(new DefaultExtendedStatisticsService()
+      ).using(new DefaultClusteringManagementService()
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.put(1L, "one");
+    }
+
+    try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .heap(100, ENTRIES)
+          .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
+        )
+      ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
+      ).build(true)) {
+      Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
+      cache.get(1L);
+    }
+
+  }
+
   @Test
   public void testAbsentEntityRetrievalFails() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
-
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       try {
-        ref.fetchEntity();
+        ref.fetchEntity(null);
         fail("Expected EntityNotFoundException");
       } catch (EntityNotFoundException e) {
         //expected
       }
-    } finally {
-      server.stop();
     }
   }
 
   @Test
   public void testAbsentEntityCreationSucceeds() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
-
-      UUID uuid = UUID.randomUUID();
-      ref.create(uuid);
-
-      EhcacheClientEntity entity = ref.fetchEntity();
-      try {
-        assertThat(entity.identity(), is(uuid));
-      } finally {
-        entity.close();
-      }
-    } finally {
-      server.stop();
+      ref.create(blankConfiguration);
+      assertThat(ref.fetchEntity(null), not(Matchers.nullValue()));
     }
   }
 
   @Test
   public void testPresentEntityCreationFails() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
-
-      UUID uuid = UUID.randomUUID();
-      ref.create(uuid);
-
+      ref.create(blankConfiguration);
       try {
-        ref.create(uuid);
-        fail("Expected EntityAlreadyExistsException");
-      } catch (EntityAlreadyExistsException e) {
-        //expected
-      }
+        try {
+          ref.create(blankConfiguration);
+          fail("Expected EntityAlreadyExistsException");
+        } catch (EntityAlreadyExistsException e) {
+          //expected
+        }
 
-      try {
-        ref.create(UUID.randomUUID());
-        fail("Expected EntityAlreadyExistsException");
-      } catch (EntityAlreadyExistsException e) {
-        //expected
+        ClusterTierManagerConfiguration otherConfiguration = new ClusterTierManagerConfiguration("different", new ServerSideConfiguration(emptyMap()));
+        try {
+          ref.create(otherConfiguration);
+          fail("Expected EntityAlreadyExistsException");
+        } catch (EntityAlreadyExistsException e) {
+          //expected
+        }
+      } finally {
+        ref.destroy();
       }
-    } finally {
-      server.stop();
     }
   }
 
   @Test
   public void testAbsentEntityDestroyFails() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
-
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       try {
         ref.destroy();
@@ -116,95 +190,66 @@ public class BasicEntityInteractionTest {
       } catch (EntityNotFoundException e) {
         //expected
       }
-    } finally {
-      server.stop();
     }
   }
 
   @Test
   public void testPresentEntityDestroySucceeds() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
-
-      UUID uuid = UUID.randomUUID();
-      ref.create(uuid);
+      ref.create(blankConfiguration);
       ref.destroy();
 
       try {
-        ref.fetchEntity();
+        ref.fetchEntity(null);
         fail("Expected EntityNotFoundException");
       } catch (EntityNotFoundException e) {
         //expected
       }
-    } finally {
-      server.stop();
     }
   }
 
   @Test
   @Ignore
+  @SuppressWarnings("try")
   public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      ref.create(blankConfiguration);
 
-      UUID uuid = UUID.randomUUID();
-      ref.create(uuid);
-
-      EhcacheClientEntity entity = ref.fetchEntity();
-      try {
+      try (ClusterTierManagerClientEntity entity = ref.fetchEntity(null)) {
         ref.destroy();
-      } finally {
-        entity.close();
       }
-    } finally {
-      server.stop();
     }
   }
 
   @Test
   public void testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
-
-      UUID uuid = UUID.randomUUID();
-      ref.create(uuid);
-      ref.fetchEntity().close();
+      ref.create(blankConfiguration);
+      ref.fetchEntity(null).close();
       ref.destroy();
-    } finally {
-      server.stop();
     }
   }
 
   @Test
   public void testDestroyedEntityAllowsRecreation() throws Throwable {
-    PassthroughServer server = createServer();
-    try {
-      Connection client = server.connectNewClient();
+    try (Connection client = CLUSTER.newConnection()) {
+      EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
-
-      ref.create(UUID.randomUUID());
+      ref.create(blankConfiguration);
       ref.destroy();
 
-      UUID uuid = UUID.randomUUID();
-      ref.create(uuid);
-      EhcacheClientEntity entity = ref.fetchEntity();
-      try {
-        assertThat(entity.identity(), is(uuid));
-      } finally {
-        entity.close();
-      }
-    } finally {
-      server.stop();
+      ref.create(blankConfiguration);
+      assertThat(ref.fetchEntity(null), not(nullValue()));
     }
+  }
+
+  private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(Connection client) throws org.terracotta.exception.EntityNotProvidedException {
+    return client.getEntityRef(ClusterTierManagerClientEntity.class, EhcacheEntityVersion.ENTITY_VERSION, testName.getMethodName());
   }
 }

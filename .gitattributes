@@ -1,6 +1,9 @@
 # Set the default behavior to LF, because checkstyle enforces it
 * text eol=lf
 
+*.bat eol=crlf
+
 *.jar binary
 *.jpg binary
 *.png binary
+*.ttf binary

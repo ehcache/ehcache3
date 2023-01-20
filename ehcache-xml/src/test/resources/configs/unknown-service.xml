@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ehcache:config
+  xmlns:ehcache='http://www.ehcache.org/v3'>
+
+  <ehcache:cache alias="sydney">
+    <mystery:machine xmlns:mystery='http://example.com/mystery'/>
+  </ehcache:cache>
+</ehcache:config>

@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store#clear()} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

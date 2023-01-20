@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<ehcache:config
+    xmlns:ehcache="http://www.ehcache.org/v3"
+    xmlns:tc="http://www.ehcache.org/v3/clustered"
+    xmlns:jsr107="http://www.ehcache.org/v3/jsr107">
+
+  <ehcache:service>
+    <tc:cluster>
+      <tc:connection url="${cluster-uri}/jcache-tck"/>
+      <tc:server-side-config client-mode="auto-create"/>
+    </tc:cluster>
+  </ehcache:service>
+
+  <ehcache:service>
+    <jsr107:defaults default-template="clustered"/>
+  </ehcache:service>
+
+  <ehcache:cache-template name="clustered">
+    <ehcache:resources>
+      <ehcache:heap>1000</ehcache:heap>
+      <tc:clustered-dedicated from="primary" unit="MB">4</tc:clustered-dedicated>
+    </ehcache:resources>
+  </ehcache:cache-template>
+</ehcache:config>
