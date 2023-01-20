@@ -16,31 +16,31 @@
 
 package org.ehcache;
 
-import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.Jsr107Configuration;
-import org.ehcache.config.ResourceType;
-import org.ehcache.config.xml.XmlConfiguration;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.jsr107.DefaultJsr107Service;
-import org.ehcache.spi.ServiceLocator;
-import org.junit.Test;
-import org.xml.sax.SAXException;
-
 import com.pany.domain.Customer;
 import com.pany.domain.Product;
 import com.pany.ehcache.integration.ProductCacheLoaderWriter;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.core.EhcacheManager;
+import org.ehcache.jsr107.config.Jsr107Configuration;
+import org.ehcache.config.ResourceType;
+import org.ehcache.xml.XmlConfiguration;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.jsr107.internal.DefaultJsr107Service;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.spi.service.Service;
+import org.junit.Test;
+import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -55,9 +55,9 @@ public class ParsesConfigurationExtensionTest {
   @Test
   public void testConfigParse() throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
     final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource("/ehcache-107.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceConfigurations().toArray()));
-    final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
-    final CacheManager cacheManager = new EhcacheManager(configuration, serviceLocator);
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceCreationConfigurations().toArray()));
+
+    final CacheManager cacheManager = new EhcacheManager(configuration, Collections.<Service>singletonList(jsr107Service));
     cacheManager.init();
 
     assertThat(jsr107Service.getTemplateNameForCache("foos"), equalTo("stringCache"));
@@ -68,9 +68,9 @@ public class ParsesConfigurationExtensionTest {
   @Test
   public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
     XmlConfiguration config = new XmlConfiguration(ParsesConfigurationExtensionTest.class.getResource("/ehcache-example.xml"));
-    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceConfigurations().toArray()));
-    final ServiceLocator serviceLocator = new ServiceLocator(jsr107Service);
-    final CacheManager cacheManager = new EhcacheManager(config, serviceLocator);
+    final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
+
+    final CacheManager cacheManager = new EhcacheManager(config, Collections.<Service>singletonList(jsr107Service));
     cacheManager.init();
 
     // test productCache
@@ -87,8 +87,7 @@ public class ParsesConfigurationExtensionTest {
         assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.Expirations$TimeToIdleExpiry"));
         assertThat(expiry.getExpiryForAccess(42L, null), equalTo(new Duration(2, TimeUnit.MINUTES)));
 
-        assertThat(runtimeConfiguration.getEvictionVeto(), instanceOf(com.pany.ehcache.MyEvictionVeto.class));
-        assertThat(runtimeConfiguration.getEvictionPrioritizer(), is((EvictionPrioritizer) Eviction.Prioritizer.LFU));
+        assertThat(runtimeConfiguration.getEvictionAdvisor(), instanceOf(com.pany.ehcache.MyEvictionAdvisor.class));
       }
 
       // test copies
@@ -120,7 +119,7 @@ public class ParsesConfigurationExtensionTest {
 
     // Test template
     {
-      final CacheConfigurationBuilder<Object, Object> myDefaultTemplate = config.newCacheConfigurationBuilderFromTemplate("myDefaultTemplate");
+      final CacheConfigurationBuilder<Object, Object> myDefaultTemplate = config.newCacheConfigurationBuilderFromTemplate("myDefaultTemplate", Object.class, Object.class, heap(10));
       assertThat(myDefaultTemplate, notNullValue());
     }
 
@@ -128,7 +127,6 @@ public class ParsesConfigurationExtensionTest {
     {
       final Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
       final CacheRuntimeConfiguration<Long, Customer> runtimeConfiguration = customerCache.getRuntimeConfiguration();
-      assertThat(runtimeConfiguration.getEvictionPrioritizer(), is((EvictionPrioritizer) Eviction.Prioritizer.LRU));
       assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
     }
   }

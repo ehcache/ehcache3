@@ -2,7 +2,7 @@
 
 build/
 */src/generated/
-/.gradle/
+.gradle/
 
 .project
 .classpath
@@ -15,3 +15,5 @@ build/
 
 .nb-gradle
 .nb-gradle-properties
+
+/classes

@@ -18,19 +18,20 @@ package org.ehcache.jsr107;
 import javax.cache.Cache;
 import javax.cache.event.CacheEntryEvent;
 import javax.cache.event.EventType;
+import org.ehcache.event.CacheEvent;
 
 /**
  * @author teck
  */
-class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
+abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   private static final long serialVersionUID = 8460535666272347345L;
 
-  private final org.ehcache.event.CacheEvent<K, V> ehEvent;
+  private final CacheEvent<K, V> ehEvent;
 
   private final boolean hasOldValue;
 
-  Eh107CacheEntryEvent(Cache<K, V> source, EventType eventType, org.ehcache.event.CacheEvent<K, V> ehEvent,
+  Eh107CacheEntryEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent,
       boolean hasOldValue) {
     super(source, eventType);
     this.ehEvent = ehEvent;
@@ -39,14 +40,11 @@ class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   @Override
   public K getKey() {
-    return ehEvent.getEntry().getKey();
+    return ehEvent.getKey();
   }
 
   @Override
-  public V getValue() {
-    return ehEvent.getEntry().getValue();
-
-  }
+  public abstract V getValue();
 
   @Override
   public <T> T unwrap(Class<T> clazz) {
@@ -55,7 +53,7 @@ class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   @Override
   public V getOldValue() {
-    return ehEvent.getPreviousValue();
+    return ehEvent.getOldValue();
   }
 
   @Override
@@ -63,4 +61,28 @@ class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
     return hasOldValue;
   }
 
+  static class NormalEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
+
+    public NormalEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent, boolean hasOldValue) {
+      super(source, eventType, ehEvent, hasOldValue);
+    }
+
+    @Override
+    public V getValue() {
+      return super.ehEvent.getNewValue();
+    }
+  }
+
+  static class RemovingEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
+
+    public RemovingEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent, boolean hasOldValue) {
+      super(source, eventType, ehEvent, hasOldValue);
+    }
+
+    @Override
+    public V getValue() {
+      return super.ehEvent.getOldValue();
+    }
+
+  }
 }

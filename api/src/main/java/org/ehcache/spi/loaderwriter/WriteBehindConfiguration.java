@@ -16,79 +16,77 @@
 
 package org.ehcache.spi.loaderwriter;
 
+import java.util.concurrent.TimeUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * WriteBehindConfiguration
  */
-public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
+public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindProvider> {
   /**
-   * the minimum number of seconds to wait before writing behind
-   *
-   * @return Retrieves the minimum number of seconds to wait before writing behind
-   */
-  int getMinWriteDelay();
-
-  /**
-   * the maximum number of seconds to wait before writing behind
-   *
-   * @return Retrieves the maximum number of seconds to wait before writing behind
-   */
-  int getMaxWriteDelay();
-
-  /**
-   * the maximum number of write operations to allow per second.
-   *
-   * @return Retrieves the maximum number of write operations to allow per second.
-   */
-  int getRateLimitPerSecond();
-
-  /**
-   * whether write operations should be batched
-   *
-   * @return Retrieves whether write operations should be batched
-   */
-  boolean isWriteBatching();
-
-  /**
-   * write coalescing behavior
-   *
-   * @return Retrieves the write coalescing behavior is enabled or not
-   */
-  boolean isWriteCoalescing();
-
-  /**
-   * the size of the batch operation.
-   *
-   * @return Retrieves the size of the batch operation.
-   */
-  int getWriteBatchSize();
-
-  /**
-   * the number of times the write of element is retried.
-   *
-   * @return Retrieves the number of times the write of element is retried.
-   */
-  int getRetryAttempts();
-
-  /**
-   * the number of seconds to wait before retrying an failed operation.
-   *
-   * @return Retrieves the number of seconds to wait before retrying an failed operation.
-   */
-  int getRetryAttemptDelaySeconds();
-
-  /**
-   * the amount of bucket/thread pairs configured for this cache's write behind
+   * A number of bucket/thread pairs configured for this cache's write behind.
    *
    * @return Retrieves the amount of bucket/thread pairs configured for this cache's write behind
    */
-  int getWriteBehindConcurrency();
+  int getConcurrency();
 
   /**
-   * the maximum amount of operations allowed on the write behind queue
+   * The maximum number of operations allowed on the write behind queue.
+   *
+   * Only positive values are legal.
    *
    * @return Retrieves the maximum amount of operations allowed on the write behind queue
    */
-  int getWriteBehindMaxQueueSize();
+  int getMaxQueueSize();
+
+  /**
+   * Returns the batching configuration or {@code null} if batching is not enabled.
+   *
+   * @return the batching configuration
+   */
+  BatchingConfiguration getBatchingConfiguration();
+
+  /**
+   * Returns the alias of the thread resource pool to use for write behind task execution.
+   *
+   * @return the thread pool alias
+   */
+  String getThreadPoolAlias();
+
+  /**
+   * BatchingConfiguration
+   */
+  interface BatchingConfiguration {
+    /**
+     * The recommended size of a batch of operations.
+     *
+     * Only positive values are legal. A value of 1 indicates that no batching should happen.
+     *
+     * Real batch size will be influenced by arrival frequency of operations and max write delay.
+     *
+     * @return Retrieves the size of the batch operation.
+     */
+    int getBatchSize();
+
+    /**
+     * The maximum time to wait before writing behind.
+     *
+     * @return Retrieves the maximum time to wait before writing behind
+     */
+    long getMaxDelay();
+
+    /**
+     * The time unit for the maximum delay.
+     *
+     * @return Retrieves the unit for the maximum delay
+     */
+    TimeUnit getMaxDelayUnit();
+
+    /**
+     * Whether write operations can be coalesced.
+     *
+     * @return Retrieves the write coalescing behavior is enabled or not
+     */
+    boolean isCoalescing();
+  }
 }

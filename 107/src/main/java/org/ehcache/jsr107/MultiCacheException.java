@@ -23,24 +23,24 @@ import java.util.List;
 
 import javax.cache.CacheException;
 
-public class MultiCacheException extends CacheException {
+class MultiCacheException extends CacheException {
   private static final long serialVersionUID = -6839700789356356261L;
 
   private final List<Throwable> throwables = new ArrayList<Throwable>();
 
-  public MultiCacheException() {
+  MultiCacheException() {
     super();
   }
 
-  public MultiCacheException(Throwable t) {
+  MultiCacheException(Throwable t) {
     addThrowable(t);
   }
 
-  public void addThrowable(Throwable t) {
+  void addThrowable(Throwable t) {
     if (t == null) {
       throw new NullPointerException();
     }
-    
+
     if (t == this) {
       throw new IllegalArgumentException("cannot add to self");
     }
@@ -54,16 +54,22 @@ public class MultiCacheException extends CacheException {
     }
   }
 
-  public List<Throwable> getThrowables() {
+  private List<Throwable> getThrowables() {
     return Collections.unmodifiableList(throwables);
   }
 
   @Override
   public String getMessage() {
-    if (throwables.isEmpty()) {
+    List<Throwable> ts = getThrowables();
+    if (ts.isEmpty()) {
       return super.getMessage();
+    } else {
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < ts.size(); i++) {
+        sb.append("[Exception ").append(i).append("] ").append(ts.get(i).getMessage()).append("\n");
+      }
+      return sb.deleteCharAt(sb.length() - 1).toString();
     }
-    return "Contains " + throwables.size() + " additional exception(s)";
   }
 
   @Override
@@ -103,9 +109,9 @@ public class MultiCacheException extends CacheException {
     }
   }
 
-  public void throwIfNotEmpty() {
+  void throwIfNotEmpty() {
     if (!throwables.isEmpty()) {
-      
+
       // if the only thing we contain is a single CacheException, then throw that
       if (throwables.size() == 1) {
         Throwable t = throwables.get(0);
@@ -113,7 +119,7 @@ public class MultiCacheException extends CacheException {
           throw (CacheException)t;
         }
       }
-      
+
       throw this;
     }
   }

@@ -31,10 +31,9 @@ public interface Service {
    * <p>
    * The goal of the service provider is to allow a service to use other services.
    *
-   * @param config the service configuration
    * @param serviceProvider the service provider.
    */
-  void start(ServiceConfiguration<?> config, ServiceProvider serviceProvider);
+  void start(ServiceProvider<Service> serviceProvider);
 
   /**
    * Stops this service.

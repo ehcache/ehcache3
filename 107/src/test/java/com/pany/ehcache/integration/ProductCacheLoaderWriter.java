@@ -36,7 +36,7 @@ public class ProductCacheLoaderWriter implements CacheLoaderWriter<Long, Product
 
   public static final ConcurrentMap<Long, List<Product>> written = new ConcurrentHashMap<Long, List<Product>>();
   public static final Set<Long> seen = new HashSet<Long>();
-  
+
   @Override
   public Product load(final Long key) throws Exception {
     seen.add(key);

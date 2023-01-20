@@ -29,8 +29,9 @@
     </ehcache:expiry>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="bar" usesTemplate="example">
+  <ehcache:cache alias="bar" uses-template="example">
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
+    <ehcache:heap>5</ehcache:heap>
     <foo:foo/>
   </ehcache:cache>
 </ehcache:config>

@@ -15,6 +15,7 @@
  */
 package org.ehcache.demos.peeper;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,7 @@ public class DataStore {
   private Connection connection;
 
 
+  @SuppressFBWarnings("DMI_EMPTY_DB_PASSWORD")
   public void init() throws Exception {
     dataCache.setupCache();
     Class.forName("org.h2.Driver");

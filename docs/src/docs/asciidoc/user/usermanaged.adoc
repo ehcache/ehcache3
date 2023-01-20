@@ -1,0 +1,161 @@
+---
+---
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+= User managed caches
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+
+== What are user managed caches and what do they offer?
+
+User managed caches is a new concept introduced in Ehcache 3.
+It offers the ability to create caches that are not managed by a `CacheManager`.
+Hence the name of _user managed_ caches.
+
+The objective of this feature is to satisfy cache use cases where the added complexity of a cache manager is of no added value.
+Ideas are: method local caches, thread local caches or any other place where the lifecycle of the cache is shorter than the application lifecycle.
+
+=== Limitations
+
+As there is no longer a cache manager offering up services, the main limitation of user managed caches is that the user has to configure all required services by hand.
+Of course, if you find yourself requiring plenty of services, maybe the cache manager is a better option!
+
+=== API extensions
+
+While a `UserManagedCache` extends `Cache`, it offers additional methods:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
+----
+
+As can be seen, these methods deal with the lifecycle of the cache and need to be called explicitly.
+
+There is also the following interface which comes into play when a user managed persistent cache is created:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/PersistentUserManagedCache.java[lines=17..-1]
+----
+
+
+== Getting started with user managed caches
+
+=== Basic example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
+----
+<1> Create a `UserManagedCache` instance, again you can either have the builder `init()` it for you, passing true or
+<2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
+<3> You can use the cache exactly as a managed cache
+<4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
+    managed caches simultaneously, the `CacheManager.close()` operation would not impact the user managed cache(s).
+
+=== Disk persistent example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
+----
+<1> Create the persistence service to be used by the cache for storing data on disk
+<2> Pass the persistence service to the builder next to an id for the cache - note that this will make the builder produce a more specific type: `PersistentUserManagedCache`
+<3> As usual, indicate here if the data should outlive the cache
+<4> Closing the cache will not delete the data it saved on disk when marked as persistent.
+<5> To delete the data, after closing the cache, destroy has to be explicitly invoked.
+
+=== Cache copier example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCopyingCache]
+----
+<1> Configure a key copier.
+<2> Configure a value copier.
+
+=== Cache serializing copier example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedSerializingCopyingCache]
+----
+<1> Configure a `SerializingCopier` as the key copier.
+<2> Configure a `SerializingCopier` is the value copier.
+
+=== Cache copier and serializer example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCopyingAndSerializingCache]
+----
+<1> Configure a key copier.
+<2> Configure a value copier.
+<3> Configure a key serializer.
+<4> Configure a value serializer.
+<5> Configure a heap tier.
+<6> Configure a off-heap tier.
+
+By default, the heap tier stores by reference, unless a copier is configured. The other tiers must use a serializer
+to copy the keys and values.
+
+=== Cache serializing copier and serializer example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedSerializingCache]
+----
+<1> Configure a key serializer.
+<2> Configure a value serializer.
+<3> Configure a `SerializingCopier` is the value copier.
+<4> Configure a heap tier.
+<5> Configure a off-heap tier.
+
+In this case, the heap tier is storing keys by reference since no key copier has been configured, and it is storing
+values by value since a serializing copier has been configured. Such copier is going to use the configured
+serializer to perform the necessary copies.
+The off-heap tier will use both the key serializer as well as the value one to make its copies.
+
+=== Write-Through Cache example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedLoaderWriterCache]
+----
+<1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
+    `CacheLoaderWriter` and register it.
+
+=== Cache with Eviction Advisor example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedEvictionAdvisorCache]
+----
+<1> If you want to hint the eviction algorithm to advise against the eviction of some mappings, you have to
+    configure an instance of `EvictionAdvisor`.
+
+=== Cache with Listeners example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
+----
+<1> Provide ExecutorService for ordered and unordered event delivery. Note, it is required to provide either a 
+    CacheEventDispatcher or ordered/unOrdered ExecutorService for proper event delivery.
+<2> Provide listener configuration using CacheEventListenerConfigurationBuilder.
+
+=== Byte Sized Cache example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedByteSizedCache]
+----
+<1> The sizing mechanism can be configured along two axis: The first one specifies the maximum number 
+    of objects to traverse while walking the object graph, the second defines the maximum size of a 
+    single object.
+<2> Size the heap tier in bytes.

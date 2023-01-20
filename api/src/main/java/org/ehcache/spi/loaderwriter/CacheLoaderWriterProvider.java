@@ -46,9 +46,12 @@ public interface CacheLoaderWriterProvider extends Service {
 
   /**
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
+   * If the cacheLoaderWriter instance is provided by the user, {@link java.io.Closeable#close()}
+   * will not be invoked.
    * @param cacheLoaderWriter the {@link CacheLoaderWriter} that was initially associated with
    *                    the {@link org.ehcache.Cache} being removed
+   * @throws Exception when the release fails
    */
-  void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter);
+  void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception;
 
 }

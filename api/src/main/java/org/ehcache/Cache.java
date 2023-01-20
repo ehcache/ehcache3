@@ -24,7 +24,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Basic interface to a cache, defines all operational methods to create, access,
@@ -54,7 +53,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * @param value the value, may not be null
    *
    * @throws java.lang.NullPointerException if either key or value is null
-   * @throws CacheWritingException if the {@link CacheLoaderWriter} 
+   * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache threw an {@link Exception}
    * while writing the value for the given key to underlying system of record.
    */
@@ -84,10 +83,10 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * Retrieves all values associated with the given keys.
-   * 
+   *
    * @param keys keys to query for
    * @return a map from keys to values or {@code null} if the key was not mapped
-   * 
+   *
    * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
    * @throws BulkCacheLoadingException if loading some or all values failed
    */
@@ -95,7 +94,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * Associates all the provided key:value pairs.
-   * 
+   *
    * @param entries key:value pairs to associate
    *
    * @throws NullPointerException if the {@code Map} or any of the contained keys or values are {@code null}.
@@ -107,7 +106,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * Removes any associates for the given keys.
-   * 
+   *
    * @param keys keys to remove values for
    *
    * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
@@ -116,7 +115,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * while removing mappings for given keys from underlying system of record.
    */
   void removeAll(Set<? extends K> keys) throws BulkCacheWritingException;
-  
+
   /**
    * Removes all mapping currently present in the Cache without invoking the {@link CacheLoaderWriter} or any
    * registered {@link org.ehcache.event.CacheEventListener} instances
@@ -126,16 +125,16 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * If the provided key is not associated with a value, then associate it with the provided value.
-   * 
+   *
    * @param key the key to be associated with
    * @param value the value to associate
    * @return the value that was associated with the key, or {@code null} if none
-   * 
+   *
    * @throws NullPointerException if either key or value is null
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception} while loading
    * the value for the key
-   * @throws CacheWritingException if the {@link CacheLoaderWriter} 
+   * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache threw an {@link Exception}
    * while writing the value for the given key to underlying system of record.
    */
@@ -143,11 +142,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * If the provided key is associated with the provided value then remove the entry.
-   * 
+   *
    * @param key the key to remove
    * @param value the value to check against
    * @return {@code true} if the entry was removed
-   * 
+   *
    * @throws NullPointerException if either key or value is null
    * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache threw an {@link Exception} while removing the given key:value mapping
@@ -156,11 +155,11 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * If the provided key is associated with a value, then replace that value with the provided value.
-   * 
+   *
    * @param key the key to be associated with
    * @param value the value to associate
    * @return the value that was associated with the key, or {@code null} if none
-   * 
+   *
    * @throws NullPointerException if either key or value is null
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception} while loading
@@ -170,15 +169,15 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    * while replacing value for given key on underlying system of record.
    */
   V replace(K key, V value) throws CacheLoadingException, CacheWritingException;
-  
+
   /**
    * If the provided key is associated with {@code oldValue}, then replace that value with {@code newValue}.
-   * 
+   *
    * @param key the key to be associated with
    * @param oldValue the value to check against
    * @param newValue the value to associate
    * @return {@code true} if the value was replaced
-   * 
+   *
    * @throws NullPointerException if any of the values, or the key is null
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception} while loading
@@ -196,7 +195,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
 
-  
+
   /**
    * Represent a mapping of key to value held in a Cache
    *
@@ -218,29 +217,5 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
      * @return the value, not null
      */
     V getValue();
-
-    /**
-     * Accessor to the creation time of this mapping.
-     *
-     * @param unit the timeUnit to return the creation time in
-     * @return the creation time in the specified unit
-     */
-    long getCreationTime(TimeUnit unit);
-
-    /**
-     * Accessor to the last access time of this mapping.
-     *
-     * @param unit the timeUnit to return the last access time in
-     * @return the last access time in the specified unit
-     */
-    long getLastAccessTime(TimeUnit unit);
-
-    /**
-     * Accessor to the hit rate of this mapping.
-     *
-     * @param unit the time unit to return the rate in
-     * @return the hit rate in the specified unit
-     */
-    float getHitRate(TimeUnit unit);
   }
 }

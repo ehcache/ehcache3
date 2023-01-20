@@ -5,21 +5,48 @@
 
   <service> <!--2-->
     <jsr107:defaults default-template="tinyCache"> <!--3-->
-      <jsr107:cache name="foos" template="stringCache"/> <!--4-->
+      <jsr107:cache name="foos" template="clientCache"/> <!--4-->
+      <jsr107:cache name="byRefCache" template="byRefTemplate"/>
+      <jsr107:cache name="byValCache" template="byValueTemplate"/>
+      <jsr107:cache name="weirdCache1" template="mixedTemplate1"/>
+      <jsr107:cache name="weirdCache2" template="mixedTemplate2"/>
     </jsr107:defaults>
   </service>
 
-  <cache-template name="stringCache" storeByValueOnHeap="true">
+  <cache-template name="clientCache">
     <key-type>java.lang.String</key-type>
-    <value-type>java.lang.String</value-type>
+    <value-type>com.pany.domain.Client</value-type>
     <expiry>
       <ttl unit="minutes">2</ttl>
     </expiry>
-    <heap size="2000" unit="entries"/>
+    <heap unit="entries">2000</heap>
   </cache-template>
 
   <cache-template name="tinyCache">
-    <heap size="20" unit="entries"/>
+    <heap unit="entries">20</heap>
   </cache-template>
 
+  <cache-template name="byRefTemplate">
+    <key-type copier="org.ehcache.impl.copy.IdentityCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.IdentityCopier">com.pany.domain.Client</value-type>
+    <heap unit="entries">10</heap>
+  </cache-template>
+
+  <cache-template name="byValueTemplate">
+    <key-type copier="org.ehcache.impl.copy.SerializingCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.SerializingCopier">com.pany.domain.Client</value-type>
+    <heap unit="entries">10</heap>
+  </cache-template>
+
+  <cache-template name="mixedTemplate1">
+    <key-type copier="org.ehcache.impl.copy.IdentityCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.SerializingCopier">com.pany.domain.Client</value-type>
+    <heap unit="entries">10</heap>
+  </cache-template>
+
+  <cache-template name="mixedTemplate2">
+    <key-type copier="org.ehcache.impl.copy.SerializingCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.IdentityCopier">com.pany.domain.Client</value-type>
+    <heap unit="entries">10</heap>
+  </cache-template>
 </config>

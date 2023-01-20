@@ -16,27 +16,42 @@
 
 <ehcache:config
     xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-    xmlns:ehcache='http://www.ehcache.org/v3'
-    xsi:schemaLocation=" http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
+    xmlns:ehcache='http://www.ehcache.org/v3'>
 
-  <ehcache:service>
-    <ehcache:default-serializers>
-      <ehcache:serializer type="java.lang.CharSequence">com.pany.ehcache.serializer.TestSerializer</ehcache:serializer>
-      <ehcache:serializer type="java.lang.Number">com.pany.ehcache.serializer.TestSerializer2</ehcache:serializer>
-      <ehcache:serializer type="java.lang.Long">com.pany.ehcache.serializer.TestSerializer3</ehcache:serializer>
-      <ehcache:serializer type="java.lang.Integer">com.pany.ehcache.serializer.TestSerializer4</ehcache:serializer>
-    </ehcache:default-serializers>
-  </ehcache:service>
+  <ehcache:default-serializers>
+    <ehcache:serializer type="java.lang.CharSequence">com.pany.ehcache.serializer.TestSerializer</ehcache:serializer>
+    <ehcache:serializer type="java.lang.Number">com.pany.ehcache.serializer.TestSerializer2</ehcache:serializer>
+    <ehcache:serializer type="java.lang.Long">               
+    com.pany.ehcache.serializer.TestSerializer3                        
+    </ehcache:serializer>
+    <ehcache:serializer type="java.lang.Integer">
+    com.pany.ehcache.serializer.TestSerializer4
+    
+    </ehcache:serializer>
+  </ehcache:default-serializers>
 
-  <ehcache:cache alias="bar" storeByValueOnHeap="true">
-    <ehcache:key-type>java.lang.Long</ehcache:key-type>
-    <ehcache:value-type>java.lang.Double</ehcache:value-type>
-    <ehcache:heap size="10"/>
+  <ehcache:cache alias="bar">
+    <ehcache:key-type>      
+    java.lang.Long         
+    </ehcache:key-type>
+    <ehcache:value-type>           java.lang.Double           
+    </ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap unit="entries">10</ehcache:heap>
+      <ehcache:offheap unit="MB">1</ehcache:offheap>
+    </ehcache:resources>
   </ehcache:cache>
 
-  <ehcache:cache alias="baz" storeByValueOnHeap="true">
-    <ehcache:key-type serializer="com.pany.ehcache.serializer.TestSerializer3">java.lang.String</ehcache:key-type>
-    <ehcache:value-type>java.lang.String</ehcache:value-type>
-    <ehcache:heap size="10"/>
+  <ehcache:cache alias="baz">
+    <ehcache:key-type serializer="com.pany.ehcache.serializer.TestSerializer3">
+    java.lang.String  
+    </ehcache:key-type>
+    <ehcache:value-type>
+     java.lang.String        
+                </ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap unit="entries">10</ehcache:heap>
+      <ehcache:offheap unit="MB">1</ehcache:offheap>
+    </ehcache:resources>
   </ehcache:cache>
 </ehcache:config>

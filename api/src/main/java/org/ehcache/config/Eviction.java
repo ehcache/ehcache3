@@ -16,93 +16,27 @@
 
 package org.ehcache.config;
 
-import org.ehcache.Cache;
-import org.ehcache.function.Predicates;
-
-import java.util.concurrent.TimeUnit;
-
 /**
- * Utility class for getting predefined {@link EvictionVeto} and {@link EvictionPrioritizer} instances.
- *
- * @author Alex Snaps
+ * Utility class for getting predefined {@link EvictionAdvisor} instance.
  */
 public final class Eviction {
 
+  private static final EvictionAdvisor<?, ?> NO_ADVICE = new EvictionAdvisor<Object, Object>() {
+    @Override
+    public boolean adviseAgainstEviction(Object key, Object value) {
+      return false;
+    }
+  };
+
   /**
-   * Returns an {@link EvictionVeto} where all mappings are vetoed from eviction.
+   * Returns an {@link EvictionAdvisor} where no mappings are advised against eviction.
    *
-   * @param <K> the key type on which this veto applies
-   * @param <V> the value type on whivh this veto applies
-   * @return a veto for all mappings
+   * @param <K> the key type on which this advisor applies
+   * @param <V> the value type on whivh this advisor applies
+   * @return an advisor where no mappings are advised against eviction
    */
-  public static <K, V> EvictionVeto<K, V> all() {
-    return new EvictionVeto<K, V>() {
-      @Override
-      public boolean test(final Cache.Entry<K, V> argument) {
-        return Predicates.<Cache.Entry<K, V>>all().test(argument);
-      }
-    };
+  public static <K, V> EvictionAdvisor<K, V> none() {
+    return (EvictionAdvisor<K, V>) NO_ADVICE;
   }
 
-  /**
-   * Returns an {@link EvictionVeto} where no mappings are vetoed from eviction.
-   *
-   * @param <K> the key type on which this veto applies
-   * @param <V> the value type on whivh this veto applies
-   * @return a veto for no mappings
-   */
-  public static <K, V> EvictionVeto<K, V> none() {
-    return new EvictionVeto<K, V>() {
-      @Override
-      public boolean test(final Cache.Entry<K, V> argument) {
-        return Predicates.<Cache.Entry<K, V>>none().test(argument);
-      }
-    };
-  }
-
-  /**
-   * Enumeration holding default {@link EvictionPrioritizer} instances.
-   */
-  public enum Prioritizer implements EvictionPrioritizer<Object, Object> {
-
-    /**
-     * Least Recently Used {@link EvictionPrioritizer}.
-     * <p>
-     * Ranks eviction candidates by their last access time.  The entry which was
-     * last accessed the longest time ago is considered the most eligible for
-     * eviction.
-     */
-    LRU {
-      @Override
-      public int compare(Cache.Entry<Object, Object> a, Cache.Entry<Object, Object> b) {
-        return Long.signum(b.getLastAccessTime(TimeUnit.NANOSECONDS) - a.getLastAccessTime(TimeUnit.NANOSECONDS));
-      }
-    },
-
-    /**
-     * Least Frequently Used {@link EvictionPrioritizer}.
-     * <p>
-     * Ranks eviction candidates by their frequency of use.  The entry which has
-     * the lowest hit rate is considered the most eligible for eviction.
-     */
-    LFU {
-      @Override
-      public int compare(Cache.Entry<Object, Object> a, Cache.Entry<Object, Object> b) {
-        return Float.compare(b.getHitRate(TimeUnit.NANOSECONDS), a.getHitRate(TimeUnit.NANOSECONDS));
-      }
-    },
-
-    /**
-     * First In, First Out {@link EvictionPrioritizer}.
-     * <p>
-     * Ranks eviction candidates by their time of creation.  The entry which was
-     * created the earliest is considered the most eligible for eviction.
-     */
-    FIFO {
-      @Override
-      public int compare(Cache.Entry<Object, Object> a, Cache.Entry<Object, Object> b) {
-        return Long.signum(b.getCreationTime(TimeUnit.NANOSECONDS) - a.getCreationTime(TimeUnit.NANOSECONDS));
-      }
-    };
-  }
 }

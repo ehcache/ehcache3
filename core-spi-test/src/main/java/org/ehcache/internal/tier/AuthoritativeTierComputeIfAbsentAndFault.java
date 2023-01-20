@@ -16,10 +16,9 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Function;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -63,11 +62,10 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
    * will be evicted with the default behaviour of the tier.
    */
   @SPITest
-  public void nonMarkedMappingIsEvictable() throws CacheAccessException {
+  public void nonMarkedMappingIsEvictable() throws StoreAccessException {
     K key = factory.createKey(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     tier.computeIfAbsent(key, new Function<K, V>() {
       @Override
@@ -90,8 +88,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       assertThat(tier.get(key), is(nullValue()));
@@ -105,13 +102,13 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
       fillTierOverCapacity(tier, factory);
       assertThat(tier.get(key).value(), is(equalTo(value)));
 
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
-  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws CacheAccessException {
-    for (long seed = 2L; seed < 15000; seed++) {
+  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws StoreAccessException {
+    for (long seed = 2L; seed < 10; seed++) {
       tier.put(factory.createKey(seed), factory.createValue(seed));
     }
   }

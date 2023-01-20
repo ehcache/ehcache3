@@ -15,9 +15,14 @@
   ~ limitations under the License.
   -->
 
-<xs:schema version="1.0" xmlns:jsr107="http://www.ehcache.org/v3/jsr107" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3/jsr107">
+<xs:schema version="1.0"
+           xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
+           xmlns:eh="http://www.ehcache.org/v3"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3/jsr107">
+  <xs:import namespace="http://www.ehcache.org/v3"/>
 
-  <xs:element name="defaults" type="jsr107:defaults-type">
+  <xs:element name="defaults" type="jsr107:defaults-type" substitutionGroup="eh:service-creation-configuration">
     <xs:key name="default-template-ref">
       <xs:selector xpath="cache-template"/>
       <xs:field xpath="@name"/>
@@ -34,7 +39,7 @@
       </xs:element>
     </xs:sequence>
     <xs:attribute name="default-template" type="xs:IDREF" use="optional"/>
-    <xs:attribute name="jsr107CompliantAtomics" type="xs:boolean" use="optional"/>
+    <xs:attribute name="jsr-107-compliant-atomics" type="xs:boolean" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="cache-type">

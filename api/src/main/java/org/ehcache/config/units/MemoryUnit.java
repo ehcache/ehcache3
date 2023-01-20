@@ -27,87 +27,61 @@ public enum MemoryUnit implements ResourceUnit {
   /**
    * Bytes unit.
    */
-  B {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return size;
-    }
-  },
+  B("B", 0),
   /**
    * Kilobytes unit.
    */
-  KB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, KILOBYTE / BYTE, MAX / (KILOBYTE / BYTE));
-    }
-  },
+  KB("kB", 10),
   /**
    * Megabytes unit.
    */
-  MB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, MEGABYTE / BYTE, MAX / (MEGABYTE / BYTE));
-    }
-  },
+  MB("MB", 20),
   /**
    * Gigabytes unit.
    */
-  GB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, GIGABYTE / BYTE, MAX / (GIGABYTE / BYTE));
-    }
-  },
+  GB("GB", 30),
   /**
    * Terabytes unit.
    */
-  TB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, TERABYTE / BYTE, MAX / (TERABYTE / BYTE));
-    }
-  },
+  TB("TB", 40),
   /**
    * Petabytes unit.
    */
-  PB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, PETABYTE / BYTE, MAX / (PETABYTE / BYTE));
-    }
-  };
+  PB("PB", 50);
 
-  static final long BYTE = 1L;
-  static final long KILOBYTE = 1024L;
-  static final long MEGABYTE = KILOBYTE * 1024L;
-  static final long GIGABYTE = MEGABYTE * 1024L;
-  static final long TERABYTE = GIGABYTE * 1024L;
-  static final long PETABYTE = TERABYTE * 1024L;
+  /** the index of this unit */
+  private final int index;
+  private final String stringForm;
 
-  static final long MAX = Long.MAX_VALUE;
+  /** Internal constructor */
+  MemoryUnit(String stringForm, int index) {
+    this.stringForm = stringForm;
+    this.index = index;
+  }
 
   /**
-   * Scale d by m, checking for overflow.
-   * This has a short name to make above code more readable.
+   * Computes <pre>amount * 2^delta</pre>.
+   *
+   * The result is always rounded toward zero.
+   *
+   * @param delta log<sub>2</sub>(divisor)
+   * @param amount dividend
+   * @throws ArithmeticException if the result overflows
    */
-  static long x(long d, long m, long over) {
-      if (d >  over) return Long.MAX_VALUE;
-      if (d < -over) return Long.MIN_VALUE;
-      return d * m;
+  private static long doConvert(int delta, long amount) throws ArithmeticException {
+    if (delta == 0 || amount == 0) {
+      return amount;
+    } else if (delta < 0) {
+      // Hacker's Delight : 10-1
+      long t = amount >> (-delta - 1);
+      t >>>= 64 + delta;
+      t += amount;
+      return t >> -delta;
+    } else if (delta >= Long.numberOfLeadingZeros(amount < 0 ? ~amount : amount)) {
+      throw new ArithmeticException("Conversion overflows");
+    } else {
+      return amount << delta;
+    }
   }
 
   /**
@@ -117,6 +91,44 @@ public enum MemoryUnit implements ResourceUnit {
    * @return the size in bytes
    */
   public long toBytes(long size) {
-    throw new AbstractMethodError();
+    return doConvert(index - B.index, size);
+  }
+
+  /**
+   * Returns {@code amount} in {@code unit} in to this unit.
+   *
+   * @param amount size to convert
+   * @param unit {@code amount}'s unit
+   * @return the amount in this unit
+   */
+  public long convert(long amount, MemoryUnit unit) {
+    return doConvert(unit.index - index, amount);
+  }
+
+  @Override
+  public String toString() {
+    return stringForm;
+  }
+
+  @Override
+  public int compareTo(long thisSize, long thatSize, ResourceUnit thatUnit) {
+    if (thatUnit instanceof MemoryUnit) {
+      MemoryUnit mThatUnit = (MemoryUnit) thatUnit;
+      if (index < mThatUnit.index) {
+        try {
+          return Long.signum(thisSize - convert(thatSize, mThatUnit));
+        } catch (ArithmeticException e) {
+          return Long.signum(mThatUnit.convert(thisSize, this) - thatSize);
+        }
+      } else {
+        try {
+          return Long.signum(mThatUnit.convert(thisSize, this) - thatSize);
+        } catch (ArithmeticException e) {
+          return Long.signum(thisSize - convert(thatSize, mThatUnit));
+        }
+      }
+    } else {
+      throw new IllegalArgumentException();
+    }
   }
 }

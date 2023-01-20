@@ -16,19 +16,18 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.test.Ignore;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#hitRate(java.util.concurrent.TimeUnit)} contract of the
- * {@link org.ehcache.spi.cache.Store.ValueHolder Store.ValueHolder} interface.
+ * Test the {@link Store.ValueHolder#hitRate(long, TimeUnit)} contract of the
+ * {@link Store.ValueHolder Store.ValueHolder} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -41,11 +40,10 @@ public class StoreValueHolderHitRateTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @Ignore(reason = "Failing test to fix")
   public void hitRateCanBeReturned()
       throws IllegalAccessException, InstantiationException {
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.createValue(1));
 
-    assertThat(valueHolder.hitRate(TimeUnit.MILLISECONDS), is(notNullValue()));
+    assertThat(valueHolder.hitRate(TimeUnit.MILLISECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS), anyOf(is(Float.NaN), is(0.0f)));
   }
 }

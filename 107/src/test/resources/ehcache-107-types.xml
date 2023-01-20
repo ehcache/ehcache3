@@ -24,7 +24,7 @@
   </ehcache:service>
 
   <ehcache:cache-template name="defaultCacheTemplate">
-    <ehcache:heap size="200" unit="entries"/>
+    <ehcache:heap unit="entries">200</ehcache:heap>
   </ehcache:cache-template>
 
 </ehcache:config>

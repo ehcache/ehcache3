@@ -16,10 +16,9 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -70,14 +69,13 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       tier.put(key, value);
       final Store.ValueHolder<V> fault = tier.getAndFault(key);
       when(valueHolder.getId()).thenReturn(fault.getId());
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -92,12 +90,11 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       tier.put(key, value);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -111,34 +108,9 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
     Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.expirationTime(any(TimeUnit.class))).thenReturn(1L);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     assertThat(tier.flush(key, valueHolder), is(equalTo(false)));
   }
 
-  @SPITest
-  @SuppressWarnings("unchecked")
-  public void exceptionWhenValueHolderIsNotAnInstanceFromTheCachingTier() throws LegalSPITesterException {
-    K key = factory.createKey(1);
-    final V value = factory.createValue(1);
-
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
-
-    Store.ValueHolder<V> valueHolder = null;
-    try {
-      tier.put(key, value);
-      valueHolder = tier.get(key);
-    } catch (CacheAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
-
-    try {
-      tier.flush(key, valueHolder);
-      throw new AssertionError();
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
-  }
 }

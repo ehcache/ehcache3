@@ -13,131 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-def pomFiller(pom, nameVar, descriptionVar) {
-  pom.project {
-    name nameVar
-    description descriptionVar
-    url 'http://ehcache.org'
-    organization {
-      name 'Terraccotta'
-      url 'http://terracotta.org'
-    }
-    issueManagement {
-      system 'Github'
-      url 'https://github.com/ehcache/ehcache3/issues'
-    }
-    scm {
-      url 'https://github.com/ehcache/ehcache3'
-      connection 'scm:git:https://github.com/ehcache/ehcache3.git'
-      developerConnection 'scm:git:git@github.com:ehcache/ehcache3.git'
-    }
-    licenses {
-      license {
-        name 'The Apache Software License, Version 2.0'
-        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-        distribution 'repo'
-      }
-    }
-    developers {
-      developer {
-        name 'Alex Snaps'
-        email 'alex.snaps@gmail.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Louis Jacomet'
-        email 'ljacomet@gmail.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Tim Eck'
-        email 'timeck@gmail.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Chris Dennis'
-        email 'chris.w.dennis@gmail.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Ludovic Orban'
-        email 'lorban@bitronix.be'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Clifford W. Johnson'
-        email 'clifford.johnson@softwareag.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Aurélien Broszniowski'
-        email 'jsoftbiz@gmail.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Vitaliy Funshteyn'
-        email 'vfunshte@terracottatech.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Anthony Dahanne'
-        email 'anthony.dahanne@gmail.com'
-        organization 'Potloc'
-        organizationUrl 'http://potloc.ca/'
-      }
-      developer {
-        name 'Gaurav Mangalick'
-        email 'gaurav.mangalick@softwareag.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-      developer {
-        name 'Hung Huynh'
-        email 'hhuynh@gmail.com'
-        organization 'Terracotta'
-        organizationUrl 'http://ehcache.org'
-      }
-    }
-  }
-}
-
-def fillManifest(manifest, title) {
-  manifest.attributes(
-          'provider': 'gradle',
-          'Implementation-Title': title,
-          'Implementation-Version': project.version,
-          'Built-By': System.getProperty('user.name'),
-          'Built-JDK': System.getProperty('java.version'),
-          'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-  )
-}
+import scripts.*
 
 ext {
-  offHeapVersion = '2.0.0'
+  baseVersion = '3.0.0-SNAPSHOT'
+  offheapVersion = '2.2.1'
+  managementVersion = '2.3.0'
+  statisticVersion = '1.1.0'
+  jcacheVersion = '1.0.0'
+  slf4jVersion = '1.7.7'
+  sizeofVersion = '0.3.0'
+
+  utils = new Utils(baseVersion, logger)
+  isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
+}
+
+buildscript {
+  repositories { jcenter() }
+  dependencies {
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+  }
 }
 
 subprojects {
   apply plugin: 'java'
-  apply plugin: 'maven'
-  apply plugin: 'signing'
   apply plugin: 'eclipse'
   apply plugin: 'checkstyle'
   apply plugin: 'findbugs'
   apply plugin: 'jacoco'
 
   group = 'org.ehcache.modules'
-  version = '3.0.0-SNAPSHOT'
-
-  ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
+  version = baseVersion
 
   archivesBaseName = "ehcache-${project.name}"
 
@@ -160,12 +66,23 @@ subprojects {
   }
 
   dependencies {
+    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
+      compile 'com.google.code.findbugs:annotations:3.0.0'
+    } else {
+      compile 'com.google.code.findbugs:annotations:2.0.3'
+    }
     testCompile 'junit:junit:4.11', 'org.hamcrest:hamcrest-library:1.3', 'org.mockito:mockito-core:1.9.5'
-    testRuntime 'org.slf4j:slf4j-simple:1.7.7'
+    testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   }
 
   jar {
-    fillManifest(manifest,"ehcache-${project.name}")
+    utils.fillManifest(manifest,"ehcache-${project.name}")
+    from "$rootDir/LICENSE"
+  }
+
+  test {
+    maxHeapSize = "512m"
+    systemProperty 'java.awt.headless', 'true'
   }
 
   task slowTest(type: Test) {
@@ -180,6 +97,11 @@ subprojects {
   task sourceJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allJava
     classifier = 'sources'
+  }
+
+  javadoc {
+    title "$project.archivesBaseName $project.version API"
+    exclude '**/internal/**'
   }
 
   if (JavaVersion.current().isJava8Compatible()) {
@@ -202,36 +124,6 @@ subprojects {
     archives sourceJar
   }
 
-  signing {
-    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
-    sign configurations.archives
-  }
-
-  uploadArchives {
-    repositories {
-      mavenDeployer {
-        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment)}
-
-        if (isReleaseVersion) {
-          repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-            authentication(userName: sonatypeUser, password: sonatypePwd)
-          }
-        } else {
-          repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
-            authentication(userName: sonatypeUser, password: sonatypePwd)
-          }
-        }
-      }
-    }
-  }
-
-  def installer = install.repositories.mavenInstaller
-  def deployer = uploadArchives.repositories.mavenDeployer
-
-  [installer, deployer]*.pom*.whenConfigured {pom ->
-    pomFiller(pom, project.subPomName, project.subPomDesc)
-  }
-
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
@@ -241,11 +133,12 @@ subprojects {
   findbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    excludeFilter = file("$projectDir/config/findbugs-excludes.xml")
-    toolVersion = '2.0.3'
+    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
+      findbugs.toolVersion = '3.0.1'
+    } else {
+      findbugs.toolVersion = '2.0.3'
+    }
   }
-  findbugsMain.onlyIf { !JavaVersion.current().isJava8Compatible() }
-
 
   jacoco {
     toolVersion = '0.7.1.201405082137'
@@ -259,6 +152,11 @@ subprojects {
   }
 }
 
-task wrapper(type: Wrapper) {
-  gradleVersion = '2.1'
+allprojects {
+  tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+  }
+  tasks.withType(Javadoc) {
+    options.encoding = 'UTF-8'
+  }
 }

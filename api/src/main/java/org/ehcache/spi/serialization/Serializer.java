@@ -15,16 +15,34 @@
  */
 package org.ehcache.spi.serialization;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.ehcache.exceptions.SerializerException;
 
 /**
  * Interface defining the contract used to transform types in a serial form.
- * Implementations must be thread-safe and must define a constructor accepting a single ClassLoader parameter.
+ * Implementations must be thread-safe.
+ *
+ * When used within the default serialization provider, there is an additional requirement:
+ * The implementations must define either or both of the two constructors:
+ * <ul>
+ *   <li>
+ *     Accepting a single {@link ClassLoader} parameter: This constructor will be used to initialize the serializer for
+ *     transient caches
+ *   </li>
+ *   <li>
+ *     Accepting a {@link ClassLoader} parameter and a file based persistence context: This constructor will be used to
+ *     initialize the serializer for persistent caches
+ *   </li>
+ * </ul> .
+ * <p>
+ *   The serialized object's class must be preserved in such a way that deserializing that object will return
+ *   an object of the exact same class as before serialization, i.e.: the following contract must always be true:
+ *   <p>
+ *   <code>object.getClass().equals( mySerializer.read(mySerializer.serialize(object)).getClass() )</code>
+ *   </p>
+ * </p>
  *
  * @param <T> the type of the instances to serialize
- *
- * @author cdennis
  */
 public interface Serializer<T> {
 
@@ -33,19 +51,19 @@ public interface Serializer<T> {
    *
    * @param object the instance to serialize
    * @return the binary representation of the serial form
-   * @throws IOException if serialization fails
+   * @throws SerializerException if serialization fails
    */
-  ByteBuffer serialize(T object) throws IOException;
+  ByteBuffer serialize(T object) throws SerializerException;
 
   /**
    * Reconstructs an instance from the given serial form.
    *
    * @param binary the binary representation of the serial form
    * @return the de-serialized instance
-   * @throws IOException if reading the byte buffer fails
+   * @throws SerializerException if reading the byte buffer fails
    * @throws ClassNotFoundException if the type to de-serialize to cannot be found
    */
-  T read(ByteBuffer binary) throws IOException, ClassNotFoundException;
+  T read(ByteBuffer binary) throws ClassNotFoundException, SerializerException;
 
   /**
    * Checks if the given instance and serial form are representations of the same instance.
@@ -53,9 +71,9 @@ public interface Serializer<T> {
    * @param object the instance to check
    * @param binary the serial form to check
    * @return {@code true} if both parameters represent the same instance, {@code false} otherwise
-   * @throws IOException if reading the byte buffer fails
+   * @throws SerializerException if reading the byte buffer fails
    * @throws ClassNotFoundException if the type to de-serialize to cannot be found
    */
-  boolean equals(T object, ByteBuffer binary) throws IOException, ClassNotFoundException;
+  boolean equals(T object, ByteBuffer binary) throws ClassNotFoundException, SerializerException;
 
 }

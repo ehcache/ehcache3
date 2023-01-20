@@ -27,15 +27,30 @@ public interface ResourcePools {
   /**
    * Get a specific {@link ResourcePool} based on its type.
    *
+   * @param <P> specific resource pool type
    * @param resourceType the type of resource the pool is tracking.
    * @return the {@link ResourcePool}, or null if there is no pool tracking the requested type.
    */
-  ResourcePool getPoolForResource(ResourceType resourceType);
+  <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType);
 
   /**
    * Get the set of {@link ResourceType} of all the pools present in the ResourcePools
    *
    * @return the set of {@link ResourceType}
    */
-  Set<ResourceType> getResourceTypeSet();
+  Set<ResourceType<?>> getResourceTypeSet();
+
+  /**
+   * Get a copy of the current {@link ResourcePools} merged with another {@link ResourcePools} and validate that
+   * the updates to the contained {@link ResourcePool}s are legal.
+   *
+   * @param toBeUpdated the {@link ResourcePools} to merge with the current one.
+   * @return A merged and validated {@link ResourcePools} copy.
+   * @throws IllegalArgumentException      thrown when an illegal resource value is being given, for instance a negative
+   *                                       size.
+   * @throws UnsupportedOperationException thrown when an unsupported update is requested, for instance trying to change
+   *                                       the {@link ResourceUnit}.
+   */
+  ResourcePools validateAndMerge(ResourcePools toBeUpdated) throws IllegalArgumentException, UnsupportedOperationException;
+
 }

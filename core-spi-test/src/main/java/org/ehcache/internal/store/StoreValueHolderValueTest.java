@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,8 +24,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#value()} contract of the
- * {@link org.ehcache.spi.cache.Store.ValueHolder Store.ValueHolder} interface.
+ * Test the {@link Store.ValueHolder#value()} contract of the
+ * {@link Store.ValueHolder Store.ValueHolder} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

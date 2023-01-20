@@ -12,6 +12,11 @@
   <module name="RegexpMultiline">
       <property name="format" value="(?s:\r\n.*)"/>
   </module>
+  <!-- no trailing whitespace -->
+  <module name="RegexpSingleline">
+    <property name="format" value="\s+$"/>
+    <property name="message" value="Trailing whitespace"/>
+  </module>
 
   <!-- Copyright header -->
   <module name="Header">

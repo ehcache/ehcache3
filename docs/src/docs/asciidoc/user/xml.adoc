@@ -1,13 +1,19 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = XML Configuration
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
-== Intro
+== Introduction
 
 Using an XML file you can configure a `CacheManager` at creation time, according to
-link:xsds{outfilesuffix}#_core[this schema definition].
+link:xsds{outfilesuffix}#core[this schema definition].
 
 === `<config>` root element
 
@@ -27,36 +33,50 @@ is called during `CacheManager.init` processing and the `Service.stop` method is
 
 These `Service` instances can then be used by `Cache` instances managed by the `CacheManager`.  JSR-107 uses this
 extension point of the XML configuration (and Ehcache 3's modular architecture), as explained in the
-link:107{outfilesuffix}#_supplement_jsr_107_s_configurations[JSR-107 configuration section].
+link:107{outfilesuffix}#supplement-jsr-107-s-configurations[JSR-107 configuration section].
+
+=== `<default-serializers>` element
+
+A `<default-serializers>` element represents `Serializers` configured at `CacheManager` level. 
+It is a collection of `serializer` tags that require a `type` and a fully qualified class name of the `Serializer`.   
+
+=== `<default-copiers>` element
+
+A `<default-copiers>` element represents `Copiers` configured at `CacheManager` level.
+It is a collection of `copier` tags that requires a `type` and a fully qualified class name of the `Copier`.
+
+=== `<persistence>` element
+
+A `<persistence>` element represents `Persistence`, to be used when creating a `PersistentCacheManager`.
+It requires the `directory` location where data needs be stored on disk.
 
 === `<cache>` elements
 
 A `<cache>` element represent a `Cache` instance that will be created and managed by the `CacheManager`.
 Each `<cache>` requires the `alias` attribute, used at runtime to retrieve the corresponding `Cache<K, V>` instance using
-the `org.ehcache.CacheManager.getCache(String, Class<K>, Class<V>)` method. The optional `usesTemplate` attribute, lets you reference
-a `<cache-template>` element's `name` attribute. See the <<__code_cache_template_code_elements,cache-template section>>
+the `org.ehcache.CacheManager.getCache(String, Class<K>, Class<V>)` method. The optional `uses-template` attribute, lets you reference
+a `<cache-template>` element's `name` attribute. See the <<code-cache-template-code-elements,cache-template section>>
 for further details on using them.
 
 Supported nested elements are optional:
 
  . `<key-type>`: the fully qualified class name (FQCN) of the keys (`<K>`) held in the `Cache<K, V>`; defaults to `java.lang.Object`
  . `<value-type>`: FQCN of the values (`<V>`) held in the `Cache`; defaults to `java.lang.Object`
- . `<capacity>`: a positive numerical value; defaults to `null`, i.e. unconstrained
  . `<expiry>`: control the expiry type and its parameters
- . `<eviction-veto>`: FQCN of a `org.ehcache.config.EvictionVeto<K, V>` implementation, defaults to `null`, i.e. none
- . `<eviction-prioritizer>`: FQCN of a `org.ehcache.config.EvictionPrioritizer<K, V>` implementation, defaults to `null`
+ . `<eviction-advisor>`: FQCN of a `org.ehcache.config.EvictionAdvisor<K, V>` implementation, defaults to `null`, i.e. none
  . `<integration>`: configure a `CacheLoaderWriter` for a _cache-through_ pattern
+ . `<resources>`: configure the tiers and their capacity. When using on-heap only, you can replace this element by the `<heap>` one.
 
 === `<cache-template>` elements
 
 `<cache-template>` elements represent a uniquely named (specified using the mandatory `name` attribute) template for
 `<cache>` elements to inherit from.  A `<cache>` element that references a `<cache-template>` by
-its `name` using the `usesTemplate` attribute, will inherit all properties of the `<cache-template>`. A `<cache>`
+its `name` using the `uses-template` attribute, will inherit all properties of the `<cache-template>`. A `<cache>`
 can override these properties as it needs.
 
 A `<cache-template>` element may contain all the same child elements as a `<cache>` element.
 
-NOTE: We've setup a complete configuration link:examples{outfilesuffix}#_xml_with_107_extension[example] to inspire you.
+NOTE: We've setup a complete configuration link:examples{outfilesuffix}#xml-with-107-extension[example] to inspire you.
 
 == XML programmatic parsing
 
@@ -71,7 +91,7 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 ----
 <1> Obtain a `URL` to your XML file's location
 <2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
-<3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` allows you
+<3> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` allows you
     to create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
 We can also use `<cache-template>` declared in the XML file to seed instances of `CacheConfigurationBuilder`. In order

@@ -16,11 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Function;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -36,7 +35,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test the {@link CachingTier#invalidate()} contract of the
+ * Test the {@link CachingTier#clear()} contract of the
  * {@link CachingTier CachingTier} interface.
  * <p/>
  *
@@ -57,7 +56,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
   @After
   public void tearDown() {
     if (tier != null) {
-//      tier.close();
+      factory.disposeOf(tier);
       tier = null;
     }
   }
@@ -67,8 +66,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
   public void removeMapping() throws LegalSPITesterException {
     long nbMappings = 10;
 
-    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        nbMappings, null, null, Expirations.noExpiration()));
+    tier = factory.newCachingTier();
 
     V originalValue= factory.createValue(1);
     V newValue= factory.createValue(2);
@@ -90,7 +88,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
         keys.add(key);
       }
 
-      tier.invalidate();
+      tier.clear();
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
       when(newValueHolder.value()).thenReturn(newValue);
@@ -106,7 +104,7 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
         assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

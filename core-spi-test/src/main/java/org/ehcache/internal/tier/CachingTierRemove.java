@@ -16,11 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Function;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -54,7 +53,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
   @After
   public void tearDown() {
     if (tier != null) {
-//      tier.close();
+      factory.disposeOf(tier);
       tier = null;
     }
   }
@@ -70,8 +69,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
     final Store.ValueHolder<V> valueHolder = mock(Store.ValueHolder.class);
     when(valueHolder.value()).thenReturn(originalValue);
 
-    tier = factory.newCachingTier(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newCachingTier(1L);
 
     try {
       tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
@@ -93,7 +91,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
       });
 
       assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

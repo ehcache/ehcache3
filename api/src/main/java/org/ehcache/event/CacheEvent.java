@@ -36,18 +36,29 @@ public interface CacheEvent<K, V> {
   EventType getType();
 
   /**
-   * The {@link org.ehcache.Cache.Entry} affected by the mutative event
+   * The key of the mapping affected by the mutative event
    *
-   * @return {@link org.ehcache.Cache.Entry Entry} affected by the mutative event
+   * @return the mutated key
    */
-  Cache.Entry<K, V> getEntry();
+  K getKey();
 
   /**
-   * Returns the value associated with the key prior to the mutation being applied
+   * The mapped value immediately after the mutative event occurred.
+   * <p>
+   * If the mutative event removes the mapping then {@code null} is returned.
    *
-   * @return the previous value associated with the key, prior to the update
+   * @return the mapped value after the mutation
    */
-  V getPreviousValue();
+  V getNewValue();
+
+  /**
+   * The mapped value immediately before the mutative event occurred.
+   * <p>
+   * If the mutative event created the mapping then {@code null} is returned.
+   *
+   * @return the mapped value before the mutation
+   */
+  V getOldValue();
 
   /**
    * The cache originating this event

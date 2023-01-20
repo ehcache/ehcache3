@@ -18,43 +18,73 @@ package org.ehcache.config;
 /**
  * The resource pools type interface.
  *
- * @author Ludovic Orban
+ * @param <T> associated {@code ResourcePool} type
  */
-public interface ResourceType {
+public interface ResourceType<T extends ResourcePool> {
 
   /**
-   * Whether the resource supports persistence
+   * Gets the primary {@link ResourcePool} type associated with this {@code ResourceType}.
+   *
+   * @return the {@code ResourcePool} type associated with this type
+   */
+  Class<T> getResourcePoolClass();
+
+  /**
+   * Whether the resource supports persistence.
    * @return <code>true</code> if it supports persistence
    */
   boolean isPersistable();
 
   /**
+   * Whether the resource requires serialization support.
+   * @return <code>true</code> if serializers are required
+   */
+  boolean requiresSerialization();
+
+  /**
    * An enumeration of resource types handled by core ehcache.
    */
-  enum Core implements ResourceType {
+  enum Core implements ResourceType<SizedResourcePool> {
     /**
      * Heap resource.
      */
-    HEAP(false),
+    HEAP(false, false),
     /**
      * OffHeap resource.
      */
-    OFFHEAP(false),
+    OFFHEAP(false, true),
     /**
      * Disk resource.
      */
-    DISK(true);
+    DISK(true, true);
 
 
     private final boolean persistable;
+    private final boolean requiresSerialization;
 
-    Core(boolean persistable) {
+    Core(boolean persistable, final boolean requiresSerialization) {
       this.persistable = persistable;
+      this.requiresSerialization = requiresSerialization;
+    }
+
+    @Override
+    public Class<SizedResourcePool> getResourcePoolClass() {
+      return SizedResourcePool.class;
     }
 
     @Override
     public boolean isPersistable() {
       return persistable;
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return requiresSerialization;
+    }
+
+    @Override
+    public String toString() {
+      return name().toLowerCase();
     }
   }
 

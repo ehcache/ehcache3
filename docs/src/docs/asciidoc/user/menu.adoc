@@ -1,11 +1,19 @@
- link:../../../index.html[Home]::
-// ../../../index.html refers to the 'native' index.html file in the root of the ehcache/ehcache.github.io project
+link:./index.html[Home]::
 
- User documentation::
- - link:./index{outfilesuffix}[Getting started]
- - link:./xml{outfilesuffix}[XML Configuration]
- - link:./107{outfilesuffix}[javax.cache aka jsr-107]
- - link:./management{outfilesuffix}[Management and Monitoring]
- Resources::
- - link:./examples{outfilesuffix}[Java examples]
- - link:./xsds{outfilesuffix}[Configuration XSD]
+User documentation::
+- link:./getting-started{outfilesuffix}[Getting started]
+- link:./xml{outfilesuffix}[XML Configuration]
+- link:./usermanaged{outfilesuffix}[User managed caches]
+- link:./107{outfilesuffix}[javax.cache aka jsr-107]
+- link:./caching-terms{outfilesuffix}[Caching Terms]
+- link:./caching-patterns{outfilesuffix}[Caching Patterns]
+- link:./thread-pools{outfilesuffix}[Thread Pools]
+- link:./serializers-copiers{outfilesuffix}[Serializers and Copiers]
+- link:./management{outfilesuffix}[Management and Monitoring]
+- link:./xa{outfilesuffix}[Transactions support]
+- link:./writers{outfilesuffix}[Cache Writers]
+- link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
+- link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
+Resources::
+- link:./examples{outfilesuffix}[Java examples]
+- link:./xsds{outfilesuffix}[Configuration XSD]

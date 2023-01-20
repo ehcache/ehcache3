@@ -24,6 +24,7 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -98,8 +99,33 @@ public class Eh107CacheTypeTest {
     assertThat((Class<String>)cache1CompleteConf.getValueType(), is(equalTo(String.class)));
   }
 
+  @Test
+  public void testEhcacheCloseRemovesFromCacheManager() throws Exception {
+    CachingProvider provider = Caching.getCachingProvider();
+    javax.cache.CacheManager cacheManager =
+        provider.getCacheManager(this.getClass()
+            .getResource("/ehcache-107-types.xml")
+            .toURI(), getClass().getClassLoader());
+    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<Long, String>();
+    javax.cache.Cache<Long, String> cache = cacheManager.createCache("cache1", cache1Conf);
+    cacheManager.unwrap(org.ehcache.CacheManager.class).removeCache(cache.getName());
+    try {
+      assertThat(cacheManager.getCache(cache.getName()), nullValue());
+    } finally {
+      cacheManager.close();
+    }
+  }
 
-
-
-
+  @Test
+  public void testCacheManagerCloseLenientToEhcacheClosed() throws Exception {
+    CachingProvider provider = Caching.getCachingProvider();
+    javax.cache.CacheManager cacheManager =
+        provider.getCacheManager(this.getClass()
+            .getResource("/ehcache-107-types.xml")
+            .toURI(), getClass().getClassLoader());
+    MutableConfiguration<Long, String> cache1Conf = new MutableConfiguration<Long, String>();
+    javax.cache.Cache<Long, String> cache = cacheManager.createCache("cache1", cache1Conf);
+    cacheManager.unwrap(org.ehcache.CacheManager.class).removeCache(cache.getName());
+    cacheManager.close();
+  }
 }

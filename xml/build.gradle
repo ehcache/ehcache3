@@ -18,11 +18,15 @@ plugins {
     id 'com.github.jacobono.jaxb' version '1.3.5'
 }
 
+apply plugin: EhDeploy
+
 dependencies {
   compile project(':api'), project(':core'), project(':impl')
-  jaxb 'com.sun.xml.bind:jaxb-xjc:2.2.7-b41'
-  jaxb 'com.sun.xml.bind:jaxb-impl:2.2.7-b41'
-  jaxb 'javax.xml.bind:jaxb-api:2.2.7'
+
+  // Constrained to JAXB 2.1 due to JDK 1.6 compatibility requirements
+  jaxb 'com.sun.xml.bind:jaxb-xjc:2.1.17'
+  jaxb 'com.sun.xml.bind:jaxb-impl:2.1.17'
+  jaxb 'javax.xml:jaxb-api:2.1'
 }
 
 def generatedSources = "src/generated/java"
@@ -37,7 +41,7 @@ jaxb {
   bindingsDir = "$name/build/xsd/bindings"
   xjc {
     destinationDir = generatedSources
-    generatePackage    = "org.ehcache.config.xml.model"
+    generatePackage    = "org.ehcache.xml.model"
   }
 
   compileJava.dependsOn "xjc"

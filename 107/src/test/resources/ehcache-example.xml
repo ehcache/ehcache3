@@ -19,20 +19,19 @@
     OPTIONAL
       A <cache> element defines a cache, identified by the mandatory 'alias' attribute, to be managed by the CacheManager
   -->
-  <ehcache:cache alias="productCache"
-                 storeByValueOnHeap="true"> <!-- OPTIONAL: storing by value on heap, will result in keys and values being copied in and out of the Cache -->
+  <ehcache:cache alias="productCache">
 
     <!--
       OPTIONAL, defaults to java.lang.Object
         The FQCN of the type of keys K we'll use with the Cache<K, V>
     -->
-    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:key-type copier="org.ehcache.impl.copy.SerializingCopier">java.lang.Long</ehcache:key-type>
 
     <!--
       OPTIONAL, defaults to java.lang.Object
         The FQCN of the type of values V we'll use with the Cache<K, V>
     -->
-    <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
+    <ehcache:value-type copier="org.ehcache.impl.copy.SerializingCopier">com.pany.domain.Product</ehcache:value-type>
 
     <!--
       OPTIONAL, defaults to no expiry
@@ -51,41 +50,29 @@
     </ehcache:expiry>
 
     <!--
-      OPTIONAL, defaults to no vetoing
-        An eviction veto, which lets you control what entries should only get evicted as last resort
-        FQCN of a org.ehcache.config.EvictionVeto implementation
+      OPTIONAL, defaults to no advice
+        An eviction advisor, which lets you control what entries should only get evicted as last resort
+        FQCN of a org.ehcache.config.EvictionAdvisor implementation
     -->
-    <ehcache:eviction-veto>com.pany.ehcache.MyEvictionVeto</ehcache:eviction-veto>
-
-    <!--
-      OPTIONAL, defaults to no prioritization
-        An eviction prioritizer, which will be used to order the random sample picked for eviction
-        FQCN of a org.ehcache.config.EvictionPrioritizer implementation or either values
-        from the enum org.ehcache.config.Eviction.Prioritizer:
-          LRU, LFU or FIFO
-    -->
-    <ehcache:eviction-prioritizer>LFU</ehcache:eviction-prioritizer>
+    <ehcache:eviction-advisor>com.pany.ehcache.MyEvictionAdvisor</ehcache:eviction-advisor>
 
     <!--
       OPTIONAL,
         Let's you configure your cache as a "cache-through",
         i.e. a Cache that uses a CacheLoaderWriter to load on misses, and write on mutative operations.
     -->
-    <ehcache:integration>
+    <ehcache:loader-writer>
       <!--
-        OPTIONAL
           The FQCN implementing org.ehcache.spi.loaderwriter.CacheLoaderWriter
       -->
-      <ehcache:loaderwriter>
-        <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+      <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
         <!-- Any further elements in another namespace -->
-      </ehcache:loaderwriter>
-    </ehcache:integration>
+    </ehcache:loader-writer>
 
     <!--
         The maximal number of entries to be held in the Cache, prior to eviction starting
     -->
-    <ehcache:heap size="200" unit="entries"/>
+    <ehcache:heap unit="entries">200</ehcache:heap>
 
     <!--
        OPTIONAL
@@ -98,11 +85,10 @@
       A <cache-template> defines a named template that can be used be <cache> definitions in this same file
       They have all the same property as the <cache> elements above
   -->
-  <ehcache:cache-template storeByValueOnHeap="false" name="myDefaultTemplate">
+  <ehcache:cache-template name="myDefaultTemplate">
     <ehcache:expiry>
       <ehcache:none/>
     </ehcache:expiry>
-    <ehcache:eviction-prioritizer>LRU</ehcache:eviction-prioritizer>
     <!--
        OPTIONAL
         Any further elements in another namespace
@@ -110,9 +96,9 @@
   </ehcache:cache-template>
 
   <!--
-    A <cache> that uses the template above by referencing the cache-template's name in the usesTemplate attribute:
+    A <cache> that uses the template above by referencing the cache-template's name in the uses-template attribute:
   -->
-  <ehcache:cache alias="customerCache" usesTemplate="myDefaultTemplate">
+  <ehcache:cache alias="customerCache" uses-template="myDefaultTemplate">
     <!--
       Adds the key and value type configuration
     -->
@@ -122,7 +108,7 @@
     <!--
       Overwrites the capacity limit set by the template to a new value
     -->
-    <ehcache:heap size="200" unit="entries"/>
+    <ehcache:heap unit="entries">200</ehcache:heap>
   </ehcache:cache>
 
 </ehcache:config>

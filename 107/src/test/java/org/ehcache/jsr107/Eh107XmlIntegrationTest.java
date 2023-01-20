@@ -19,6 +19,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.pany.domain.Client;
 import com.pany.domain.Customer;
 import com.pany.domain.Product;
 import com.pany.ehcache.Test107CacheEntryListener;
@@ -51,9 +52,11 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 
@@ -185,6 +188,10 @@ public class Eh107XmlIntegrationTest {
     productCache.put(1L, product);
     assertThat(productCache.get(1L).getId(), equalTo(product.getId()));
 
+    product.setMutable("foo");
+    assertThat(productCache.get(1L).getMutable(), nullValue());
+    assertThat(productCache.get(1L), not(sameInstance(product)));
+
     javax.cache.Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
     assertThat(customerCache, is(notNullValue()));
     Configuration<Long, Customer> customerConfiguration = customerCache.getConfiguration(Configuration.class);
@@ -194,6 +201,21 @@ public class Eh107XmlIntegrationTest {
     Customer customer = new Customer(1L);
     customerCache.put(1L, customer);
     assertThat(customerCache.get(1L).getId(), equalTo(customer.getId()));
+  }
+
+  @Test
+  public void testCopierAtServiceLevel() throws Exception {
+    CacheManager cacheManager = cachingProvider.getCacheManager(
+        getClass().getResource("/ehcache-107-default-copiers.xml").toURI(),
+        getClass().getClassLoader());
+
+    MutableConfiguration<Long, Client> config = new MutableConfiguration<Long, Client>();
+    config.setTypes(Long.class, Client.class);
+    Cache<Long, Client> bar = cacheManager.createCache("bar", config);
+    Client client = new Client("tc", 1000000L);
+    long key = 42L;
+    bar.put(key, client);
+    assertThat(bar.get(key), not(sameInstance(client)));
   }
 
   static class DumbCacheLoader implements CacheLoader<Long, Product> {

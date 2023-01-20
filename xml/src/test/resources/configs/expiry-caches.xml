@@ -25,6 +25,7 @@
     <ehcache:expiry>
       <ehcache:class>com.pany.ehcache.MyExpiry</ehcache:class>
     </ehcache:expiry>
+    <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 
   <ehcache:cache alias="none">
@@ -33,6 +34,7 @@
     <ehcache:expiry>
       <ehcache:none/>
     </ehcache:expiry>
+    <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 
   <ehcache:cache alias="tti">
@@ -41,6 +43,7 @@
     <ehcache:expiry>
       <ehcache:tti unit="millis">500</ehcache:tti>
     </ehcache:expiry>
+    <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 
   <ehcache:cache alias="ttl">
@@ -49,10 +52,12 @@
     <ehcache:expiry>
       <ehcache:ttl>30</ehcache:ttl>
     </ehcache:expiry>
+    <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 
   <ehcache:cache alias="notSet">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 </ehcache:config>

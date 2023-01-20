@@ -24,10 +24,23 @@ public enum EventOrdering {
   /**
    * No ordering requirement necessary
    */
-  UNORDERED,
+  UNORDERED(false),
 
   /**
    * Events for a given key will always fire in the same order they actually occurred
    */
-  ORDERED
+  ORDERED(true);
+
+  private final boolean ordered;
+
+  EventOrdering(boolean ordered) {this.ordered = ordered;}
+
+  /**
+   * Indicates if the value obeys ordering
+   *
+   * @return {@code true} in case it does, {@code false} otherwise
+   */
+  public boolean isOrdered() {
+    return ordered;
+  }
 }

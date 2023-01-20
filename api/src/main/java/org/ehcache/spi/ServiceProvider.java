@@ -17,36 +17,39 @@
 package org.ehcache.spi;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+
+import java.util.Collection;
 
 /**
+ * This acts as a repository for {@link Service} instances, that can be used to
+ * look them up by type.
  *
- * This acts as a repository for {@link Service} instances, that can be use to
- * look them up by type, or their {@link ServiceConfiguration} type.
- *
- * @author Alex Snaps
+ * @param <T> A bound on service types this provider can return
  */
-public interface ServiceProvider {
+public interface ServiceProvider<T extends Service> {
 
   /**
-   * Will look up the {@link Service} configured by the {@code config} type. Should the {@link Service} not yet started,
-   * it will be started, passed that {@link ServiceConfiguration} instance. Otherwise it is only used to find the
-   * matching {@link Service} instance.
+   * Will look up the {@link Service} of the {@code serviceType}.
+   * The returned service will be started or not depending on the started state of the {@code ServiceProvider}.
    *
-   * @param config The type configuring the Service being looked up
-   * @param <T> The actual {@link Service} implementation
-   * @return the service instance for {@code T} type, or null if it couldn't be located
+   * @param serviceType the {@code class} of the service being looked up
+   * @param <U> The actual {@link Service} type
+   * @return the service instance for {@code T} type, or {@code null} if it couldn't be located
+   *
+   * @throws IllegalArgumentException if {@code serviceType} is marked with the
+   *        {@link org.ehcache.spi.service.PluralService PluralService} annotation
    */
-  <T extends Service> T findServiceFor(ServiceConfiguration<T> config);
+  <U extends T> U getService(Class<U> serviceType);
 
   /**
-   * Will look up the {@link Service} of the {@code serviceType} type. Should the {@link Service} not yet started,
-   * it will be started with a {@code null} {@link ServiceConfiguration} passed to its
-   * {@link Service#start(org.ehcache.spi.service.ServiceConfiguration, ServiceProvider)} method.
+   * Looks up all {@link Service} instances registered to support the {@code serviceType} supplied.
+   * This method must be used for any service type marked with the
+   * {@link org.ehcache.spi.service.PluralService PluralService} annotation.
    *
-   * @param serviceType the Class of the instance being looked up
-   * @param <T> The actual {@link Service} implementation
-   * @return the service instance for {@code T} type, or null if it couldn't be located
+   * @param serviceType the {@code class} of the service being looked up
+   * @param <U> the actual {@link Service} type
+   * @return a collection of the registered services implementing {@code serviceType}; the
+   *     collection is empty if no services are registered for {@code serviceType}
    */
-  <T extends Service> T findService(Class<T> serviceType);
+  <U extends T> Collection<U> getServicesOfType(Class<U> serviceType);
 }

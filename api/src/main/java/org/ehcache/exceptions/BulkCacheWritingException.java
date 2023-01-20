@@ -28,7 +28,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  * @author Anthony Dahanne
  */
 public class BulkCacheWritingException extends CacheWritingException {
-  
+
   private static final long serialVersionUID = -9019459887947633422L;
 
   private final Map<?, Exception> failures;

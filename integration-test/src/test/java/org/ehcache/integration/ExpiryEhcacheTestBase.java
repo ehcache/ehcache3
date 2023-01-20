@@ -17,12 +17,11 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +33,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -45,17 +45,16 @@ public abstract class ExpiryEhcacheTestBase {
 
   private CacheManager cacheManager;
   private Cache<Number, CharSequence> testCache;
-  private final ManualTimeSource manualTimeSource = new ManualTimeSource();
+  private final TestTimeSource manualTimeSource = new TestTimeSource();
 
   @Before
   public void setUp() throws Exception {
-    manualTimeSource.setTime(0L);
-    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
+    manualTimeSource.setTimeMillis(0L);
+    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder().using(new TimeSourceConfiguration(manualTimeSource));
     cacheManager = builder.build(true);
-    CacheConfigurationBuilder<Object, Object> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
-        .add(new TimeSourceConfiguration(manualTimeSource))
+    CacheConfigurationBuilder<Number, CharSequence> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10))
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
-    testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.buildConfig(Number.class, CharSequence.class));
+    testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.build());
   }
 
   @After
@@ -70,7 +69,7 @@ public abstract class ExpiryEhcacheTestBase {
     insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
-    manualTimeSource.setTime(1001);
+    manualTimeSource.setTimeMillis(1001);
     assertThat(cacheSize(testCache), is(0));
   }
 
@@ -79,7 +78,7 @@ public abstract class ExpiryEhcacheTestBase {
     insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
-    manualTimeSource.setTime(1001);
+    manualTimeSource.setTimeMillis(1001);
     assertThat(testCache.get(1), is(nullValue()));
     assertThat(testCache.get(2), is(nullValue()));
   }
@@ -89,7 +88,7 @@ public abstract class ExpiryEhcacheTestBase {
     insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
-    manualTimeSource.setTime(1001);
+    manualTimeSource.setTimeMillis(1001);
     assertThat(testCache.getAll(new HashSet<Number>(Arrays.asList(1, 2))).size(), is(2));
   }
 
@@ -98,7 +97,7 @@ public abstract class ExpiryEhcacheTestBase {
     insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
-    manualTimeSource.setTime(1001);
+    manualTimeSource.setTimeMillis(1001);
     assertThat(testCache.putIfAbsent(1, "one#2"), is(nullValue()));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one#2"));
     assertThat(testCache.putIfAbsent(2, "two#2"), is(nullValue()));
@@ -110,7 +109,7 @@ public abstract class ExpiryEhcacheTestBase {
     insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
-    manualTimeSource.setTime(1001);
+    manualTimeSource.setTimeMillis(1001);
     assertThat(testCache.remove(1, "one"), is(false));
     assertThat(testCache.get(1), is(nullValue()));
     assertThat(testCache.remove(2, "two"), is(false));
@@ -122,7 +121,7 @@ public abstract class ExpiryEhcacheTestBase {
     insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
-    manualTimeSource.setTime(1001);
+    manualTimeSource.setTimeMillis(1001);
     assertThat(testCache.replace(1, "one#2"), is(nullValue()));
     assertThat(testCache.get(1), is(nullValue()));
     assertThat(testCache.replace(2, "two#2"), is(nullValue()));
@@ -134,7 +133,7 @@ public abstract class ExpiryEhcacheTestBase {
     insert(testCache, getEntries());
 
     assertThat(cacheSize(testCache), is(2));
-    manualTimeSource.setTime(1001);
+    manualTimeSource.setTimeMillis(1001);
     assertThat(testCache.replace(1, "one", "one#2"), is(false));
     assertThat(testCache.get(1), is(nullValue()));
     assertThat(testCache.replace(2, "two", "two#2"), is(false));
@@ -156,19 +155,6 @@ public abstract class ExpiryEhcacheTestBase {
       count++;
     }
     return count;
-  }
-
-  static class ManualTimeSource implements TimeSource {
-    private long time;
-
-    public void setTime(long time) {
-      this.time = time;
-    }
-
-    @Override
-    public long getTimeMillis() {
-      return time;
-    }
   }
 
 }

@@ -52,25 +52,15 @@ public interface CacheConfiguration<K, V> {
    * @return a non null value, where {@code Object.class} is the widest type
    */
   Class<V> getValueType();
-  
-  /**
-   * The {@link EvictionVeto} predicate function.
-   * <p>
-   * Entries which pass this predicate must be ignored by the eviction process.
-   * 
-   * @return the eviction veto predicate
-   */
-  EvictionVeto<? super K, ? super V> getEvictionVeto();
 
   /**
-   * The {@link EvictionPrioritizer} comparator.
+   * The {@link EvictionAdvisor} predicate function.
    * <p>
-   * This comparator function determines the order in which entries are considered
-   * for eviction.
-   * 
-   * @return the eviction prioritizer
+   * Entries which pass this predicate must be ignored by the eviction process.
+   *
+   * @return the eviction advisor predicate
    */
-  EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
+  EvictionAdvisor<? super K, ? super V> getEvictionAdvisor();
 
   /**
    * The {@link ClassLoader} for this cache. This {@code ClassLoader} will be used to instantiate cache level services
@@ -90,7 +80,7 @@ public interface CacheConfiguration<K, V> {
   /**
    * Get the {@link ResourcePools resource pools} the {@link Cache} can make use of.
    *
-   * @return the {@link ResourcePools}
+   * @return non {@code null} and non empty {@link ResourcePools}
    */
   ResourcePools getResourcePools();
 

@@ -18,10 +18,8 @@ package org.ehcache.jsr107;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.loaderwriter.DefaultCacheLoaderWriterProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.impl.internal.spi.loaderwriter.DefaultCacheLoaderWriterProvider;
 
 /**
  * @author teck
@@ -30,14 +28,8 @@ class Eh107CacheLoaderWriterProvider extends DefaultCacheLoaderWriterProvider {
 
   private final ConcurrentMap<String, CacheLoaderWriter<?, ?>> cacheLoaderWriters = new ConcurrentHashMap<String, CacheLoaderWriter<?, ?>>();
 
-  @Override
-  public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
-    //
-  }
-
-  @Override
-  public void stop() {
-    //
+  public Eh107CacheLoaderWriterProvider() {
+    super(null);
   }
 
   @SuppressWarnings("unchecked")

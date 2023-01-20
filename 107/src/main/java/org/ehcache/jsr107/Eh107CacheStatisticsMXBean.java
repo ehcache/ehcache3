@@ -16,33 +16,28 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.Cache;
-import org.ehcache.Ehcache;
-import org.ehcache.EhcacheHackAccessor;
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.utils.ContextHelper;
-import org.ehcache.statistics.BulkOps;
-import org.ehcache.statistics.CacheOperationOutcomes;
-import org.ehcache.statistics.StoreOperationOutcomes;
+import org.ehcache.core.InternalCache;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.core.statistics.BulkOps;
+import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
-import org.terracotta.management.stats.Sample;
-import org.terracotta.management.stats.sampled.SampledRatio;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.derived.LatencySampling;
+import org.terracotta.statistics.derived.MinMaxAverage;
+import org.terracotta.statistics.jsr166e.LongAdder;
+import org.terracotta.statistics.observer.ChainedOperationObserver;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
 
+import static java.util.EnumSet.allOf;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
@@ -51,7 +46,7 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 /**
  * @author Ludovic Orban
  */
-public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.management.CacheStatisticsMXBean {
+class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.management.CacheStatisticsMXBean {
 
   private final CompensatingCounters compensatingCounters = new CompensatingCounters();
   private final OperationStatistic<CacheOperationOutcomes.GetOutcome> get;
@@ -61,38 +56,42 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final OperationStatistic<CacheOperationOutcomes.ReplaceOutcome> replace;
   private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
   private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
-  private final ManagementRegistry managementRegistry;
-  private final Map<String, String> context;
-  private final ConcurrentMap<BulkOps, AtomicLong> bulkMethodEntries;
+  private final Map<BulkOps, LongAdder> bulkMethodEntries;
+  private final LatencyMonitor<CacheOperationOutcomes.GetOutcome> averageGetTime;
+  private final LatencyMonitor<CacheOperationOutcomes.PutOutcome> averagePutTime;
+  private final LatencyMonitor<CacheOperationOutcomes.RemoveOutcome> averageRemoveTime;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, InternalCache<?, ?> cache) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.managementRegistry = managementRegistry;
-    this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
-    String cacheManagerName = ContextHelper.findCacheManagerName((Ehcache<?, ?>) cache);
-    Map<String, String> context = new HashMap<String, String>();
-    context.put("cacheManagerName", cacheManagerName);
-    context.put("cacheName", cacheName);
-    this.context = Collections.unmodifiableMap(context);
-    StatisticsManager statisticsManager = cacheManager.getEhCacheManager().getStatisticsManager();
+    this.bulkMethodEntries = cache.getBulkMethodEntries();
 
-    get = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.GetOutcome.class, "get");
-    put = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.PutOutcome.class, "put");
-    remove = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.RemoveOutcome.class, "remove");
-    putIfAbsent = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
-    replace = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
-    conditionalRemove = findCacheStatistic(statisticsManager, cacheName, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
-    authorityEviction = findAuthoritativeTierStatistic(cacheName, statisticsManager, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
+    get = findCacheStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
+    put = findCacheStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");
+    remove = findCacheStatistic(cache, CacheOperationOutcomes.RemoveOutcome.class, "remove");
+    putIfAbsent = findCacheStatistic(cache, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
+    replace = findCacheStatistic(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
+    conditionalRemove = findCacheStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
+    authorityEviction = findAuthoritativeTierStatistic(cache, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
+
+    averageGetTime = new LatencyMonitor<CacheOperationOutcomes.GetOutcome>(allOf(CacheOperationOutcomes.GetOutcome.class));
+    get.addDerivedStatistic(averageGetTime);
+    averagePutTime = new LatencyMonitor<CacheOperationOutcomes.PutOutcome>(allOf(CacheOperationOutcomes.PutOutcome.class));
+    put.addDerivedStatistic(averagePutTime);
+    averageRemoveTime= new LatencyMonitor<CacheOperationOutcomes.RemoveOutcome>(allOf(CacheOperationOutcomes.RemoveOutcome.class));
+    remove.addDerivedStatistic(averageRemoveTime);
   }
 
   @Override
   public void clear() {
     compensatingCounters.snapshot();
+    averageGetTime.clear();
+    averagePutTime.clear();
+    averageRemoveTime.clear();
   }
 
   @Override
   public long getCacheHits() {
-    return normalize(getHits() - compensatingCounters.cacheHits);
+    return normalize(getHits() - compensatingCounters.cacheHits - compensatingCounters.bulkGetHits);
   }
 
   @Override
@@ -103,7 +102,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public long getCacheMisses() {
-    return normalize(getMisses() - compensatingCounters.cacheMisses);
+    return normalize(getMisses() - compensatingCounters.cacheMisses - compensatingCounters.bulkGetMiss);
   }
 
   @Override
@@ -114,14 +113,17 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public long getCacheGets() {
-    return normalize(getBulkCount(BulkOps.GET_ALL) - compensatingCounters.bulkGets +
-        getHits() + getMisses() - compensatingCounters.cacheGets);
+    return normalize(getHits() + getMisses()
+                     - compensatingCounters.cacheGets
+                     - compensatingCounters.bulkGetHits
+                     - compensatingCounters.bulkGetMiss);
   }
 
   @Override
   public long getCachePuts() {
     return normalize(getBulkCount(BulkOps.PUT_ALL) - compensatingCounters.bulkPuts +
-        put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED)) +
+        put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT)) +
+        put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT)) -
         compensatingCounters.cachePuts);
@@ -142,50 +144,37 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   @Override
   public float getAverageGetTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheGetLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    return (float) averageGetTime.value();
   }
 
   @Override
   public float getAveragePutTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCachePutLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
+    return (float) averagePutTime.value();
   }
 
   @Override
   public float getAverageRemoveTime() {
-    Collection<SampledRatio> statistics = managementRegistry.collectStatistics(context, "org.ehcache.management.providers.statistics.EhcacheStatisticsProvider", "AllCacheRemoveLatencyAverage");
-    return getMostRecentNotClearedValue(statistics);
-  }
-
-  private float getMostRecentNotClearedValue(Collection<SampledRatio> statistics) {
-    List<Sample<Double>> samples = statistics.iterator().next().getValue();
-    for (int i=samples.size() - 1 ; i>=0 ; i--) {
-      Sample<Double> doubleSample = samples.get(i);
-      if (doubleSample.getTimestamp() >= compensatingCounters.timestamp) {
-        return (float) (doubleSample.getValue() / 1000.0);
-      }
-    }
-    return 0.0f;
+    return (float) averageRemoveTime.value();
   }
 
   private long getMisses() {
-    return get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)) +
+    return getBulkCount(BulkOps.GET_ALL_MISS) +
+        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT)) +
         conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
   }
 
   private long getHits() {
-    return get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)) +
+    return getBulkCount(BulkOps.GET_ALL_HITS) +
+        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT, CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT)) +
         conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS, CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
   }
 
   private long getBulkCount(BulkOps bulkOps) {
-    AtomicLong counter = bulkMethodEntries.get(bulkOps);
-    return counter == null ? 0L : counter.get();
+    return bulkMethodEntries.get(bulkOps).longValue();
   }
 
   private static long normalize(long value) {
@@ -199,27 +188,13 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     return Math.min(1.0f, Math.max(0.0f, value));
   }
 
-  static <T extends Enum<T>> OperationStatistic<T> findCacheStatistic(StatisticsManager statisticsManager, String cacheName, Class<T> type, String statName) {
+  static <T extends Enum<T>> OperationStatistic<T> findCacheStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
     Query query = queryBuilder()
-        .descendants()
-        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("tags", new Matcher<Set<String>>() {
-          @Override
-          protected boolean matchesSafely(Set<String> object) {
-            return object.containsAll(Arrays.asList("cache", "exposed"));
-          }
-        }), hasAttribute("CacheName", cacheName)))))
-        .parent()
         .children()
-        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-            hasAttribute("tags", new Matcher<Set<String>>() {
-              @Override
-              protected boolean matchesSafely(Set<String> object) {
-                return object.containsAll(Collections.singleton("cache"));
-              }
-            }), hasAttribute("name", statName), hasAttribute("type", type)))))
+        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
         .build();
 
-    Set<TreeNode> result = statisticsManager.query(query);
+    Set<TreeNode> result = query.execute(Collections.singleton(ContextManager.nodeFor(cache)));
     if (result.size() > 1) {
       throw new RuntimeException("result must be unique");
     }
@@ -229,17 +204,8 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     return (OperationStatistic<T>) result.iterator().next().getContext().attributes().get("this");
   }
 
-  <T extends Enum<T>> OperationStatistic<T> findAuthoritativeTierStatistic(String cacheName, StatisticsManager statisticsManager, Class<T> type, String statName) {
+  <T extends Enum<T>> OperationStatistic<T> findAuthoritativeTierStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
     Query storeQuery = queryBuilder()
-        .descendants()
-        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-            hasAttribute("tags", new Matcher<Set<String>>() {
-              @Override
-              protected boolean matchesSafely(Set<String> object) {
-                return object.containsAll(Arrays.asList("cache", "exposed"));
-              }
-            }), hasAttribute("CacheName", cacheName)))))
-        .parent()
         .children()
         .children()
         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
@@ -251,7 +217,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
             })))))
         .build();
 
-    Set<TreeNode> storeResult = statisticsManager.query(storeQuery);
+    Set<TreeNode> storeResult = storeQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));
     if (storeResult.size() > 1) {
       throw new RuntimeException("store result must be unique");
     }
@@ -260,7 +226,8 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     }
     Object authoritativeTier = storeResult.iterator().next().getContext().attributes().get("authoritativeTier");
 
-    Query statQuery = queryBuilder().children()
+    Query statQuery = queryBuilder()
+        .children()
         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
         .build();
 
@@ -279,26 +246,69 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     volatile long cacheHits;
     volatile long cacheMisses;
     volatile long cacheGets;
-    volatile long bulkGets;
+    volatile long bulkGetHits;
+    volatile long bulkGetMiss;
     volatile long cachePuts;
     volatile long bulkPuts;
     volatile long cacheRemovals;
     volatile long bulkRemovals;
     volatile long cacheEvictions;
-    volatile long timestamp;
 
     void snapshot() {
       cacheHits += Eh107CacheStatisticsMXBean.this.getCacheHits();
       cacheMisses += Eh107CacheStatisticsMXBean.this.getCacheMisses();
       cacheGets += Eh107CacheStatisticsMXBean.this.getCacheGets();
-      bulkGets += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.GET_ALL);
+      bulkGetHits += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.GET_ALL_HITS);
+      bulkGetMiss += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.GET_ALL_MISS);
       cachePuts += Eh107CacheStatisticsMXBean.this.getCachePuts();
       bulkPuts += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.PUT_ALL);
       cacheRemovals += Eh107CacheStatisticsMXBean.this.getCacheRemovals();
       bulkRemovals += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.REMOVE_ALL);
       cacheEvictions += Eh107CacheStatisticsMXBean.this.getCacheEvictions();
-      timestamp = System.currentTimeMillis();
     }
   }
 
+  private static class LatencyMonitor<T extends Enum<T>> implements ChainedOperationObserver<T> {
+
+    private final LatencySampling<T> sampling;
+    private volatile MinMaxAverage average;
+
+    public LatencyMonitor(Set<T> targets) {
+      this.sampling = new LatencySampling<T>(targets, 1.0);
+      this.average = new MinMaxAverage();
+      sampling.addDerivedStatistic(average);
+    }
+
+    @Override
+    public void begin(long time) {
+      sampling.begin(time);
+    }
+
+    @Override
+    public void end(long time, T result) {
+      sampling.end(time, result);
+    }
+
+    @Override
+    public void end(long time, T result, long... parameters) {
+      sampling.end(time, result, parameters);
+    }
+
+    public double value() {
+      Double value = average.mean();
+      if (value == null) {
+        //Someone involved with 107 can't do math
+        return 0;
+      } else {
+        //We use nanoseconds, 107 uses microseconds
+        return value / 1000f;
+      }
+    }
+
+    public synchronized void clear() {
+      sampling.removeDerivedStatistic(average);
+      average = new MinMaxAverage();
+      sampling.addDerivedStatistic(average);
+    }
+  }
 }

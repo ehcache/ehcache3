@@ -16,6 +16,7 @@
 
 package com.pany.ehcache;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 
@@ -31,12 +32,12 @@ public class MyExpiry implements Expiry<Object, Object> {
   }
 
   @Override
-  public Duration getExpiryForAccess(final Object key, final Object value) {
+  public Duration getExpiryForAccess(final Object key, final ValueSupplier<? extends Object> value) {
     return new Duration(42, TimeUnit.SECONDS);
   }
-  
+
   @Override
-  public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+  public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
     return new Duration(42, TimeUnit.SECONDS);
   }
 }

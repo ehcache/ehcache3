@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+apply plugin: EhDeploy
+
 configurations {
   tckTestClasses
 }
@@ -28,11 +30,15 @@ sourceSets {
 }
 
 dependencies {
-  compile project(':impl'), project(':xml'), project(':management'), 'javax.cache:cache-api:1.0.0'
+  compile project(':impl'), project(':xml'), "javax.cache:cache-api:$parent.jcacheVersion"
   tckTestRuntime 'javax.cache:cache-tests:1.0.1'
   tckTestClasses('javax.cache:cache-tests:1.0.1:tests') {
     transitive = false
   }
+}
+
+javadoc {
+  exclude '**/tck/**'
 }
 
 def tckTestOnlyIfJava7 = {
@@ -57,7 +63,7 @@ task tckTest(type: Test, dependsOn: unpackTckTests) {
   reports.html.destination = "$buildDir/reports/tck-tests"
 
   systemProperty 'java.net.preferIPv4Stack', 'true'
-  systemProperty 'javax.management.builder.initial', 'org.ehcache.jsr107.Eh107MBeanServerBuilder'
+  systemProperty 'javax.management.builder.initial', 'org.ehcache.jsr107.internal.tck.Eh107MBeanServerBuilder'
   systemProperty 'org.jsr107.tck.management.agentId', 'Eh107MBeanServer'
   systemProperty 'javax.cache.CacheManager', 'org.ehcache.CacheManager'
   systemProperty 'javax.cache.Cache', 'org.ehcache.Cache'

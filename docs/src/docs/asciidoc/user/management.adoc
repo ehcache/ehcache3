@@ -1,12 +1,19 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = Management and Monitoring
 
+
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Intro
 
-Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistry`
+Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistryService`
 instance.
 
 A `ManagementRegistry` implementation has to understand the registered object and provide management and monitoring
@@ -28,12 +35,13 @@ cache manager builder as a service:
 ----
 include::{sourcedir}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=usingManagementRegistry]
 ----
-<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
-<2> Pass it as a service to the cache manager
-<3> Perform a few gets to increment the statistic's counter
-<4> Create the target statistic's context
-<5> Collect the get count statistic
-<6> Check that the statistic reports the expected count
+<1> Optional: give a name to your cache manager by using a custom configuration
+<2> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistryService`. This is only required because the service is used below.
+<3> Pass it as a service to the cache manager (if you only want to configure the ManagementRegistry, you can just pass the configuration instead)
+<4> Perform a few gets to increment the statistic's counter
+<5> Create the target statistic's context
+<6> Collect the get count statistic
+<7> Check that the statistic reports the expected count
 
 Obviously, you may use the above technique to pass your own implementation of `ManagementRegistry`.
 
@@ -90,7 +98,7 @@ manager by default, but sometimes you may want one `ManagementRegistry` to manag
 ----
 include::{sourcedir}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=managingMultipleCacheManagers]
 ----
-<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
+<1> Create an instance of `org.ehcache.management.SharedManagementService`
 <2> Pass it as a service to the first cache manager
 <3> Pass it as a service to the second cache manager
 

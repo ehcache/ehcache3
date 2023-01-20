@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.terracotta.context.extended.OperationType;
 import org.terracotta.context.query.Query;
 

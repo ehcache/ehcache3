@@ -16,9 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -29,8 +28,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#clear()} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * Test the {@link Store#clear()} contract of the
+ * {@link Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -46,20 +45,20 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
 
   @Before
   public void setUp() {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore();
   }
 
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
   }
 
   @SPITest
   public void removesAllOfTheMappings()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     K key = factory.createKey(42);
     V value = factory.createValue(42);
 
@@ -67,7 +66,7 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.clear();
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 

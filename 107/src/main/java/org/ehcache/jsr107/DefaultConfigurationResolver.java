@@ -22,9 +22,9 @@ import java.util.Properties;
 
 import javax.cache.CacheException;
 
-public class DefaultConfigurationResolver {
+class DefaultConfigurationResolver {
 
-  public static final String DEFAULT_CONFIG_PROPERTY_NAME = "ehcache.jsr107.config.default";
+  static final String DEFAULT_CONFIG_PROPERTY_NAME = "ehcache.jsr107.config.default";
 
   static URI resolveConfigURI(Properties cacheManagerProperties) {
     Object config = null;

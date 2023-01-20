@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for API related to serialization in Ehcache
+ * Package for SPI related to serialization in Ehcache
  */
 package org.ehcache.spi.serialization;

@@ -8,12 +8,10 @@
   <cache alias="ready-cache">
     <key-type>java.lang.Long</key-type>
     <value-type>com.pany.domain.Product</value-type>
-    <integration>
-      <loaderwriter>
-        <class>com.pany.ehcache.integration.ProductCacheLoaderWriter</class>
-      </loaderwriter>
-    </integration>
-    <heap size="100" unit="entries"/>
+    <loader-writer>
+      <class>com.pany.ehcache.integration.ProductCacheLoaderWriter</class>
+    </loader-writer>
+    <heap unit="entries">100</heap>
   </cache>
 
 </config>

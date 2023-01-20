@@ -16,9 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -27,8 +26,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#remove(Object)} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * Test the {@link Store#remove(Object)} contract of the
+ * {@link Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -46,20 +45,19 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
     if (kvStore2 != null) {
-//      kvStore2.close();
+      factory.close(kvStore2);
       kvStore2 = null;
     }
   }
 
   @SPITest
   public void removeKeyAndValue()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -70,7 +68,7 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.remove(key);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -80,13 +78,13 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void removeKeyAndValueDoesNothingWhenKeyIsNotMapped()
       throws IllegalAccessException, InstantiationException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
 
     try {
       kvStore.remove(key);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new AssertionError(e);
     }
   }
@@ -94,7 +92,7 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void nullKeyThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore();
 
     K key = null;
 
@@ -103,7 +101,7 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -112,7 +110,7 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore2 = factory.newStore();
 
     try {
       if (this.factory.getKeyType() == String.class) {
@@ -123,7 +121,7 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

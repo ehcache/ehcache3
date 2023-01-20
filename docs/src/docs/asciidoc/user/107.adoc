@@ -1,8 +1,14 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = The Ehcache 3.x JSR-107 Provider
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Getting started with Ehcache 3.0 & JSR-107
 
@@ -15,9 +21,11 @@ go:
 CachingProvider provider = Caching.getCachingProvider(); // <1>
 CacheManager cacheManager = provider.getCacheManager(); // <2>
 ----
-<1> Retrieves the default `CachingProvider`, this should be `org.ehcache.EhCachingProvider`.
-    You can also force use of `org.ehcache.EhCachingProvider` by using the `Caching.getCachingProvider(String)` static method instead.
+<1> Retrieves the default `CachingProvider`, this should be `org.ehcache.jsr107.EhcacheCachingProvider`.
+    You can also force use of `org.ehcache.jsr107.EhcacheCachingProvider` by using the `Caching.getCachingProvider(String)` static method instead.
 <2> Retrieve the default `CacheManager` instance using the provider.
+
+NOTE: See http://www.ehcache.org/#using_jsr107_api[the section on using Ehcache 3 and JSR-107] for details on required libraries.
 
 == JSR-107 and Ehcache configuration integration
 
@@ -80,7 +88,7 @@ NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes
 === Supplement JSR-107's configurations
 
 As of Ehcache 3.0, you can also create `cache-templates`.  See the
-link:xml{outfilesuffix}#__code_cache_template_code_elements[Cache Templates] section of the XML Documentation for more details. The Ehcache 3.0
+link:xml{outfilesuffix}#code-cache-template-code-elements[Cache Templates] section of the XML Documentation for more details. The Ehcache 3.0
 JSR-107 Caching Provider comes with an extension to the regular XML configuration so you can:
 
  . Configure a default template from which all programmatically created `Cache` instances inherit, and
@@ -103,7 +111,7 @@ include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-temp
     creating the `Cache` named `foos` at runtime, Ehcache will enhance its config, giving it a capacity of 2000 entries,
     as well as insuring both key and value types are `String`.
 
-NOTE: See link:xsds{outfilesuffix}#_jsr_107_extension[this xsd] for complete definition
+NOTE: See link:xsds{outfilesuffix}#jsr-107-extension[this xsd] for complete definition
 
 Using the above configuration, you can not only supplement but also override the configuration of JSR-107 created caches
 without modifying the application code.
@@ -112,11 +120,19 @@ without modifying the application code.
 ----
 include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
 ----
-<1> Assume existing JSR-107 configuration code
+<1> Assume existing JSR-107 configuration code, which is store-by-value by default
 <2> that creates JSR-107 `Cache`
 <3> If you were to get to the Ehcache `RuntimeConfiguration`
 <4> you could verify that the template configured capacity is applied to the cache and returns _20_ here.
-<5> Templates will also override JSR-107 config, see here a configuration with TTL 1 minute
-<6> used to create a cache where the template says TTL 2 minutes.
-<7> And we can indeed verify that the template provided configuration has been applied, duration will be _2 minutes_ and not _1_.
-<8> One drawback of this is that when getting at the `CompleteConfiguration`, you no longer have access to the factories from JSR-107.
+<5> The cache template will override the JSR-107 cache's store-by-value config to store-by-ref since the `byRefTemplate`
+    template that is used to create the cache is configured explicitly using `IdentityCopier`.
+<6> Templates will also override JSR-107 config, see here a configuration with TTL 1 minute
+<7> used to create a cache where the template says TTL 2 minutes.
+<8> And we can indeed verify that the template provided configuration has been applied, duration will be _2 minutes_ and not _1_.
+<9> One drawback of this is that when getting at the `CompleteConfiguration`, you no longer have access to the factories from JSR-107.
+
+NOTE: As mentioned in step 5, in order to override store-by-value configuration of a JSR-107 cache using templates you
+can explicitly configure the template using `IdentityCopier`. But the usage of `IdentityCopier` is not mandatory to get
+a store-by-ref cache. You can use any custom copier implementation that does not perform any "copying" but returns
+the exact same reference that gets passed into the copy methods. `IdentityCopier` is just one that we have provided to
+make your life easier.

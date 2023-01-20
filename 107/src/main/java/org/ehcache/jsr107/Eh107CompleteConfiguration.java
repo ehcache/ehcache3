@@ -16,8 +16,12 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.io.ObjectStreamException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -65,7 +69,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
     this.ehcacheConfig = ehcacheConfig;
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
-    this.isStoreByValue = config.isStoreByValue();
+    this.isStoreByValue = isStoreByValue(config, ehcacheConfig);
 
     Factory<ExpiryPolicy> tempExpiryPolicyFactory = EternalExpiryPolicy.factoryOf();
 
@@ -102,6 +106,25 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
     }
 
     this.expiryPolicyFactory = tempExpiryPolicyFactory;
+  }
+
+  private static <K, V> boolean isStoreByValue(Configuration<K, V> config, CacheConfiguration<K, V> ehcacheConfig) {
+    if(ehcacheConfig != null) {
+      Collection<ServiceConfiguration<?>> serviceConfigurations = ehcacheConfig.getServiceConfigurations();
+      for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
+        if (serviceConfiguration instanceof DefaultCopierConfiguration) {
+          DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+          if(copierConfig.getType().equals(DefaultCopierConfiguration.Type.VALUE)) {
+            if(copierConfig.getClazz().isAssignableFrom(IdentityCopier.class)) {
+              return false;
+            } else {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return config.isStoreByValue();
   }
 
   @Override

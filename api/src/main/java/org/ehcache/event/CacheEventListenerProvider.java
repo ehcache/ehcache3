@@ -38,9 +38,12 @@ public interface CacheEventListenerProvider extends Service {
 
   /**
    * Releases a given {@link org.ehcache.event.CacheEventListener}
+   * If the listener instance is provided by the user, {@link java.io.Closeable#close()}
+   * will not be invoked.
    *
    * @param cacheEventListener the CacheEventListener to release
+   * @throws Exception when the release fails
    */
-  void releaseEventListener(CacheEventListener<?, ?> cacheEventListener);
+  void releaseEventListener(CacheEventListener<?, ?> cacheEventListener) throws Exception;
 
 }

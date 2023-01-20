@@ -15,6 +15,6 @@
  */
 
 dependencies {
-    compile project(':impl'), 'org.slf4j:slf4j-api:1.7.7'
-    testCompile project(':impl')
+    compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
+    testCompile project(':impl'), project(':transactions')
 }

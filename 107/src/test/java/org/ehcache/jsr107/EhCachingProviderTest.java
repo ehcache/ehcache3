@@ -20,15 +20,20 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.util.Properties;
 
+import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
+import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
 import org.junit.Test;
+
+import com.pany.domain.Customer;
 
 public class EhCachingProviderTest {
 
@@ -50,6 +55,43 @@ public class EhCachingProviderTest {
     assertEquals(override, cacheManager.getURI());
 
     Caching.getCachingProvider().close();
+  }
+
+  @Test
+  public void testCacheUsesCacheManagerClassLoaderForDefaultURI() {
+    CachingProvider cachingProvider = Caching.getCachingProvider();
+    LimitedClassLoader limitedClassLoader = new LimitedClassLoader(cachingProvider.getDefaultClassLoader());
+
+    CacheManager cacheManager = cachingProvider.getCacheManager(cachingProvider.getDefaultURI(), limitedClassLoader);
+
+    MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
+    Cache<Object, Object> cache = cacheManager.createCache("test", configuration);
+
+    cache.put(1L, new Customer(1L));
+
+    try {
+      cache.get(1L);
+      fail("Expected AssertionError");
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), is("No com.pany here"));
+    }
+  }
+
+  private class LimitedClassLoader extends ClassLoader {
+
+    private final ClassLoader delegate;
+
+    private LimitedClassLoader(ClassLoader delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public Class<?> loadClass(String name) throws ClassNotFoundException {
+      if (name.startsWith("com.pany")) {
+        throw new AssertionError("No com.pany here");
+      }
+      return delegate.loadClass(name);
+    }
   }
 
 }

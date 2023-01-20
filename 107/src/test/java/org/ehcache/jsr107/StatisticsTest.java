@@ -26,6 +26,7 @@ import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
+import java.util.HashSet;
 import java.util.concurrent.Callable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -41,9 +42,14 @@ import static org.hamcrest.Matchers.not;
 public class StatisticsTest {
 
   private CacheManager cacheManager;
-  private Eh107CacheStatisticsMXBean statisticsMBean;
+  private Eh107CacheStatisticsMXBean heapStatistics;
   private Cache<String, String> heapCache;
+
+  private Eh107CacheStatisticsMXBean offheapStatistics;
   private Cache<String, String> offheapCache;
+
+  private Eh107CacheStatisticsMXBean diskStatistics;
+  private Cache<String, String> diskCache;
 
   @Before
   public void setUp() throws Exception {
@@ -52,9 +58,11 @@ public class StatisticsTest {
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
     configuration.setTypes(String.class, String.class);
     heapCache = cacheManager.createCache("heap", configuration);
+    heapStatistics = (Eh107CacheStatisticsMXBean) ((Eh107Cache<String, String>) heapCache).getStatisticsMBean();
     offheapCache = cacheManager.createCache("offheap", configuration);
-    Eh107Cache<String, String> eh107Cache = (Eh107Cache<String, String>) heapCache;
-    statisticsMBean = (Eh107CacheStatisticsMXBean) eh107Cache.getStatisticsMBean();
+    offheapStatistics = (Eh107CacheStatisticsMXBean) ((Eh107Cache<String, String>) offheapCache).getStatisticsMBean();
+    diskCache = cacheManager.createCache("disk", configuration);
+    diskStatistics = (Eh107CacheStatisticsMXBean) ((Eh107Cache<String, String>) diskCache).getStatisticsMBean();
   }
 
   @After
@@ -70,7 +78,7 @@ public class StatisticsTest {
     heapCache.get("key");
     heapCache.get("key");
 
-    assertThat(statisticsMBean.getCacheGets(), is(5L));
+    assertThat(heapStatistics.getCacheGets(), is(5L));
   }
 
   @Test
@@ -81,7 +89,7 @@ public class StatisticsTest {
     heapCache.put("key", "value");
     heapCache.put("key", "value");
 
-    assertThat(statisticsMBean.getCachePuts(), is(5L));
+    assertThat(heapStatistics.getCachePuts(), is(5L));
   }
 
   @Test
@@ -98,7 +106,7 @@ public class StatisticsTest {
     heapCache.remove("key3");
     heapCache.remove("key4");
 
-    assertThat(statisticsMBean.getCacheRemovals(), is(5L));
+    assertThat(heapStatistics.getCacheRemovals(), is(5L));
   }
 
   @Test
@@ -111,7 +119,7 @@ public class StatisticsTest {
     heapCache.get("key");
     heapCache.get("key");
 
-    assertThat(statisticsMBean.getCacheHits(), is(5L));
+    assertThat(heapStatistics.getCacheHits(), is(5L));
   }
 
   @Test
@@ -122,7 +130,22 @@ public class StatisticsTest {
     heapCache.get("key");
     heapCache.get("key");
 
-    assertThat(statisticsMBean.getCacheMisses(), is(5L));
+    assertThat(heapStatistics.getCacheMisses(), is(5L));
+  }
+
+  @Test
+  public void test_getCacheHitsAndMisses() {
+    heapCache.put("key1", "value1");
+    heapCache.put("key3", "value3");
+    heapCache.put("key5", "value5");
+
+    HashSet<String> keys = new HashSet<String>(5);
+    for (int i = 1; i <= 5; i++) {
+      keys.add("key" + i);
+    }
+    heapCache.getAll(keys);
+    assertThat(heapStatistics.getCacheHits(), is(3L));
+    assertThat(heapStatistics.getCacheMisses(), is(2L));
   }
 
   @Test
@@ -130,7 +153,7 @@ public class StatisticsTest {
     for (int i = 0; i < 20; i++) {
       heapCache.put("key" + i, "value");
     }
-    assertThat(statisticsMBean.getCacheEvictions(), is(10L));
+    assertThat(heapStatistics.getCacheEvictions(), is(10L));
   }
 
   @Test
@@ -139,8 +162,16 @@ public class StatisticsTest {
     for (int i = 0; i < 20; i++) {
       offheapCache.put("key" + i, ONE_MB);
     }
-    //TODO fixme: offheap store does not update the evictions stat, so the value is always 0
-//    assertThat(statisticsMBean.getCacheEvictions(), greaterThan(0L));
+    assertThat(offheapStatistics.getCacheEvictions(), greaterThan(0L));
+  }
+
+  @Test
+  public void test_getCacheEvictions_heapAndDisk() throws Exception {
+    String ONE_MB = new String(new byte[1024 * 512]);
+    for (int i = 0; i < 20; i++) {
+      diskCache.put("key" + i, ONE_MB);
+    }
+    assertThat(diskStatistics.getCacheEvictions(), greaterThan(0L));
   }
 
   @Test
@@ -153,7 +184,7 @@ public class StatisticsTest {
     heapCache.get("nokey");
     heapCache.get("nokey");
 
-    assertThat(statisticsMBean.getCacheHitPercentage(), is(allOf(greaterThan(59f), lessThan(61f))));
+    assertThat(heapStatistics.getCacheHitPercentage(), is(allOf(greaterThan(59f), lessThan(61f))));
   }
 
   @Test
@@ -166,12 +197,12 @@ public class StatisticsTest {
     heapCache.get("nokey");
     heapCache.get("nokey");
 
-    assertThat(statisticsMBean.getCacheMissPercentage(), is(allOf(greaterThan(39f), lessThan(41f))));
+    assertThat(heapStatistics.getCacheMissPercentage(), is(allOf(greaterThan(39f), lessThan(41f))));
   }
 
   @Test
   public void test_getAverageGetTime() throws Exception {
-    assertThat(statisticsMBean.getAverageGetTime(), is(0.0f));
+    assertThat(heapStatistics.getAverageGetTime(), is(0.0f));
 
     heapCache.get("key");
     heapCache.get("key");
@@ -182,15 +213,15 @@ public class StatisticsTest {
     assertFor(1100L, new Callable<Float>() {
       @Override
       public Float call() throws Exception {
-        return statisticsMBean.getAverageGetTime();
+        return heapStatistics.getAverageGetTime();
       }
     }, is(not(0.0f)));
-    assertThat(statisticsMBean.getAverageGetTime(), greaterThan(0.0f));
+    assertThat(heapStatistics.getAverageGetTime(), greaterThan(0.0f));
   }
 
   @Test
   public void test_getAveragePutTime() throws Exception {
-    assertThat(statisticsMBean.getAveragePutTime(), is(0.0f));
+    assertThat(heapStatistics.getAveragePutTime(), is(0.0f));
 
     heapCache.put("key", "value");
     heapCache.put("key", "value");
@@ -201,15 +232,15 @@ public class StatisticsTest {
     assertFor(1100L, new Callable<Float>() {
       @Override
       public Float call() throws Exception {
-        return statisticsMBean.getAveragePutTime();
+        return heapStatistics.getAveragePutTime();
       }
     }, is(not(0.0f)));
-    assertThat(statisticsMBean.getAveragePutTime(), greaterThan(0.0f));
+    assertThat(heapStatistics.getAveragePutTime(), greaterThan(0.0f));
   }
 
   @Test
   public void test_getAverageRemoveTime() throws Exception {
-    assertThat(statisticsMBean.getAverageRemoveTime(), is(0.0f));
+    assertThat(heapStatistics.getAverageRemoveTime(), is(0.0f));
 
     heapCache.put("key0", "value");
     heapCache.put("key1", "value");
@@ -226,10 +257,10 @@ public class StatisticsTest {
     assertFor(1100L, new Callable<Float>() {
       @Override
       public Float call() throws Exception {
-        return statisticsMBean.getAverageRemoveTime();
+        return heapStatistics.getAverageRemoveTime();
       }
     }, is(not(0.0f)));
-    assertThat(statisticsMBean.getAverageRemoveTime(), greaterThan(0.0f));
+    assertThat(heapStatistics.getAverageRemoveTime(), greaterThan(0.0f));
   }
 
   private static void assertFor(long timeoutInMs, Callable<Float> callable, Matcher<Float> matcher) throws Exception {

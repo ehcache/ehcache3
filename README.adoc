@@ -8,20 +8,19 @@ image:https://www.cloudbees.com/sites/default/files/styles/large/public/Button-P
 
 == Getting started with the new API
 
-For samples, documentation, and usage information, please see http://ehcache.github.io.
+For samples, documentation, and usage information, please see http://ehcache.org.
 
 == Current release
 
-We released the Milestone 1 on March 24, 2015. In addition to the JSR-107 compatibility,
-it introduces tiering and offers an offheap option based on the recently https://github.com/Terracotta-OSS/offheap-store[open sourced library] from Terracotta.
+We released the Milestone 5 on February 20th, 2016.
+This milestone is feature complete for Ehcache 3 and marks the start of release candidates production where the focus
+will be on performance and documentation.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m1[release notes] contain the links to the documentation
-to help you get started
+The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m5[release notes] contain the links to the documentation to help you get started
 
 == Current development & next release
 
-We are now working on the next milestone :
-All the work to get all the features we want to port from the existing Ehcache 2.x line, exposed using the new API.
-This includes things not covered by the 107 spec, such as _WriteBehind_, _EvictionListener_ et al.
+We are now working on producing release candidates.
+Expect mostly performance and documentation improvements in addition to the usual bug fixes.
 
 See the https://github.com/ehcache/ehcache3/milestones[milestones on GitHub] for more details on the current status.

@@ -17,12 +17,10 @@
 package org.ehcache.spi.service;
 
 /**
- * Interface defining the required methods on a ServiceConfiguration to allow service and configuration matching in the
- * {@link org.ehcache.CacheManager}.
+ * Interface regrouping configuration types to be used when interacting with a {@link Service}.
  *
  * @param <T> the service type this configuration works with
  *
- * @author Alex Snaps
  */
 public interface ServiceConfiguration<T extends Service> {
 

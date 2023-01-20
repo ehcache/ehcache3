@@ -15,10 +15,14 @@
  */
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.BiFunction;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.ValueSupplier;
+import org.ehcache.core.spi.function.NullaryFunction;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -28,6 +32,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import org.junit.Assert;
 
 public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
@@ -41,11 +46,11 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
     if (kvStore2 != null) {
-//      kvStore2.close();
+      factory.close(kvStore2);
       kvStore2 = null;
     }
   }
@@ -53,14 +58,12 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+    kvStore = factory.newStore();
 
     if (factory.getValueType() == Object.class) {
-      System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
-      return;
+      Assert.fail("Warning, store uses Object as value type, cannot verify in this configuration");
     }
-    
+
     final Object value;
     if (factory.getValueType() == String.class) {
       value = this;
@@ -79,7 +82,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError();
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -87,13 +90,13 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongKeyType() throws Exception {
-    kvStore2 = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore2 = factory.newStore();
 
     if (factory.getKeyType() == Object.class) {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
       return;
     }
-    
+
     final Object key;
     if (factory.getKeyType() == String.class) {
       key = this;
@@ -111,14 +114,14 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError();
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void testComputePutsValueInStore() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(14);
     final V value = factory.createValue(153);
@@ -131,18 +134,18 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
       assertThat(kvStore.get(key).value(), is(value));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void testOverwriteExitingValue() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(151);
     final V value = factory.createValue(1525);
-    final V value2 = factory.createValue(System.nanoTime());
+    final V value2 = factory.createValue(1526);
 
     assertThat(value2, not(equalTo(value)));
 
@@ -155,14 +158,14 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
       assertThat(kvStore.get(key).value(), is(value2));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void testNullReturnRemovesEntry() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(1535603985);
     final V value = factory.createValue(15920835);
@@ -176,14 +179,14 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
       assertThat(kvStore.get(key), nullValue());
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void testException() throws Exception {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+    kvStore = factory.newStore();
 
     final K key = factory.createKey(520928098);
     final V value = factory.createValue(15098209865L);
@@ -202,10 +205,97 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       });
     } catch (RuntimeException e) {
       assertThat(e, is(re));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
     assertThat(kvStore.get(key).value(), is(value));
+  }
+
+  @SPITest
+  public void testComputeExpiresOnAccess() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource(10042L);
+    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+        return Duration.FOREVER;
+      }
+    }, timeSource);
+
+    final K key = factory.createKey(1042L);
+    final V value = factory.createValue(1340142L);
+
+    try {
+      kvStore.put(key, value);
+
+      Store.ValueHolder<V> result = kvStore.compute(key, new BiFunction<K, V, V>() {
+        @Override
+        public V apply(K k, V v) {
+          return v;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+      assertThat(result.value(), is(value));
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void testComputeExpiresOnUpdate() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource(10042L);
+    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+        return Duration.ZERO;
+      }
+    }, timeSource);
+
+    final K key = factory.createKey(1042L);
+    final V value = factory.createValue(1340142L);
+    final V newValue = factory.createValue(134054142L);
+
+    try {
+      kvStore.put(key, value);
+
+      Store.ValueHolder<V> result = kvStore.compute(key, new BiFunction<K, V, V>() {
+        @Override
+        public V apply(K k, V v) {
+          return newValue;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+      assertThat(result.value(), is(newValue));
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
   }
 }

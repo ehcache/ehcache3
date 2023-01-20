@@ -1,19 +1,32 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
 = Ehcache XSDs
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Core
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir}/xml/src/main/resources/ehcache-core.xsd[lines=18..260]
+include::{sourcedir}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 ----
 
 == JSR-107 extension
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir}/107/src/main/resources/ehcache-107ext.xsd[lines=18..44]
+include::{sourcedir}/107/src/main/resources/ehcache-107ext.xsd[lines=18..-1]
+----
+
+== XA transactions extension
+
+[source,xsd,indent=0]
+----
+include::{sourcedir}/transactions/src/main/resources/ehcache-tx-ext.xsd[lines=18..-1]
 ----

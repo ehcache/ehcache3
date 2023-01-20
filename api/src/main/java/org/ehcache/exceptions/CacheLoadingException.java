@@ -21,26 +21,46 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 /**
  * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
  * {@link java.lang.Exception} while loading a value for a given key.
- * 
+ *
  * @author Alex Snaps
  */
 public class CacheLoadingException extends RuntimeException {
 
   private static final long serialVersionUID = 4794738044299044587L;
 
-  CacheLoadingException() {
+  /**
+   * Constructs a CacheLoadingException
+   */
+  public CacheLoadingException() {
     super();
   }
 
-  CacheLoadingException(final String message) {
+  /**
+   * Constructs a CacheLoadingException with the provided message.
+   *
+   * @param message the detail message
+   */
+  public CacheLoadingException(final String message) {
     super(message);
   }
 
-  CacheLoadingException(final String message, final Throwable cause) {
+  /**
+   * Constructs a CacheLoadingException wrapping the {@link Throwable cause} passed in
+   * and with the provided message.
+   *
+   * @param message the detail message
+   * @param cause   the root cause
+   */
+  public CacheLoadingException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
-  CacheLoadingException(final Throwable cause) {
+  /**
+   * Constructs a CacheLoadingException wrapping the {@link Throwable cause} passed in.
+   *
+   * @param cause the root cause
+   */
+  public CacheLoadingException(final Throwable cause) {
     super(cause);
   }
 

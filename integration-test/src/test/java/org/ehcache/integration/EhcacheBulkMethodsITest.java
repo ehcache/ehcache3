@@ -17,35 +17,39 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.store.heap.OnHeapStore;
-import org.ehcache.spi.ServiceLocator;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.spi.serialization.SerializationProvider;
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 import org.mockito.Matchers;
 
 import java.util.AbstractMap;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
@@ -61,15 +65,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Created by anthony on 2014-10-23.
+ * Tests for bulk processing methods in {@link org.ehcache.core.Ehcache Ehcache}.
  */
 @SuppressWarnings({ "unchecked", "rawtypes", "serial" })
 public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_without_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
@@ -92,9 +97,10 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_with_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -131,9 +137,10 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_with_cache_writer_that_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriterThatThrows = mock(CacheLoaderWriter.class);
@@ -166,9 +173,10 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_store_throws_cache_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
@@ -204,11 +212,12 @@ public class EhcacheBulkMethodsITest {
   private static Map.Entry entry(Object key, Object value) {
     return new AbstractMap.SimpleEntry(key, value);
   }
-  
+
   @Test
   public void testGetAll_without_cache_loader() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
@@ -236,8 +245,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_with_cache_loader() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -268,8 +278,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_cache_loader_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -303,8 +314,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_store_throws_cache_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -335,8 +347,9 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_without_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
-    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.buildConfig(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
+    CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
@@ -368,9 +381,10 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_with_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -413,9 +427,10 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_cache_writer_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriterThatThrows = mock(CacheLoaderWriter.class);
@@ -455,9 +470,10 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_with_store_that_throws() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder();
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
-        .buildConfig(String.class, String.class);
+        .build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
@@ -503,25 +519,28 @@ public class EhcacheBulkMethodsITest {
    */
   private static class CustomStoreProvider implements Store.Provider {
     @Override
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return Integer.MAX_VALUE;     // Ensure this Store.Provider is ranked highest
+    }
+
+    @Override
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      ServiceLocator serviceLocator = new ServiceLocator(new DefaultSerializationProvider());
+      ServiceLocator serviceLocator = new ServiceLocator(new DefaultSerializationProvider(null));
       try {
-        serviceLocator.startAllServices(Collections.<Service, ServiceConfiguration<?>>emptyMap());
+        serviceLocator.startAllServices();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      SerializationProvider serializationProvider = serviceLocator.findService(SerializationProvider.class);
-      Serializer<K> keySerializer = serializationProvider.createKeySerializer(storeConfig.getKeyType(), storeConfig.getClassLoader());
-      Serializer<V> valueSerializer = serializationProvider.createValueSerializer(storeConfig.getValueType(), storeConfig.getClassLoader());
-      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, false, keySerializer, valueSerializer) {
+      final Copier defaultCopier = new IdentityCopier();
+      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher()) {
         @Override
-        public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
-          throw new CacheAccessException("Problem trying to bulk compute");
+        public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
+          throw new StoreAccessException("Problem trying to bulk compute");
         }
 
         @Override
-        public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
-          throw new CacheAccessException("Problem trying to bulk compute");
+        public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+          throw new StoreAccessException("Problem trying to bulk compute");
         }
       };
     }
@@ -537,7 +556,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     @Override
-    public void start(ServiceConfiguration<?> config, final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider<Service> serviceProvider) {
 
     }
 

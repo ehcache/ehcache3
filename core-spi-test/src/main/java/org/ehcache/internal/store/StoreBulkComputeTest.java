@@ -16,9 +16,9 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -36,8 +36,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#bulkCompute(java.util.Set, org.ehcache.function.Function)} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * Test the {@link Store#bulkCompute(java.util.Set, Function)} contract of the
+ * {@link Store Store} interface.
  * <p/>
  *
  * @author Gaurav Mangalick
@@ -53,13 +53,13 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
 
   @Before
   public void setUp() {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore();
   }
 
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
   }
@@ -90,7 +90,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
           }
       );
       assertThat(mapFromRemappingFunction.keySet(), containsInAnyOrder((K[])inputKeys.toArray()));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -119,7 +119,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -150,7 +150,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       for (K key : inputKeys) {
         assertThat(kvStore.get(key), is(nullValue()));
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -189,7 +189,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
             }
           }
       );
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -222,7 +222,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       for (K inputKey : inputKeys) {
         assertThat(kvStore.get(inputKey).value(), is(computedEntries.get(inputKey)));
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -259,7 +259,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException cce) {
       //expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -296,7 +296,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException cce) {
       //expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

@@ -1,0 +1,20 @@
+<ehcache:config
+    xmlns:ehcache="http://www.ehcache.org/v3"
+    xmlns:tc="http://www.ehcache.org/v3/clustered">
+
+  <ehcache:service>
+    <tc:cluster>
+      <tc:connection url="http://example.com:9540/cachemanager?auto-create"/>
+    </tc:cluster>
+  </ehcache:service>
+
+  <ehcache:cache alias="simple-cache">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap unit="entries">10</ehcache:heap>
+      <tc:cluster-fixed unit="GB">1</tc:cluster-fixed>
+    </ehcache:resources>
+  </ehcache:cache>
+
+</ehcache:config>

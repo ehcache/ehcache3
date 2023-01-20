@@ -1,221 +1,53 @@
+---
+---
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 
-= The new Ehcache 3.x line
+= Ehcache 3.0 Documentation Overview
 
+
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
-== Getting started with the new API
+The Table of Contents provides an overview of the Ehcache 3.0 documentation on this site. Each topic below corresponds to a menu item at the left.
 
-NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should start by reading
-      link:107{outfilesuffix}[the Ehcache 3.x JSR-107 Provider page]
+== Ehcache 3.0 Documentation Table of Contents
 
-WARNING: *This is still a work in progress*. While it represents the API as it exists today, the final version will be represented in the Ehcache 3.0 OSS Beta.
+=== Basic Topics
 
-=== Configuring it all in Java
+|===
+| Topic | Description
 
-==== Managed cache
+|link:getting-started.html[Getting Started]|Learn the essentials
+|link:xml.html[XML Configuration]|How to configure Ehcache using XML
+|link:usermanaged.html[User Managed Caches]|Creating and making use of caches directly
+|link:107.html[JSR-107 Support]|Using Ehcache as a javax.cache aka JSR-107 provider
+|link:examples.html[Java Examples]|Examples of using Ehcache APIs
+|link:xsds.html[Configuration XSD]|Reference XSD for configuration
+|===
 
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
-----
+=== General Topics
 
-<1> Static method `org.ehcache.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.CacheManagerBuilder`
-    instance;
-<2> Use the builder to register a pre-configured `Cache` to be created when we `.build()` the actual `CacheManager`.
-    The first `String` argument is the alias used to interact with the `Cache` through the `CacheManager`; the second
-    argument is `org.ehcache.config.CacheConfiguration` to configure the `Cache`. We use the static
-    `.newCacheConfigurationBuilder()` method on `org.ehcache.config.CacheConfigurationBuilder` to create a default config;
-<3> Finally, invoking `.build(bool)` returns a fully instantiated, possibly initialized, `CacheManager` we can use;
-<4> Before you start to use the `CacheManager` it needs to be `init()`, which can be done for you by the builder by passing `true` to `build(bool)`;
-<5> We can retrieve the `preConfigured` aliased `Cache` we declared in step 2. For type-safety, we ask for both key and
-    value types to be passed in. If these differ from the ones we expect, the `CacheManager` throws a `ClassCastException`
-    early in the application's lifecycle. It also guards the `Cache` from being polluted by random types.
-<6> The `CacheManager` can also be used to create new `Cache` as needed. Just as in step 2, it requires passing in an
-    alias as well as a `CacheConfiguration`. The instantiated and fully initialized `Cache` added will be returned and/or
-    accessed through the `CacheManager.getCache` API.
-<7> We can now use the newly added `Cache` to store and ...
-<8> ... retrieve data.
-<9> We can also `CacheManager.remove()` a given `Cache`. The `CacheManager` will not only remove it's reference to the
-    `Cache`, but will also close it. The `Cache` releases all locally held transient resources (such as memory).
-    References to this `Cache` become unusable.
-<10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
-     it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
+|===
+| Topic | Description
 
-==== User managed cache
+|link:caching-terms.html[Caching Terms]|Learn terms that relate to caching
+|link:caching-concepts.html[Caching Concepts]|Learn concepts that relate to caching
+|link:caching-patterns.html[Caching Patterns]|Learn common patterns of cache usage
 
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=userManagedCacheExample]
-----
+|===
 
-<1> A new feature of Ehcache 3.0 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
-<2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
-<3> You can use the Standalone cache exactly as a managed cache
-<4> In the same vein, a `StandaloneCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
-    managed caches simultaneously, the `CacheManager.close()` operation would not impact the Standalone cache.
+=== Advanced Topics
 
-==== Off-heap
+|===
+| Topic | Description
 
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
-----
-
-<1> If you wish to use off-heap, you'll have to define resource pool, giving the memory size you want to allocate.
-
-Do not forget to define in the java options the -XX:MaxDirectMemorySize option, according to the off-heap size you intend to use.
-
-==== Disk persistence
-
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
-----
-
-<1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to register a
-    `LocalPersistenceService` with your `CacheManager`, which you can do by providing the location where
-    data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
-<2> You define a resource pool for the disk.
-
-==== Update ResourcePools
-
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
-----
-
-<1> You will need to create a new `ResourcePools` object with resources of required size, using `ResourcePoolsBuilder`. This object can
-    then be passed to the said method so as to trigger the update.
-<2> To update capacity of `ResourcePools`, `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
-    `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
-
-NOTE: Presently, `updateResourcePools()` only supports updating heap and disk tiers, if they are defined with `EntryUnit.ENTRIES` as the unit of measure.
-
-==== Cache Event Listeners
-
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEventListener]
-----
-
-<1> Create a `CacheEventListenerConfiguration` using the builder indicating the listener class and the events to receive
-<2> Optionally indicate the delivery mode - defaults are _asynchronous_ and _un-ordered_
-<3> Pass the configuration of the listener into the cache configuration
-<4> You will be notified on creation
-<5> And on update
-<6> But not on removal
-
-
-==== Write-Through Cache
-
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
-----
-
-<1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
-    `CacheLoaderWriter` and register `CacheLoaderWriterFactory` service by adding concrete type to the
-    Cache using `DefaultCacheLoaderWriterConfiguration`.
-
-==== Write-Behind Cache
-
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
-----
-
-<1> A Cache can be used in write-behind pattern as well. You will have to implement `CacheLoaderWriter`
-    and register using `DefaultCacheLoaderWriterConfiguration`.
-<2> Additionally, register a `WriteBehindDecoratorLoaderWriterProvider` service to Cache by adding
-    `WriteBehindConfiguration`.
-<3> Configure maximum size of the writebehind queue.
-<4> Define the concurrency level of writebehind queue, at a time these many writer threads will update
-    the  underlying resource asynchronously.
-<5> Enable write-behind queue to batch the updates to underlying resource.
-<6> Enable the write coalescing behavior, which ensures that only latest update on a key hits the
-    underlying resource.
-<7> You can configure write-behind queue to retry failed updates for `retryAttempts` times with
-    `retryAttemptDelaySeconds` delay.
-<8> Control maximum number of updates allowed per second.
-<9> Configure maximum and minimum number of seconds to wait before writing to the underlying resource.
-
-==== Serializers
-
-You can configure a set of serializers on the cache manager:
-
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=defaultSerializers]
-----
-
-<1> By default, objects stored on-heap are stored by reference. If you wish to store them by value (which requires copying them
-    with a serializer) then you have to set storeByValue to true.
-<2> Configure a global set of serializers. Each serializer is mapped to a type and the cache's declared key and value
-    types are used to select the best serializer from the list. Each cache will pick a serializer for both key and value
-    during initialization. If none is found, an error will be thrown. The serializer is chosen according to two rules:
-    either there is one configured for the exact declared type, or the first type-compatible one from the list is chosen.
-    By default, there is a serializer already configured for type `java.io.Serializable`.
-<3> Don't forget to set the serializers' config on the `CacheManagerBuilder`.
-
-Or you can configure specific serializers on the cache itself:
-
-[source,java,indent=0]
-----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheSerializers]
-----
-
-<1> As above, you must configure the on-heap store to store objects by value.
-<2> Configure the key's serializer.
-<3> Configure the value's serializer.
-
-=== It wouldn't be Java without _some_ XML
-
-You can create a XML file to configure a `CacheManager`:
-
-[source,xml]
-----
-include::{sourcedir}/xml/src/test/resources/configs/getting-started.xml[tags=gettingStarted]
-----
-
-<1> Declares a `Cache` aliased to `foo`
-<2> The keys of `foo` are declared as type `String`; since the value type is not specified, the values will be of type `Object`.
-<3> `foo` is declared to hold up to 2,000 entries on heap...
-<4> ...as well as up to 500 MB of off-heap memory before it starts evicting
-<5> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configuration can then _extend_
-<6> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
-<7> `simpleCache` is another such a `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
-
-Refer to the link:xml{outfilesuffix}[XML documentation] for more details on the XML format.
-
-In order to parse an XML configuration, you can use the `XmlConfiguration` type:
-
-[source,java]
-----
-final URL myUrl = this.getClass().getResource("/my-config.xml"); // <1>
-Configuration xmlConfig = new XmlConfiguration(myUrl); // <2>
-CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); // <3>
-----
-
-<1> Obtain a `URL` to your XML file's location
-<2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
-<3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
-    create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
-
-== Current release
-
-We released the Milestone 1 on March 24, 2015. In addition to the JSR-107 compatibility,
-it introduces tiering and offers an offheap option based on the recently https://github.com/Terracotta-OSS/offheap-store[open sourced library] from Terracotta.
-
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m1[release notes] contain the links to the documentation
-to help you get started
-
-== Current development & next release
-
-We are now working on the next milestone, aka https://github.com/ehcache/ehcache3/milestones/OSS%20Beta[OSS Beta] :
-All the features we want to port from the existing Ehcache 2.x line, exposed using the new API.
-This includes things not covered by the JSR-107 spec, such as _WriteBehind_, _DiskPersistence_, _EvictionListener_ et al.
-
-See the https://github.com/ehcache/ehcache3/milestones[Milestones on GitHub] for more details on the current status.
-
-For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3.0 project wiki on GitHub].
+|link:thread-pools.html[Thread Pools]|Using and controlling threads in Ehcache 3
+|link:serializers-copiers.html[Serializers and Copiers]|Understanding and configuring serializers and copiers
+|link:xa.html[Transactions Support]|Using Ehcache with a JTA transaction manager
+|link:writers.html[Cache Writers]|Using cache writers (write-through and write-behind)
+|link:cache-event-listeners.html[Cache Event Listeners]|Getting notified about events within the cache
+|link:eviction-advisor.html[Eviction Advisor]|Affecting the way entries are chosen for eviction
+|===
