@@ -18,11 +18,13 @@ package org.ehcache.spi.test;
 
 /**
  * Can be used to report legal exceptions in SPI test so that the said exceptions don't cause a failure
- * 
+ *
  * @author rism
  */
 public class LegalSPITesterException extends Exception {
-  
+
+  private static final long serialVersionUID = -8258017920644785486L;
+
   /**
    * Creates a new exception wrapping the {@link Throwable cause} passed in.
    *

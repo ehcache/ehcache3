@@ -16,9 +16,9 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
 import org.hamcrest.Matchers;
@@ -27,8 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test contract of closing a
- * {@link org.ehcache.spi.cache.Store Store} interface.
- * <p/>
+ * {@link Store Store} interface.
  *
  * @author Aurelien Broszniowski
  */
@@ -43,13 +42,19 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
 
   @Before
   public void setUp() {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+    kvStore = factory.newStore();
+  }
+
+  @After
+  public void tearDown() {
+    if (kvStore != null) {
+      kvStore = null;
+    }
   }
 
   @SPITest
   public void closedStoreCantBeUsed()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws StoreAccessException, IllegalAccessException, InstantiationException {
     K key = factory.createKey(42);
     V value = factory.createValue(42);
 

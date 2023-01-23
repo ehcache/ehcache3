@@ -1,0 +1,138 @@
+import org.ehcache.build.util.ConfigurationBucketSet
+
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+  id 'org.ehcache.build.public-module'
+  id 'org.ehcache.build.plugins.variant'
+}
+
+publishing.publications.withType(MavenPublication) {
+  pom {
+    name = 'Ehcache 3 transactions module'
+    description = 'The transactions module of Ehcache 3'
+  }
+}
+
+variants {
+  defaultVariant() {
+    traits 'javaee', 'uber'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions'
+  }
+  variant('jakarta') {
+    separateSource()
+    traits 'jakarta', 'uber'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions-jakarta'
+  }
+  variant('jakarta-module') {
+    sourcesFrom(sourceSets.jakarta)
+    traits 'jakarta', 'modular'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions-jakarta-modules'
+  }
+  variant('module') {
+    sourcesFrom(sourceSets.main)
+    traits 'javaee', 'modular'
+    capability 'org.ehcache:ehcache-transactions-provider'
+    capability 'org.ehcache:ehcache-transactions-modules'
+  }
+}
+
+dependencies {
+  commonImplementation "org.slf4j:slf4j-api:${slf4jVersion}"
+  commonCompileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+  commonIsolatedCompileOnly project(':ehcache-core')
+
+  modularTraitApi project(':ehcache-core')
+  modularTraitImplementation project(':ehcache-impl')
+  modularTraitCompileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
+
+  javaeeTraitApi 'javax.transaction:jta:[1.1,2)'
+  javaeeTraitImplementation('org.codehaus.btm:btm:2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+
+  jakartaTraitApi 'jakarta.transaction:jakarta.transaction-api:[2,3)'
+  jakartaTraitImplementation 'org.jboss.narayana.jta:narayana-jta-jakarta:5.12.5.Final'
+  jakartaTraitRuntimeOnly 'org.jboss.logging:jboss-logging:3.1.4.GA'
+
+  //uber, java-ee
+  api project(':ehcache')
+
+  //uber, jakarta
+  jakartaApi(project(':ehcache')) {
+    capabilities {
+      requireCapability('org.ehcache:ehcache-jakarta')
+    }
+  }
+
+  testImplementation(project(':core-spi-test')) {
+    exclude group:'org.ehcache.modules'
+  }
+  testImplementation(testFixtures(project(':ehcache-xml'))) {
+    exclude group:'org.ehcache.modules'
+  }
+}
+
+configurations.all {
+  resolutionStrategy.dependencySubstitution {
+    substitute(module('jakarta.transaction:jakarta.transaction-api:2.0.0-RC1')).using(module('jakarta.transaction:jakarta.transaction-api:2.0.0'))
+      .because('Narayana has divergences in its transitive dependency set')
+  }
+}
+
+jar {
+  bnd (
+    'Bundle-SymbolicName': 'org.ehcache.transactions',
+    'Export-Package': 'org.ehcache.transactions.xa.*',
+    'Import-Package': 'bitronix.tm.*;resolution:=optional, javax.transaction.*;resolution:=optional, org.ehcache.xml.*;resolution:=optional, *',
+  )
+}
+
+sourceSets {
+  jakartaTest {
+    java {
+      compileClasspath += sourceSets.jakarta.output
+      runtimeClasspath += sourceSets.jakarta.output
+    }
+  }
+}
+
+dependencies {
+  jakartaTestRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
+  jakartaTestImplementation "junit:junit:$junitVersion"
+  jakartaTestImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
+  jakartaTestImplementation "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
+}
+
+configurations {
+  jakartaTestImplementation.extendsFrom jakartaImplementation
+  jakartaTestRuntimeOnly.extendsFrom jakartaRuntimeOnly
+}
+
+def jakartaTest = tasks.register('jakartaTest', Test) {
+  group = JavaBasePlugin.VERIFICATION_GROUP
+  testClassesDirs = sourceSets.jakartaTest.output.classesDirs
+  classpath = sourceSets.jakartaTest.runtimeClasspath
+  systemProperty 'org.jboss.logging.provider', 'slf4j'
+}
+
+tasks.named('check') {
+  dependsOn jakartaTest
+}

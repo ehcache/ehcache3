@@ -1,5 +1,0 @@
-
-checkstyle {
-  configFile = file("$projectDir/config/checkstyle.xml")
-}
-

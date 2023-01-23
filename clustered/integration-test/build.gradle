@@ -1,0 +1,88 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+  id 'org.ehcache.build.conventions.java'
+}
+
+configurations {
+  serverLibs
+}
+
+dependencies {
+  testImplementation project(':clustered:ehcache-client')
+  testImplementation project(':clustered:ehcache-common')
+  testImplementation project(':ehcache-impl')
+  testImplementation project(':ehcache-xml')
+  testImplementation project(':ehcache-107')
+  testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion") {
+    exclude group:'junit', module:'junit'
+  }
+  testImplementation("javax.cache:cache-tests:$jcacheTckVersion:tests") {
+    exclude group:'junit', module:'junit'
+  }
+
+  testImplementation project(':ehcache-management')
+  testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
+  /*
+   * Jackson BOMs are broken in a bunch of ways. One day we might be able to use the constraints provided through the
+   * platform dependencies, today is not that day.
+   */
+  testImplementation enforcedPlatform("com.fasterxml.jackson:jackson-bom:$jacksonVersion")
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+  testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
+  testImplementation("org.terracotta:galvan-platform-support:$terracottaPlatformVersion") {
+    exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
+  }
+  testImplementation "javax.cache:cache-api:$jcacheVersion"
+}
+
+task unzipKit(type: Sync) {
+  dependsOn project(':clustered:ehcache-clustered').distZip
+  from zipTree(project(':clustered:ehcache-clustered').distZip.archivePath)
+  into 'build/ehcache-kit'
+}
+
+task copyServerLibs(type: Sync) {
+  dependsOn unzipKit
+  from project.configurations.serverLibs
+  into "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit/server/plugins/lib"
+}
+
+test {
+  maxHeapSize = '512m'
+  maxParallelForks = 8
+  dependsOn copyServerLibs
+  environment 'JAVA_HOME', testJava.javaHome
+  //If this directory does not exist, tests will fail with a cryptic assert failure
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit"
+  // Uncomment to include client logging in console output
+  // testLogging.showStandardStreams = true
+}
+
+configurations.all {
+  resolutionStrategy {
+    dependencySubstitution {
+      substitute(module('junit:junit:4.12'))
+        .because('CVE-2020-15250')
+        .with(module('junit:junit:4.13.1'))
+    }
+  }
+}

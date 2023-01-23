@@ -17,8 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
@@ -32,9 +32,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#iterator()} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
- * <p/>
+ * Test the {@link Store#iterator()} contract of the
+ * {@link Store Store} interface.
  *
  * @author Aurelien Broszniowski
  */
@@ -49,13 +48,13 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
 
   @Before
   public void setUp() {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, null, null));
+    kvStore = factory.newStore();
   }
 
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
   }
@@ -63,7 +62,7 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   @SuppressWarnings("unchecked")
   public void iterableContainsValuesInAnyOrder()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws StoreAccessException, IllegalAccessException, InstantiationException {
     K key1 = factory.createKey(1L);
     K key2 = factory.createKey(2L);
     K key3 = factory.createKey(3L);
@@ -76,12 +75,12 @@ public class StoreIteratorTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(key3, value3);
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
-    List<K> keys = new ArrayList<K>();
-    List<V> values = new ArrayList<V>();
+    List<K> keys = new ArrayList<>();
+    List<V> values = new ArrayList<>();
     while (iterator.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> nextEntry = iterator.next();
       keys.add(nextEntry.getKey());
-      values.add(nextEntry.getValue().value());
+      values.add(nextEntry.getValue().get());
     }
     assertThat(keys, containsInAnyOrder(equalTo(key1), equalTo(key2), equalTo(key3)));
     assertThat(values, containsInAnyOrder(equalTo(value1), equalTo(value2), equalTo(value3)));

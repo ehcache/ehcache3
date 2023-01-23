@@ -1,6 +1,19 @@
+---
+---
+ifndef::sourcedir310[]
+:version: 3.10
+:notBuildingForSite: true
 ifdef::basebackend-html[:outfilesuffix: .html]
-:source-highlighter: prettify
+:source-highlighter: coderay
+:stylesdir: css
 :stylesheet: ehcache.css
 :linkcss:
 :icons: font
-:sourcedir: ../../../../../
+:iconfont-remote!:
+:iconfont-name: font-awesome.min
+:sourcedir310: {gradle-rootdir}
+:imagesdir: images
+:sectanchors:
+:idprefix:
+:idseparator: -
+endif::sourcedir310[]

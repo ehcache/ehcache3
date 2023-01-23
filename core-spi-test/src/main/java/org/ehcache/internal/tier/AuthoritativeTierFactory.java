@@ -16,12 +16,11 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.EvictionVeto;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.internal.store.StoreFactory;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 
 /**
  * @author Aurelien Broszniowski
@@ -29,20 +28,15 @@ import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 public interface AuthoritativeTierFactory<K, V> extends StoreFactory<K,V> {
 
   @Override
-  AuthoritativeTier<K, V> newStore(AuthoritativeTier.Configuration<K, V> config);
+  AuthoritativeTier<K, V> newStore();
 
   @Override
-  AuthoritativeTier<K, V> newStore(AuthoritativeTier.Configuration<K, V> config, TimeSource timeSource);
+  AuthoritativeTier<K, V> newStoreWithCapacity(long capacity);
 
   @Override
-  AuthoritativeTier.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-      EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer);
+  AuthoritativeTier<K, V> newStoreWithExpiry(ExpiryPolicy<? super K, ? super V> expiry, TimeSource timeSource);
 
   @Override
-  AuthoritativeTier.Configuration<K, V> newConfiguration(
-      Class<K> keyType, Class<V> valueType, Comparable<Long> capacityConstraint,
-      EvictionVeto<? super K, ? super V> evictionVeto, EvictionPrioritizer<? super K, ? super V> evictionPrioritizer,
-      Expiry<? super K, ? super V> expiry);
+  AuthoritativeTier<K, V> newStoreWithEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor);
 
 }

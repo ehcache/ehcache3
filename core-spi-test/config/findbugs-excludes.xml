@@ -1,7 +1,0 @@
-<FindBugsFilter>
-  <!-- temp exclusions following move of WIP code -->
-  <!-- TODO clean up in the context of issue #62 -->
-  <Match>
-    <Class name="org.ehcache.spi.test.StoreTester"/>
-  </Match>
-</FindBugsFilter>

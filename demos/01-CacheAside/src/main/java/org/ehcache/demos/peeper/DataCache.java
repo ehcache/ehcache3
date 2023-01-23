@@ -21,18 +21,21 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static org.ehcache.UserManagedCacheBuilder.newUserManagedCacheBuilder;
+import static org.ehcache.config.builders.UserManagedCacheBuilder.newUserManagedCacheBuilder;
 
 /**
  * Created by shdi on 3/12/15.
  */
 public class DataCache {
 
-    private UserManagedCache<String, List> cache;
+    private UserManagedCache<String, List<String>> cache;
     private static final Logger logger = LoggerFactory.getLogger(DataCache.class);
 
+    @SuppressWarnings("unchecked")
     public void setupCache() {
-        cache = newUserManagedCacheBuilder(String.class, List.class, LoggerFactory.getLogger(getClass())).build(true);
+        cache = (UserManagedCache<String, List<String>>) (UserManagedCache<?, ?>) newUserManagedCacheBuilder(String.class, List.class)
+          .identifier("data-cache")
+          .build(true);
         logger.info("Cache setup is done");
     }
 

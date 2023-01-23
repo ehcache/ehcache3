@@ -1,0 +1,18 @@
+<config
+        xmlns='http://www.ehcache.org/v3'
+        xmlns:jsr107='http://www.ehcache.org/v3/jsr107'>
+
+    <service>
+        <jsr107:defaults>
+            <jsr107:cache name="testCache" template="simpleCacheTemplate"/>
+        </jsr107:defaults>
+    </service>
+
+    <cache-template name="simpleCacheTemplate">
+        <key-type>java.lang.Number</key-type>
+        <value-type>java.lang.CharSequence</value-type>
+        <heap unit="entries">100</heap>
+    </cache-template>
+
+
+</config>

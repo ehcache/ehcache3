@@ -17,19 +17,19 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mockito.ArgumentMatchers;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,18 +37,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheWritingException;
-
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -63,18 +61,19 @@ public class LoaderWriterErrorEhcacheTest {
 
   private CacheManager cacheManager;
   private Cache<Number, CharSequence> testCache;
-  private CacheLoaderWriter<? super Number, ? super CharSequence> cacheLoaderWriter;
+  private CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter;
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
-    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
-    builder.using(cacheLoaderWriterProvider);
-    cacheManager = builder.build(true);
-    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) any())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
+    cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder
+            .newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10))
+            .withLoaderWriter(cacheLoaderWriter)
+            .build());
   }
 
   @After
@@ -100,33 +99,31 @@ public class LoaderWriterErrorEhcacheTest {
 
   @Test
   public void testGetAllWithLoaderException() throws Exception {
-    when(cacheLoaderWriter.loadAll((Iterable)any())).thenAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
+    when(cacheLoaderWriter.loadAll(ArgumentMatchers.<Iterable<Number>>any())).thenAnswer(invocation -> {
+      @SuppressWarnings("unchecked")
+      Iterable<Integer> iterable = (Iterable<Integer>) invocation.getArguments()[0];
 
-        Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
+      Map<Number, CharSequence> result = new HashMap<>();
 
-        for (Integer i : iterable) {
-          switch (i) {
-            case 1:
-              result.put(1, "one");
-              break;
-            case 2:
-              throw new Exception("Mock Exception: cannot load 2");
-            case 3:
-              result.put(3, "three");
-              break;
-            case 4:
-              result.put(4, null);
-              break;
-            default:
-              throw new AssertionError("should not try to load key " + i);
-          }
+      for (int i : iterable) {
+        switch (i) {
+          case 1:
+            result.put(1, "one");
+            break;
+          case 2:
+            throw new Exception("Mock Exception: cannot load 2");
+          case 3:
+            result.put(3, "three");
+            break;
+          case 4:
+            result.put(4, null);
+            break;
+          default:
+            throw new AssertionError("should not try to load key " + i);
         }
-
-        return result;
       }
+
+      return result;
     });
 
     try {
@@ -167,29 +164,26 @@ public class LoaderWriterErrorEhcacheTest {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public void testRemoveAllWithWriterException() throws Exception {
-    doAnswer(new Answer() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
-        Set<Integer> result = new HashSet<Integer>();
+    doAnswer(invocation -> {
+      Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
+      Set<Integer> result = new HashSet<>();
 
-        for (Integer i : iterable) {
-          switch (i) {
-            case 2:
-              throw new Exception("Mock Exception: cannot write 2");
-            case 1:
-            case 3:
-            case 4:
-              result.add(i);
-              break;
-            default:
-              throw new AssertionError("should not try to delete key " + i);
-          }
+      for (Integer i : iterable) {
+        switch (i) {
+          case 2:
+            throw new Exception("Mock Exception: cannot write 2");
+          case 1:
+          case 3:
+          case 4:
+            result.add(i);
+            break;
+          default:
+            throw new AssertionError("should not try to delete key " + i);
         }
-
-        return result;
       }
-    }).when(cacheLoaderWriter).deleteAll((Iterable) Matchers.any());
+
+      return result;
+    }).when(cacheLoaderWriter).deleteAll(ArgumentMatchers.<Iterable>any());
 
     try {
       testCache.removeAll(new HashSet<Number>(Arrays.asList(1, 2, 3, 4)));
@@ -296,9 +290,9 @@ public class LoaderWriterErrorEhcacheTest {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public void testPutAllWithWriterException() throws Exception {
-    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).writeAll(Matchers.<Iterable>any());
+    doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).writeAll(ArgumentMatchers.<Iterable>any());
 
-    Map<Integer, String> values = new HashMap<Integer, String>();
+    Map<Integer, String> values = new HashMap<>();
     values.put(1, "one");
     values.put(2, "two");
 

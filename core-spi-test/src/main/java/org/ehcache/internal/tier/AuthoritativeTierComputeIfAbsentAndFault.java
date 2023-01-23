@@ -16,24 +16,22 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Function;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
-import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import java.util.function.Function;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Test the {@link AuthoritativeTier#computeIfAbsentAndFault(Object, Function)} contract of the
  * {@link AuthoritativeTier AuthoritativeTier} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */
@@ -46,15 +44,10 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
     super(factory);
   }
 
-  @Before
-  public void setUp() {
-  }
-
   @After
   public void tearDown() {
     if (tier != null) {
-//      tier.close();
-      tier = null;
+      factory.close(tier);
     }
   }
 
@@ -63,18 +56,12 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
    * will be evicted with the default behaviour of the tier.
    */
   @SPITest
-  public void nonMarkedMappingIsEvictable() throws CacheAccessException {
+  public void nonMarkedMappingIsEvictable() throws StoreAccessException {
     K key = factory.createKey(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
-    tier.computeIfAbsent(key, new Function<K, V>() {
-      @Override
-      public V apply(final K k) {
-        return factory.createValue(1L);
-      }
-    });
+    tier.computeIfAbsent(key, k -> factory.createValue(1L));
 
     fillTierOverCapacity(tier, factory);
 
@@ -90,28 +77,22 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       assertThat(tier.get(key), is(nullValue()));
-      assertThat(tier.computeIfAbsentAndFault(key, new Function<K, V>() {
-        @Override
-        public V apply(final K k) {
-          return factory.createValue(1L);
-        }
-      }).value(), is(equalTo(value)));
+      assertThat(tier.computeIfAbsentAndFault(key, k -> factory.createValue(1L)).get(), is(equalTo(value)));
 
       fillTierOverCapacity(tier, factory);
-      assertThat(tier.get(key).value(), is(equalTo(value)));
+      assertThat(tier.get(key).get(), is(equalTo(value)));
 
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
-  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws CacheAccessException {
-    for (long seed = 2L; seed < 15000; seed++) {
+  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws StoreAccessException {
+    for (long seed = 2L; seed < 10; seed++) {
       tier.put(factory.createKey(seed), factory.createValue(seed));
     }
   }

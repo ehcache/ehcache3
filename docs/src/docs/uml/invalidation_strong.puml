@@ -1,0 +1,68 @@
+@startuml
+title Ehcache Put invalidation (STRONG consistency)
+
+box "Client 1" #LightGreen
+participant Originating_TieredStore
+participant Originating_ClusteredStore
+participant Originating_StrongServerStoreProxy
+participant Originating_EhcacheClientEntity
+end box
+
+box "Server" #LightBlue
+participant EhcacheActiveEntity
+participant ServerStore
+end box
+
+box "Client 2" #Orange
+participant Other_TieredStore
+participant Other_ClusteredStore
+participant Other_StrongServerStoreProxy
+participant Other_EhcacheClientEntity
+end box
+
+
+Originating_TieredStore -> Originating_ClusteredStore : put(K, V)
+activate Originating_ClusteredStore
+Originating_ClusteredStore -> Originating_StrongServerStoreProxy : append(keyHash, payload)
+activate Originating_StrongServerStoreProxy
+Originating_StrongServerStoreProxy -> Originating_StrongServerStoreProxy : invalidationsInProgress.putIfAbsent(keyHash, CountDownLatch(1))
+Originating_StrongServerStoreProxy -> Originating_StrongServerStoreProxy : append(keyHash, payload)
+Originating_StrongServerStoreProxy -> Originating_EhcacheClientEntity : invoke(appendOperation(cacheId, keyHash, payLoad))
+activate Originating_EhcacheClientEntity
+Originating_EhcacheClientEntity -> EhcacheActiveEntity : invokeServerStoreOperation(originatingClientDescriptor, appendOperationMessage)
+activate EhcacheActiveEntity
+EhcacheActiveEntity -> EhcacheActiveEntity : getServerStore(cacheId)
+EhcacheActiveEntity -> ServerStore: append(keyHash, payload)
+EhcacheActiveEntity -> EhcacheActiveEntity : getClientsToInvalidate(cacheId)
+EhcacheActiveEntity -> EhcacheActiveEntity : clientsWaitingForInvalidation.put(invalidationId, clientsToInvalidate)
+EhcacheActiveEntity -> Other_EhcacheClientEntity : sendNoResponse(clientInvalidateHash(cacheId, keyHash, invalidationId))
+activate Other_EhcacheClientEntity
+EhcacheActiveEntity --> Originating_EhcacheClientEntity
+deactivate EhcacheActiveEntity
+Originating_EhcacheClientEntity --> Originating_StrongServerStoreProxy
+deactivate Originating_EhcacheClientEntity
+Originating_StrongServerStoreProxy -> Originating_StrongServerStoreProxy : CountDownLatch.await()
+
+Other_EhcacheClientEntity -> Other_StrongServerStoreProxy : onResponse(clientInvalidateHashMessage)
+activate Other_StrongServerStoreProxy
+Other_StrongServerStoreProxy -> Other_ClusteredStore : fireInvalidateHashEvent(keyHash)
+Other_ClusteredStore -> Other_TieredStore : invokeInvalidationValve(keyHash)
+Other_TieredStore --> Other_ClusteredStore
+Other_ClusteredStore --> Other_StrongServerStoreProxy
+Other_StrongServerStoreProxy -> Other_EhcacheClientEntity : invoke(clientInvalidateHashAck(cacheId, keyHash, invalidationId))
+Other_EhcacheClientEntity -> EhcacheActiveEntity : invokeServerStoreOperation(otherClientDescriptor, clientInvalidateHashAckMessage)
+Other_StrongServerStoreProxy --> Other_EhcacheClientEntity
+deactivate Other_EhcacheClientEntity
+deactivate Other_StrongServerStoreProxy
+
+EhcacheActiveEntity -> EhcacheActiveEntity : clientsHavingToInvalidate.get(clientInvalidateHashAckMessage.invalidationId).remove(otherClientDescriptor)
+EhcacheActiveEntity ->o Originating_EhcacheClientEntity : sendNoResponse(invalidationDone(cacheId, keyHash))
+Originating_EhcacheClientEntity ->o Originating_StrongServerStoreProxy : onResponse(invalidationDoneMessage)
+Originating_StrongServerStoreProxy -> Originating_StrongServerStoreProxy : CountDownLatch.countDown()
+
+Originating_StrongServerStoreProxy --> Originating_ClusteredStore
+deactivate Originating_StrongServerStoreProxy
+Originating_ClusteredStore --> Originating_TieredStore
+deactivate Originating_ClusteredStore
+
+@enduml

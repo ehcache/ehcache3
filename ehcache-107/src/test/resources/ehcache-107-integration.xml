@@ -1,0 +1,61 @@
+<ehcache:config
+    xmlns:ehcache="http://www.ehcache.org/v3"
+    xmlns:jcache="http://www.ehcache.org/v3/jsr107">
+
+  <ehcache:service>
+    <jcache:defaults>
+      <jcache:cache name="productCache2" template="productCacheTemplate"/>
+      <jcache:cache name="productCache3" template="productCacheTemplate"/>
+    </jcache:defaults>
+  </ehcache:service>
+
+  <ehcache:cache alias="productCache">
+
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+
+    <ehcache:value-type copier="org.ehcache.impl.copy.SerializingCopier">com.pany.domain.Product</ehcache:value-type>
+
+    <ehcache:expiry>
+      <ehcache:tti unit="minutes">2</ehcache:tti>
+    </ehcache:expiry>
+
+    <ehcache:eviction-advisor>com.pany.ehcache.MyEvictionAdvisor</ehcache:eviction-advisor>
+
+    <ehcache:loader-writer>
+      <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+    </ehcache:loader-writer>
+
+    <ehcache:heap unit="entries">200</ehcache:heap>
+  </ehcache:cache>
+
+  <ehcache:cache-template name="productCacheTemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+
+    <ehcache:value-type>com.pany.domain.Product</ehcache:value-type>
+    <ehcache:expiry>
+      <ehcache:ttl unit="days">2</ehcache:ttl>
+    </ehcache:expiry>
+
+    <ehcache:loader-writer>
+        <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+    </ehcache:loader-writer>
+
+    <ehcache:heap unit="entries">200</ehcache:heap>
+  </ehcache:cache-template>
+
+  <ehcache:cache-template name="myDefaultTemplate">
+    <ehcache:expiry>
+      <ehcache:none/>
+    </ehcache:expiry>
+
+    <ehcache:heap unit="entries">200</ehcache:heap>
+  </ehcache:cache-template>
+
+  <ehcache:cache alias="customerCache" uses-template="myDefaultTemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>com.pany.domain.Customer</ehcache:value-type>
+
+    <ehcache:heap unit="entries">200</ehcache:heap>
+  </ehcache:cache>
+
+</ehcache:config>

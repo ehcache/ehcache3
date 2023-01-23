@@ -1,12 +1,17 @@
-include::common.adoc[]
-
+---
+---
 = Management and Monitoring
+ifndef::sourcedir310[]
+include::{includedir}/common.adoc[]
+endif::sourcedir310[]
 
-include::menu.adoc[]
+ifdef::notBuildingForSite[]
+include::{includedir}/menu.adoc[]
+endif::notBuildingForSite[]
 
 == Intro
 
-Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistry`
+Managed objects like caches, cache managers and stores are registered into an `org.ehcache.management.ManagementRegistryService`
 instance.
 
 A `ManagementRegistry` implementation has to understand the registered object and provide management and monitoring
@@ -17,45 +22,44 @@ Given a capability and a context, statistics can be collected or calls can be ma
 The current `ManagementRegistry` implementation provides minimal support for `Ehcache` instances, providing
 a minimal set of statistics and actions via a couple of capabilities.
 
-
 == Making use of the `ManagementRegistry`
 
-By default, a `ManagementRegistry` is automatically discovered and enabled, but can only be accessed by ehcache
+By default, a `ManagementRegistry` is automatically discovered and enabled, but can only be accessed by Ehcache
 internal services. If you wish to make use of it, you should create your own instance and pass it to the
 cache manager builder as a service:
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=usingManagementRegistry]
+include::{sourcedir310}/ehcache-management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=usingManagementRegistry]
 ----
-<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
-<2> Pass it as a service to the cache manager
-<3> Perform a few gets to increment the statistic's counter
-<4> Create the target statistic's context
-<5> Collect the get count statistic
-<6> Check that the statistic reports the expected count
+<1> Optional: give a name to your cache manager by using a custom configuration
+<2> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistryService`. This is only required because the service is used below.
+<3> Pass it as a service to the cache manager (if you only want to configure the ManagementRegistry, you can just pass the configuration instead)
+<4> Perform a few gets to increment the statistic's counter
+<5> Create the target statistic's context
+<6> Collect the get count statistic
 
 Obviously, you may use the above technique to pass your own implementation of `ManagementRegistry`.
 
 == Capabilities and contexts
 
-Capabilities are metadata of what the managed objects are capable of: a collection of statistic that can be queried
+Capabilities are metadata of what the managed objects are capable of: a collection of statistics that can be queried
 and/or remote actions that can be called.
-Each capability requires a context to run within. For instance, cache-specific statistics require a cache manager name
+Each capability requires a context to run in. For instance, cache-specific statistics require a cache manager name
 and a cache name to uniquely identify the cache on which you want to query stats or call an action.
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=capabilitiesAndContexts]
+include::{sourcedir310}/ehcache-management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=capabilitiesAndContexts]
 ----
 <1> Query the `ManagementRegistry` for the registered managed objects' capabilities.
 <2> Each capability has a unique name you will need to refer to it.
 <3> Each capability has a collection of `Descriptor`s that contains the metadata of each statistic or action.
-<4> Each capability requires a context to which it needs to refer to.
+<4> Each capability requires a context which it needs to refer to.
 <5> The first attribute of this context is the cache manager name.
 <6> The second attribute of this context is the cache name. With both attributes, the capability can uniquely refer to
     a unique managed object.
-<7> Query the `ManagementRegistry` for the all the registered managed objects' contexts.
+<7> Query the `ManagementRegistry` for all of the registered managed objects' contexts.
 <8> There is only one context here, and its name is the cache manager's name.
 <9> The above context has a subcontext: the cache's name.
 
@@ -64,13 +68,13 @@ context container to a capability's context by matching their respective names.
 
 == Actions
 
-There are two forms of capabilities: statistics and action ones. The statistic ones offer a set of predefined
-statistics that can be queried at will, while the action ones offer a set of actions that can be taken upon
-a managed object. Examples of actions could be: clear caches, get their config or modify a config setting.
+There are two forms of capabilities: statistics and action ones. The statistics ones offer a set of predefined
+statistics that can be queried at will, while the action ones offer a set of actions that can be taken on
+a managed object. Examples of actions could be: clear caches, get their configuration or modify a configuration setting.
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=actionCall]
+include::{sourcedir310}/ehcache-management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=actionCall]
 ----
 <1> Put something in a cache.
 <2> Call the 'clear' action on the managed cache. Refer to the descriptors of the provider to get the exact list of
@@ -88,10 +92,54 @@ manager by default, but sometimes you may want one `ManagementRegistry` to manag
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=managingMultipleCacheManagers]
+include::{sourcedir310}/ehcache-management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=managingMultipleCacheManagers]
 ----
-<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
+<1> Create an instance of `org.ehcache.management.SharedManagementService`
 <2> Pass it as a service to the first cache manager
 <3> Pass it as a service to the second cache manager
 
 This way, all managed objects get registered into a common `ManagementRegistry` instance.
+
+== Rules for statistics calculation
+
+This table describes whether or not a cache method can impact a given statistic. It is compatible with
+https://www.jcp.org/en/jsr/detail?id=107[JSR-107] (section 12.4).
+
+The statistics are:
+[horizontal]
+*Hit*:: An entry was asked for and found in the cache
+*Miss*:: An entry was asked for and not found in the cache
+*Put*:: An entry was added or updated
+*Removal*:: An entry was removed from the cache
+*Expiration*:: An entry has expired and thus removed from the cache
+*Eviction*:: An entry was evicted from the cache for lack of space
+
+[cols=">s,8*", options="header"]
+|=====================================================================================================================================================
+|Method         |Hit|Miss|Put|Removal|Expiration|Eviction|Notes
+|clear          |No |No  |No |No     |No        |No      |A bulk remove with no impact on stats
+|containsKey    |No |No  |No |No     |No        |No      |Generates no hit or miss since the value isn't accessed
+|forEach        |Yes|No  |No |No     |Yes       |No      |Java 8. Will hit each entry once
+|get            |Yes|Yes |No |No     |Yes       |No      |Hit when the entry is found, miss otherwise
+|getAll         |Yes|Yes |No |No     |Yes       |No      |Like `get` but calculated per entry
+|getAndPut      |Yes|Yes |Yes|No     |Yes       |Yes     |JSR107 specific. Hit when the entry is found, miss otherwise. Always put
+|getAndRemove   |Yes|Yes |No |Yes    |Yes       |No      |JSR107 specific. Hit and remove when the entry is found, miss otherwise
+|getAndReplace  |Yes|Yes |Yes|No     |Yes       |Yes     |JSR107 specific. Hit and put when the entry is found, miss otherwise
+|invoke         |Yes|Yes |Yes|Yes    |Yes       |Yes     |JSR107 specific. Depends on how the `EntryProcessor` modifies the `MutableEntry`
+|invokeAll      |Yes|Yes |Yes|Yes    |Yes       |Yes     |JSR107 specific. Like `invoke` but calculated per entry
+|iterator       |Yes|No  |No |Yes    |Yes       |No      |Will hit each iterated entry and count a removal on `Iterator.remove`
+|loadAll        |No |No  |No |No     |No        |No      |JSR107 specific. Background loading that has no impact on stats
+|put            |No |No  |Yes|No     |No        |Yes     |Put an entry whether it already existed or not.
+|putAll         |No |No  |Yes|No     |No        |Yes     |Like `put` but calculated per entry
+|putIfAbsent    |Yes|Yes |Yes|No     |Yes       |Yes     |Will hit if the entry exists. Will put and miss if it doesn't
+|remove(K)      |No |No  |No |Yes    |Yes       |No      |Count a removal if the entry exists
+|remove(K,V)    |Yes|Yes |No |Yes    |Yes       |No      |Hit if the key is found. Miss otherwise
+|removeAll      |No |No  |No |Yes    |No        |No      |One removal per entry in the cache
+|removeAll(keys)|No |No  |No |Yes    |No        |No      |Like `remove` but calculated per entry
+|replace(K,V)   |Yes|Yes |Yes|No     |Yes       |Yes     |Hit and put if the entry exists. Miss otherwise
+|replace(K,O,N) |Yes|Yes |Yes|No     |Yes       |Yes     |Hit if the entry exists
+|spliterator    |Yes|No  |No |No     |Yes       |No      |Java 8. Will hit for each iterated entry
+|=====================================================================================================================================================
+
+The statistics are provided by cache and tiers. Cache evictions and expirations are taken from the lowest (authoritative)
+tier.

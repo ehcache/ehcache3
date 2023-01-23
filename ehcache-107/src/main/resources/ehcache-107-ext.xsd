@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<xs:schema version="1.0"
+           xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
+           xmlns:eh="http://www.ehcache.org/v3"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3/jsr107">
+  <xs:import namespace="http://www.ehcache.org/v3"/>
+
+  <xs:element name="mbeans" type="jsr107:mbeans-type" substitutionGroup="eh:service-configuration"/>
+
+  <xs:element name="defaults" type="jsr107:defaults-type" substitutionGroup="eh:service-creation-configuration">
+    <xs:key name="default-template-ref">
+      <xs:selector xpath="cache-template"/>
+      <xs:field xpath="@name"/>
+    </xs:key>
+  </xs:element>
+
+  <xs:complexType name="defaults-type">
+    <xs:sequence>
+      <xs:element name="cache" type="jsr107:cache-type" minOccurs="0" maxOccurs="unbounded">
+        <xs:key name="template-ref">
+          <xs:selector xpath="cache-template"/>
+          <xs:field xpath="@name"/>
+        </xs:key>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="default-template" type="xs:IDREF" use="optional"/>
+    <xs:attribute name="jsr-107-compliant-atomics" type="xs:boolean" use="optional"/>
+    <xs:attribute name="enable-management" type="xs:boolean" use="optional"/>
+    <xs:attribute name="enable-statistics" type="xs:boolean" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="cache-type">
+    <xs:attribute name="name" type="xs:ID" use="required" />
+    <xs:attribute name="template" type="xs:IDREF" use="required" />
+  </xs:complexType>
+
+  <xs:complexType name="mbeans-type">
+    <xs:attribute name="enable-management" type="xs:boolean" use="optional"/>
+    <xs:attribute name="enable-statistics" type="xs:boolean" use="optional"/>
+  </xs:complexType>
+</xs:schema>

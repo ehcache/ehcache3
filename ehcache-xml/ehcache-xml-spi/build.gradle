@@ -1,0 +1,23 @@
+plugins {
+  id 'org.ehcache.build.internal-module'
+}
+
+publishing.publications.withType(MavenPublication) {
+  pom {
+    name = 'Ehcache 3 XML Parsing SPI Module'
+    description = 'This module contains the XML parsing SPI for Ehcache 3. This allows Ehcache extension services to provide XML configuration capabilities.'
+  }
+}
+
+dependencies {
+  api project(':ehcache-api')
+  implementation project(':ehcache-core')
+}
+
+jar {
+  bnd (
+    'Export-Package': 'org.ehcache.xml.*',
+    'Import-Package': "*"
+  )
+}
+

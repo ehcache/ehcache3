@@ -1,0 +1,118 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+import aQute.bnd.osgi.Constants
+
+import static org.gradle.api.attributes.Bundling.EXTERNAL
+import static org.gradle.api.attributes.Category.DOCUMENTATION
+import static org.gradle.api.attributes.Usage.JAVA_RUNTIME
+
+plugins {
+  id 'org.ehcache.build.package'
+  id 'org.ehcache.build.plugins.variant'
+}
+
+publishing.publications.withType(MavenPublication) {
+  pom {
+    name = 'Ehcache'
+    description = 'End-user ehcache3 jar artifact'
+  }
+}
+
+variants {
+  defaultVariant {
+    capability 'org.ehcache:ehcache'
+    capability 'org.ehcache.modules:ehcache-api'
+    capability 'org.ehcache.modules:ehcache-core'
+    capability 'org.ehcache.modules:ehcache-impl'
+    capability 'org.ehcache.modules:ehcache-107'
+    capability 'org.ehcache.modules:ehcache-107-provider'
+    capability 'org.ehcache.modules:ehcache-xml'
+    capability 'org.ehcache.modules:ehcache-xml-provider'
+  }
+  variant('jakarta') {
+    capability 'org.ehcache:ehcache-jakarta'
+    capability 'org.ehcache.modules:ehcache-api'
+    capability 'org.ehcache.modules:ehcache-core'
+    capability 'org.ehcache.modules:ehcache-impl'
+    capability 'org.ehcache.modules:ehcache-107-jakarta'
+    capability 'org.ehcache.modules:ehcache-107-provider'
+    capability 'org.ehcache.modules:ehcache-xml-jakarta'
+    capability 'org.ehcache.modules:ehcache-xml-provider'
+  }
+}
+
+configurations {
+  commonContents {
+    exclude group:'org.glassfish.jaxb'
+    exclude group:'org.slf4j'
+    exclude group:'javax.cache'
+  }
+  contents {
+    exclude group:'javax.xml.bind'
+  }
+  jakartaContents {
+    exclude group:'jakarta.xml.bind'
+  }
+}
+
+dependencies {
+  commonContents project(':ehcache-api')
+  commonContents project(':ehcache-core')
+  commonContents project(':ehcache-impl')
+
+  commonApi "javax.cache:cache-api:$parent.jcacheVersion"
+  commonImplementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
+
+  contents project(':ehcache-107')
+  contents project(':ehcache-xml')
+  runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:[2.2,3)'
+
+  jakartaContents(project(':ehcache-107')) {
+    capabilities {
+      requireCapability 'org.ehcache.modules:ehcache-107-jakarta'
+    }
+  }
+  jakartaContents(project(':ehcache-xml')) {
+    capabilities {
+      requireCapability 'org.ehcache.modules:ehcache-xml-jakarta'
+    }
+  }
+  jakartaRuntimeOnly 'org.glassfish.jaxb:jaxb-runtime:[3,3.1)'
+}
+
+tasks.named('jakartaJar') {
+  osgi {
+    instruction Constants.BUNDLE_NAME, 'Ehcache 3'
+    instruction Constants.BUNDLE_SYMBOLICNAME, 'org.ehcache'
+    instruction Constants.BUNDLE_DESCRIPTION, 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
+    instruction Constants.BUNDLE_ACTIVATOR, 'org.ehcache.core.osgi.EhcacheActivator'
+    instruction Constants.EXPORT_PACKAGE, '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*'
+    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, jakarta.xml.bind*;version="[3,4)", *'
+  }
+}
+
+tasks.named('jar') {
+  osgi {
+    instruction Constants.BUNDLE_NAME, 'Ehcache 3'
+    instruction Constants.BUNDLE_SYMBOLICNAME, 'org.ehcache'
+    instruction Constants.BUNDLE_DESCRIPTION, 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
+    instruction Constants.BUNDLE_ACTIVATOR, 'org.ehcache.core.osgi.EhcacheActivator'
+    instruction Constants.EXPORT_PACKAGE, '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*'
+    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
+  }
+}

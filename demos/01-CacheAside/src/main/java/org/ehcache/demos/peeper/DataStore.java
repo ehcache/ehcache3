@@ -15,6 +15,7 @@
  */
 package org.ehcache.demos.peeper;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,28 +39,25 @@ public class DataStore {
   private Connection connection;
 
 
+  @SuppressFBWarnings("DMI_EMPTY_DB_PASSWORD")
   public void init() throws Exception {
     dataCache.setupCache();
     Class.forName("org.h2.Driver");
     connection = DriverManager.getConnection("jdbc:h2:~/ehcache-demo-peeper", "sa", "");
 
-    Statement statement = connection.createStatement();
-    try {
+    try (Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE IF NOT EXISTS PEEPS (" +
-          "id bigint auto_increment primary key," +
-          "PEEP_TEXT VARCHAR(142) NOT NULL" +
-          ")");
+                        "id bigint auto_increment primary key," +
+                        "PEEP_TEXT VARCHAR(142) NOT NULL" +
+                        ")");
       connection.commit();
-    } finally {
-      statement.close();
     }
   }
 
 
   public synchronized void addPeep(String peepText) throws Exception {
     LOGGER.info("Adding peep into DB");
-    PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO PEEPS (PEEP_TEXT) VALUES (?)");
-    try {
+    try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO PEEPS (PEEP_TEXT) VALUES (?)")) {
       preparedStatement.setString(1, peepText);
       preparedStatement.execute();
       connection.commit();
@@ -68,13 +66,11 @@ public class DataStore {
       //LOGGER.info(" Added new peep in DB, clearing cache...");
       LOGGER.info("Clearing peeps cache");
       dataCache.clearCache();
-    } finally {
-      preparedStatement.close();
     }
   }
 
   public synchronized List<String> findAllPeeps() throws Exception {
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     //find from cache 1st
     List<String> fromCache = dataCache.getFromCache();
     if (fromCache != null) {
@@ -83,16 +79,14 @@ public class DataStore {
     }
 
     LOGGER.info("Loading peeps from DB");
-    Statement statement = connection.createStatement();
-    try {
-      ResultSet resultSet = statement.executeQuery("SELECT * FROM PEEPS");
+    try (Statement statement = connection.createStatement()) {
+      try (ResultSet resultSet = statement.executeQuery("SELECT * FROM PEEPS")) {
 
-      while (resultSet.next()) {
-        String peepText = resultSet.getString("PEEP_TEXT");
-        result.add(peepText);
+        while (resultSet.next()) {
+          String peepText = resultSet.getString("PEEP_TEXT");
+          result.add(peepText);
+        }
       }
-    } finally {
-      statement.close();
     }
 
     LOGGER.info("Filling cache with peeps");
