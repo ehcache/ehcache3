@@ -101,7 +101,6 @@ public class UnwrapTest {
     assertThat(javaxCache.get(1), is("one"));
     assertThat(javaxCache1.get(1), is("one"));
   }
-  
   private class EhEvent implements CacheEvent<String,String> {
     @Override
     public org.ehcache.event.EventType getType() {
