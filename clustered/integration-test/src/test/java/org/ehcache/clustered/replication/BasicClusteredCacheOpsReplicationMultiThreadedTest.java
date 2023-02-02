@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -62,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.testing.StandardCluster.clusterPath;
+import static org.ehcache.testing.StandardCluster.leaseLength;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResource;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -69,6 +72,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
+import org.terracotta.connection.ConnectionException;
+import org.terracotta.connection.Diagnostics;
+import org.terracotta.connection.DiagnosticsFactory;
 
 
 /**
@@ -98,7 +104,8 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
-    .withServiceFragment(offheapResource("primary-server-resource", 24)).build());
+    .withServiceFragment(offheapResource("primary-server-resource", 24)).withServiceFragment(leaseLength(Duration.ofDays(1)))
+    .build());
 
   @Rule
   public final TestName testName = new TestName();
@@ -110,6 +117,8 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   private final ThreadLocalRandom random = ThreadLocalRandom.current();
 
   private final ExecutorService executorService = Executors.newWorkStealingPool(NUM_OF_THREADS);
+  
+  private final Probe probe = new Probe();
 
   @Before
   public void startServers() throws Exception {
@@ -134,6 +143,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
     cache2 = cacheManager2.createCache(testName.getMethodName(), config);
 
     caches = Arrays.asList(cache1, cache2);
+    probe.loop();
   }
 
   @After
@@ -148,6 +158,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
     if(cacheManager2 != null && cacheManager2.getStatus() != Status.UNINITIALIZED) {
       cacheManager2.close();
     }
+    
   }
 
   @Test(timeout=180000)
@@ -287,4 +298,44 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
     private final byte[] data = new byte[10 * 1024];
   }
 
+  public class Probe {
+  
+  /**
+   * @param args the command line arguments
+   */
+  public void loop() {
+    String[] servers = CLUSTER.getClusterHostPorts();
+    for (String hostPort : servers) {
+      String[] hp = hostPort.split("[:]");
+      InetSocketAddress inet = InetSocketAddress.createUnresolved(hp[0], Integer.parseInt(hp[1]));
+      log.info("starting probe for " + hostPort);
+      new Thread(()->{
+        while (!executorService.isShutdown()) {
+
+        try (Diagnostics d = DiagnosticsFactory.connect(inet, new Properties())) {
+          while (!executorService.isShutdown()) {
+            try {
+              probe(d);
+              log.info("sleeping for 10 sec.");
+              Thread.sleep(10_000L);
+            } catch (InterruptedException ie) {
+              ie.printStackTrace();
+            }
+          }
+        } catch (ConnectionException e) {
+          e.printStackTrace();
+        }
+      }
+      
+      }).start();
+    }
+  }
+  
+  private void probe(Diagnostics d) {
+    log.info("===== PROBE =====");
+    log.info(d.getClusterState());
+    log.info(d.getThreadDump());
+  }
+  }
+  
 }
