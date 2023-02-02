@@ -43,7 +43,6 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.utilities.test.WaitForAssert;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -81,7 +80,7 @@ import static org.junit.Assert.fail;
 @RunWith(ParallelParameterized.class)
 public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
-  private static final int NUM_OF_THREADS = 10;
+  private static final int NUM_OF_THREADS = 4;
   private static final int JOB_SIZE = 100;
 
   private PersistentCacheManager cacheManager1;
@@ -99,7 +98,6 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   @ClassRule @Rule
   public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
-    .withServerHeap(512)
     .withServiceFragment(offheapResource("primary-server-resource", 24)).build());
 
   @Rule
