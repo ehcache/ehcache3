@@ -477,7 +477,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   public void testAppendThrowsConnectionClosedExceptionDuringHashInvalidation() throws Exception {
     SimpleClusterTierClientEntity clientEntity1 = mock(SimpleClusterTierClientEntity.class);
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendThrowsConnectionClosedExceptionDuringHashInvalidation", clientEntity1, mock(ServerCallback.class));
-    doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForReceive(any(), anyBoolean());
+    doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForComplete(any(), anyBoolean());
     when(clientEntity1.getTimeouts()).thenReturn(Timeouts.DEFAULT);
     when(clientEntity1.isConnected()).thenReturn(true);
     try {
