@@ -119,7 +119,7 @@ public class IterationFailureBehaviorTest {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(),
+        assertThat(e.getCause().getCause().getCause().getCause(),
           either(instanceOf(ConnectionClosedException.class)) //lost in the space between active and passive
             .or(instanceOf(InvalidOperationException.class))); //picked up by the passive - it doesn't have our iterator
       }
@@ -177,7 +177,7 @@ public class IterationFailureBehaviorTest {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(),
+        assertThat(e.getCause().getCause().getCause().getCause(),
           either(instanceOf(ConnectionClosedException.class)) //lost in the space between the two cluster executions
             .or(instanceOf(InvalidOperationException.class))); //picked up by the new cluster - it doesn't have our iterator
       }
