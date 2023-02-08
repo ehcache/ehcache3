@@ -16,11 +16,11 @@
 package org.ehcache.spi.loaderwriter;
 
 import org.ehcache.spi.service.Service;
-
+import java.util.function.Consumer;
 /**
  * A {@link Service} that provides write-behind functionality.
  * <p>
- * A {@code CacheManager} will use the {@link #createWriteBehindLoaderWriter(org.ehcache.spi.loaderwriter.CacheLoaderWriter, org.ehcache.spi.loaderwriter.WriteBehindConfiguration)}
+ * A {@code CacheManager} will use the {Consumer, @link #createWriteBehindLoaderWriter(org.ehcache.spi.loaderwriter.CacheLoaderWriter, org.ehcache.spi.loaderwriter.WriteBehindConfiguration)}
  * method to create write-behind instances for each {@code Cache} it manages
  * that carries a write-behind configuration.
  */
@@ -30,6 +30,7 @@ public interface WriteBehindProvider extends Service {
    * Creates write-behind decorated {@link CacheLoaderWriter} according to the
    * given configuration.
    *
+   * @param keyCleanUpMethod cleanup Method to clean failures
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} to decorate
    * @param configuration     the write-behind configuration
    * @param <K> the key type for the loader writer
@@ -37,7 +38,7 @@ public interface WriteBehindProvider extends Service {
    *
    * @return the write-behind decorated loader writer
    */
-  <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration);
+  <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(Consumer<K> keyCleanUpMethod, CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration);
 
   /**
    * Releases a write-behind decorator when the associated {@link org.ehcache.Cache Cache}

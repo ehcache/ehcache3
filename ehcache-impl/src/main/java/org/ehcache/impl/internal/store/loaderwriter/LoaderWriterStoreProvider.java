@@ -23,6 +23,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -39,13 +40,20 @@ public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
   private volatile WriteBehindProvider writeBehindProvider;
 
   @Override
+  @SuppressWarnings("unchecked")
   protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     WriteBehindConfiguration<?> writeBehindConfiguration = findSingletonAmongst(WriteBehindConfiguration.class, (Object[]) serviceConfigs);
     LocalLoaderWriterStore<K, V> loaderWriterStore;
     if(writeBehindConfiguration == null) {
       loaderWriterStore = new LocalLoaderWriterStore<>(store, storeConfig.getCacheLoaderWriter(), storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     } else {
-      CacheLoaderWriter<? super K, V> writeBehindLoaderWriter = writeBehindProvider.createWriteBehindLoaderWriter(storeConfig.getCacheLoaderWriter(), writeBehindConfiguration);
+      CacheLoaderWriter<? super K, V> writeBehindLoaderWriter = writeBehindProvider.createWriteBehindLoaderWriter( key-> {
+        try {
+          store.remove((K) key);
+        } catch (StoreAccessException ex) {
+          throw new RuntimeException(ex);
+        }
+      }, storeConfig.getCacheLoaderWriter(), writeBehindConfiguration);
       loaderWriterStore = new LocalWriteBehindLoaderWriterStore<>(store, writeBehindLoaderWriter, storeConfig.useLoaderInAtomics(), storeConfig.getExpiry());
     }
     return loaderWriterStore;

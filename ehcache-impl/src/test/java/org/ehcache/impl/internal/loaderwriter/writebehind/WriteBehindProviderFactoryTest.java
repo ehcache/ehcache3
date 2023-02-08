@@ -68,7 +68,7 @@ public class WriteBehindProviderFactoryTest {
   @Test
   public void testWriteBehindWithoutCacheLoaderWriter() {
     WriteBehindProviderFactory factory = new WriteBehindProviderFactory();
-    NullPointerException thrown = assertThrows(NullPointerException.class, () -> factory.create(null).createWriteBehindLoaderWriter(null, null));
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> factory.create(null).createWriteBehindLoaderWriter(null, null, null));
     assertThat(thrown, hasProperty("message", is("WriteBehind requires a non null CacheLoaderWriter.")));
   }
 
