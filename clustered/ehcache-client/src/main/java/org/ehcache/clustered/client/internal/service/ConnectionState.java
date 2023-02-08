@@ -41,7 +41,6 @@ import org.terracotta.exception.EntityNotFoundException;
 
 import java.io.IOException;
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
@@ -50,6 +49,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Objects.requireNonNull;
+import static org.ehcache.core.util.ExceptionUtil.containsCause;
 
 class ConnectionState {
 
@@ -114,9 +114,13 @@ class ConnectionState {
         break;
       } catch (EntityNotFoundException e) {
         throw new PerpetualCachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
-      } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        LOGGER.info("Disconnected from the server", e);
-        handleConnectionClosedException(true);
+      } catch (Throwable t) {
+        if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+          LOGGER.info("Disconnected from the server", t);
+          handleConnectionClosedException(true);
+        } else {
+          throw t;
+        }
       }
     }
 
@@ -151,6 +155,12 @@ class ConnectionState {
         break;
       } catch (ConnectionClosedException | ConnectionException e) {
         LOGGER.error("Re-connection to server failed, trying again", e);
+      } catch (Throwable t) {
+        if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+          LOGGER.error("Re-connection to server failed, trying again", t);
+        } else {
+          throw t;
+        }
       }
     }
   }
@@ -180,6 +190,14 @@ class ConnectionState {
       LOGGER.info("Disconnected from the server", e);
       reconnect();
       return false;
+    } catch (Throwable t) {
+      if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+        LOGGER.info("Disconnected from the server", t);
+        reconnect();
+        return false;
+      } else {
+        throw t;
+      }
     }
   }
 
@@ -262,6 +280,12 @@ class ConnectionState {
         throw new CachePersistenceException("Cannot delete cluster tiers on " + connectionSource, e);
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         handleConnectionClosedException(false);
+      } catch (Throwable t) {
+        if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+          handleConnectionClosedException(false);
+        } else {
+          throw t;
+        }
       }
     }
   }
@@ -285,6 +309,12 @@ class ConnectionState {
           }
         } catch (ConnectionClosedException | ConnectionShutdownException e) {
           reconnect();
+        } catch (Throwable t) {
+          if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+            reconnect();
+          } else {
+            throw t;
+          }
         }
       }
 
@@ -299,6 +329,12 @@ class ConnectionState {
         break;
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         handleConnectionClosedException(false);
+      } catch (Throwable t) {
+        if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+          handleConnectionClosedException(false);
+        } else {
+          throw t;
+        }
       }
     }
   }
@@ -315,6 +351,14 @@ class ConnectionState {
         LOGGER.info("Disconnected from the server", e);
         reconnect();
         continue;
+      } catch (Throwable t) {
+        if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+          LOGGER.info("Disconnected from the server", t);
+          reconnect();
+          continue;
+        } else {
+          throw t;
+        }
       }
 
       try {
@@ -330,6 +374,13 @@ class ConnectionState {
       } catch (ConnectionClosedException | ConnectionShutdownException e) {
         LOGGER.info("Disconnected from the server", e);
         reconnect();
+      } catch (Throwable t) {
+        if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+          LOGGER.info("Disconnected from the server", t);
+          reconnect();
+        } else {
+          throw t;
+        }
       }
     }
 
@@ -349,8 +400,12 @@ class ConnectionState {
         }
         connectionRecoveryListener.run();
         break;
-      } catch (ConnectionClosedException | ConnectionShutdownException e) {
-        LOGGER.info("Disconnected from the server", e);
+      } catch (Throwable t) {
+        if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+          LOGGER.info("Disconnected from the server", t);
+        } else {
+          throw t;
+        }
       }
     }
   }

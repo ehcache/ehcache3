@@ -16,7 +16,6 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxy;
-import org.ehcache.clustered.client.internal.store.lock.LockingServerStoreProxyImpl;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +27,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.ehcache.core.util.ExceptionUtil.containsCause;
 
 public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
 
@@ -54,8 +55,12 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
   public void close() {
     try {
       proxy().close();
-    } catch (ConnectionClosedException | ConnectionShutdownException e) {
-      LOGGER.debug("Store was already closed, since connection was closed");
+    } catch (Throwable t) {
+      if (containsCause(t, ConnectionClosedException.class) || containsCause(t, ConnectionShutdownException.class)) {
+        LOGGER.debug("Store was already closed, since connection was closed");
+      } else {
+        throw t;
+      }
     }
   }
 
@@ -119,7 +124,7 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
     try {
       return function.apply(storeProxy);
     } catch (ServerStoreProxyException sspe) {
-      if (sspe.getCause() instanceof ConnectionClosedException) {
+      if (containsCause(sspe, ConnectionClosedException.class)) {
         if (delegateRef.compareAndSet(storeProxy, new ReconnectInProgressProxy(storeProxy.getCacheId()))) {
           onReconnect.run();
         }
