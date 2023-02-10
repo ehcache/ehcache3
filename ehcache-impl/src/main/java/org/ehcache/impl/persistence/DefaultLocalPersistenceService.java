@@ -85,27 +85,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private void internalStart() {
     if (!started) {
       createLocationIfRequiredAndVerify(rootDirectory);
-      if (!clean.exists()) {
-        if (lockFile.exists()) {
-          onStartupIfLockFileExists();
-        } else {
-          LOGGER.debug("lock file is not exists.");
-        }
-        if (tryRecursiveDelete(rootDirectory)) {
-          LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
-          createLocationIfRequiredAndVerify(rootDirectory);
-        } else {
-          LOGGER.warn("Could not delete root directory.");
-        }
-      } else if (clean.exists()) {
-        try {
-          Files.delete(clean.toPath());
-          LOGGER.debug("clean file is deleted.");
-        } catch (IOException e) {
-          LOGGER.warn("clean file was not deleted {}.", clean.getPath());
-        }
-      }
-
       try {
         rw = new RandomAccessFile(lockFile, "rw");
       } catch (FileNotFoundException e) {
@@ -127,6 +106,18 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       if (lock == null) {
         throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
       }
+
+      if (!clean.exists()) {
+        LOGGER.warn("Probably unclean shutdown was done. Please take appropriate action, if needed.");
+      } else {
+          try {
+            Files.delete(clean.toPath());
+            LOGGER.debug("clean file is deleted.");
+          } catch (IOException e) {
+            LOGGER.warn("clean file was not deleted {}.", clean.getPath());
+          }
+      }
+
       started = true;
       LOGGER.debug("RootDirectory Locked");
     }
@@ -276,37 +267,4 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
-  private void onStartupIfLockFileExists() {
-    RandomAccessFile file;
-    FileLock filelock;
-    try {
-      file = new RandomAccessFile(lockFile, "rw");
-    } catch (FileNotFoundException e) {
-      // should not happen normally since we checked that everything is fine right above
-      throw new RuntimeException(e);
-    }
-    try {
-      filelock = file.getChannel().tryLock();
-    } catch (OverlappingFileLockException e) {
-      throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.getAbsolutePath(), e);
-    } catch (Exception e) {
-      try {
-        file.close();
-      } catch (IOException e1) {
-        // ignore silently
-      }
-      throw new RuntimeException("Persistence directory couldn't be locked: " + rootDirectory.getAbsolutePath(), e);
-    }
-    try {
-      if (filelock == null) {
-        file.close();
-        throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
-      } else {
-        filelock.release();
-        file.close();
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
 }
