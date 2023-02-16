@@ -75,4 +75,10 @@ public interface LocalPersistenceService extends MaintainableService {
      */
     File getRoot();
   }
+
+  /**
+   * Identify state(normal/abnormal) of stopped service.
+   * @return <tt>true</tt> if service stopped normally.
+   */
+  boolean isClean();
 }

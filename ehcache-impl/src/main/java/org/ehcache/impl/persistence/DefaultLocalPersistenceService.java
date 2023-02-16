@@ -53,6 +53,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private FileLock lock;
   private RandomAccessFile rw;
   private boolean started;
+  private final boolean isRootDirectoryExists;
 
   /**
    * Creates a new service instance using the provided configuration.
@@ -62,6 +63,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public DefaultLocalPersistenceService(final DefaultPersistenceConfiguration persistenceConfiguration) {
     if(persistenceConfiguration != null) {
       rootDirectory = persistenceConfiguration.getRootDirectory();
+      isRootDirectoryExists = rootDirectory.exists();
     } else {
       throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
@@ -107,15 +109,16 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
       }
 
-      if (!clean.exists()) {
-        LOGGER.warn("Probably unclean shutdown was done. Please take appropriate action, if needed.");
-      } else {
+      if (isRootDirectoryExists) {
+        if (clean.exists()) {
           try {
+            LOGGER.debug("clean file exists, trying to delete the file.");
             Files.delete(clean.toPath());
             LOGGER.debug("clean file is deleted.");
           } catch (IOException e) {
             LOGGER.warn("clean file was not deleted {}.", clean.getPath());
           }
+        }
       }
 
       started = true;
@@ -220,6 +223,20 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   * Abnormally stopped service may lead to data corruption.
+   * Can take appropriate action by identifying state of service stopped.
+   */
+  @Override
+  public final boolean isClean() {
+    if (isRootDirectoryExists) {
+      return clean.exists();
+    } else {
+      return true;
+    }
+  }
+
   private void destroy(SafeSpace ss, boolean verbose) {
     if (verbose) {
       LOGGER.debug("Destroying file based persistence context for {}", ss.identifier);
@@ -266,5 +283,4 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       return safeSpace.directory;
     }
   }
-
 }
