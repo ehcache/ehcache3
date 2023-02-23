@@ -92,6 +92,8 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
@@ -954,6 +956,40 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         providedInvalidationListener.onInvalidation(key, valueHolder);
       }
     };
+  }
+
+  @Override
+  public Map<K, Store.ValueHolder<V>> bulkGetOrComputeIfAbsent(Iterable<? extends K> keys, Function<Set<? extends K>, Iterable<? extends Entry<? extends K, ? extends ValueHolder<V>>>> mappingFunction) throws StoreAccessException {
+    Map<K, ValueHolder<V>> result = new HashMap<>();
+    Set<K> missingKeys = new HashSet<>();
+
+    for (K key : keys) {
+      ValueHolder<V> cachingFetch = get(key);
+      if (null == cachingFetch) {
+        missingKeys.add(key);
+      } else {
+        result.put(key, cachingFetch);
+      }
+    }
+
+    try {
+      List<? extends Entry<? extends K, ? extends ValueHolder<V>>> fetchedEntries =
+        StreamSupport.stream(mappingFunction.apply(missingKeys).spliterator(), false)
+        .filter(e -> missingKeys.contains(e.getKey()))
+        .collect(Collectors.toList());
+
+      long availableSize = capacity - result.size();
+      for (Entry<? extends K, ? extends ValueHolder<V>> entry : fetchedEntries) {
+        //  populating AuthoritativeTier entries to TieredStore for getAll()
+        if(availableSize-- > 0){
+          getOrComputeIfAbsent(entry.getKey(), keyParam -> entry.getValue());
+        }
+        result.put(entry.getKey(), entry.getValue());
+      }
+      return result;
+    } catch (RuntimeException re) {
+      throw new StoreAccessException(re);
+    }
   }
 
   @Override

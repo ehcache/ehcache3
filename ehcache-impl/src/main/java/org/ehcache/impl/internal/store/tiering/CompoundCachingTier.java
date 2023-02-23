@@ -36,6 +36,8 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -198,6 +200,38 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   public void setInvalidationListener(InvalidationListener<K, V> invalidationListener) {
     this.invalidationListener = invalidationListener;
     lower.setInvalidationListener(invalidationListener);
+  }
+
+  @Override
+  public Map<K, Store.ValueHolder<V>> bulkGetOrComputeIfAbsent(Iterable<? extends K> keys, Function<Set<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends Store.ValueHolder<V>>>> mappingFunction) throws StoreAccessException {
+    try {
+      return higher.bulkGetOrComputeIfAbsent(keys, keyParam -> {
+        try {
+          Map<K, Store.ValueHolder<V>> result = new HashMap<>();
+          Set<K> missingKeys = new HashSet<>();
+
+          for (K key : keys) {
+            Store.ValueHolder<V> cachingFetch = lower.getAndRemove(key);
+            if (null == cachingFetch) {
+              missingKeys.add(key);
+            } else {
+              result.put(key, cachingFetch);
+            }
+          }
+
+          Iterable<? extends Map.Entry<? extends K, ? extends Store.ValueHolder<V>>> fetchedEntries = mappingFunction.apply(missingKeys);
+          for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : fetchedEntries) {
+            result.put(entry.getKey(), entry.getValue());
+          }
+          return result.entrySet();
+
+        } catch (StoreAccessException cae) {
+          throw new ComputationException(cae);
+        }
+      });
+    } catch (ComputationException ce) {
+      throw ce.getStoreAccessException();
+    }
   }
 
   @Override

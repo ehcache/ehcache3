@@ -37,6 +37,8 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -356,13 +358,18 @@ public class TieredStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+  public Map<K, Store.ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+
     try {
-      return authoritativeTier.bulkComputeIfAbsent(keys, mappingFunction);
-    } finally {
-      for (K key : keys) {
-        cachingTier().invalidate(key);
-      }
+      return cachingTier().bulkGetOrComputeIfAbsent(keys, missingKeys -> {
+        try {
+          return authoritativeTier.bulkComputeIfAbsentAndFault(missingKeys, mappingFunction);
+        } catch (StoreAccessException cae) {
+          throw new StorePassThroughException(cae);
+        }
+      });
+    } catch (StoreAccessException ce) {
+      return handleStoreAccessException(ce);
     }
   }
 
@@ -379,7 +386,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
-  private ValueHolder<V> handleStoreAccessException(StoreAccessException ce) throws StoreAccessException {
+  private <R> R handleStoreAccessException(StoreAccessException ce) throws StoreAccessException {
     Throwable cause = ce.getCause();
     if (cause instanceof StorePassThroughException) {
       throw (StoreAccessException) cause.getCause();
@@ -602,6 +609,15 @@ public class TieredStore<K, V> implements Store<K, V> {
     @Override
     public void setInvalidationListener(final InvalidationListener<K, V> invalidationListener) {
       // noop
+    }
+
+    @Override
+    public Map<K, Store.ValueHolder<V>> bulkGetOrComputeIfAbsent(Iterable<? extends K> keys, Function<Set<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>> mappingFunction) throws StoreAccessException {
+      Map<K, ValueHolder<V>> map = new HashMap<>();
+      for(K key : keys) {
+        map.put(key, null);
+      }
+      return map;
     }
 
     @Override
