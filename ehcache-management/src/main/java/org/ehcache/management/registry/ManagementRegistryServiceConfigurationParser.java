@@ -16,8 +16,8 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.xml.BaseConfigParser;
-import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.spi.BaseConfigParser;
+import org.ehcache.xml.spi.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -25,7 +25,7 @@ import org.w3c.dom.Element;
 import java.net.URI;
 
 import static java.util.Collections.singletonMap;
-import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
+import static org.ehcache.xml.spi.ParsingUtil.parsePropertyOrString;
 
 public class ManagementRegistryServiceConfigurationParser extends BaseConfigParser<DefaultManagementRegistryConfiguration>
   implements CacheManagerServiceConfigurationParser<ManagementRegistryService, DefaultManagementRegistryConfiguration> {

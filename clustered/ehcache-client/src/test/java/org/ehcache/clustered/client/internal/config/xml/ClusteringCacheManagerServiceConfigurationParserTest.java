@@ -24,7 +24,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.spi.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.TimeTypeWithPropSubst;

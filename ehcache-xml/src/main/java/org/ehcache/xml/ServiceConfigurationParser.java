@@ -28,6 +28,7 @@ import org.ehcache.xml.service.DefaultResilienceStrategyConfigurationParser;
 import org.ehcache.xml.service.DefaultSerializerConfigurationParser;
 import org.ehcache.xml.service.DefaultWriteBehindConfigurationParser;
 import org.ehcache.xml.service.OffHeapDiskStoreConfigurationParser;
+import org.ehcache.xml.spi.CacheServiceConfigurationParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 

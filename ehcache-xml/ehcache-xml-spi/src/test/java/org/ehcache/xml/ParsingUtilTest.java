@@ -16,6 +16,7 @@
 
 package org.ehcache.xml;
 
+import org.ehcache.xml.spi.ParsingUtil;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;

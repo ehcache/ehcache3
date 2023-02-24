@@ -14,17 +14,29 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.spi;
 
 import org.ehcache.javadoc.PublicApi;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
-/**
- * CacheServiceConfigurationParser
- */
+import javax.xml.transform.Source;
+import java.net.URI;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+
 @PublicApi
-public interface CacheServiceConfigurationParser<T extends Service, C extends ServiceConfiguration<T, ?>> extends Parser<C> {
+public interface Parser<T> {
 
-  Class<T> getServiceType();
+  Map<URI, Supplier<Source>> getSchema();
+
+  default Set<URI> getTargetNamespaces() {
+    return getSchema().keySet();
+  }
+
+  T parse(Element fragment, ClassLoader classLoader);
+
+  Element unparse(Document target, T object);
 }
+

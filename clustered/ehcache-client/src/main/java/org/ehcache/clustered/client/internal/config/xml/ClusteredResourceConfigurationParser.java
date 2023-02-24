@@ -21,7 +21,7 @@ import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePo
 import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.xml.CacheResourceConfigurationParser;
+import org.ehcache.xml.spi.CacheResourceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
@@ -34,8 +34,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.ehcache.xml.ParsingUtil.parsePropertyOrPositiveInteger;
-import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
+import static org.ehcache.xml.spi.ParsingUtil.parsePropertyOrPositiveInteger;
+import static org.ehcache.xml.spi.ParsingUtil.parsePropertyOrString;
 
 /**
  * Provides a parser for the {@code /config/cache/resources} extension elements.

@@ -32,3 +32,35 @@ dependencies {
   }
   testImplementation "org.terracotta:statistics:$parent.statisticVersion"
 }
+
+testing {
+  suites {
+    if (testJava.getJavaVersion().isJava9Compatible()) {
+      modularTest(JvmTestSuite) {
+
+        useJUnit()
+
+        tasks.named(sources.compileJavaTaskName).configure {
+          javaCompiler = javaToolchains.compilerFor { it.languageVersion = JavaLanguageVersion.of(11) }
+        }
+
+        targets {
+          all {
+            testTask.configure {
+              testClassesDirs += sourceSets.test.output
+              classpath += sourceSets.test.runtimeClasspath
+
+              modularity.inferModulePath = true
+              group = JavaBasePlugin.VERIFICATION_GROUP
+            }
+          }
+        }
+
+      }
+    }
+  }
+}
+
+tasks.named('check') {
+  dependsOn(testing.suites.modularTest)
+}

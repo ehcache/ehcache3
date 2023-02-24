@@ -27,6 +27,7 @@ import org.ehcache.xml.provider.DefaultCopyProviderConfigurationParser;
 import org.ehcache.xml.provider.OffHeapDiskStoreProviderConfigurationParser;
 import org.ehcache.xml.provider.PooledExecutionServiceConfigurationParser;
 import org.ehcache.xml.provider.WriteBehindProviderConfigurationParser;
+import org.ehcache.xml.spi.CacheManagerServiceConfigurationParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 

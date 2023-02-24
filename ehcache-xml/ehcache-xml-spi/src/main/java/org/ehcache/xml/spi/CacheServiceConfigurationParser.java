@@ -14,20 +14,17 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.spi;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.javadoc.PublicApi;
-
-import java.util.Set;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * Defines a handler for processing {@code /config/cache/resources} extension elements.
- *
- * @author Clifford W. Johnson
+ * CacheServiceConfigurationParser
  */
 @PublicApi
-public interface CacheResourceConfigurationParser extends Parser<ResourcePool> {
+public interface CacheServiceConfigurationParser<T extends Service, C extends ServiceConfiguration<T, ?>> extends Parser<C> {
 
-  Set<Class<? extends ResourcePool>> getResourceTypes();
+  Class<T> getServiceType();
 }

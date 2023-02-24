@@ -16,6 +16,7 @@
 package org.ehcache.xml;
 
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.ehcache.xml.spi.Parser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;

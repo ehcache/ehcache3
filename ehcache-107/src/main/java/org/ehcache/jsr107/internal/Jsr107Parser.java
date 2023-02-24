@@ -16,7 +16,7 @@
 
 package org.ehcache.jsr107.internal;
 
-import org.ehcache.xml.BaseConfigParser;
+import org.ehcache.xml.spi.BaseConfigParser;
 
 import java.net.URI;
 

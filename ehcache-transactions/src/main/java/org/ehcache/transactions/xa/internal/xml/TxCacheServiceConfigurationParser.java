@@ -16,11 +16,11 @@
 
 package org.ehcache.transactions.xa.internal.xml;
 
-import org.ehcache.xml.BaseConfigParser;
-import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.ehcache.xml.spi.BaseConfigParser;
+import org.ehcache.xml.spi.CacheServiceConfigurationParser;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -29,7 +29,7 @@ import java.net.URI;
 
 import static java.util.Collections.singletonMap;
 import static org.ehcache.transactions.xa.internal.xml.TxCacheManagerServiceConfigurationParser.TRANSACTION_NAMESPACE_PREFIX;
-import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
+import static org.ehcache.xml.spi.ParsingUtil.parsePropertyOrString;
 
 /**
  * @author Ludovic Orban

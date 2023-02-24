@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.config.xml;
 
-import org.ehcache.xml.BaseConfigParser;
+import org.ehcache.xml.spi.BaseConfigParser;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
