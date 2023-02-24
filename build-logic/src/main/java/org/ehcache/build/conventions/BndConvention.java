@@ -14,6 +14,7 @@ import org.gradle.api.artifacts.ProjectDependency;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.publish.PublishingExtension;
+import org.gradle.api.publish.maven.MavenPom;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.publish.plugins.PublishingPlugin;
 import org.gradle.api.tasks.bundling.Jar;
@@ -67,6 +68,7 @@ public class BndConvention implements Plugin<Project> {
           properties.put(Constants.BUNDLE_DESCRIPTION, publication.getPom().getDescription());
         });
       });
+      properties.put(Constants.AUTOMATIC_MODULE_NAME, "org." + project.getName().replace('-','.'));
       properties.put(Constants.BUNDLE_SYMBOLICNAME, project.getGroup() + "." + project.getName());
       properties.put(Constants.BUNDLE_DOCURL, "http://ehcache.org");
       properties.put(Constants.BUNDLE_LICENSE, "LICENSE");
