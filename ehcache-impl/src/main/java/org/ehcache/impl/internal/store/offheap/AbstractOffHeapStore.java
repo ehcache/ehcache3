@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.offheap;
 
 import java.io.Serializable;
 import java.time.Duration;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -525,7 +526,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -536,17 +537,15 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
-      V existingValue = null;
       if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
         mappedValue = null;
       } else {
-        existingValue = mappedValue.get();
         existingValueHolder.set(mappedValue);
       }
-      V computedValue = mappingFunction.apply(mappedKey, existingValue);
+      V computedValue = mappingFunction.apply(mappedKey, mappedValue);
       if (computedValue == null) {
         if (mappedValue != null) {
           write.set(true);
@@ -594,7 +593,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -604,23 +603,20 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = (mappedKey, mappedValue) -> {
       long now = timeSource.getTimeMillis();
-      V existingValue = null;
       if (mappedValue == null || mappedValue.isExpired(now)) {
         if (mappedValue != null) {
           onExpiration(mappedKey, mappedValue, eventSink);
         }
         mappedValue = null;
-      } else {
-        existingValue = mappedValue.get();
       }
-      V computedValue = mappingFunction.apply(mappedKey, existingValue);
+      V computedValue = mappingFunction.apply(mappedKey, mappedValue);
       if (computedValue == null) {
         if (mappedValue != null) {
           write.set(true);
           eventSink.removed(mappedKey, mappedValue);
         }
         return null;
-      } else if (safeEquals(existingValue, computedValue) && !replaceEqual.get()) {
+      } else if (!replaceEqual.get() && safeEquals(mappedValue == null ? null : mappedValue.get(), computedValue)) {
         if (mappedValue != null) {
           OffHeapValueHolder<V> valueHolder = setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
           if (valueHolder == null) {
@@ -752,34 +748,20 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<>(keys.size());
     for (K key : keys) {
       checkKey(key);
-      BiFunction<K, V, V> biFunction = (k, v) -> {
-        Map.Entry<K, V> entry = new Map.Entry<K, V>() {
-          @Override
-          public K getKey() {
-            return k;
-          }
-
-          @Override
-          public V getValue() {
-            return v;
-          }
-
-          @Override
-          public V setValue(V value) {
-            throw new UnsupportedOperationException();
-          }
-        };
+      BiFunction<K, ValueHolder<V>, V> biFunction = (k, v) -> {
+        Map.Entry<K, ValueHolder<V>> entry = new AbstractMap.SimpleImmutableEntry<>(k, v);
         java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = remappingFunction.apply(Collections
             .singleton(entry)).iterator();
+
         Map.Entry<? extends K, ? extends V> result1 = iterator.next();
         if (result1 != null) {
           checkKey(result1.getKey());

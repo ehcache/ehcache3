@@ -183,15 +183,14 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       getObserver.begin();
 
       try {
-        BiFunction<K, V, V> fn = (mappedKey, mappedValue) -> {
+        BiFunction<K, ValueHolder<V>, V> fn = (mappedKey, mappedValue) -> {
           if (mappedValue == null) {
             getObserver.end(GetOutcome.MISS);
+            return computeFunction.apply(mappedKey, null);
           } else {
             getObserver.end(GetOutcome.HIT);
+            return computeFunction.apply(mappedKey, mappedValue.get());
           }
-
-          return computeFunction.apply(mappedKey, mappedValue);
-
         };
 
         ValueHolder<V> compute = store.computeAndGet(key, fn, replaceEqual, invokeWriter);
@@ -259,7 +258,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
   // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
   // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
-  public static class PutAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
+  public static class PutAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
 
     private final Logger logger;
     private final Map<K, V> entriesToRemap;
@@ -274,13 +273,13 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     }
 
     @Override
-    public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> entries) {
       Map<K, V> mutations = new LinkedHashMap<>();
 
       // then record we handled these mappings
-      for (Map.Entry<? extends K, ? extends V> entry: entries) {
+      for (Map.Entry<? extends K, ? extends ValueHolder<V>> entry: entries) {
         K key = entry.getKey();
-        V existingValue = entry.getValue();
+        ValueHolder<V> existingValue = entry.getValue();
         V newValue = entriesToRemap.remove(key);
 
         if (newValueAlreadyExpired(key, existingValue, newValue)) {
@@ -302,7 +301,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       return entriesToRemap;
     }
 
-    private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
+    private boolean newValueAlreadyExpired(K key, ValueHolder<V> oldValue, V newValue) {
       return EhcacheBase.newValueAlreadyExpired(logger, expiry, key, oldValue, newValue);
     }
 
@@ -315,17 +314,17 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     }
   }
 
-  public static class RemoveAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
+  public static class RemoveAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
 
     private final AtomicInteger actualRemoveCount = new AtomicInteger();
 
     @Override
-    public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> entries) {
       Map<K, V> results = new LinkedHashMap<>();
 
-      for (Map.Entry<? extends K, ? extends V> entry : entries) {
+      for (Map.Entry<? extends K, ? extends ValueHolder<V>> entry : entries) {
         K key = entry.getKey();
-        V existingValue = entry.getValue();
+        ValueHolder<V> existingValue = entry.getValue();
 
         if (existingValue != null) {
           actualRemoveCount.incrementAndGet();

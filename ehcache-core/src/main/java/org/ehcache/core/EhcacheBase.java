@@ -385,7 +385,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
   protected abstract void doPutAll(Map<? extends K, ? extends V> entries) throws StoreAccessException, BulkCacheWritingException;
 
-  protected boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
+  protected boolean newValueAlreadyExpired(K key, ValueHolder<V> oldValue, V newValue) {
     return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiryPolicy(), key, oldValue, newValue);
   }
 
@@ -424,7 +424,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
   protected abstract void doRemoveAll(Set<? extends K> keys) throws BulkCacheWritingException, StoreAccessException;
 
-  protected static <K, V> boolean newValueAlreadyExpired(Logger logger, ExpiryPolicy<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
+  protected static <K, V> boolean newValueAlreadyExpired(Logger logger, ExpiryPolicy<? super K, ? super V> expiry, K key, ValueHolder<V> oldValue, V newValue) {
     if (newValue == null) {
       return false;
     }
@@ -434,7 +434,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
       if (oldValue == null) {
         duration = expiry.getExpiryForCreation(key, newValue);
       } else {
-        duration = expiry.getExpiryForUpdate(key, () -> oldValue, newValue);
+        duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
       }
     } catch (RuntimeException re) {
       logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
@@ -680,7 +680,7 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
       try {
         store.bulkCompute(keys, entries -> {
           Collection<K> keys1 = new ArrayList<>();
-          for (Map.Entry<? extends K, ? extends V> entry : entries) {
+          for (Map.Entry<? extends K, ? extends ValueHolder<V>> entry : entries) {
             keys1.add(entry.getKey());
           }
           return cacheLoaderWriterLoadAllForKeys(keys1, loadFunction).entrySet();

@@ -520,7 +520,7 @@ public class ClusteredStoreTest {
   @Test(expected = UnsupportedOperationException.class)
   public void testBulkComputeThrowsForGenericFunction() throws Exception {
     @SuppressWarnings("unchecked")
-    Function<Iterable<? extends Map.Entry<? extends Long, ? extends String>>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> remappingFunction
+    Function<Iterable<? extends Map.Entry<? extends Long, ? extends Store.ValueHolder<String>>>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> remappingFunction
         = mock(Function.class);
     store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L)), remappingFunction);
   }
