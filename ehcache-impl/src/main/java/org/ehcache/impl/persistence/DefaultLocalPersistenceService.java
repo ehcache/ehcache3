@@ -231,10 +231,24 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public final boolean isClean() {
     if (isRootDirectoryExists) {
-      return clean.exists();
-    } else {
-      return true;
+      if (clean.exists()) {
+        return true;
+      }
+      if (lockFile.exists()) {
+          try (RandomAccessFile file = new RandomAccessFile(lockFile, "rw")) {
+            FileLock filelock = file.getChannel().tryLock();
+            if (filelock == null) {
+              return true;
+            } else {
+              filelock.release();
+              return false;
+            }
+          } catch (IOException | OverlappingFileLockException e) {
+              // ignore silently
+          }
+      }
     }
+    return true;
   }
 
   private void destroy(SafeSpace ss, boolean verbose) {
