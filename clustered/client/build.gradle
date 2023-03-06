@@ -17,6 +17,7 @@
 apply plugin: EhDeploy
 
 dependencies {
+  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
   compileOnly project(':api')
   compileOnly project(':xml')
   compile project(':clustered:common'), "org.slf4j:slf4j-api:$slf4jVersion"
