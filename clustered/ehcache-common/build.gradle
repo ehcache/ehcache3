@@ -31,6 +31,7 @@ dependencies {
 
   implementation "org.terracotta:entity-common-api:$terracottaApisVersion"
   implementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
 
   testImplementation project(':clustered:test-utils')
 }
