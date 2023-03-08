@@ -20,6 +20,8 @@ plugins {
 }
 
 dependencies {
+  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
+  compileOnly project(':api')
   compileOnly project(':impl')
   compileOnly project(':xml')
   implementation project(':clustered:common')

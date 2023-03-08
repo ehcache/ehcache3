@@ -20,6 +20,7 @@ plugins {
 
 dependencies {
   api project(':clustered:common-api')
+  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
 
   providedImplementation project(':api')
   providedImplementation "org.terracotta:entity-common-api:$terracottaApisVersion"
