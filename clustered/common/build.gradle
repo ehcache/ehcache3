@@ -24,6 +24,7 @@ dependencies {
   providedImplementation project(':api')
   providedImplementation "org.terracotta:entity-common-api:$terracottaApisVersion"
   providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  providedImplementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
 
   testImplementation project(':clustered:test-utils')
 }

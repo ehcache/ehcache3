@@ -17,6 +17,7 @@
 package org.ehcache.clustered.common.internal.store;
 
 import org.ehcache.clustered.common.internal.util.ByteBufferInputStream;
+import org.terracotta.utilities.classloading.FilteredObjectInputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
