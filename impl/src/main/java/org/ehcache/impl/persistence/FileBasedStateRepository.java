@@ -22,6 +22,7 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.serialization.TransientStateHolder;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
+import org.terracotta.utilities.classloading.FilteredObjectInputStream;
 
 import java.io.Closeable;
 import java.io.File;
@@ -58,26 +59,24 @@ class FileBasedStateRepository implements StateRepository, Closeable {
     }
     this.dataDirectory = directory;
     knownHolders = new ConcurrentHashMap<>();
-    loadMaps();
   }
 
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-  private void loadMaps() throws CachePersistenceException {
-    try {
-      for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
-        try (FileInputStream fis = new FileInputStream(file);
-             ObjectInputStream oin = new ObjectInputStream(fis)) {
-          String name = (String) oin.readObject();
-          Tuple tuple = (Tuple) oin.readObject();
-          if (nextIndex.get() <= tuple.index) {
-            nextIndex.set(tuple.index + 1);
-          }
-          knownHolders.put(name, tuple);
+  private void loadMaps(Predicate<Class<?>> isClassPermitted, ClassLoader classLoader) throws CachePersistenceException {
+    //noinspection ConstantConditions
+    for (File file : dataDirectory.listFiles((dir, name) -> name.endsWith(HOLDER_FILE_SUFFIX))) {
+      try (FileInputStream fis = new FileInputStream(file);
+           ObjectInputStream oin = new FilteredObjectInputStream(fis, isClassPermitted, classLoader)) {
+        String name = (String) oin.readObject();
+        Tuple tuple = (Tuple) oin.readObject();
+        if (nextIndex.get() <= tuple.index) {
+          nextIndex.set(tuple.index + 1);
         }
+        knownHolders.put(name, tuple);
+      } catch (Exception e) {
+        knownHolders.clear();
+        throw new CachePersistenceException("Failed to load existing StateRepository data", e);
       }
-    } catch (Exception e) {
-      knownHolders.clear();
-      throw new CachePersistenceException("Failed to load existing StateRepository data", e);
     }
   }
 
@@ -100,7 +99,12 @@ class FileBasedStateRepository implements StateRepository, Closeable {
                                                                                                      Class<V> valueClass,
                                                                                                      Predicate<Class<?>> isClassPermitted,
                                                                                                      ClassLoader classLoader) {
-    // isClassPermitted and  classLoader are ignored because this state repository has already being read from file and cached in
+    // Lazy loading of loadMaps using class loader in order TCCL, CacheManager CL, Custom Classloader
+    try {
+      loadMaps(isClassPermitted, classLoader);
+    } catch (CachePersistenceException e) {
+      throw new RuntimeException("Failed to load existing StateRepository data", e);
+    }
     Tuple result = knownHolders.get(name);
     if (result == null) {
       StateHolder<K, V> holder = new TransientStateHolder<>();

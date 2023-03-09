@@ -17,6 +17,7 @@
 apply plugin: EhDeploy
 
 dependencies {
+  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
   compile project(':api'), project(':core')
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
   compile (group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion) {

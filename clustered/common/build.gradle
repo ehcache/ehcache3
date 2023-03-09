@@ -20,6 +20,7 @@ dependencies {
   compile "org.slf4j:slf4j-api:$slf4jVersion"
   provided "org.terracotta:entity-common-api:$terracottaApisVersion"
   provided "org.terracotta:runnel:$terracottaPlatformVersion"
+  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
 }
 
 tasks.withType(JavaCompile) {
