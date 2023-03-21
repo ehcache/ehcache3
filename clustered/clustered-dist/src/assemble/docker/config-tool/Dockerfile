@@ -19,6 +19,7 @@ VOLUME "/terracotta/config"
 VOLUME "/terracotta/run"
 
 COPY tools /terracotta/tools
+COPY client /terracotta/client
 COPY docker/config-tool/entrypoint.sh /terracotta/tools/entrypoint.sh
 
 ENTRYPOINT ["./tools/entrypoint.sh"]
