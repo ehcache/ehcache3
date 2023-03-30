@@ -54,6 +54,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private RandomAccessFile rw;
   private boolean started;
   private final boolean isRootDirectoryExists;
+  private boolean isCleanFileDeleted;
 
   /**
    * Creates a new service instance using the provided configuration.
@@ -114,6 +115,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
           try {
             LOGGER.debug("clean file exists, trying to delete the file.");
             Files.delete(clean.toPath());
+            isCleanFileDeleted = true;
             LOGGER.debug("clean file is deleted.");
           } catch (IOException e) {
             LOGGER.warn("clean file was not deleted {}.", clean.getPath());
@@ -238,13 +240,19 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
           try (RandomAccessFile file = new RandomAccessFile(lockFile, "rw")) {
             FileLock filelock = file.getChannel().tryLock();
             if (filelock == null) {
-              return true;
+              throw new RuntimeException("Persistence directory already locked by another process. " + rootDirectory.getAbsolutePath());
             } else {
               filelock.release();
               return false;
             }
-          } catch (IOException | OverlappingFileLockException e) {
-              // ignore silently
+          } catch (OverlappingFileLockException e) {
+            if (isCleanFileDeleted) {
+              return true;
+            } else {
+              return false;
+            }
+          } catch (IOException e) {
+            // ignore silently
           }
       }
     }
