@@ -16,8 +16,8 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.common.internal.store.FilteredObjectInputStream;
 import org.ehcache.clustered.common.internal.store.ValueWrapper;
+import org.terracotta.utilities.classloading.FilteredObjectInputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

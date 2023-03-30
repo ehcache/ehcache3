@@ -16,17 +16,14 @@
 
 package org.ehcache.impl.persistence;
 
+import org.ehcache.impl.serialization.SerializerTestUtilities;
 import org.ehcache.impl.serialization.TransientStateHolder;
 import org.ehcache.spi.persistence.StateHolder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -101,5 +98,29 @@ public class FileBasedStateRepositoryTest {
     File[] files = directory.listFiles((dir, name) -> name.contains("otherHolder") && name.contains("-1-"));
 
     assertThat(files.length, is(1));
+  }
+  @Test
+  public void testCustomClassloader() throws Exception {
+    File directory = folder.newFolder("testCustomClassloader");
+    ClassLoader classNameRewritingLoader = SerializerTestUtilities.createClassNameRewritingLoader(CustomType_Hidden.class);
+    Serializable instance = (Serializable) classNameRewritingLoader.loadClass(SerializerTestUtilities.newClassName(CustomType_Hidden.class)).getConstructor().newInstance();
+    try (FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory)) {
+      String holderName = "myHolder";
+      StateHolder<Long, Serializable> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, Serializable.class, c -> true, classNameRewritingLoader);
+      myHolder.putIfAbsent(42L, instance);
+    }
+    try (FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory)) {
+      String holderName = "myHolder";
+      StateHolder<Long, Serializable> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, Serializable.class, c -> true, classNameRewritingLoader);
+      Serializable myCustomType = myHolder.get(42L);
+      assertThat(myCustomType.getClass().getClassLoader(), is(classNameRewritingLoader));
+    }
+  }
+
+  public static class CustomType_Hidden implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public CustomType_Hidden() {
+    }
   }
 }

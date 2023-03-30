@@ -271,11 +271,12 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
             valueSerializer = valueSer;
           }
         } catch (UnsupportedTypeException e) {
-          if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
-            throw new RuntimeException(e);
-          } else {
-            LOGGER.debug("Serializers for cache '{}' failed creation ({}). However, depending on the configuration, they might not be needed", id, e.getMessage());
+          for (ResourceType<?> resource : resources) {
+            if (resource.requiresSerialization()) {
+              throw new RuntimeException(e);
+            }
           }
+          LOGGER.debug("Serializers for cache '{}' failed creation ({}). However, depending on the configuration, they might not be needed", id, e.getMessage());
         }
       }
 
