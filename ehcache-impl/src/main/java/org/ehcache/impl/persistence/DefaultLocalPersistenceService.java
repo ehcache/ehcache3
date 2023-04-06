@@ -85,7 +85,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
-      clean = !rootDirectory.exists();
+      if (!rootDirectory.exists() || (!cleanFile.exists() && !lockFile.exists())) {
+        clean = true;
+      }
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
         rw = new RandomAccessFile(lockFile, "rw");
@@ -229,7 +231,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * Can take appropriate action by identifying state of service stopped.
    */
   @Override
-  public final boolean isClean() {
+  public final synchronized boolean isClean() {
     if (started) {
       return clean;
     }
