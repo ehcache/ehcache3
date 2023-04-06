@@ -48,13 +48,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private final File rootDirectory;
   private final File lockFile;
-  private final File clean;
+  private final File cleanFile;
 
   private FileLock lock;
   private RandomAccessFile rw;
   private boolean started;
-  private final boolean isRootDirectoryExists;
-  private boolean isCleanFileDeleted;
+  private boolean clean;
 
   /**
    * Creates a new service instance using the provided configuration.
@@ -64,12 +63,11 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public DefaultLocalPersistenceService(final DefaultPersistenceConfiguration persistenceConfiguration) {
     if(persistenceConfiguration != null) {
       rootDirectory = persistenceConfiguration.getRootDirectory();
-      isRootDirectoryExists = rootDirectory.exists();
     } else {
       throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
     lockFile = new File(rootDirectory, ".lock");
-    clean = new File(rootDirectory, ".clean");
+    cleanFile = new File(rootDirectory, ".clean");
   }
 
   /**
@@ -87,6 +85,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
+      clean = !rootDirectory.exists();
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
         rw = new RandomAccessFile(lockFile, "rw");
@@ -110,16 +109,14 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
       }
 
-      if (isRootDirectoryExists) {
-        if (clean.exists()) {
-          try {
-            LOGGER.debug("clean file exists, trying to delete the file.");
-            Files.delete(clean.toPath());
-            isCleanFileDeleted = true;
-            LOGGER.debug("clean file is deleted.");
-          } catch (IOException e) {
-            LOGGER.warn("clean file was not deleted {}.", clean.getPath());
-          }
+      if (cleanFile.exists()) {
+        try {
+          LOGGER.debug("clean file exists, trying to delete the file.");
+          Files.delete(cleanFile.toPath());
+          clean = true;
+          LOGGER.debug("clean file is deleted.");
+        } catch (IOException e) {
+          LOGGER.warn("clean file was not deleted {}.", cleanFile.getPath());
         }
       }
 
@@ -135,6 +132,13 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public synchronized void stop() {
     if (started) {
       try {
+        if (cleanFile.createNewFile()) {
+          LOGGER.debug("clean file is created.");
+        }
+      } catch (IOException e) {
+        LOGGER.warn("clean file is not created.");
+      }
+      try {
         lock.release();
         // Closing RandomAccessFile so that files gets deleted on windows and
         // org.ehcache.internal.persistence.DefaultLocalPersistenceServiceTest.testLocksDirectoryAndUnlocks()
@@ -149,14 +153,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
 
-      try {
-        if (clean.createNewFile()) {
-          LOGGER.debug("clean file is created.");
-        }
-      } catch (IOException e) {
-        LOGGER.warn("clean file is not created.");
-      }
       started = false;
+      clean = false;
       LOGGER.debug("RootDirectory Unlocked");
     }
   }
@@ -232,8 +230,11 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public final boolean isClean() {
-    if (isRootDirectoryExists) {
-      if (clean.exists()) {
+    if (started) {
+      return clean;
+    }
+    if (rootDirectory.exists()) {
+      if (cleanFile.exists()) {
         return true;
       }
       if (lockFile.exists()) {
@@ -246,11 +247,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
               return false;
             }
           } catch (OverlappingFileLockException e) {
-            if (isCleanFileDeleted) {
-              return true;
-            } else {
-              return false;
-            }
+            throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.getAbsolutePath(), e);
           } catch (IOException e) {
             // ignore silently
           }
