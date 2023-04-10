@@ -37,6 +37,7 @@ import static org.ehcache.impl.persistence.FileUtils.createLocationIfRequiredAnd
 import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 import static org.ehcache.impl.persistence.FileUtils.tryRecursiveDelete;
 import static org.ehcache.impl.persistence.FileUtils.validateName;
+import static org.ehcache.impl.persistence.FileUtils.isDirectoryEmpty;
 
 /**
  * Implements the local persistence service that provides individual sub-spaces for different
@@ -85,10 +86,14 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
-      if (!rootDirectory.exists() || (!cleanFile.exists() && !lockFile.exists())) {
-        clean = true;
-      }
       createLocationIfRequiredAndVerify(rootDirectory);
+      try {
+        if (isDirectoryEmpty(rootDirectory.toPath())) {
+          clean = true;
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       try {
         rw = new RandomAccessFile(lockFile, "rw");
       } catch (FileNotFoundException e) {
@@ -118,7 +123,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
           clean = true;
           LOGGER.debug("clean file is deleted.");
         } catch (IOException e) {
-          LOGGER.warn("clean file was not deleted {}.", cleanFile.getPath());
+          LOGGER.debug("clean file is not deleted {}.", cleanFile.getPath());
+          throw new RuntimeException(e);
         }
       }
 
@@ -234,28 +240,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public final synchronized boolean isClean() {
     if (started) {
       return clean;
+    } else {
+      throw new IllegalStateException("Service is not running");
     }
-    if (rootDirectory.exists()) {
-      if (cleanFile.exists()) {
-        return true;
-      }
-      if (lockFile.exists()) {
-          try (RandomAccessFile file = new RandomAccessFile(lockFile, "rw")) {
-            FileLock filelock = file.getChannel().tryLock();
-            if (filelock == null) {
-              throw new RuntimeException("Persistence directory already locked by another process. " + rootDirectory.getAbsolutePath());
-            } else {
-              filelock.release();
-              return false;
-            }
-          } catch (OverlappingFileLockException e) {
-            throw new RuntimeException("Persistence directory already locked by this process: " + rootDirectory.getAbsolutePath(), e);
-          } catch (IOException e) {
-            // ignore silently
-          }
-      }
-    }
-    return true;
   }
 
   private void destroy(SafeSpace ss, boolean verbose) {

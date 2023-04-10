@@ -24,12 +24,14 @@ import org.terracotta.utilities.io.Files;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -155,5 +157,14 @@ final class FileUtils {
     } catch (NoSuchAlgorithmException e) {
       throw new AssertionError("All JDKs must have SHA-1");
     }
+  }
+
+  static boolean isDirectoryEmpty(Path path) throws IOException {
+    if (java.nio.file.Files.isDirectory(path)) {
+      try (Stream<Path> entries = java.nio.file.Files.list(path)) {
+        return !entries.findFirst().isPresent();
+      }
+    }
+    return false;
   }
 }
