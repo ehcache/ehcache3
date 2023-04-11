@@ -24,6 +24,7 @@ import org.terracotta.utilities.io.Files;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -160,11 +161,10 @@ final class FileUtils {
   }
 
   static boolean isDirectoryEmpty(Path path) throws IOException {
-    if (java.nio.file.Files.isDirectory(path)) {
-      try (Stream<Path> entries = java.nio.file.Files.list(path)) {
-        return !entries.findFirst().isPresent();
-      }
+    try (Stream<Path> entries = java.nio.file.Files.list(path)) {
+      return !entries.findFirst().isPresent();
+    } catch (UncheckedIOException e) {
+      throw e.getCause();
     }
-    return false;
   }
 }

@@ -86,6 +86,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
+      clean = false;
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
         if (isDirectoryEmpty(rootDirectory.toPath())) {
@@ -142,6 +143,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       try {
         if (cleanFile.createNewFile()) {
           LOGGER.debug("clean file is created.");
+        } else {
+          LOGGER.warn("clean file already exists.");
         }
       } catch (IOException e) {
         LOGGER.warn("clean file is not created.");
@@ -162,7 +165,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       }
 
       started = false;
-      clean = false;
       LOGGER.debug("RootDirectory Unlocked");
     }
   }
