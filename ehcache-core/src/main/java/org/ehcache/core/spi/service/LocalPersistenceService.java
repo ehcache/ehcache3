@@ -81,4 +81,10 @@ public interface LocalPersistenceService extends MaintainableService {
    * @return <tt>true</tt> if service stopped normally.
    */
   boolean isClean();
+
+  /**
+   * Identify status of service.
+   * @return <tt>true</tt> if service is started.
+   */
+  boolean isServiceStarted();
 }

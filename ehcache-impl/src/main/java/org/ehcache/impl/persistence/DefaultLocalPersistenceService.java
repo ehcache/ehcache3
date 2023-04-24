@@ -144,10 +144,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         if (cleanFile.createNewFile()) {
           LOGGER.debug("clean file is created.");
         } else {
-          LOGGER.warn("clean file already exists.");
+          LOGGER.warn("clean file already exists. It's not deleted either user's permission or network issue." +
+            "\n Hint: clean file exists on service startup, indicates service was stopped cleanly last time. It gets created while the service is stopped and it should be deleted while the service is started.");
         }
       } catch (IOException e) {
-        LOGGER.warn("clean file is not created.");
+        LOGGER.warn("clean file is not created. Reason: " + e.getMessage() +
+          "\n Hint: clean file exists on service startup, indicates service was stopped cleanly last time. It gets created while the service is stopped and it should be deleted while the service is started.");
       }
       try {
         lock.release();
@@ -237,6 +239,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    * Abnormally stopped service may lead to data corruption.
    * Can take appropriate action by identifying state of service stopped.
+   *
+   * @throws IllegalStateException if service is not running.
    */
   @Override
   public final synchronized boolean isClean() {
@@ -245,6 +249,14 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } else {
       throw new IllegalStateException("Service is not running");
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public final boolean isServiceStarted() {
+    return started;
   }
 
   private void destroy(SafeSpace ss, boolean verbose) {

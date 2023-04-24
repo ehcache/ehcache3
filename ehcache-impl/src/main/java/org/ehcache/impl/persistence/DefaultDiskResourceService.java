@@ -73,6 +73,10 @@ public class DefaultDiskResourceService implements DiskResourceService {
   private void innerStart(ServiceProvider<? super MaintainableService> serviceProvider) {
     persistenceService = serviceProvider.getService(LocalPersistenceService.class);
     isStarted = true;
+    if (persistenceService!=null && persistenceService.isServiceStarted() && !persistenceService.isClean()) {
+      destroyAll();
+      LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
+    }
   }
 
   /**
