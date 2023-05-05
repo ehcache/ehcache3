@@ -77,14 +77,14 @@ public interface LocalPersistenceService extends MaintainableService {
   }
 
   /**
-   * Identify state(normal/abnormal) of stopped service.
-   * @return <tt>true</tt> if service stopped normally.
+   * Return the cleanliness of the state stored in this service.
+   * <p>
+   * Stored state is assumed to be clean if the service detects
+   * that the last started instantiation of this service was shutdown
+   * successfully.
+   *
+   * @return {@code true} if the state is clean
+   * @throws IllegalStateException if the service is not started
    */
   boolean isClean();
-
-  /**
-   * Identify status of service.
-   * @return <tt>true</tt> if service is started.
-   */
-  boolean isServiceStarted();
 }

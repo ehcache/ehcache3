@@ -144,10 +144,11 @@ public class DefaultLocalPersistenceServiceTest {
   }
 
   @Test
-  public void testServiceStoppedStatusWhenStoppedCleanly() throws IOException {
-    File f = folder.newFolder("testServiceStoppedStatusWhenStoppedCleanly");
+  public void testServiceShutdownWithEmptyDirectory() throws IOException {
+    File f = folder.newFolder("testServiceShutdownWithEmptyDirectory");
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
     service.start(null);
+    assertTrue(service.isClean());
     service.stop();
     service.start(null);
     assertTrue(service.isClean());
@@ -155,21 +156,32 @@ public class DefaultLocalPersistenceServiceTest {
   }
 
   @Test
-  public void testServiceStoppedStatusWhenStoppedUnexpectedly() throws IOException {
-    // Service stopped unexpectedly means directory exists with some data but without .clean file.
-    File f = folder.newFolder("testServiceStoppedStatusWhenStoppedUnexpectedly");
+  public void testServiceShutdownWithNonEmptyDirectory() throws IOException {
+    File f = folder.newFolder("testServiceShutdownWithNonEmptyDirectory");
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
-    new File(f.getAbsolutePath()+"\\dummy.txt").createNewFile();
+    new File(f, "dummy.txt").createNewFile();
+    new File(f, ".clean").createNewFile();
+    service.start(null);
+    assertTrue(service.isClean());
+    service.stop();
+  }
+
+  @Test
+  public void testServiceShutdownUnexpectedly() throws IOException {
+    // Service shutdown unexpectedly means directory exists with some data but without .clean file.
+    File f = folder.newFolder("testServiceShutdownUnexpectedly");
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    new File(f, "dummy.txt").createNewFile();
     service.start(null);
     assertFalse(service.isClean());
     service.stop();
   }
 
   @Test
-  public void testServiceStoppedStatusIfServiceIsNotRunning() throws IOException {
+  public void testServiceShutdownStatusIfServiceIsNotRunning() throws IOException {
+    File f = folder.newFolder("testServiceShutdownStatusIfServiceIsNotRunning");
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
     try {
-      File f = folder.newFolder("testServiceStoppedStatusIfServiceIsNotRunning");
-      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
       service.isClean();
       fail("Expected IllegalStateException");
     } catch(IllegalStateException e) {

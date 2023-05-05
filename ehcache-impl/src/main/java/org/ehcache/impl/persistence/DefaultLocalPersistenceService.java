@@ -144,12 +144,14 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         if (cleanFile.createNewFile()) {
           LOGGER.debug("clean file is created.");
         } else {
-          LOGGER.warn("clean file already exists. It's not deleted either user's permission or network issue." +
-            "\n Hint: clean file exists on service startup, indicates service was stopped cleanly last time. It gets created while the service is stopped and it should be deleted while the service is started.");
+          LOGGER.warn("clean file already exists. The file didn't got deleted, may be due to network issue or file permission on directory." +
+            "\n Hint: clean file exists on service start-up, indicates service was stopped cleanly last time. It gets created while the service is stopped and it should be deleted while the service is started." +
+            "\n Action: Please verify there permission to delete the file and delete the root directory prior to start the service again.");
         }
       } catch (IOException e) {
         LOGGER.warn("clean file is not created. Reason: " + e.getMessage() +
-          "\n Hint: clean file exists on service startup, indicates service was stopped cleanly last time. It gets created while the service is stopped and it should be deleted while the service is started.");
+          "\n Hint: clean file exists on service start-up, indicates service was stopped cleanly last time. It gets created while the service is stopped and it should be deleted while the service is started." +
+          "\n Action: Do resolve the exception received. Prior to start the service again, please delete the root directory.");
       }
       try {
         lock.release();
@@ -237,10 +239,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   /**
    * {@inheritDoc}
-   * Abnormally stopped service may lead to data corruption.
-   * Can take appropriate action by identifying state of service stopped.
-   *
-   * @throws IllegalStateException if service is not running.
    */
   @Override
   public final synchronized boolean isClean() {
@@ -249,14 +247,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } else {
       throw new IllegalStateException("Service is not running");
     }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public final boolean isServiceStarted() {
-    return started;
   }
 
   private void destroy(SafeSpace ss, boolean verbose) {
@@ -269,7 +259,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       }
     }
   }
-
 
   private SafeSpace createSafeSpaceLogical(String owner, String identifier) {
     File ownerDirectory = new File(rootDirectory, owner);
