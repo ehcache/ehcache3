@@ -237,9 +237,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public final synchronized boolean isClean() {
     if (started) {
