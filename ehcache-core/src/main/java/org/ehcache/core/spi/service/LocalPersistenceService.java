@@ -75,4 +75,16 @@ public interface LocalPersistenceService extends MaintainableService {
      */
     File getRoot();
   }
+
+  /**
+   * Return the cleanliness of the state stored in this service.
+   * <p>
+   * Stored state is assumed to be clean if the service detects
+   * that the last started instantiation of this service was shutdown
+   * successfully.
+   *
+   * @return {@code true} if the state is clean
+   * @throws IllegalStateException if the service is not started
+   */
+  boolean isClean();
 }

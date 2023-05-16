@@ -60,6 +60,10 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     innerStart(serviceProvider);
+    if (!persistenceService.isClean()) {
+      destroyAll();
+      LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
+    }
   }
 
   /**

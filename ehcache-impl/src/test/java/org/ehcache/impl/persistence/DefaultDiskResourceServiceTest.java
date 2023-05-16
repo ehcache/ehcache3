@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -53,7 +54,7 @@ public class DefaultDiskResourceServiceTest {
     @Test
     public void testDestroyAll() {
       service.destroyAll();
-      verify(persistenceService).destroyAll(DefaultDiskResourceService.PERSISTENCE_SPACE_OWNER);
+      verify(persistenceService, times(2)).destroyAll(DefaultDiskResourceService.PERSISTENCE_SPACE_OWNER);
     }
 
     @Test
