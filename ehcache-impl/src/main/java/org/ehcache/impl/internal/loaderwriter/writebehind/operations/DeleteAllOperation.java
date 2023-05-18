@@ -45,4 +45,9 @@ public class DeleteAllOperation<K, V> implements BatchOperation<K, V> {
     cacheLoaderWriter.deleteAll(entries);
   }
 
+  @Override
+  public Iterable<? extends K> getKeys() {
+    return entries;
+  }
+
 }

@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -535,8 +536,8 @@ public abstract class AbstractWriteBehindTestBase {
 
       @Override
       @SuppressWarnings("unchecked")
-      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
-        this.writeBehind = super.createWriteBehindLoaderWriter(cacheLoaderWriter, configuration);
+      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(Consumer<K> keyCleanUpMethod, CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
+        this.writeBehind = super.createWriteBehindLoaderWriter(keyCleanUpMethod, cacheLoaderWriter, configuration);
         return (WriteBehind<K, V>) writeBehind;
       }
 

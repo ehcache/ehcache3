@@ -15,7 +15,9 @@
  */
 package org.ehcache.impl.internal.loaderwriter.writebehind.operations;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -41,6 +43,15 @@ public class WriteAllOperation<K, V> implements BatchOperation<K, V> {
 
   public void performOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception {
     cacheLoaderWriter.writeAll(entries);
+  }
+
+  @Override
+  public Set<K> getKeys() {
+    Set<K> keys = new HashSet<>();
+    for (Map.Entry<? extends K, ? extends V> entry : entries) {
+      keys.add(entry.getKey());
+    }
+    return keys;
   }
 
 }

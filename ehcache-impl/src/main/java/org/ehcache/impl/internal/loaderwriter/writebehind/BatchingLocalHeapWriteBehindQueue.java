@@ -22,6 +22,7 @@ import org.ehcache.impl.internal.loaderwriter.writebehind.operations.DeleteAllOp
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.WriteOperation;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.WriteAllOperation;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
@@ -45,6 +46,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdown;
@@ -72,8 +74,8 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   private final boolean coalescing;
 
   private volatile Batch openBatch;
-
-  public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  private final Consumer<K> keyCleanUpMethod;
+  public BatchingLocalHeapWriteBehindQueue(Consumer<K> keyCleanUpMethod, ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
     BatchingConfiguration batchingConfig = config.getBatchingConfiguration();
@@ -91,6 +93,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
     } else {
       this.scheduledExecutor = executionService.getScheduledExecutor(config.getThreadPoolAlias());
     }
+    this.keyCleanUpMethod = keyCleanUpMethod;
   }
 
   @Override
@@ -188,25 +191,30 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void run() {
-      try {
-        List<BatchOperation<K, V>> batches = createMonomorphicBatches(operations());
-        // execute the batch operations
-        for (BatchOperation<K, V> batch : batches) {
+      List<BatchOperation<K, V>> batches = createMonomorphicBatches(operations());
+      // execute the batch operations
+      for (BatchOperation<K, V> batch : batches) {
+        try {
           try {
             batch.performOperation(cacheLoaderWriter);
-          } catch (Exception e) {
-            LOGGER.warn("Exception while bulk processing in write behind queue", e);
+          } finally {
+            try {
+              for (K key : batch.getKeys()) {
+                latest.remove(key);
+              }
+            } finally {
+              LOGGER.debug("Cancelling batch expiry task");
+              expireTask.cancel(false);
+            }
           }
         }
-      } finally {
-        try {
-          for (SingleOperation<K, V> op : operations()) {
-            latest.remove(op.getKey(), op);
+        catch (Exception ex) {
+          for (K key : batch.getKeys()) {
+            keyCleanUpMethod.accept(key);
           }
-        } finally {
-          LOGGER.debug("Cancelling batch expiry task");
-          expireTask.cancel(false);
+          LOGGER.warn("Exception while bulk processing in write behind queue", ex);
         }
       }
     }

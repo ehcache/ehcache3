@@ -27,6 +27,8 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.osgi.service.component.annotations.Component;
 
+import java.util.function.Consumer;
+
 /**
  * @author Abhilash
  *
@@ -71,11 +73,11 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
     }
 
     @Override
-    public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
+    public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(Consumer<K> keyCleanUpMethod, CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
       if (cacheLoaderWriter == null) {
         throw new NullPointerException("WriteBehind requires a non null CacheLoaderWriter.");
       }
-      return new StripedWriteBehind<>(executionService, threadPoolAlias, configuration, cacheLoaderWriter);
+      return new StripedWriteBehind<>(keyCleanUpMethod, executionService, threadPoolAlias, configuration, cacheLoaderWriter);
     }
 
     @Override

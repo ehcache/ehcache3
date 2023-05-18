@@ -33,4 +33,10 @@ public interface BatchOperation<K, V> {
    */
   void performOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception;
 
+  /**
+   * Return set of keys from batch entries
+   *
+   */
+  Iterable<? extends K> getKeys();
+
 }
