@@ -35,6 +35,8 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
@@ -139,5 +141,51 @@ public class DefaultLocalPersistenceServiceTest {
     // And we should receive a meaningful exception about it
     RuntimeException thrown = assertThrows(RuntimeException.class, () -> service2.start(null));
     assertThat(thrown, hasProperty("message", is("Persistence directory already locked by this process: " + testFolder.getAbsolutePath())));
+  }
+
+  @Test
+  public void testServiceShutdownWithEmptyDirectory() throws IOException {
+    File f = folder.newFolder("testServiceShutdownWithEmptyDirectory");
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    service.start(null);
+    assertTrue(service.isClean());
+    service.stop();
+    service.start(null);
+    assertTrue(service.isClean());
+    service.stop();
+  }
+
+  @Test
+  public void testServiceShutdownWithNonEmptyDirectory() throws IOException {
+    File f = folder.newFolder("testServiceShutdownWithNonEmptyDirectory");
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    new File(f, "dummy.txt").createNewFile();
+    new File(f, ".clean").createNewFile();
+    service.start(null);
+    assertTrue(service.isClean());
+    service.stop();
+  }
+
+  @Test
+  public void testServiceShutdownUnexpectedly() throws IOException {
+    // Service shutdown unexpectedly means directory exists with some data but without .clean file.
+    File f = folder.newFolder("testServiceShutdownUnexpectedly");
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    new File(f, "dummy.txt").createNewFile();
+    service.start(null);
+    assertFalse(service.isClean());
+    service.stop();
+  }
+
+  @Test
+  public void testServiceShutdownStatusIfServiceIsNotRunning() throws IOException {
+    File f = folder.newFolder("testServiceShutdownStatusIfServiceIsNotRunning");
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    try {
+      service.isClean();
+      fail("Expected IllegalStateException");
+    } catch(IllegalStateException e) {
+      assertThat(e.getMessage(), equalTo("Service is not running"));
+    }
   }
 }

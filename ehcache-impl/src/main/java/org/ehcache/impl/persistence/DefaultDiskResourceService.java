@@ -60,6 +60,10 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     innerStart(serviceProvider);
+    if (!persistenceService.isClean()) {
+      destroyAll();
+      LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
+    }
   }
 
   /**
@@ -89,7 +93,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public boolean handlesResourceType(ResourceType<?> resourceType) {
-    return persistenceService != null && ResourceType.Core.DISK.equals(resourceType);
+    return ResourceType.Core.DISK.equals(resourceType);
   }
 
   /**
@@ -97,9 +101,6 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public PersistenceSpaceIdentifier<DiskResourceService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    if (persistenceService == null) {
-      return null;
-    }
     boolean persistent = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent();
     while (true) {
       PersistenceSpace persistenceSpace = knownPersistenceSpaces.get(name);
@@ -173,10 +174,6 @@ public class DefaultDiskResourceService implements DiskResourceService {
   public void destroy(String name) {
     checkStarted();
 
-    if(persistenceService == null) {
-      return;
-    }
-
     PersistenceSpace space = knownPersistenceSpaces.remove(name);
     SafeSpaceIdentifier identifier = (space == null) ?
       persistenceService.createSafeSpaceIdentifier(PERSISTENCE_SPACE_OWNER, name) : space.identifier.persistentSpaceId;
@@ -189,10 +186,6 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public void destroyAll() {
     checkStarted();
-
-    if(persistenceService == null) {
-      return;
-    }
 
     persistenceService.destroyAll(PERSISTENCE_SPACE_OWNER);
   }
