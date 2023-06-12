@@ -30,6 +30,10 @@ gradlePlugin {
       implementationClass = 'org.ehcache.build.EhcachePackage'
     }
 
+    unsafe {
+      id = 'org.ehcache.build.plugins.unsafe'
+      implementationClass = 'org.ehcache.build.plugins.UnsafeJavaPlugin'
+    }
     variant {
       id = 'org.ehcache.build.plugins.variant'
       implementationClass = 'org.ehcache.build.plugins.VariantPlugin'

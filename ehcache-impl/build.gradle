@@ -16,6 +16,7 @@
 
 plugins {
   id 'org.ehcache.build.internal-module'
+  id 'org.ehcache.build.plugins.unsafe'
 }
 
 publishing.publications.withType(MavenPublication) {
@@ -26,10 +27,9 @@ publishing.publications.withType(MavenPublication) {
 }
 
 sourceSets {
-  unsafe
-}
-
-sourceSets {
+  main {
+    unsafe.srcDir 'src/unsafe/java'
+  }
   slowTest {
     java.srcDir 'src/slow-test/java'
     resources.srcDir 'src/slow-test/resources'
@@ -58,15 +58,9 @@ dependencies {
   testImplementation 'org.ow2.asm:asm:6.2'
   testImplementation 'org.ow2.asm:asm-commons:6.2'
   testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
-
-  unsafeImplementation project(':ehcache-api')
-  api files(sourceSets.unsafe.output.classesDirs) {
-    builtBy compileUnsafeJava
-  }
 }
 
 jar {
-  from sourceSets.unsafe.output
   from "$rootDir/NOTICE"
   bnd (
     'Export-Package': '!org.ehcache.impl.internal.*, org.ehcache.impl.*, org.ehcache.config.builders, ' +
@@ -75,11 +69,7 @@ jar {
   )
 }
 
-sourcesJar {
-  from sourceSets.unsafe.allSource
-}
-
-compileUnsafeJava {
+compileUnsafe {
   //no -Werror due to unsafe
   options.compilerArgs = ['-Xlint:all']
 }
