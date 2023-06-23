@@ -80,23 +80,6 @@ public class DeployConvention implements Plugin<Project> {
           dev.getOrganizationUrl().set("http://ehcache.org");
         }));
       }));
-      publishing.repositories(repositories -> repositories.maven(maven -> {
-        if (IS_RELEASE.test(project)) {
-          maven.setUrl(project.property("deployUrl"));
-          maven.credentials(creds -> {
-            creds.setUsername(project.property("deployUser").toString());
-            creds.setPassword(project.property("deployPwd").toString());
-          });
-          maven.setAllowInsecureProtocol(true);
-        } else {
-          maven.setName("sonatype-nexus-snapshot");
-          maven.setUrl("https://oss.sonatype.org/content/repositories/snapshots");
-          maven.credentials(creds -> {
-            creds.setUsername(project.property("sonatypeUser").toString());
-            creds.setPassword(project.property("sonatypePwd").toString());
-          });
-        }
-      }));
     });
 
     project.getExtensions().configure(SigningExtension.class, signing -> {

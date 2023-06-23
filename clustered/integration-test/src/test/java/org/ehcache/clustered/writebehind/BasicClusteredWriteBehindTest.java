@@ -29,13 +29,19 @@ import org.terracotta.testing.rules.Cluster;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.testing.StandardCluster.clusterPath;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.terracotta.utilities.test.matchers.Eventually.within;
 
 
 public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
@@ -124,6 +130,34 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
     cache.clear();
 
     assertThat(cache.get(KEY), notNullValue());
+
+    doThreadDump = false;
+  }
+
+  @Test(timeout = 120000)
+  public void testBasicClusteredWriteBehindWithFailure() {
+    cacheManager.close();
+    cacheManager = null;
+    cacheManager = createCacheManagerWithLoaderWriterWithFailure(CLUSTER.getConnectionURI());
+    final Cache<Long, String> localCache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
+    localCache.put(1L, String.valueOf(1));
+    localCache.put(2L, String.valueOf(2));
+    localCache.put(3L, String.valueOf(3));
+    localCache.put(4L, String.valueOf(4));
+
+    assertThat(() -> localCache.get(1L), within(Duration.ofSeconds(100)).matches(is(nullValue())));
+    assertThat(() -> localCache.get(3L), within(Duration.ofSeconds(100)).matches(is(nullValue())));
+
+    Map<Long, List<String>> records = getEvenNumberLoaderWriter().getRecords();
+
+    // Error will be thrown for odd keys, hence only 2 entries are expected here.
+    assertThat(() -> records.size(), within(Duration.ofSeconds(2)).matches(is(2)));
+
+    // Verify that values with only even entries are present in records.
+    List<String> keyRecords = records.get(2L);
+    assertThat(keyRecords.get(0), is("2"));
+    keyRecords = records.get(4L);
+    assertThat(keyRecords.get(0), is("4"));
 
     doThreadDump = false;
   }

@@ -20,7 +20,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.MatcherAssert;
 import org.junit.FixMethodOrder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.terracotta.management.model.capabilities.Capability;
@@ -132,14 +131,6 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   private static final Collection<StatisticDescriptor> OFFHEAP_RES_DESCRIPTORS =  Arrays.asList(
     new StatisticDescriptor("OffHeapResource:AllocatedMemory", "GAUGE")
   );
-
-  @Test
-  @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
-  public void test_A_topology() throws Exception {
-    Cluster cluster = CLUSTER.getNmsService().readTopology();
-    String json = mapper.writeValueAsString(cluster.toMap());
-    //System.out.println(json);
-  }
 
   @Test
   public void test_A_client_tags_exposed() throws Exception {
