@@ -104,7 +104,7 @@ public class FileBasedStateRepositoryTest {
 
     assertThat(files.length, is(1));
   }
-  
+
   @Test
   public void testCustomClassloader() throws Exception {
     File directory = folder.newFolder("testCustomClassloader");
