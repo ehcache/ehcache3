@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.management;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
@@ -59,7 +57,6 @@ import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 public class ManagementClusterConnectionTest {
 
   protected static CacheManager cacheManager;
-  protected static ObjectMapper mapper = new ObjectMapper();
 
   private static TCPProxyManager proxyManager;
   private static final Map<String, Long> resources;
@@ -79,9 +76,6 @@ public class ManagementClusterConnectionTest {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-
-    mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-
     CLUSTER.get().getCluster().getClusterControl().waitForActive();
 
     proxyManager = TCPProxyManager.create(CLUSTER.get().getCluster().getConnectionURI());

@@ -37,13 +37,6 @@ dependencies {
   testImplementation project(':management')
   testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
-  /*
-   * Jackson BOMs are broken in a bunch of ways. One day we might be able to use the constraints provided through the
-   * platform dependencies, today is not that day.
-   */
-  testImplementation enforcedPlatform("com.fasterxml.jackson:jackson-bom:$jacksonVersion")
-  testImplementation 'com.fasterxml.jackson.core:jackson-databind'
-
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
   testRuntimeOnly project(':clustered:clustered-dist')
 
