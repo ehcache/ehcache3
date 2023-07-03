@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.management;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.util.BeforeAll;
@@ -84,7 +82,6 @@ public abstract class AbstractClusteringManagementTest {
   protected static CacheManager cacheManager;
   protected static ClientIdentifier ehcacheClientIdentifier;
   protected static ServerEntityIdentifier clusterTierManagerEntityIdentifier;
-  protected static final ObjectMapper mapper = new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
 
   @ClassRule
   public static final ClusterWithManagement CLUSTER = new ClusterWithManagement(newCluster(2)
