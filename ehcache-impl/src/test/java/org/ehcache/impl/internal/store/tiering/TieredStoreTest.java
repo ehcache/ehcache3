@@ -32,6 +32,8 @@ import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
+import org.ehcache.spi.resilience.StoreAccessRuntimeException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
@@ -151,8 +153,26 @@ public class TieredStoreTest {
     try {
       tieredStore.get(1);
       fail("We should get an Error");
-    } catch (RuntimeException e) {
-      assertSame(error, e);
+    } catch (Exception e) {
+      assertSame(error, e.getCause());
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testGetThrowsSerializerException() throws Exception {
+    SerializerException serializerException = new SerializerException();
+    StoreAccessException error = new StoreAccessException("SerializerException wrapped in StoreAccessException", serializerException);
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(error);
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+
+    try {
+      tieredStore.get(1);
+      fail("We should get an Error");
+    } catch (StoreAccessException e) {
+      assertSame(serializerException, e.getCause());
+      assertEquals("SerializerException wrapped in StoreAccessException", e.getMessage());
     }
   }
 
@@ -167,41 +187,40 @@ public class TieredStoreTest {
     try {
       tieredStore.get(1);
       fail("We should get an Error");
-    } catch (Error e) {
-      assertSame(error, e);
+    } catch (Exception e) {
+      assertSame(error, e.getCause());
     }
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void testGetThrowsException() throws Exception {
-    Exception error = new Exception();
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessException(error));
+    StoreAccessException error = new StoreAccessException("Error");
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessRuntimeException(error));
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     try {
       tieredStore.get(1);
       fail("We should get an Error");
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       assertSame(error, e.getCause());
-      assertEquals("Unexpected checked exception wrapped in StoreAccessException", e.getMessage());
     }
   }
 
   @Test
   @SuppressWarnings("unchecked")
-  public void testGetThrowsPassthrough() throws Exception {
+  public void testGetThrowsStoreAccessRuntime() throws Exception {
     StoreAccessException error = new StoreAccessException("inner");
-    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessException(new StorePassThroughException(error)));
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(new StoreAccessRuntimeException(error));
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
     try {
       tieredStore.get(1);
       fail("We should get an Error");
-    } catch (StoreAccessException e) {
-      assertSame(error, e);
+    } catch (StoreAccessRuntimeException e) {
+      assertSame(error, e.getCause());
     }
   }
 
@@ -412,7 +431,24 @@ public class TieredStoreTest {
     try {
       tieredStore.computeIfAbsent(1, n -> null);
       fail("We should get an Error");
-    } catch (Error e) {
+    } catch (Exception e) {
+      assertSame(error, e.getCause());
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testComputeIfAbsentThrowsRuntimeException() throws Exception {
+
+    RuntimeException error = new RuntimeException();
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenThrow(error);
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+
+    try {
+      tieredStore.computeIfAbsent(1, n -> null);
+      fail("We should get an Error");
+    } catch (RuntimeException e) {
       assertSame(error, e);
     }
   }

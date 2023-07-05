@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

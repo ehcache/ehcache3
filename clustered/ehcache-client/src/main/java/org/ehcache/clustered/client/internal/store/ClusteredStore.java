@@ -580,7 +580,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) {
     return computeIfAbsent(key, mappingFunction);
   }
 

@@ -51,7 +51,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.impl.serialization.TransientStateRepository;
-import org.ehcache.sizeof.annotations.IgnoreSizeOf;
+import org.ehcache.spi.resilience.StoreAccessRuntimeException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.core.spi.store.Store;
@@ -86,6 +86,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -96,6 +97,7 @@ import java.util.function.Supplier;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
+import static org.ehcache.spi.resilience.StoreAccessRuntimeException.handleRuntimeException;
 
 /**
  * {@link Store} and {@link HigherCachingTier} implementation for on heap.
@@ -698,11 +700,13 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       long now = timeSource.getTimeMillis();
       if (cachedValue == null) {
-        Fault<V> fault = new Fault<>(() -> source.apply(key));
+        Fault<V> fault = new Fault<>();
         cachedValue = backEnd.putIfAbsent(key, fault);
 
         if (cachedValue == null) {
-          return resolveFault(key, backEnd, now, fault);
+          ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault, source);
+          fault.complete(valueHolder);
+          return valueHolder;
         }
       }
 
@@ -713,11 +717,13 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
           expireMappingUnderLock(key, cachedValue);
 
           // On expiration, we might still be able to get a value from the fault. For instance, when a load-writer is used
-          Fault<V> fault = new Fault<>(() -> source.apply(key));
+          Fault<V> fault = new Fault<>();
           cachedValue = backEnd.putIfAbsent(key, fault);
 
           if (cachedValue == null) {
-            return resolveFault(key, backEnd, now, fault);
+            ValueHolder<V> valueHolder = resolveFault(key, backEnd, now, fault, source);
+            fault.complete(valueHolder);
+            return valueHolder;
           }
         }
         else {
@@ -730,7 +736,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
       return getValue(cachedValue);
     } catch (RuntimeException re) {
-      throw handleException(re);
+      throw handleRuntimeException(re);
     }
   }
 
@@ -761,9 +767,9 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
     }
   }
 
-  private ValueHolder<V> resolveFault(K key, Backend<K, V> backEnd, long now, Fault<V> fault) throws StoreAccessException {
+  private ValueHolder<V> resolveFault(K key, Backend<K, V> backEnd, long now, Fault<V> fault, Function<K, ValueHolder<V>> source) throws StoreAccessException {
     try {
-      ValueHolder<V> value = fault.getValueHolder();
+      ValueHolder<V> value = source.apply(key);
       OnHeapValueHolder<V> newValue;
       if(value != null) {
         newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
@@ -807,8 +813,12 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
       return newValue;
-
+    } catch (StoreAccessRuntimeException e) {
+      fault.fail(e);
+      backEnd.remove(key, fault);
+      throw e.getCause();
     } catch (Throwable e) {
+      fault.fail(e);
       backEnd.remove(key, fault);
       throw new StoreAccessException(e);
     }
@@ -990,37 +1000,31 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     private static final int FAULT_ID = -1;
 
-    @IgnoreSizeOf
-    private final Supplier<ValueHolder<V>> source;
-    private ValueHolder<V> value;
-    private Throwable throwable;
-    private boolean complete;
+    /**
+     * valueFuture of type {@link java.util.concurrent.CompletableFuture} to ensure consistent state in concurrent usage
+     */
+    private CompletableFuture<ValueHolder<V>> valueFuture;
 
-    public Fault(Supplier<ValueHolder<V>> source) {
+    public Fault() {
       super(FAULT_ID, 0, true);
-      this.source = source;
+      this.valueFuture = new CompletableFuture<>();
     }
 
+    /**
+     * mark the process for fault object as completed in concurrent usage
+     */
     private void complete(ValueHolder<V> value) {
-      synchronized (this) {
-        this.value = value;
-        this.complete = true;
-        notifyAll();
-      }
+      valueFuture.complete(value);
     }
 
+    /**
+     * method to get the {@link org.ehcache.core.spi.store.Store.ValueHolder}
+     * Block the thread coming to get the value in concurrent usage
+     *
+     * @return {@link org.ehcache.core.spi.store.Store.ValueHolder}
+     */
     private ValueHolder<V> getValueHolder() {
-      synchronized (this) {
-        if (!complete) {
-          try {
-            complete(source.get());
-          } catch (Throwable e) {
-            fail(e);
-          }
-        }
-      }
-
-      return throwOrReturn();
+      return valueFuture.join();
     }
 
     @Override
@@ -1028,23 +1032,11 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       throw new UnsupportedOperationException("You should NOT call that?!");
     }
 
-    private ValueHolder<V> throwOrReturn() {
-      if (throwable != null) {
-        if (throwable instanceof RuntimeException) {
-          throw (RuntimeException) throwable;
-        }
-        throw new RuntimeException("Faulting from repository failed", throwable);
-      }
-      return value;
-    }
-
+    /**
+     * method to mark the Fault object process is failed
+     */
     private void fail(Throwable t) {
-      synchronized (this) {
-        this.throwable = t;
-        this.complete = true;
-        notifyAll();
-      }
-      throwOrReturn();
+      valueFuture.completeExceptionally(t);
     }
 
     @Override
@@ -1099,7 +1091,19 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
 
     @Override
     public String toString() {
-      return "[Fault : " + (complete ? (throwable == null ? String.valueOf(value) : throwable.getMessage()) : "???") + "]";
+      String valueOrException;
+      if (valueFuture.isDone()) {
+        if (valueFuture.isCancelled()) {
+          valueOrException = "Cancel";
+        } else if (valueFuture.isCompletedExceptionally()) {
+          valueOrException = "Exception";
+        } else {
+          valueOrException = "Complete";
+        }
+      } else {
+        valueOrException = "InComplete";
+      }
+      return "[Fault : " + valueOrException + "]";
     }
 
     @Override
