@@ -14,29 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.spi;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.javadoc.PublicApi;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
-import javax.xml.transform.Source;
-import java.net.URI;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
+/**
+ * Defines a handler for processing {@code /config/cache/resources} extension elements.
+ *
+ * @author Clifford W. Johnson
+ */
 @PublicApi
-public interface Parser<T> {
+public interface CacheResourceConfigurationParser extends Parser<ResourcePool> {
 
-  Map<URI, Supplier<Source>> getSchema();
-
-  default Set<URI> getTargetNamespaces() {
-    return getSchema().keySet();
-  }
-
-  T parse(Element fragment, ClassLoader classLoader);
-
-  Element unparse(Document target, T object);
+  Set<Class<? extends ResourcePool>> getResourceTypes();
 }
-

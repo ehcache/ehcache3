@@ -19,7 +19,7 @@ import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.xml.CacheServiceConfigurationParser;
+import org.ehcache.xml.spi.CacheServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;

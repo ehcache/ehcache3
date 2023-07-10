@@ -25,7 +25,7 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.spi.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Attr;
@@ -50,9 +50,9 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.lang.String.format;
-import static org.ehcache.xml.ParsingUtil.parsePropertyOrPositiveInteger;
-import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
-import static org.ehcache.xml.ParsingUtil.parseStringWithProperties;
+import static org.ehcache.xml.spi.ParsingUtil.parsePropertyOrPositiveInteger;
+import static org.ehcache.xml.spi.ParsingUtil.parsePropertyOrString;
+import static org.ehcache.xml.spi.ParsingUtil.parseStringWithProperties;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.

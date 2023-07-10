@@ -642,7 +642,7 @@
   <xs:simpleType name="propertyOrString">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.ParsingUtil.parsePropertyOrString"/>
+        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.spi.ParsingUtil.parsePropertyOrString"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:union memberTypes="ehcache:propertyReference">
@@ -656,7 +656,7 @@
   <xs:simpleType name="propertyOrPositiveInteger">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.ParsingUtil.parsePropertyOrPositiveInteger"/>
+        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.spi.ParsingUtil.parsePropertyOrPositiveInteger"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:union memberTypes="ehcache:propertyReference xs:positiveInteger"/>
@@ -665,7 +665,7 @@
   <xs:simpleType name="propertyOrNonNegativeInteger">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.ParsingUtil.parsePropertyOrNonNegativeInteger"/>
+        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.spi.ParsingUtil.parsePropertyOrNonNegativeInteger"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:union memberTypes="ehcache:propertyReference xs:nonNegativeInteger"/>
@@ -674,7 +674,7 @@
   <xs:simpleType name="stringWithProperties">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.ParsingUtil.parseStringWithProperties"/>
+        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.spi.ParsingUtil.parseStringWithProperties"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:restriction base="xs:string"/>

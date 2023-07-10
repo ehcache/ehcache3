@@ -17,6 +17,7 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
+import org.ehcache.xml.spi.CacheResourceConfigurationParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 

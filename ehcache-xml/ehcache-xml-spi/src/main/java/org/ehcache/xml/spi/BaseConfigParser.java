@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.xml;
+package org.ehcache.xml.spi;
 
 import org.ehcache.javadoc.PublicApi;
 import org.ehcache.xml.exceptions.XmlConfigurationException;

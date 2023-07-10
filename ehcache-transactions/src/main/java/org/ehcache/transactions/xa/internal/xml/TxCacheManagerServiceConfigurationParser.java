@@ -19,9 +19,9 @@ package org.ehcache.transactions.xa.internal.xml;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.ehcache.xml.BaseConfigParser;
-import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
+import org.ehcache.xml.spi.BaseConfigParser;
+import org.ehcache.xml.spi.CacheManagerServiceConfigurationParser;
 import org.osgi.service.component.annotations.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -32,7 +32,7 @@ import java.net.URI;
 import static java.util.Collections.singletonMap;
 import static org.ehcache.core.util.ClassLoading.delegationChain;
 import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
-import static org.ehcache.xml.ParsingUtil.parsePropertyOrString;
+import static org.ehcache.xml.spi.ParsingUtil.parsePropertyOrString;
 
 /**
  * @author Ludovic Orban

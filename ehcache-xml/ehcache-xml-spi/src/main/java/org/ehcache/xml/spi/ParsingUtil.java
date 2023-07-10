@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.xml;
+package org.ehcache.xml.spi;
 
 import org.ehcache.javadoc.PublicApi;
 

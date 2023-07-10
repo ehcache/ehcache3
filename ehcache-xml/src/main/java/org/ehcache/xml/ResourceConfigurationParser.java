@@ -35,6 +35,7 @@ import org.ehcache.xml.model.Offheap;
 import org.ehcache.xml.model.PersistableMemoryTypeWithPropSubst;
 import org.ehcache.xml.model.ResourceTypeWithPropSubst;
 import org.ehcache.xml.model.ResourcesType;
+import org.ehcache.xml.spi.CacheResourceConfigurationParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.Element;

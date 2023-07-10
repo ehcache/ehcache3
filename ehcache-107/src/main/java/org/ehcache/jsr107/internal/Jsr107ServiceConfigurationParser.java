@@ -18,7 +18,7 @@ package org.ehcache.jsr107.internal;
 
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.spi.CacheManagerServiceConfigurationParser;
 import org.ehcache.jsr107.Jsr107Service;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.osgi.service.component.annotations.Component;

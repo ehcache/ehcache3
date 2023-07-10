@@ -18,6 +18,7 @@ package org.ehcache.xml;
 
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.xml.spi.CacheServiceConfigurationParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 

@@ -98,14 +98,14 @@ task unpackTckTests(type: Sync) {
   from {
     configurations.tckTestClasses.collect {zipTree(it)}
   }
-  into sourceSets.tckTest.java.outputDir
+  into sourceSets.tckTest.java.classesDirectory
 }
 
 task tckTest(type: Test, dependsOn: unpackTckTests) {
   testClassesDirs = sourceSets.tckTest.output.classesDirs
   classpath += sourceSets.tckTest.runtimeClasspath
 
-  binResultsDir file("$buildDir/tck-tests-results/binary/$name")
+  binaryResultsDirectory = file("$buildDir/tck-tests-results/binary/$name")
   reports.junitXml.destination = file("$buildDir/tck-tests-results")
   reports.html.destination = file("$buildDir/reports/tck-tests")
 
