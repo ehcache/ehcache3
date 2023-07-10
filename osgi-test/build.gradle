@@ -88,7 +88,7 @@ configurations.all {
 sourceSets {
   test {
     // Needed to allow PaxExam to see the test resources
-    output.resourcesDir = java.outputDir
+    output.resourcesDir = java.classesDirectory
   }
 }
 
