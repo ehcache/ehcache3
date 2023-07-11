@@ -73,7 +73,7 @@ dependencies {
   serverLibs project(':clustered:server:service')
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
-  kit "org.terracotta:platform-kit:$terracottaPlatformVersion@tar.gz"
+  kit "org.terracotta:platform-layout:$terracottaPlatformVersion@tar.gz"
 
   shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
