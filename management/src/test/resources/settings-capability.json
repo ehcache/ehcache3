@@ -1,1 +1,90 @@
-{"name":"SettingsCapability","descriptors":[{"cacheName":"cache-1","keyType":"java.lang.String","valueType":"java.lang.String","resourcePools":{"heap":{"level":10000,"persistent":false,"type":"ENTRY","size":10,"unit":"entries"},"offheap":{"level":1000,"persistent":false,"type":"MEMORY","size":1,"unit":"MB"},"disk":{"level":100,"persistent":true,"type":"MEMORY","size":2,"unit":"MB"}}},{"cacheName":"cache-2","keyType":"java.lang.String","valueType":"java.lang.String","resourcePools":{"heap":{"level":10000,"persistent":false,"type":"ENTRY","size":10,"unit":"entries"},"offheap":{"level":1000,"persistent":false,"type":"MEMORY","size":1,"unit":"MB"},"disk":{"level":100,"persistent":true,"type":"MEMORY","size":2,"unit":"MB"}}},{"cacheManagerDescription":"","instanceId":"UUID","cacheManagerName":"my-cm-1"},"tags":["baz","boo","foo"]}],"capabilityContext":{"attributes":[{"name":"instanceId","required":true},{"name":"cacheManagerName","required":true},{"name":"cacheName","required":true}]}}
+{
+  "capabilityContext": {
+    "attributes": [
+      {
+        "name": "instanceId",
+        "required": true
+      },
+      {
+        "name": "cacheManagerName",
+        "required": true
+      },
+      {
+        "name": "cacheName",
+        "required": true
+      }
+    ]
+  },
+  "descriptors": [
+    {
+      "cacheName": "cache-1",
+      "keyType": "java.lang.String",
+      "resourcePools": {
+        "disk": {
+          "level": 100,
+          "persistent": true,
+          "size": 2,
+          "type": "MEMORY",
+          "unit": "MB"
+        },
+        "heap": {
+          "level": 10000,
+          "persistent": false,
+          "size": 10,
+          "type": "ENTRY",
+          "unit": "entries"
+        },
+        "offheap": {
+          "level": 1000,
+          "persistent": false,
+          "size": 1,
+          "type": "MEMORY",
+          "unit": "MB"
+        }
+      },
+      "valueType": "java.lang.String"
+    },
+    {
+      "cacheName": "cache-2",
+      "keyType": "java.lang.String",
+      "resourcePools": {
+        "disk": {
+          "level": 100,
+          "persistent": true,
+          "size": 2,
+          "type": "MEMORY",
+          "unit": "MB"
+        },
+        "heap": {
+          "level": 10000,
+          "persistent": false,
+          "size": 10,
+          "type": "ENTRY",
+          "unit": "entries"
+        },
+        "offheap": {
+          "level": 1000,
+          "persistent": false,
+          "size": 1,
+          "type": "MEMORY",
+          "unit": "MB"
+        }
+      },
+      "valueType": "java.lang.String"
+    },
+    {
+      "cacheManagerDescription": "caches:\n    cache-1:\n        keyType: java.lang.String\n        valueType: java.lang.String\n        serviceConfigurations: None\n        evictionAdvisor: None\n        expiry: No Expiry\n        resourcePools: \n            pools: \n                heap: \n                    size: 10 entries \n                    tierHeight: 10000\n                offheap: \n                    size: 1 MB \n                    tierHeight: 1000\n                disk: \n                    size: 2 MB (persistent)\n                    tierHeight: 100\n    cache-2:\n        keyType: java.lang.String\n        valueType: java.lang.String\n        serviceConfigurations: None\n        evictionAdvisor: None\n        expiry: TTI of PT2H\n        resourcePools: \n            pools: \n                heap: \n                    size: 10 entries \n                    tierHeight: 10000\n                offheap: \n                    size: 1 MB \n                    tierHeight: 1000\n                disk: \n                    size: 2 MB (persistent)\n                    tierHeight: 100\nservices: \n    - org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration\n    - org.ehcache.management.registry.DefaultManagementRegistryConfiguration",
+      "instanceId": "",
+      "managementContext": {
+        "cacheManagerName": "my-cm-1",
+        "instanceId": ""
+      },
+      "tags": [
+        "baz",
+        "boo",
+        "foo"
+      ]
+    }
+  ],
+  "name": "SettingsCapability"
+}
