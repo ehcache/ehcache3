@@ -15,7 +15,7 @@
  */
 package org.ehcache.impl.internal.spi.serialization;
 
-import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.ServiceLocatorUtils;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
@@ -34,8 +34,6 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,7 +47,7 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
-import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.core.spi.ServiceLocatorUtils.withServiceLocator;
 import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.endsWith;
@@ -76,28 +74,26 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateSerializerNoConfig() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(providerContaining());
-
-    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
-    try {
-      dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
-      fail("expected UnsupportedTypeException");
-    } catch (UnsupportedTypeException ute) {
-      // expected
-    }
+    withServiceLocator(new DefaultSerializationProvider(dspfConfig), dsp -> {
+      assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+      try {
+        dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
+        fail("expected UnsupportedTypeException");
+      } catch (UnsupportedTypeException ute) {
+        // expected
+      }
+    });
   }
 
   @Test
   public void testCreateSerializerWithConfig() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(providerContaining());
+    withServiceLocator(new DefaultSerializationProvider(dspfConfig), dsp -> {
+      DefaultSerializerConfiguration<?> dspConfig = new DefaultSerializerConfiguration<>(getSerializerClass(), DefaultSerializerConfiguration.Type.VALUE);
 
-    DefaultSerializerConfiguration<?> dspConfig = new DefaultSerializerConfiguration<>(getSerializerClass(), DefaultSerializerConfiguration.Type.VALUE);
-
-    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
-    assertThat(dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
+      assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
+      assertThat(dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), dspConfig), instanceOf(TestSerializer.class));
+    });
   }
 
   @Test
@@ -105,11 +101,10 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
     Class<Serializer<Long>> serializerClass = getSerializerClass();
     dspfConfig.addSerializerFor(Long.class, serializerClass);
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(providerContaining());
-
-    assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+    withServiceLocator(new DefaultSerializationProvider(dspfConfig), dsp -> {
+      assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
+      assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+    });
   }
 
   @SuppressWarnings("unchecked")
@@ -123,12 +118,11 @@ public class DefaultSerializationProviderTest {
     Class<Serializer<String>> serializerClass = getSerializerClass();
     dspfConfig.addSerializerFor(String.class, serializerClass);
 
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(providerContaining());
-
-    assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
-    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
+    withServiceLocator(new DefaultSerializationProvider(dspfConfig), dsp -> {
+      assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+      assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+      assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
+    });
   }
 
   @Test
@@ -137,26 +131,25 @@ public class DefaultSerializationProviderTest {
     Class<Serializer<Serializable>> serializerClass = getSerializerClass();
     dspfConfig.addSerializerFor(Serializable.class, serializerClass);
 
-    DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
-    dsp.start(providerContaining());
-
-    assertThat(dsp.createKeySerializer(HashMap.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
+    withServiceLocator(new DefaultSerializationProvider(dspfConfig), dsp -> {
+      assertThat(dsp.createKeySerializer(HashMap.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+      assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+      assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
+    });
   }
 
   @Test
-  public void testRemembersCreationConfigurationAfterStopStart() throws UnsupportedTypeException {
+  public void testRemembersCreationConfigurationAfterStopStart() throws Exception {
     DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
     Class<Serializer<String>> serializerClass = getSerializerClass();
     configuration.addSerializerFor(String.class, serializerClass);
-    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(configuration);
-    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
-    serializationProvider.start(serviceProvider);
-    assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
-    serializationProvider.stop();
-    serializationProvider.start(serviceProvider);
-    assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(configuration);
+    withServiceLocator(provider, serializationProvider -> {
+      assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    });
+    withServiceLocator(provider, serializationProvider -> {
+      assertThat(serializationProvider.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    });
   }
 
   @Test
@@ -225,304 +218,299 @@ public class DefaultSerializationProviderTest {
 
   @Test
   public void testDefaultSerializableSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<Serializable> keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<Serializable> keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
+      keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
+    });
   }
 
   @Test
   public void testDefaultStringSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<String> keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(StringSerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<String> keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(StringSerializer.class));
 
-    keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(StringSerializer.class));
+      keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(StringSerializer.class));
+    });
   }
 
   @Test
   public void testDefaultIntegerSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<Integer> keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(IntegerSerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<Integer> keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(IntegerSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(IntegerSerializer.class));
+      keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(IntegerSerializer.class));
+    });
   }
 
   @Test
   public void testDefaultLongSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<Long> keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(LongSerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<Long> keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(LongSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(LongSerializer.class));
+      keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(LongSerializer.class));
+    });
   }
 
   @Test
   public void testDefaultCharSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<Character> keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(CharSerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<Character> keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(CharSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(CharSerializer.class));
+      keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(CharSerializer.class));
+    });
   }
 
   @Test
   public void testDefaultDoubleSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<Double> keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(DoubleSerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<Double> keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(DoubleSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(DoubleSerializer.class));
+      keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(DoubleSerializer.class));
+    });
   }
 
   @Test
   public void testDefaultFloatSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<Float> keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(FloatSerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<Float> keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(FloatSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(FloatSerializer.class));
+      keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(FloatSerializer.class));
+    });
   }
 
   @Test
   public void testDefaultByteArraySerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-    Serializer<byte[]> keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
+    withPersistentProvider(provider -> {
+      Serializer<byte[]> keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader());
+      assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
 
-    keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
+      keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+      assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
+    });
   }
 
   @Test
   public void testCreateTransientSerializerWithoutConstructor() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) BaseSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) BaseSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testCreatePersistentSerializerWithoutConstructor() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) BaseSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) BaseSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testCreateTransientStatefulSerializerWithoutConstructor() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) StatefulBaseSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) StatefulBaseSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testCreatePersistentStatefulSerializerWithoutConstructor() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) StatefulBaseSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) StatefulBaseSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testCreateTransientMinimalSerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    MinimalSerializer.baseConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) MinimalSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
-    assertThat(valueSerializer, instanceOf(MinimalSerializer.class));
-    assertThat(MinimalSerializer.baseConstructorInvoked, is(true));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      MinimalSerializer.baseConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) MinimalSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
+      assertThat(valueSerializer, instanceOf(MinimalSerializer.class));
+      assertThat(MinimalSerializer.baseConstructorInvoked, is(true));
+    });
   }
 
   @Test
   public void testCreatePersistentMinimalSerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    MinimalSerializer.baseConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) MinimalSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
-    assertThat(valueSerializer, instanceOf(MinimalSerializer.class));
-    assertThat(MinimalSerializer.baseConstructorInvoked, is(true));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      MinimalSerializer.baseConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) MinimalSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
+      assertThat(valueSerializer, instanceOf(MinimalSerializer.class));
+      assertThat(MinimalSerializer.baseConstructorInvoked, is(true));
+    });
   }
 
   @Test
   public void testTransientMinimalStatefulSerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    MinimalStatefulSerializer.baseConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) MinimalStatefulSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
-    assertThat(valueSerializer, instanceOf(MinimalStatefulSerializer.class));
-    assertThat(MinimalStatefulSerializer.baseConstructorInvoked, is(true));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      MinimalStatefulSerializer.baseConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) MinimalStatefulSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
+      assertThat(valueSerializer, instanceOf(MinimalStatefulSerializer.class));
+      assertThat(MinimalStatefulSerializer.baseConstructorInvoked, is(true));
+    });
   }
 
   @Test
   public void testPersistentMinimalStatefulSerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    MinimalStatefulSerializer.baseConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) MinimalStatefulSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
-    assertThat(valueSerializer, instanceOf(MinimalStatefulSerializer.class));
-    assertThat(MinimalStatefulSerializer.baseConstructorInvoked, is(true));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      MinimalStatefulSerializer.baseConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) MinimalStatefulSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
+      assertThat(valueSerializer, instanceOf(MinimalStatefulSerializer.class));
+      assertThat(MinimalStatefulSerializer.baseConstructorInvoked, is(true));
+    });
   }
 
   @Test
   public void testTransientLegacySerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) LegacySerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) LegacySerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testPersistentLegacySerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-
-    LegacySerializer.legacyConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) LegacySerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withPersistentProvider(provider -> {
+      LegacySerializer.legacyConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) LegacySerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testTransientLegacyComboSerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    LegacyComboSerializer.baseConstructorInvoked = false;
-    LegacyComboSerializer.legacyConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) LegacyComboSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
-    assertThat(valueSerializer, instanceOf(LegacyComboSerializer.class));
-    assertThat(LegacyComboSerializer.baseConstructorInvoked, is(true));
-    assertThat(LegacyComboSerializer.legacyConstructorInvoked, is(false));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      LegacyComboSerializer.baseConstructorInvoked = false;
+      LegacyComboSerializer.legacyConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) LegacyComboSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
+      assertThat(valueSerializer, instanceOf(LegacyComboSerializer.class));
+      assertThat(LegacyComboSerializer.baseConstructorInvoked, is(true));
+      assertThat(LegacyComboSerializer.legacyConstructorInvoked, is(false));
+    });
   }
 
   @Test
   public void testPersistentLegacyComboSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-
-    LegacyComboSerializer.baseConstructorInvoked = false;
-    LegacyComboSerializer.legacyConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) LegacyComboSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
-    assertThat(valueSerializer, instanceOf(LegacyComboSerializer.class));
-    assertThat(LegacyComboSerializer.baseConstructorInvoked, is(true));
-    assertThat(LegacyComboSerializer.legacyConstructorInvoked, is(false));
+    withPersistentProvider(provider -> {
+      LegacyComboSerializer.baseConstructorInvoked = false;
+      LegacyComboSerializer.legacyConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) LegacyComboSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
+      assertThat(valueSerializer, instanceOf(LegacyComboSerializer.class));
+      assertThat(LegacyComboSerializer.baseConstructorInvoked, is(true));
+      assertThat(LegacyComboSerializer.legacyConstructorInvoked, is(false));
+    });
   }
 
   @Test
   public void testCreateTransientStatefulLegacySerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) StatefulLegacySerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) StatefulLegacySerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testCreatePersistentStatefulLegacySerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) StatefulLegacySerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
-    assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) StatefulLegacySerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      RuntimeException thrown = assertThrows(RuntimeException.class, () -> provider.createValueSerializer(Object.class, getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock()));
+      assertThat(thrown, hasProperty("message", endsWith("does not have a constructor that takes in a ClassLoader.")));
+    });
   }
 
   @Test
   public void testTransientStatefulLegacyComboSerializer() throws Exception {
-    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    provider.start(providerContaining());
-
-    StatefulLegacyComboSerializer.baseConstructorInvoked = false;
-    StatefulLegacyComboSerializer.legacyConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) StatefulLegacyComboSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
-    assertThat(valueSerializer, instanceOf(StatefulLegacyComboSerializer.class));
-    assertThat(StatefulLegacyComboSerializer.baseConstructorInvoked, is(true));
-    assertThat(StatefulLegacyComboSerializer.legacyConstructorInvoked, is(false));
+    withServiceLocator(new DefaultSerializationProvider(null), provider -> {
+      StatefulLegacyComboSerializer.baseConstructorInvoked = false;
+      StatefulLegacyComboSerializer.legacyConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) StatefulLegacyComboSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration);
+      assertThat(valueSerializer, instanceOf(StatefulLegacyComboSerializer.class));
+      assertThat(StatefulLegacyComboSerializer.baseConstructorInvoked, is(true));
+      assertThat(StatefulLegacyComboSerializer.legacyConstructorInvoked, is(false));
+    });
   }
 
   @Test
   public void testPersistentStatefulLegacyComboSerializer() throws Exception {
-    DefaultSerializationProvider provider = getStartedProvider();
-
-    StatefulLegacyComboSerializer.baseConstructorInvoked = false;
-    StatefulLegacyComboSerializer.legacyConstructorInvoked = false;
-    @SuppressWarnings("unchecked")
-    Class<Serializer<Object>> serializerClass = (Class) StatefulLegacyComboSerializer.class;
-    DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
-    Serializer<Object> valueSerializer =
-      provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
-    assertThat(valueSerializer, instanceOf(StatefulLegacyComboSerializer.class));
-    assertThat(StatefulLegacyComboSerializer.baseConstructorInvoked, is(true));
-    assertThat(StatefulLegacyComboSerializer.legacyConstructorInvoked, is(false));
+    withPersistentProvider(provider -> {
+      StatefulLegacyComboSerializer.baseConstructorInvoked = false;
+      StatefulLegacyComboSerializer.legacyConstructorInvoked = false;
+      @SuppressWarnings("unchecked")
+      Class<Serializer<Object>> serializerClass = (Class) StatefulLegacyComboSerializer.class;
+      DefaultSerializerConfiguration<Object> configuration = new DefaultSerializerConfiguration<>(serializerClass, DefaultSerializerConfiguration.Type.VALUE);
+      Serializer<Object> valueSerializer =
+        provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
+      assertThat(valueSerializer, instanceOf(StatefulLegacyComboSerializer.class));
+      assertThat(StatefulLegacyComboSerializer.baseConstructorInvoked, is(true));
+      assertThat(StatefulLegacyComboSerializer.legacyConstructorInvoked, is(false));
+    });
   }
 
   private PersistableResourceService.PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifierMock() {
@@ -531,23 +519,19 @@ public class DefaultSerializationProviderTest {
     return spaceIdentifier;
   }
 
-  private DefaultSerializationProvider getStartedProvider() throws CachePersistenceException {
-    DefaultSerializationProvider defaultProvider = new DefaultSerializationProvider(null);
-
-    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
+  private void withPersistentProvider(ServiceLocatorUtils.ServiceTask<DefaultSerializationProvider> task) throws Exception {
     DiskResourceService diskResourceService = mock(DiskResourceService.class);
     when(diskResourceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
-          .thenReturn(() -> {
-            try {
-              return tempFolder.newFolder();
-            } catch (IOException e) {
-              fail("unable to create persistence ");
-              return null;
-            }
-          });
-    when(serviceProvider.getService(DiskResourceService.class)).thenReturn(diskResourceService);
-    defaultProvider.start(serviceProvider);
-    return defaultProvider;
+      .thenReturn(() -> {
+        try {
+          return tempFolder.newFolder();
+        } catch (IOException e) {
+          fail("unable to create persistence ");
+          return null;
+        }
+      });
+
+    withServiceLocator(new DefaultSerializationProvider(null), deps -> deps.with(diskResourceService), task);
   }
 
   public static class TestSerializer<T> implements Serializer<T> {

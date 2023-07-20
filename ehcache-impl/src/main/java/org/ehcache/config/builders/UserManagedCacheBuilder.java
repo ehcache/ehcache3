@@ -107,8 +107,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private final Class<K> keyType;
   private final Class<V> valueType;
   private String id;
-  private final Set<Service> services = new HashSet<>();
-  private final Set<ServiceCreationConfiguration<?, ?>> serviceCreationConfigurations = new HashSet<>();
+  private ServiceLocator.DependencySet dependencySet = ServiceLocator.dependencySet().with(Store.Provider.class);
   private ExpiryPolicy<? super K, ? super V> expiry = ExpiryPolicy.NO_EXPIRY;
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
@@ -143,8 +142,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.keyType = toCopy.keyType;
     this.valueType = toCopy.valueType;
     this.id = toCopy.id;
-    this.services.addAll(toCopy.services);
-    this.serviceCreationConfigurations.addAll(toCopy.serviceCreationConfigurations);
+    this.dependencySet = toCopy.dependencySet;
     this.expiry = toCopy.expiry;
     this.classLoader = toCopy.classLoader;
     this.evictionAdvisor = toCopy.evictionAdvisor;
@@ -167,7 +165,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   @SuppressWarnings("try")
-  T build(ServiceLocator.DependencySet serviceLocatorBuilder) throws IllegalStateException {
+  T internalBuild() throws IllegalStateException {
 
     String alias = id == null ? "UserManaged - " + instanceId.getAndIncrement() : id;
     try(EhcachePrefixLoggerFactory.Context ignored = EhcachePrefixLoggerFactory.withContext("cache-alias", alias)){
@@ -175,11 +173,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
       ServiceLocator serviceLocator;
       try {
-        for (ServiceCreationConfiguration<?, ?> serviceCreationConfig : serviceCreationConfigurations) {
-          serviceLocatorBuilder = serviceLocatorBuilder.with(serviceCreationConfig);
-        }
-        serviceLocatorBuilder = serviceLocatorBuilder.with(Store.Provider.class);
-        serviceLocator = serviceLocatorBuilder.build();
+        serviceLocator = dependencySet.build();
         serviceLocator.startAllServices();
       } catch (Exception e) {
         throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
@@ -354,13 +348,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   private void registerListeners(Cache<K, V> cache, ServiceProvider<Service> serviceProvider, List<LifeCycled> lifeCycledList) {
     if (!eventListenerConfigurations.isEmpty()) {
-      final CacheEventListenerProvider listenerProvider;
-      CacheEventListenerProvider provider;
-      if ((provider = serviceProvider.getService(CacheEventListenerProvider.class)) != null) {
-        listenerProvider = provider;
-      } else {
-        listenerProvider = new DefaultCacheEventListenerProvider();
-      }
+      final CacheEventListenerProvider listenerProvider = serviceProvider.getService(CacheEventListenerProvider.class);
       for (CacheEventListenerConfiguration<?> config : eventListenerConfigurations) {
         final CacheEventListener<K, V> listener = listenerProvider.createEventListener(id, config);
         if (listener != null) {
@@ -396,7 +384,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @throws IllegalStateException if the user managed cache cannot be built
    */
   public final T build(final boolean init) throws IllegalStateException {
-    final T build = build(dependencySet().withoutMandatoryServices().with(services));
+    final T build = internalBuild();
     if (init) {
       build.init();
     }
@@ -557,6 +545,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    */
   public final UserManagedCacheBuilder<K, V, T> withEventListeners(CacheEventListenerConfiguration<?> ... cacheEventListenerConfigurations) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
+    otherBuilder.dependencySet.with(CacheEventListenerProvider.class);
     otherBuilder.eventListenerConfigurations.addAll(Arrays.asList(cacheEventListenerConfigurations));
     return otherBuilder;
   }
@@ -737,9 +726,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   @Deprecated
   public UserManagedCacheBuilder<K, V, T> withSizeOfMaxObjectGraph(long size) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
-    removeAnySizeOfEngine(otherBuilder);
     otherBuilder.objectGraphSize = size;
-    otherBuilder.serviceCreationConfigurations.add(new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(otherBuilder.maxObjectSize, otherBuilder.sizeOfUnit, otherBuilder.objectGraphSize));
+    otherBuilder.dependencySet.with(new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(otherBuilder.maxObjectSize, otherBuilder.sizeOfUnit, otherBuilder.objectGraphSize));
     return otherBuilder;
   }
 
@@ -756,10 +744,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   @Deprecated
   public UserManagedCacheBuilder<K, V, T> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
-    removeAnySizeOfEngine(otherBuilder);
     otherBuilder.maxObjectSize = size;
     otherBuilder.sizeOfUnit = unit;
-    otherBuilder.serviceCreationConfigurations.add(new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(otherBuilder.maxObjectSize, otherBuilder.sizeOfUnit, otherBuilder.objectGraphSize));
+    otherBuilder.dependencySet.with(new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(otherBuilder.maxObjectSize, otherBuilder.sizeOfUnit, otherBuilder.objectGraphSize));
     return otherBuilder;
   }
 
@@ -791,10 +778,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   @SuppressWarnings("deprecation")
   public UserManagedCacheBuilder<K, V, T> using(Service service) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
-    if (service instanceof org.ehcache.core.spi.store.heap.SizeOfEngineProvider) {
-      removeAnySizeOfEngine(otherBuilder);
-    }
-    otherBuilder.services.add(service);
+    otherBuilder.dependencySet.with(service);
     return otherBuilder;
   }
 
@@ -815,17 +799,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   @SuppressWarnings("deprecation")
   public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?, ?> serviceConfiguration) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<>(this);
-    if (serviceConfiguration instanceof org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration) {
-      removeAnySizeOfEngine(otherBuilder);
-    }
-    otherBuilder.serviceCreationConfigurations.add(serviceConfiguration);
+    otherBuilder.dependencySet.with(serviceConfiguration);
     return otherBuilder;
   }
-
-  @Deprecated
-  private static void removeAnySizeOfEngine(UserManagedCacheBuilder<?, ?, ?> builder) {
-    builder.services.remove(findSingletonAmongst(org.ehcache.core.spi.store.heap.SizeOfEngineProvider.class, builder.services));
-    builder.serviceCreationConfigurations.remove(findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
-  }
-
 }

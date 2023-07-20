@@ -27,6 +27,7 @@ import org.junit.Test;
 import java.io.Closeable;
 import java.io.IOException;
 
+import static org.ehcache.core.spi.ServiceLocatorUtils.withServiceLocator;
 import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -39,74 +40,78 @@ import static org.junit.Assert.assertFalse;
 public class DefaultCopyProviderTest {
 
   @Test
-  public void testCreateKeyCopierWithCustomCopierConfig() {
-    DefaultCopyProvider provider = new DefaultCopyProvider(null);
-
-    @SuppressWarnings("unchecked")
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
+  public void testCreateKeyCopierWithCustomCopierConfig() throws Exception {
+    withServiceLocator(new DefaultCopyProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
         (Class)TestCopier.class, DefaultCopierConfiguration.Type.KEY);
 
-    assertThat(provider.createKeyCopier(Long.class, null, config), instanceOf(TestCopier.class));
+      assertThat(provider.createKeyCopier(Long.class, null, config), instanceOf(TestCopier.class));
+    });
   }
 
   @Test
-  public void testCreateKeyCopierWithoutConfig() {
-    DefaultCopyProvider provider = new DefaultCopyProvider(null);
+  public void testCreateKeyCopierWithoutConfig() throws Exception {
+    withServiceLocator(new DefaultCopyProvider(null), provider -> {
 
-    assertThat(provider.createKeyCopier(Long.class, null), instanceOf(IdentityCopier.class));
+      assertThat(provider.createKeyCopier(Long.class, null), instanceOf(IdentityCopier.class));
+    });
   }
 
   @Test
-  public void testCreateKeyCopierWithSerializer() {
-    DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
-      SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY);
+  public void testCreateKeyCopierWithSerializer() throws Exception {
+    withServiceLocator(new DefaultCopyProvider(null), provider -> {
+      DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
+        SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY);
 
-    Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
-    assertThat(copyProvider.createKeyCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
+      Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
+      assertThat(provider.createKeyCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
+    });
   }
 
   @Test
-  public void testCreateValueCopierWithCustomCopierConfig() {
-    DefaultCopyProvider provider = new DefaultCopyProvider(null);
+  public void testCreateValueCopierWithCustomCopierConfig() throws Exception {
+    withServiceLocator(new DefaultCopyProvider(null), provider -> {
+      @SuppressWarnings("unchecked")
+      DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
+        (Class) TestCopier.class, DefaultCopierConfiguration.Type.VALUE);
 
-    @SuppressWarnings("unchecked")
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)TestCopier.class, DefaultCopierConfiguration.Type.VALUE);
-
-    assertThat(provider.createValueCopier(Long.class, null, config), instanceOf(TestCopier.class));
+      assertThat(provider.createValueCopier(Long.class, null, config), instanceOf(TestCopier.class));
+    });
   }
 
   @Test
-  public void testCreateValueCopierWithoutConfig() {
-    DefaultCopyProvider provider = new DefaultCopyProvider(null);
-
-    assertThat(provider.createValueCopier(Long.class, null), instanceOf(IdentityCopier.class));
+  public void testCreateValueCopierWithoutConfig() throws Exception {
+    withServiceLocator(new DefaultCopyProvider(null), provider -> {
+      assertThat(provider.createValueCopier(Long.class, null), instanceOf(IdentityCopier.class));
+    });
   }
 
   @Test
-  public void testCreateValueCopierWithSerializer() {
-    DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
-      SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
+  public void testCreateValueCopierWithSerializer() throws Exception {
+    withServiceLocator(new DefaultCopyProvider(null), provider -> {
+      DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(
+        SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
 
-    Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
-    assertThat(copyProvider.createValueCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
+      Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
+      assertThat(provider.createValueCopier(Long.class, serializer, config), instanceOf(SerializingCopier.class));
+    });
+
   }
 
   @Test
   public void testUserProvidedCloseableCopierInstanceDoesNotCloseOnRelease() throws Exception {
-    DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
-    TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<>();
-    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
+    withServiceLocator(new DefaultCopyProvider(null), provider -> {
+      TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<>();
+      DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
 
-    Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
-    assertThat(copyProvider.createKeyCopier(Long.class, serializer, config), sameInstance((Copier)testCloseableCopier));
+      Serializer<Long> serializer = uncheckedGenericMock(Serializer.class);
+      assertThat(provider.createKeyCopier(Long.class, serializer, config), sameInstance((Copier) testCloseableCopier));
 
-    copyProvider.releaseCopier(testCloseableCopier);
+      provider.releaseCopier(testCloseableCopier);
 
-    assertFalse(testCloseableCopier.isInvoked());
-
+      assertFalse(testCloseableCopier.isInvoked());
+    });
   }
 
   private static class TestCloseableCopier<T> extends ReadWriteCopier<T> implements Closeable {
