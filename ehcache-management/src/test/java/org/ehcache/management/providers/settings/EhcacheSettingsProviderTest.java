@@ -15,8 +15,6 @@
  */
 package org.ehcache.management.providers.settings;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -29,20 +27,23 @@ import org.ehcache.management.SharedManagementService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultSharedManagementService;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.terracotta.json.DefaultJsonFactory;
+import org.terracotta.json.Json;
+import org.terracotta.json.gson.GsonModule;
 import org.terracotta.management.model.capabilities.Capability;
-import org.terracotta.management.model.capabilities.context.CapabilityContext;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Scanner;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.junit.Assert.assertEquals;
@@ -55,12 +56,10 @@ public class EhcacheSettingsProviderTest {
 
   CacheManager cacheManager;
   SharedManagementService sharedManagementService = new DefaultSharedManagementService();
-  ObjectMapper mapper = new ObjectMapper();
-
-  @Before
-  public void before() {
-    mapper.addMixIn(CapabilityContext.class, CapabilityContextMixin.class);
-  }
+  Json mapper = new DefaultJsonFactory()
+    .withModule((GsonModule) config -> config.serializeSubtypes(Descriptor.class))
+    .pretty()
+    .create();
 
   @After
   public void after() {
@@ -70,7 +69,7 @@ public class EhcacheSettingsProviderTest {
   }
 
   @Test
-  public void test_standalone_ehcache() throws IOException {
+  public void test_standalone_ehcache() throws IOException, URISyntaxException {
     CacheConfiguration<String, String> cacheConfiguration1 = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
         newResourcePoolsBuilder()
             .heap(10, EntryUnit.ENTRIES)
@@ -103,12 +102,9 @@ public class EhcacheSettingsProviderTest {
 
     cacheManager.init();
 
-    String expected = read("/settings-capability.json")
-      .replaceAll("instance-id", serviceConfiguration.getInstanceId());
-    String actual = mapper.writeValueAsString(getSettingsCapability())
-      .replaceAll("\\\"cacheManagerDescription\\\":\\\".*\\\",\\\"instanceId\\\"", "\\\"cacheManagerDescription\\\":\\\"\\\",\\\"instanceId\\\"")
-      .replaceAll("\\\"instanceId\\\":\\\".*\\\",\\\"managementContext\\\"", "\\\"instanceId\\\":\\\"UUID\\\",\\\"managementContext\\\"")
-      .replaceAll("\\\"instanceId\\\":\\\".*\\\",\\\"cacheManagerName\\\"", "\\\"instanceId\\\":\\\"UUID\\\",\\\"cacheManagerName\\\"");
+    String expected = read("/settings-capability.json").trim();
+    String actual = mapper.toString(getSettingsCapability())
+      .replaceAll("\"instanceId\": \"[0-9a-f-]+\"", "\"instanceId\": \"\"");
 
     // assertThat for formatted string comparison: ide support is bad
     assertEquals(expected, actual);
@@ -123,18 +119,8 @@ public class EhcacheSettingsProviderTest {
     throw new AssertionError();
   }
 
-  private String read(String path) throws FileNotFoundException {
-    try (Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8")) {
-      return scanner.nextLine();
-    }
+  private String read(String resource) throws IOException, URISyntaxException {
+    return new String(Files.readAllBytes(Paths.get(getClass().getResource(resource).toURI())), StandardCharsets.UTF_8)
+      .replaceAll("\r", "");
   }
-
-  public static abstract class CapabilityContextMixin {
-    @JsonIgnore
-    public abstract Collection<String> getRequiredAttributeNames();
-
-    @JsonIgnore
-    public abstract Collection<CapabilityContext.Attribute> getRequiredAttributes();
-  }
-
 }
