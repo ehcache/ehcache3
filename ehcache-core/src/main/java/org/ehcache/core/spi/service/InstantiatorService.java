@@ -19,5 +19,5 @@ import org.ehcache.spi.service.Service;
 
 public interface InstantiatorService extends Service {
 
-  <T> T instantiate(Class<T> clazz, Object[] arguments);
+  <T> T instantiate(Class<T> clazz, Object ... arguments) throws IllegalArgumentException;
 }

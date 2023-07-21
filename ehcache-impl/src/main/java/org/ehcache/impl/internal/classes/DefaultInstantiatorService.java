@@ -33,7 +33,7 @@ public class DefaultInstantiatorService implements InstantiatorService {
   }
 
   @Override
-  public <T> T instantiate(Class<T> clazz, Object[] arguments) {
+  public <T> T instantiate(Class<T> clazz, Object ... arguments) {
     try {
       return ConstructorUtils.invokeConstructor(clazz, arguments);
     } catch (ReflectiveOperationException e) {
