@@ -49,6 +49,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.impl.internal.classes.DefaultInstantiatorService;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
@@ -537,7 +538,7 @@ public class DefaultClusteringServiceTest {
     service.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
@@ -598,7 +599,7 @@ public class DefaultClusteringServiceTest {
     accessService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
@@ -644,7 +645,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> creationStoreConfig =
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
@@ -725,7 +726,7 @@ public class DefaultClusteringServiceTest {
     firstService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> firstSharedStoreConfig =
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
@@ -787,7 +788,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
@@ -838,7 +839,7 @@ public class DefaultClusteringServiceTest {
     service.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
@@ -901,7 +902,7 @@ public class DefaultClusteringServiceTest {
     accessService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
@@ -949,7 +950,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> creationStoreConfig =
         getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
@@ -1032,7 +1033,7 @@ public class DefaultClusteringServiceTest {
     firstService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> firstSharedStoreConfig =
         getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
@@ -1099,7 +1100,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
@@ -1151,7 +1152,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
@@ -1204,7 +1205,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> storeConfiguration =
         getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
@@ -1316,7 +1317,7 @@ public class DefaultClusteringServiceTest {
     createService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
 
     Store.Configuration<Long, String> sharedStoreConfiguration =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
@@ -1414,7 +1415,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
 
     Store.Configuration<Long, String> createStoreConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
@@ -1476,7 +1477,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
 
     Store.Configuration<Long, String> storeConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
@@ -1528,7 +1529,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
 
     Store.Configuration<Long, String> storeConfig =
         getSharedStoreConfig("dedicatedPrimary", serializationProvider, Long.class, String.class);
@@ -1575,7 +1576,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
 
     Store.Configuration<Long, String> creationStoreConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
@@ -1644,7 +1645,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
 
     Store.Configuration<Long, String> storeConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
@@ -1705,7 +1706,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> createStoreConfig =
         getDedicatedStoreConfig("serverResource1", serializationProvider, Long.class, String.class);
 
@@ -1773,7 +1774,7 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
+    serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
     Store.Configuration<Long, String> createStoreConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 

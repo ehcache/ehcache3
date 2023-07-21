@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.spi.serialization;
 
+import org.ehcache.core.spi.service.InstantiatorService;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
@@ -27,6 +28,7 @@ import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -41,8 +43,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author Ludovic Orban
  */
+@ServiceDependencies(InstantiatorService.class)
 public class DefaultSerializationProvider implements SerializationProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSerializationProvider.class);
@@ -61,6 +62,8 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<>();
   final Set<Serializer<?>> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Serializer<?>, Boolean>());
+
+  private InstantiatorService instantiator;
 
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
@@ -105,11 +108,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       // Ideal
     }
 
-    try {
-      return constructSerializer(clazz, klazz.getConstructor(ClassLoader.class), classLoader);
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException(klazz + " does not have a constructor that takes in a ClassLoader.", e);
-    }
+    return instantiator.instantiate(klazz, classLoader);
   }
 
 
@@ -134,18 +133,6 @@ public class DefaultSerializationProvider implements SerializationProvider {
       }
     }
     throw new UnsupportedTypeException("No serializer found for type '" + clazz.getName() + "'");
-  }
-
-  private <T> Serializer<T> constructSerializer(Class<T> clazz, Constructor<? extends Serializer<T>> constructor, Object ... args) {
-    try {
-      Serializer<T> serializer = constructor.newInstance(args);
-      LOG.debug("Serializer for <{}> : {}", clazz.getName(), serializer);
-      return serializer;
-    } catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalArgumentException e) {
-      throw new AssertionError(e);
-    }
   }
 
   private void updateProvidedInstanceCounts(Serializer<?> serializer) {
@@ -176,6 +163,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
+    this.instantiator = serviceProvider.getService(InstantiatorService.class);
     addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, CompactJavaSerializer.<Serializable>asTypedSerializer());
     addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
     addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);
@@ -188,7 +176,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public void stop() {
-    // no-op
+    this.instantiator = null;
   }
 
   private static <T> void addDefaultSerializerIfNoneRegistered(Map<Class<?>, Class<? extends Serializer<?>>> serializers, Class<T> clazz, Class<? extends Serializer<T>> serializerClass) {

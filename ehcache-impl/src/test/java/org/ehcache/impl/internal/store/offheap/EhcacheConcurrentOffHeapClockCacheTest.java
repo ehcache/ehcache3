@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.classes.DefaultInstantiatorService;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
@@ -57,7 +58,7 @@ public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHe
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-      serializationProvider.start(providerContaining());
+      serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
       PageSource pageSource = new UpfrontAllocatingPageSource(getBufferSource(), configuration.getMaximumSize(), configuration.getMaximumChunkSize(), configuration.getMinimumChunkSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcacheConcurrentOffHeapClockCacheTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcacheConcurrentOffHeapClockCacheTest.class.getClassLoader());
