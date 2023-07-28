@@ -19,6 +19,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.service.InstantiatorService;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
@@ -168,6 +169,9 @@ public class EhcacheCachingProvider implements CachingProvider {
       ServiceLocator.DependencySet d = dependencies.with(jsr107Service).with(cacheLoaderWriterFactory);
       if (ServiceUtils.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, serviceCreationConfigurations) == null) {
         d = d.with(serializerConfiguration);
+      }
+      if(properties.containsKey("ehcache.service.instantiatorService")) {
+        d.with((InstantiatorService) properties.get("ehcache.service.instantiatorService"));
       }
       return d;
     };
