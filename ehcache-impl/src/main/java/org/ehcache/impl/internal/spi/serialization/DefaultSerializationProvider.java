@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.spi.serialization;
 
+import org.ehcache.core.spi.service.InstantiatorService;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
@@ -27,6 +28,7 @@ import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -47,15 +49,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Ludovic Orban
  */
+@ServiceDependencies(InstantiatorService.class)
 public class DefaultSerializationProvider implements SerializationProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSerializationProvider.class);
+
+  private InstantiatorService instantiator;
 
   protected final Map<Class<?>, Class<? extends Serializer<?>>> serializers;
 
@@ -96,6 +102,12 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   private <T> Serializer<T> createSerializer(Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?, ?>... configs) throws UnsupportedTypeException {
     Class<? extends Serializer<T>> klazz = getSerializerClassFor(clazz, config);
+
+    try {
+      return instantiator.instantiate(klazz, classLoader);
+    } catch (NoSuchElementException e) {
+      // ignore - IoC framework has no factory for this type and args
+    }
 
     try {
       klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
@@ -176,6 +188,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
+    this.instantiator = serviceProvider.getService(InstantiatorService.class);
     addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, CompactJavaSerializer.<Serializable>asTypedSerializer());
     addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
     addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);

@@ -17,7 +17,9 @@ package org.ehcache.core.spi.service;
 
 import org.ehcache.spi.service.Service;
 
+import java.util.NoSuchElementException;
+
 public interface InstantiatorService extends Service {
 
-  <T> T instantiate(Class<T> clazz, Object ... arguments) throws IllegalArgumentException;
+  <T> T instantiate(Class<T> clazz, Object ... arguments) throws IllegalArgumentException, NoSuchElementException;
 }

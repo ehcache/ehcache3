@@ -26,15 +26,18 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.impl.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
 
 /**
  * @author Alex Snaps
@@ -120,7 +123,16 @@ public class ClassInstanceProvider<K, C extends ClassInstanceConfiguration<? ext
     if(config.getInstance() != null) {
       instance = config.getInstance();
     } else {
-      instance = instantiator.instantiate(config.getClazz(), config.getArguments());
+      try {
+        instance = instantiator.instantiate(config.getClazz());
+      } catch (NoSuchElementException e1) {
+        try {
+          instance = invokeConstructor(config.getClazz(), config.getArguments());
+        } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e2) {
+          e1.addSuppressed(e2);
+          throw e1;
+        }
+      }
       instantiated.add(instance);
     }
 
