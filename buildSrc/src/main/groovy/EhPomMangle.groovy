@@ -79,16 +79,6 @@ class EhPomMangle implements Plugin<Project> {
       repositories {
         mavenDeployer ({
           beforeDeployment { MavenDeployment deployment -> project.signing.signPom(deployment)}
-
-          if (project.isReleaseVersion) {
-            repository(url: project.deployUrl) {
-              authentication(userName: project.deployUser, password: project.deployPwd)
-            }
-          } else {
-            repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
-              authentication(userName: project.sonatypeUser, password: project.sonatypePwd)
-            }
-          }
         } << artifactFiltering)
       }
     }
