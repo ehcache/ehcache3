@@ -555,6 +555,11 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
+  public Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> bulkComputeIfAbsentAndFault(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+    return bulkComputeIfAbsent((Set<? extends K>) keys,mappingFunction).entrySet();
+  }
+
+  @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     // TODO: Make appropriate ServerStoreProxy call
     return Collections.emptyList();

@@ -496,41 +496,308 @@ public class TieredStoreTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void testBulkComputeIfAbsent() throws Exception {
-    when(numberAuthoritativeTier.bulkComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer((Answer<Map<Number, Store.ValueHolder<CharSequence>>>) invocation -> {
-      Set<Number> keys = (Set) invocation.getArguments()[0];
-      Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = (Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>) invocation.getArguments()[1];
-
-      List<Map.Entry<? extends Number, ? extends CharSequence>> functionArg = new ArrayList<>();
-      for (Number key : keys) {
-        functionArg.add(newMapEntry(key, null));
-      }
-
-      Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>> functionResult = function.apply(functionArg);
-
-      Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
-      for (Map.Entry<? extends Number, ? extends CharSequence> entry : functionResult) {
-        result.put(entry.getKey(), newValueHolder(entry.getValue()));
-      }
-
-      return result;
-    });
-
+  public void testBulkComputeIfAbsentThrowsError() throws Exception {
+    Error error = new Error();
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenThrow(new StoreAccessException(error));
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
 
+    try {
+      tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), numbers -> Collections.singletonList(newMapEntry(0, "zero")));
+      fail("We should get an Error");
+    } catch (Error e) {
+      assertSame(error, e);
+    }
+  }
 
-    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), numbers -> Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three")));
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testBulkComputeIfAbsent_cachingTier() throws Exception {
+
+    Map<Number, Store.ValueHolder<CharSequence>> map = new HashMap<>();
+    map.put(1, newValueHolder("one"));
+    map.put(2, newValueHolder("two"));
+    map.put(3, newValueHolder("three"));
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(invocation -> map);
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)),
+      numbers -> Collections.singletonList(newMapEntry(0, "zero")));
 
     assertThat(result.size(), is(3));
-    assertThat(result.get(1).get(), Matchers.<CharSequence>equalTo("one"));
-    assertThat(result.get(2).get(), Matchers.<CharSequence>equalTo("two"));
-    assertThat(result.get(3).get(), Matchers.<CharSequence>equalTo("three"));
-
-    verify(numberCachingTier, times(1)).invalidate(1);
-    verify(numberCachingTier, times(1)).invalidate(2);
-    verify(numberCachingTier, times(1)).invalidate(3);
-    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsent(any(Set.class), any(Function.class));
+    assertThat(result.get(1).get(), is("one"));
+    assertThat(result.get(2).get(), is("two"));
+    assertThat(result.get(3).get(), is("three"));
+    verify(numberCachingTier, times(1)).bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberAuthoritativeTier, times(0)).bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class));
   }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testBulkComputeIfAbsent_authoritativeTier() throws Exception {
+
+    Map<Number, Store.ValueHolder<CharSequence>> map = new HashMap<>();
+    map.put(1, newValueHolder("one"));
+    map.put(2, newValueHolder("two"));
+    map.put(3, newValueHolder("three"));
+
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : function.apply(keys)) {
+          result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+      });
+
+    when(numberAuthoritativeTier.bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class))).thenAnswer(invocation -> map.entrySet());
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)),
+      numbers -> Collections.singletonList(newMapEntry(0, "zero")));
+
+    assertThat(result.size(), is(3));
+    assertThat(result.get(1).get(), is("one"));
+    assertThat(result.get(2).get(), is("two"));
+    assertThat(result.get(3).get(), is("three"));
+    verify(numberCachingTier, times(1)).bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testBulkComputeIfAbsent_compute() throws Exception {
+
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> function = invocation.getArgument(1);
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : function.apply(keys)) {
+          result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+      });
+
+    when(numberAuthoritativeTier.bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        for (Map.Entry<? extends Number, ? extends CharSequence> entry : function.apply(keys)) {
+          result.put(entry.getKey(), newValueHolder(entry.getValue()));
+        }
+        return result.entrySet();
+      });
+
+    Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> mappingFunction =
+      numbers -> Arrays.asList(newMapEntry(1, "one"), newMapEntry(2, "two"), newMapEntry(3, "three"));
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), mappingFunction);
+
+    assertThat(result.size(), is(3));
+    assertThat(result.get(1).get(), is("one"));
+    assertThat(result.get(2).get(), is("two"));
+    assertThat(result.get(3).get(), is("three"));
+    verify(numberCachingTier, times(1)).bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testBulkComputeIfAbsent_cachingTier_authoritativeTier() throws Exception {
+
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        Set<Number> missingKeys = new HashSet<>();
+        for (Number key : keys) {
+          if (key.intValue() == 1) {
+            result.put(key, newValueHolder("one"));
+          } else {
+            missingKeys.add(key);
+          }
+        }
+        for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : function.apply(missingKeys)) {
+          result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+      });
+
+    Map<Number, Store.ValueHolder<CharSequence>> map = new HashMap<>();
+    map.put(2, newValueHolder("two"));
+    when(numberAuthoritativeTier.bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class))).thenAnswer(invocation -> map.entrySet());
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2)),
+      numbers -> Collections.singletonList(newMapEntry(0, "zero")));
+
+    assertThat(result.size(), is(2));
+    assertThat(result.get(1).get(), is("one"));
+    assertThat(result.get(2).get(), is("two"));
+    verify(numberCachingTier, times(1)).bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testBulkComputeIfAbsent_cachingTier_compute() throws Exception {
+
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        Set<Number> missingKeys = new HashSet<>();
+        for (Number key : keys) {
+          if (key.intValue() == 1) {
+            result.put(key, newValueHolder("one"));
+          } else {
+            missingKeys.add(key);
+          }
+        }
+        for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : function.apply(missingKeys)) {
+          result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+      });
+
+    when(numberAuthoritativeTier.bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        for (Map.Entry<? extends Number, ? extends CharSequence> entry : function.apply(keys)) {
+          result.put(entry.getKey(), newValueHolder(entry.getValue()));
+        }
+        return result.entrySet();
+      });
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2)),
+      numbers -> Collections.singletonList(newMapEntry(2, "two")));
+
+    assertThat(result.size(), is(2));
+    assertThat(result.get(1).get(), is("one"));
+    assertThat(result.get(2).get(), is("two"));
+    verify(numberCachingTier, times(1)).bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testBulkComputeIfAbsent_authoritativeTier_compute() throws Exception {
+
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : function.apply(keys)) {
+          result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+      });
+
+    when(numberAuthoritativeTier.bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        Set<Number> missingKeys = new HashSet<>();
+        for (Number key : keys) {
+          if (key.intValue() == 1) {
+            result.put(key, newValueHolder("one"));
+          } else {
+            missingKeys.add(key);
+          }
+        }
+
+        for (Map.Entry<? extends Number, ? extends CharSequence> entry : function.apply(missingKeys)) {
+          result.put(entry.getKey(), newValueHolder(entry.getValue()));
+        }
+        return result.entrySet();
+      });
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2)),
+      numbers -> Collections.singletonList(newMapEntry(2, "two")));
+
+    assertThat(result.size(), is(2));
+    assertThat(result.get(1).get(), is("one"));
+    assertThat(result.get(2).get(), is("two"));
+    verify(numberCachingTier, times(1)).bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testBulkComputeIfAbsent_cachingTier_authoritativeTier_compute() throws Exception {
+
+    when(numberCachingTier.bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        Set<Number> missingKeys = new HashSet<>();
+        for (Number key : keys) {
+          if (key.intValue() == 1) {
+            result.put(key, newValueHolder("one"));
+          } else {
+            missingKeys.add(key);
+          }
+        }
+        for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : function.apply(missingKeys)) {
+          result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+      });
+
+    when(numberAuthoritativeTier.bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class))).thenAnswer(
+      invocation -> {
+        Set<Number> keys = invocation.getArgument(0);
+        Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>> function = invocation.getArgument(1);
+
+        Map<Number, Store.ValueHolder<CharSequence>> result = new HashMap<>();
+        Set<Number> missingKeys = new HashSet<>();
+        for (Number key : keys) {
+          if (key.intValue() == 2) {
+            result.put(key, newValueHolder("two"));
+          } else {
+            missingKeys.add(key);
+          }
+        }
+
+        for (Map.Entry<? extends Number, ? extends CharSequence> entry : function.apply(missingKeys)) {
+          result.put(entry.getKey(), newValueHolder(entry.getValue()));
+        }
+        return result.entrySet();
+      });
+
+    TieredStore<Number, CharSequence> tieredStore = new TieredStore<>(numberCachingTier, numberAuthoritativeTier);
+    Map<Number, Store.ValueHolder<CharSequence>> result = tieredStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)),
+      numbers -> Collections.singletonList(newMapEntry(3, "three")));
+
+    assertThat(result.size(), is(3));
+    assertThat(result.get(1).get(), is("one"));
+    assertThat(result.get(2).get(), is("two"));
+    assertThat(result.get(3).get(), is("three"));
+    verify(numberCachingTier, times(1)).bulkGetOrComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsentAndFault(any(Set.class), any(Function.class));
+  }
+
 
   @Test
   public void CachingTierDoesNotSeeAnyOperationDuringClear() throws StoreAccessException, BrokenBarrierException, InterruptedException {

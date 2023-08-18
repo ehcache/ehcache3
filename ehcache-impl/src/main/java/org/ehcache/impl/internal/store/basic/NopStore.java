@@ -199,4 +199,13 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
     }
     return map;
   }
+
+  @Override
+  public Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> bulkComputeIfAbsentAndFault(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+    Map<K, ValueHolder<V>> map = new HashMap<>();
+    for(K key : keys) {
+      map.put(key, null);
+    }
+    return map.entrySet();
+  }
 }

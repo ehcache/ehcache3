@@ -24,6 +24,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -75,7 +76,25 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
    */
   void setInvalidationValve(InvalidationValve valve);
 
+
   /**
+   * Bulk method to compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>mappingFunction</code>
+   * to compute the value.
+   * <p>
+   * The function takes an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs, where each entry's value is its currently stored value
+   * for each key that is not mapped in the store. It is expected that the function should return an {@link Iterable} of {@link java.util.Map.Entry}
+   * key/value pairs containing an entry for each key that was passed to it.
+   * <p>
+   * Note: This method guarantees atomicity of computations for each individual key in {@code keys}. Implementations may choose to provide coarser grained atomicity.
+   *
+   * @param keys the keys to compute a new value for, if they're not in the store.
+   * @param mappingFunction the function that generates new values.
+   * @return a {@code Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
+   * @throws StoreAccessException when a failure occurs when accessing the store
+   */
+  Iterable<? extends Map.Entry<? extends K,? extends ValueHolder<V>>> bulkComputeIfAbsentAndFault(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K,? extends V>>> mappingFunction) throws StoreAccessException;
+
+    /**
    * Invalidation valve, that is the mechanism through which an {@link AuthoritativeTier} can request invalidations
    * from the {@link CachingTier}.
    */
