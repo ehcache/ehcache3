@@ -92,13 +92,6 @@ sourceSets {
   }
 }
 
-if (testJava.javaVersion.isJava9Compatible()) {
-  tasks.withType(Test) {
-    //https://issues.apache.org/jira/browse/FELIX-5727 - framework extensions in Java 9 are ugly
-    jvmArgs += '--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED'
-  }
-}
-
 test {
   dependsOn configurations.osgiModule, configurations.modularOsgiModule
   doFirst {
@@ -126,6 +119,10 @@ tasks.register('lowerBoundTest', Test) { test ->
     [configurations.modularOsgiModule, configurations.lowerBoundOsgiModule]*.resolvedConfiguration*.resolvedArtifacts*.forEach {
       systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
     }
+  }
+  if (testJava.javaVersion.isJava9Compatible()) {
+    // Older JAXB versions do reflection on java.lang.ClassLoader
+    jvmArgs += '--add-opens=java.base/java.lang=ALL-UNNAMED'
   }
 }
 
