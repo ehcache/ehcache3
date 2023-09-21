@@ -40,12 +40,10 @@ class EventDispatchTask<K, V> implements Runnable {
   @Override
   public void run() {
     for(EventListenerWrapper<K, V> listenerWrapper : listenerWrappers) {
-      if (listenerWrapper.isForEventType(cacheEvent.getType())) {
-        try {
-          listenerWrapper.onEvent(cacheEvent);
-        } catch (Exception e) {
-          LOGGER.warn(listenerWrapper.getListener() + " Failed to fire Event due to ", e);
-        }
+      try {
+        listenerWrapper.onEvent(cacheEvent);
+      } catch (Exception e) {
+        LOGGER.warn(listenerWrapper.getListener() + " Failed to fire Event due to ", e);
       }
     }
   }
