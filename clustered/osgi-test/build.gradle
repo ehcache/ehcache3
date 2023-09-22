@@ -114,6 +114,10 @@ tasks.register('lowerBoundTest', Test) {
       systemProperty "$it.moduleVersion.id.module:osgi-path", it.file
     })
   }
+  if (testJava.javaVersion.isJava9Compatible()) {
+    // Older JAXB versions do reflection on java.lang.ClassLoader
+    jvmArgs += '--add-opens=java.base/java.lang=ALL-UNNAMED'
+  }
 }
 
 tasks.named('check') {
