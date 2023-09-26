@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -54,7 +55,7 @@ public class FudgingInvocationScopedEventSinkTest {
     storeEventListeners.add(listener);
     @SuppressWarnings({"unchecked", "rawtypes"})
     BlockingQueue<FireableStoreEventHolder<String, String>>[] blockingQueues = new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) };
-    eventSink = new FudgingInvocationScopedEventSink<>(new HashSet<>(), false, blockingQueues, storeEventListeners);
+    eventSink = new FudgingInvocationScopedEventSink<>(new HashSet<>(), false, blockingQueues, storeEventListeners, EnumSet.allOf(EventType.class));
   }
 
   @Test
@@ -64,6 +65,7 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener, times(2)).getEventTypes();
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     inOrder.verify(listener).onEvent(argThat(evictedMatcher));
     verifyNoMoreInteractions(listener);
@@ -76,6 +78,7 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener, times(3)).getEventTypes();
     inOrder.verify(listener).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -89,6 +92,7 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener, times(4)).getEventTypes();
     inOrder.verify(listener).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -103,6 +107,7 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener, times(5)).getEventTypes();
     inOrder.verify(listener, times(3)).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -118,6 +123,7 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener, times(6)).getEventTypes();
     inOrder.verify(listener, times(3)).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -131,6 +137,7 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener, times(3)).getEventTypes();
     Matcher<StoreEvent<String, String>> updatedMatcher = eventType(EventType.UPDATED);
     inOrder.verify(listener).onEvent(argThat(updatedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));

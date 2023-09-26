@@ -40,6 +40,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -71,6 +72,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     .collect(toMap(identity(), t -> new CopyOnWriteArrayList<>(), (a, b) -> { throw new AssertionError(); }, () -> new EnumMap<>(EventType.class))));
   private final Map<EventType, List<EventListenerWrapper<K, V>>> asyncListenersList = unmodifiableMap(allOf(EventType.class).stream()
     .collect(toMap(identity(), t -> new CopyOnWriteArrayList<>(), (a, b) -> { throw new AssertionError(); }, () -> new EnumMap<>(EventType.class))));
+  private final Set<EventType> registeredEventTypes = EnumSet.noneOf(EventType.class);
 
   private final StoreEventListener<K, V> eventListener = new StoreListener();
 
@@ -118,6 +120,8 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
       storeEventSource.setEventOrdering(true);
     }
 
+    registeredEventTypes.addAll(wrapper.getEventTypes()); // add EventType of new wrapper to list or relevant EntryTypes
+
     switch (wrapper.getFiringMode()) {
       case ASYNCHRONOUS:
         wrapper.getEventTypes().forEach(type -> asyncListenersList.get(type).add(wrapper));
@@ -134,6 +138,8 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
 
     if (firstListener) {
       storeEventSource.addEventListener(eventListener);
+    } else {
+      storeEventSource.listenerModified();
     }
   }
 
@@ -165,6 +171,8 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
       throw new IllegalStateException("Unknown cache event listener: " + listener);
     }
 
+    refreshRegisteredEventTypes();
+
     if (!allListeners().findAny().isPresent()) {
       storeEventSource.setSynchronous(false);
       storeEventSource.setEventOrdering(false);
@@ -177,6 +185,14 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
         storeEventSource.setSynchronous(false);
       }
     }
+  }
+
+  private void refreshRegisteredEventTypes() {
+    // collect all registered EventTypes
+    EnumSet<EventType> newRegisteredEventTypes = EnumSet.noneOf(EventType.class);
+    allListeners().forEach(listener -> newRegisteredEventTypes.addAll(listener.getEventTypes()));
+    // drop irrelevant EventTypes
+    registeredEventTypes.retainAll(newRegisteredEventTypes);
   }
 
   /**
@@ -265,8 +281,12 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
           throw new AssertionError("Unexpected StoreEvent value: " + event.getType());
       }
     }
-  }
 
+    @Override
+    public Set<EventType> getEventTypes() {
+      return registeredEventTypes;
+    }
+  }
   /**
    * {@inheritDoc}
    */
