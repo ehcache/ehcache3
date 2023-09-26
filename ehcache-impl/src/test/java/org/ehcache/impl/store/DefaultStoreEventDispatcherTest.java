@@ -108,6 +108,7 @@ public class DefaultStoreEventDispatcherTest {
     sink.created("new", "and shiny");
     dispatcher.releaseEventSink(sink);
 
+    verify(listener).getEventTypes();
     Matcher<StoreEvent<String, String>> matcher = eventOfType(EventType.CREATED);
     verify(listener).onEvent(argThat(matcher));
     verifyNoMoreInteractions(listener);
