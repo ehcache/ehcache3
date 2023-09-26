@@ -26,6 +26,7 @@ import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
@@ -43,6 +44,8 @@ import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
  */
 public class ResourcePoolsBuilder implements Builder<ResourcePools> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ResourcePoolsBuilder.class);
 
   private final Map<ResourceType<?>, ResourcePool> resourcePools;
 
@@ -133,6 +136,9 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
    */
   public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent) {
+    if (type == org.ehcache.config.ResourceType.Core.HEAP && unit instanceof MemoryUnit){
+      LOGGER.info("Byte based heap resources are deprecated and will be removed in a future version.");
+    }
     return with(new SizedResourcePoolImpl<>(type, size, unit, persistent));
   }
 

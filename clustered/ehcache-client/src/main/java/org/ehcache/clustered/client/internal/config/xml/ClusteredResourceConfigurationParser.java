@@ -16,9 +16,10 @@
 
 package org.ehcache.clustered.client.internal.config.xml;
 
-import org.ehcache.clustered.client.internal.config.ClusteredResourcePoolImpl;
-import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
-import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
+import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
+import org.ehcache.clustered.client.config.SharedClusteredResourcePool;
+import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.CacheResourceConfigurationParser;
@@ -57,7 +58,7 @@ public class ClusteredResourceConfigurationParser extends ClusteringParser<Resou
     switch (elementName) {
       case SHARED_ELEMENT_NAME:
         final String sharing = parsePropertyOrString(fragment.getAttribute(SHARING_ELEMENT_NAME));
-        return new SharedClusteredResourcePoolImpl(sharing);
+        return ClusteredResourcePoolBuilder.clusteredShared(sharing);
 
       case DEDICATED_ELEMENT_NAME:
         // 'from' attribute is optional on 'clustered-dedicated' element
@@ -85,9 +86,9 @@ public class ClusteredResourceConfigurationParser extends ClusteringParser<Resou
           throw new XmlConfigurationException(String.format("XML configuration element <%s> value '%s' is not valid", elementName, sizeValue), e);
         }
 
-        return new DedicatedClusteredResourcePoolImpl(from, size, sizeUnits);
+        return ClusteredResourcePoolBuilder.clusteredDedicated(from, size, sizeUnits);
       case CLUSTERED_ELEMENT_NAME:
-        return new ClusteredResourcePoolImpl();
+        return ClusteredResourcePoolBuilder.clustered();
       default:
         return null;
     }
@@ -95,31 +96,33 @@ public class ClusteredResourceConfigurationParser extends ClusteringParser<Resou
 
   @Override
   public Element safeUnparse(Document doc, ResourcePool resourcePool) {
-    Element rootElement = null;
-    if (ClusteredResourcePoolImpl.class == resourcePool.getClass()) {
-      rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTERED_ELEMENT_NAME);
-    } else if (DedicatedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
-      DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = (DedicatedClusteredResourcePoolImpl) resourcePool;
-      rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + DEDICATED_ELEMENT_NAME);
+    if (resourcePool instanceof SharedClusteredResourcePool) {
+      SharedClusteredResourcePool sharedClusteredResourcePool = (SharedClusteredResourcePool) resourcePool;
+      Element element = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + SHARED_ELEMENT_NAME);
+      element.setAttribute(SHARING_ELEMENT_NAME, sharedClusteredResourcePool.getSharedResourcePool());
+      return element;
+    } else if (resourcePool instanceof DedicatedClusteredResourcePool) {
+      DedicatedClusteredResourcePool dedicatedClusteredResourcePool = (DedicatedClusteredResourcePool) resourcePool;
+      Element element = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + DEDICATED_ELEMENT_NAME);
       if (dedicatedClusteredResourcePool.getFromResource() != null) {
-        rootElement.setAttribute(FROM_ELEMENT_NAME, dedicatedClusteredResourcePool.getFromResource());
+        element.setAttribute(FROM_ELEMENT_NAME, dedicatedClusteredResourcePool.getFromResource());
       }
-      rootElement.setAttribute(UNIT_ELEMENT_NAME, dedicatedClusteredResourcePool.getUnit().toString());
-      rootElement.setTextContent(String.valueOf(dedicatedClusteredResourcePool.getSize()));
-    } else if (SharedClusteredResourcePoolImpl.class == resourcePool.getClass()) {
-      SharedClusteredResourcePoolImpl sharedClusteredResourcePool = (SharedClusteredResourcePoolImpl) resourcePool;
-      rootElement = doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + SHARED_ELEMENT_NAME);
-      rootElement.setAttribute(SHARING_ELEMENT_NAME, sharedClusteredResourcePool.getSharedResourcePool());
+      element.setAttribute(UNIT_ELEMENT_NAME, dedicatedClusteredResourcePool.getUnit().toString());
+      element.setTextContent(String.valueOf(dedicatedClusteredResourcePool.getSize()));
+      return element;
+    } else if (resourcePool instanceof ClusteredResourcePool) {
+      return doc.createElementNS(NAMESPACE, TC_CLUSTERED_NAMESPACE_PREFIX + CLUSTERED_ELEMENT_NAME);
+    } else {
+      return null;
     }
-    return rootElement;
   }
 
   @Override
   public Set<Class<? extends ResourcePool>> getResourceTypes() {
     return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-      ClusteredResourcePoolImpl.class,
-      DedicatedClusteredResourcePoolImpl.class,
-      SharedClusteredResourcePoolImpl.class
+      ClusteredResourcePool.class,
+      DedicatedClusteredResourcePool.class,
+      SharedClusteredResourcePool.class
     )));
   }
 }

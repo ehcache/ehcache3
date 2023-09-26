@@ -29,7 +29,6 @@ import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.config.SizedResourcePoolImpl;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheTemplate;
 import org.ehcache.xml.model.CacheType;
@@ -51,11 +50,11 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.core.util.ClassLoading.classDistance;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 import static org.ehcache.xml.XmlUtil.newSchema;
 
@@ -87,27 +86,24 @@ public class ResourceConfigurationParser {
   public ResourcePools parse(CacheTemplate cacheTemplate, ResourcePoolsBuilder resourcePoolsBuilder, ClassLoader classLoader) {
 
     if (cacheTemplate.getHeap() != null) {
-      resourcePoolsBuilder = resourcePoolsBuilder.with(parseHeapConfiguration(cacheTemplate.getHeap()));
+      ResourceTypeWithPropSubst heapResource = cacheTemplate.getHeap().getValue();
+      resourcePoolsBuilder = resourcePoolsBuilder.heap(heapResource.getValue().longValue(), parseUnit(heapResource));
     } else if (!cacheTemplate.getResources().isEmpty()) {
       for (Element element : cacheTemplate.getResources()) {
-        ResourcePool resourcePool;
-        if (!CORE_SCHEMA_NS.equals(element.getNamespaceURI())) {
-          resourcePool = parseResourceExtension(element, classLoader);
-        } else {
+        if (CORE_SCHEMA_NS.equals(element.getNamespaceURI())) {
           try {
             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
             unmarshaller.setEventHandler(new DefaultValidationEventHandler());
             Object resource = unmarshaller.unmarshal(element);
             if (resource instanceof Heap) {
-              resourcePool = parseHeapConfiguration((Heap) resource);
+              ResourceTypeWithPropSubst heap = ((Heap) resource).getValue();
+              resourcePoolsBuilder = resourcePoolsBuilder.heap(heap.getValue().longValue(), parseUnit(heap));
             } else if (resource instanceof Offheap) {
-              MemoryTypeWithPropSubst offheapResource = ((Offheap) resource).getValue();
-              resourcePool = new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.OFFHEAP,
-                offheapResource.getValue().longValue(), parseMemory(offheapResource), false);
+              MemoryTypeWithPropSubst offheap = ((Offheap) resource).getValue();
+              resourcePoolsBuilder = resourcePoolsBuilder.offheap(offheap.getValue().longValue(), parseMemory(offheap));
             } else if (resource instanceof Disk) {
-              PersistableMemoryTypeWithPropSubst diskResource = ((Disk) resource).getValue();
-              resourcePool = new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.DISK,
-                diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent());
+              PersistableMemoryTypeWithPropSubst disk = ((Disk) resource).getValue();
+              resourcePoolsBuilder = resourcePoolsBuilder.disk(disk.getValue().longValue(), parseMemory(disk), disk.isPersistent());
             } else {
               // Someone updated the core resources without updating *this* code ...
               throw new AssertionError("Unrecognized resource: " + element + " / " + resource.getClass().getName());
@@ -115,21 +111,15 @@ public class ResourceConfigurationParser {
           } catch (JAXBException e) {
             throw new IllegalArgumentException("Can't find parser for resource: " + element, e);
           }
+        } else {
+          resourcePoolsBuilder = resourcePoolsBuilder.with(parseResourceExtension(element, classLoader));
         }
-
-        resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
       }
     } else {
       throw new XmlConfigurationException("No resources defined for the cache: " + cacheTemplate.id());
     }
 
     return resourcePoolsBuilder.build();
-  }
-
-  private ResourcePool parseHeapConfiguration(Heap heap) {
-    ResourceTypeWithPropSubst heapResource = heap.getValue();
-    return new SizedResourcePoolImpl<>(org.ehcache.config.ResourceType.Core.HEAP,
-      heapResource.getValue().longValue(), parseUnit(heapResource), false);
   }
 
   private static ResourceUnit parseUnit(ResourceTypeWithPropSubst resourceType) {
@@ -190,14 +180,11 @@ public class ResourceConfigurationParser {
           throw new XmlConfigurationException(e);
         }
       } else {
-        Map<Class<? extends ResourcePool>, CacheResourceConfigurationParser> parsers = new HashMap<>();
-        extensionParsers.forEach(parser -> parser.getResourceTypes().forEach(rt -> parsers.put(rt, parser)));
-        CacheResourceConfigurationParser parser = parsers.get(resourcePool.getClass());
-        if (parser != null) {
-          resources.add(parser.unparse(target, resourcePool));
-        } else {
-          throw new AssertionError("Parser not found for resource type: " + resourceType);
-        }
+        CacheResourceConfigurationParser parser = extensionParsers.stream().min(Comparator.comparing(p -> p.getResourceTypes().stream()
+            .mapToDouble(rt -> classDistance(rt, resourcePool.getClass())).min().orElse(Double.POSITIVE_INFINITY)))
+          .orElseThrow(() -> new AssertionError("Parser not found for resource type: " + resourceType));
+
+        resources.add(parser.unparse(target, resourcePool));
       }
     });
     return cacheType.withResources(OBJECT_FACTORY.createResourcesType().withResource(resources));
