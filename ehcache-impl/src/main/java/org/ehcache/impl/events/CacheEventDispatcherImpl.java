@@ -218,23 +218,30 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   void onEvent(CacheEvent<K, V> event) {
-    ExecutorService executor;
-    if (storeEventSource.isEventOrdering()) {
-      executor = orderedExecutor;
-    } else {
-      executor = unOrderedExectuor;
-    }
     List<EventListenerWrapper<K, V>> asyncTargets = asyncListenersList.get(event.getType());
-    if (!asyncTargets.isEmpty()) {
-      executor.submit(new EventDispatchTask<>(event, asyncTargets));
-    }
     List<EventListenerWrapper<K, V>> syncTargets = syncListenersList.get(event.getType());
-    if (!syncTargets.isEmpty()) {
-      Future<?> future = executor.submit(new EventDispatchTask<>(event, syncTargets));
-      try {
-        future.get();
-      } catch (Exception e) {
-        LOGGER.error("Exception received as result from synchronous listeners", e);
+    if (storeEventSource.isEventOrdering()) {
+      if (!asyncTargets.isEmpty()) {
+        orderedExecutor.submit(new EventDispatchTask<>(event, asyncTargets));
+      }
+      if (!syncTargets.isEmpty()) {
+        Future<?> future = orderedExecutor.submit(new EventDispatchTask<>(event, syncTargets));
+        try {
+          future.get();
+        } catch (Exception e) {
+          LOGGER.error("Exception received as result from synchronous listeners", e);
+        }
+      }
+    } else {
+      if (!asyncTargets.isEmpty()) {
+        unOrderedExectuor.submit(new EventDispatchTask<>(event, asyncTargets));
+      }
+      if (!syncTargets.isEmpty()) {
+        try {
+          new EventDispatchTask<>(event, syncTargets).run();
+        } catch (Exception e) {
+          LOGGER.error("Exception received as result from synchronous listeners", e);
+        }
       }
     }
   }
