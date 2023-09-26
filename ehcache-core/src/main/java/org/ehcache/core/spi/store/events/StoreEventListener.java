@@ -16,7 +16,10 @@
 
 package org.ehcache.core.spi.store.events;
 
+import java.util.Set;
+
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.event.EventType;
 
 /**
  * Interface used to register on a {@link StoreEventSource} to get notified of events happening to mappings the
@@ -36,4 +39,15 @@ public interface StoreEventListener<K, V> {
    * @param event the actual {@link StoreEvent}
    */
   void onEvent(StoreEvent<K, V> event);
+
+  /**
+   * Specify which Events this Listener is handling.
+   * <p>
+   * Defaults return is all values of {@link EventType}
+   *
+   * @return Set of the {@link EventType} this listener handles.
+   */
+  default Set<EventType> getEventTypes() {
+    return EventType.allAsSet();
+  }
 }

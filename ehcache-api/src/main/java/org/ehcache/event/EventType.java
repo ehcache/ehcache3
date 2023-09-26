@@ -16,6 +16,9 @@
 
 package org.ehcache.event;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * The different event types.
  */
@@ -44,6 +47,11 @@ public enum EventType {
   /**
    * Represents an existing {@link org.ehcache.Cache.Entry cache entry} being updated for a given key
    */
-  UPDATED,
+  UPDATED;
 
+  private static final Set<EventType> ALL_EVENT_TYPES = EnumSet.allOf(EventType.class);
+
+  public static Set<EventType> allAsSet() {
+    return ALL_EVENT_TYPES;
+  }
 }

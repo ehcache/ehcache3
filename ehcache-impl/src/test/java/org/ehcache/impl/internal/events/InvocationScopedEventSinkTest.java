@@ -30,6 +30,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -39,6 +40,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
@@ -66,7 +68,7 @@ public class InvocationScopedEventSinkTest {
   private InvocationScopedEventSink<String, String> createEventSink(boolean ordered) {
     @SuppressWarnings("unchecked")
     BlockingQueue<FireableStoreEventHolder<String, String>>[] queues = (BlockingQueue<FireableStoreEventHolder<String, String>>[]) new BlockingQueue<?>[] { blockingQueue };
-    return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners);
+    return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners, EnumSet.allOf(EventType.class));
   }
 
   @Test
@@ -82,6 +84,7 @@ public class InvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
+    inOrder.verify(listener, times(5)).getEventTypes();
     Matcher<StoreEvent<String, String>> createdMatcher = eventType(EventType.CREATED);
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     Matcher<StoreEvent<String, String>> updatedMatcher = eventType(EventType.UPDATED);
