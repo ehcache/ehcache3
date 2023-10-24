@@ -70,6 +70,7 @@ public class SimpleOsgiTest {
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
       gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:fast-restartable-store"),
       gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("SimpleOsgiTest", "individualModules")
