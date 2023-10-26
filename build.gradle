@@ -18,8 +18,8 @@ import org.gradle.internal.jvm.Jvm
 
 plugins {
   // This adds tasks to auto close or release nexus staging repos
-  // see https://github.com/gradle-nexus/publish-plugin
-  id 'io.github.gradle-nexus.publish-plugin'
+  // see https://github.com/Codearte/gradle-nexus-staging-plugin/
+  id 'io.codearte.nexus-staging'
   //OWASP Security Vulnerability Detection
   id 'org.owasp.dependencycheck'
   // Declare spotbugs at the top
@@ -32,27 +32,38 @@ wrapper {
   distributionType = Wrapper.DistributionType.ALL
 }
 
-nexusPublishing {
-  repositories {
-    sonatype {
-      username = sonatypeUser
-      password = sonatypePwd
-      packageGroup = 'org.ehcache' //Sonatype staging repository name
-    }
-    nexus {
-      username = tcDeployUser
-      password = tcDeployPassword
-      packageGroup = 'Ehcache OS' //internal staging repository name
-      nexusUrl.set(uri('https://nexus.terracotta.eur.ad.sag:8443/service/local/'))
-      snapshotRepositoryUrl.set(uri("https://nexus.terracotta.eur.ad.sag:8443/content/repositories/terracotta-os-snapshots/"))
-    }
+if (deployUrl.contains('nexus')) {
+  //internal terracotta config, shorten url for this plugin to end at local/
+  project.nexusStaging {
+    serverUrl = deployUrl.replaceAll(~/local\/.*$/, "local/")
+    packageGroup = 'Ehcache OS' //internal staging repository name
   }
-  // Sonatype is often very slow in these operations:
-  transitionCheckOptions {
-    delayBetween = Duration.ofSeconds((findProperty('delayBetweenRetriesInSeconds') ?: '10') as int)
-    maxRetries = (findProperty('numberOfRetries') ?: '100') as int
+  ext {
+    deployUser = tcDeployUser
+    deployPwd = tcDeployPassword
+  }
+} else {
+  project.nexusStaging {
+    packageGroup = 'org.ehcache' //Sonatype staging repository name
+  }
+  ext {
+    deployUser = sonatypeUser
+    deployPwd = sonatypePwd
   }
 }
+
+project.nexusStaging {
+  username = project.ext.deployUser
+  password = project.ext.deployPwd
+  logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
+  // Sonatype is often very slow in these operations:
+  delayBetweenRetriesInMillis = (findProperty('delayBetweenRetriesInMillis') ?: '10000') as int
+  numberOfRetries = (findProperty('numberOfRetries') ?: '100') as int
+}
+
+// Disable automatic promotion for added safety
+closeAndReleaseRepository.enabled = false
+
 
 ext {
 

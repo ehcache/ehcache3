@@ -75,7 +75,7 @@ class EhDeploy implements Plugin<Project> {
 
           if (project.isReleaseVersion) {
             repository(url: project.deployUrl) {
-              authentication(userName: project.tcDeployUser, password: project.tcDeployPassword)
+              authentication(userName: project.deployUser, password: project.deployPwd)
             }
           } else {
             repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
