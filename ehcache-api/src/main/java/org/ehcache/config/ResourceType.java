@@ -59,31 +59,42 @@ public interface ResourceType<T extends ResourcePool> {
   int getTierHeight();
 
   /**
+   * Indicates whether this {@code ResourceType} supports being shared by multiple caches.
+   * <p>
+   * Sharing in this context means that a {@link ResourcePool} of this {@code ResourceType} can be populated
+   * with entries that belong to multiple caches for the purpose of Automatic Resource Control.
+   *
+   * @return {@code true} if it supports sharing, {@code false} otherwise
+   */
+  boolean isShareable();
+
+  /**
    * An enumeration of core {@link ResourceType}s in Ehcache.
    */
   enum Core implements ResourceType<SizedResourcePool> {
     /**
      * Heap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} not required.
      */
-    HEAP(false, false, 10000),
+    HEAP(false, false, 10000, true),
     /**
      * OffHeap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    OFFHEAP(false, true, 1000),
+    OFFHEAP(false, true, 1000, true),
     /**
      * Disk: persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    DISK(true, true, 100);
-
+    DISK(true, true, 100, false);
 
     private final boolean persistable;
     private final boolean requiresSerialization;
     private final int tierHeight;
+    private final boolean shareable;
 
-    Core(boolean persistable, final boolean requiresSerialization, int tierHeight) {
+    Core(boolean persistable, final boolean requiresSerialization, int tierHeight, boolean shareable) {
       this.persistable = persistable;
       this.requiresSerialization = requiresSerialization;
       this.tierHeight = tierHeight;
+      this.shareable = shareable;
     }
 
     @Override
@@ -107,10 +118,50 @@ public interface ResourceType<T extends ResourcePool> {
     }
 
     @Override
+    public boolean isShareable() {
+      return shareable;
+    }
+
+    @Override
     public String toString() {
       return name().toLowerCase();
     }
 
   }
 
+  class SharedResource implements ResourceType<SizedResourcePool> {
+
+    private final ResourceType<?> delegate;
+    public SharedResource(ResourceType<?> delegate) {
+      this.delegate = delegate;
+    }
+    @Override
+    public Class<SizedResourcePool> getResourcePoolClass() {
+      return null;
+    }
+
+    @Override
+    public boolean isPersistable() {
+      return delegate.isPersistable();
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return delegate.requiresSerialization();
+    }
+
+    @Override
+    public int getTierHeight() {
+      return delegate.getTierHeight();
+    }
+
+    @Override
+    public boolean isShareable() {
+      return delegate.isShareable();
+    }
+
+    public ResourceType<?> getResourceType() {
+      return delegate;
+    }
+  }
 }

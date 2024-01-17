@@ -32,6 +32,11 @@ public class BazResource implements ResourcePool {
   }
 
   @Override
+  public boolean isShared() {
+    return false;
+  }
+
+  @Override
   public void validateUpdate(ResourcePool newPool) {
 
   }
@@ -58,6 +63,11 @@ public class BazResource implements ResourcePool {
     @Override
     public int getTierHeight() {
       return 0;
+    }
+
+    @Override
+    public boolean isShareable() {
+      return false;
     }
   }
 }

@@ -60,6 +60,8 @@ public interface FluentConfigurationBuilder<B extends FluentConfigurationBuilder
    */
   B withCache(String alias, CacheConfiguration<?, ?> config);
 
+  B withSharedResources(SharedResourcePools sharedResourcePools);
+
   /**
    * Adds the cache configuration built by a builder to this configuration.
    * <p>

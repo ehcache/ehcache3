@@ -61,6 +61,12 @@ public interface Configuration {
   ClassLoader getClassLoader();
 
   /**
+   * Returns a mapping of {@link ResourceType}s to {@link ResourcePool}s, for all configured shared resource pools
+   * @return a map of ResourceTypes to shared ResourcePools
+   */
+  Map<ResourceType<?>, ResourcePool> getSharedResourcePools();
+
+  /**
    * Creates a builder seeded with this configuration.
    * <p>
    * The default implementation throws {@code UnsupportedOperationException} to indicate that configuration derivation

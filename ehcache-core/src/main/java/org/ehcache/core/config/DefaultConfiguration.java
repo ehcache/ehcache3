@@ -27,10 +27,13 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.FluentConfigurationBuilder;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.HumanReadable;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static org.ehcache.core.config.CoreConfigurationBuilder.newConfigurationBuilder;
@@ -43,6 +46,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
   private final ConcurrentMap<String,CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceCreationConfiguration<?, ?>> services;
   private final ClassLoader classLoader;
+  private final ConcurrentMap<ResourceType<?>, ResourcePool> sharedResourcePools;
 
   /**
    * Copy constructor
@@ -56,6 +60,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
     this.caches = new ConcurrentHashMap<>(cfg.getCacheConfigurations());
     this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
     this.classLoader = cfg.getClassLoader();
+    this.sharedResourcePools = new ConcurrentHashMap<>(cfg.getSharedResourcePools());
   }
 
   /**
@@ -81,9 +86,17 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
    * @param services an array of service configurations
    */
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?, ?>... services) {
+    this(caches, classLoader, emptyMap(), services);
+  }
+
+  public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches,
+                              ClassLoader classLoader,
+                              Map<ResourceType<?>, ResourcePool> sharedResourcePools,
+                              ServiceCreationConfiguration<?, ?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = new ConcurrentHashMap<>(caches);
     this.classLoader = classLoader == null ? ClassLoading.getDefaultClassLoader() : classLoader;
+    this.sharedResourcePools = new ConcurrentHashMap<>(sharedResourcePools);
   }
 
   /**
@@ -94,6 +107,14 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
     return unmodifiableMap(caches);
   }
 
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Map<ResourceType<?>, ResourcePool> getSharedResourcePools() {
+    return sharedResourcePools;
+  }
   /**
    * {@inheritDoc}
    */

@@ -15,25 +15,17 @@
  */
 package org.ehcache.config;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * A collection of {@link ResourcePool resource pools} that a {@link org.ehcache.Cache Cache} has at its disposal
- * to store its mappings.
+ * A collection of {@link ResourcePool resource pools} that into which one or more {@link org.ehcache.Cache Cache}s can
+ * store their mappings.
  * <p>
  * <em>Implementations must be immutable.</em>
  */
-public interface ResourcePools {
-
-  /**
-   * Gets a specific {@link ResourcePool} based on its type.
-   *
-   * @param <P> specific resource pool type
-   * @param resourceType the type of resource the pool is tracking
-   *
-   * @return the {@link ResourcePool}, or null if there is no pool of the requested type.
-   */
-  <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType);
+public interface SharedResourcePools {
 
   /**
    * Gets the set of {@link ResourceType}s present in the {@code ResourcePools}.
@@ -41,13 +33,6 @@ public interface ResourcePools {
    * @return the set of {@link ResourceType}
    */
   Set<ResourceType<?>> getResourceTypeSet();
-
-  /**
-   * Gets the set of all {@link ResourceType}s whose pools have been configured to use the corresponding shared instances
-   * defined on the Cache Manager
-   * @return a set of {@link ResourceType}s
-   */
-  Set<ResourceType<?>> getResourceTypeSetDesignatedForSharing();
 
   /**
    * Get a copy of this {@code ResourcePools} merged with the given {@code ResourcePools}, validating that
@@ -58,6 +43,9 @@ public interface ResourcePools {
    * @throws IllegalArgumentException      thrown when an illegal resource value is being given
    * @throws UnsupportedOperationException thrown when an unsupported update is requested
    */
-  ResourcePools validateAndMerge(ResourcePools toBeUpdated) throws IllegalArgumentException, UnsupportedOperationException;
+  SharedResourcePools validateAndMerge(SharedResourcePools toBeUpdated) throws IllegalArgumentException, UnsupportedOperationException;
 
+  Map<ResourceType<?>, ResourcePool> getSharedResourcePools ();
+
+  Collection<ResourcePool> getResourcePools ();
 }

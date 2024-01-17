@@ -57,6 +57,11 @@ public class ResourcePoolsHelper {
             }
 
             @Override
+            public boolean isShared() {
+              return false;
+            }
+
+            @Override
             public void validateUpdate(ResourcePool newPool) {
               //all updates are okay
             }
@@ -69,6 +74,11 @@ public class ResourcePoolsHelper {
       @Override
       public Set<ResourceType<?>> getResourceTypeSet() {
         return Collections.singleton(ResourceType.Core.HEAP);
+      }
+
+      @Override
+      public Set<ResourceType<?>> getResourceTypeSetDesignatedForSharing() {
+        return Collections.emptySet();
       }
 
       @Override

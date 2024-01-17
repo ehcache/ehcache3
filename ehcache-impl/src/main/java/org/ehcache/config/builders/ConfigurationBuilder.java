@@ -18,6 +18,8 @@ package org.ehcache.config.builders;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.CoreConfigurationBuilder;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
@@ -53,8 +55,9 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
    * @return a new configuration builder
    */
   public static ConfigurationBuilder newConfigurationBuilder(Configuration seed) {
-    return new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(),
-      seed.getCacheConfigurations()), seed.getServiceCreationConfigurations()), seed.getClassLoader());
+    return new ConfigurationBuilder(seed.getSharedResourcePools(),new ConfigurationBuilder(new ConfigurationBuilder(
+        new ConfigurationBuilder(new ConfigurationBuilder(), seed.getCacheConfigurations()),
+        seed.getServiceCreationConfigurations()), seed.getClassLoader()));
   }
 
   protected ConfigurationBuilder() {
@@ -71,6 +74,10 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
 
   protected ConfigurationBuilder(ConfigurationBuilder builder, ClassLoader classLoader) {
     super(builder, classLoader);
+  }
+
+  protected ConfigurationBuilder(Map<ResourceType<?>, ResourcePool> sharedResourcePools, ConfigurationBuilder builder) {
+    super(sharedResourcePools, builder);
   }
 
   /**
@@ -165,5 +172,10 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
   @Override
   protected ConfigurationBuilder newBuilderWith(ClassLoader classLoader) {
     return new ConfigurationBuilder(this, classLoader);
+  }
+
+  @Override
+  protected ConfigurationBuilder newBuilderWithSharedResourcePools(Map<ResourceType<?>, ResourcePool> sharedResourcePools) {
+    return new ConfigurationBuilder(sharedResourcePools, this);
   }
 }

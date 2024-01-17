@@ -228,5 +228,10 @@ public class ClusteredStoreProviderTest {
     public int getTierHeight() {
       return 10;
     }
+
+    @Override
+    public boolean isShareable() {
+      return false;
+    }
   }
 }

@@ -1175,7 +1175,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     return new OffHeapValueHolderPortability<>(serializer);
   }
 
-  protected static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
+  public static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
     return new OffHeapEvictionAdvisorWrapper<>(delegate);
   }
 
