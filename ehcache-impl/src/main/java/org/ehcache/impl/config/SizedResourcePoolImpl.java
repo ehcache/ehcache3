@@ -46,17 +46,31 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
    * @param persistent whether the pool is to be persistent
    */
   public SizedResourcePoolImpl(ResourceType<P> type, long size, ResourceUnit unit, boolean persistent) {
-    super(type, persistent);
+    this(type, size, unit, persistent, false);
+  }
+
+  /**
+   * Creates a new resource pool based on the provided parameters.
+   *
+   * @param type the resource type
+   * @param size the size
+   * @param unit the unit for the size
+   * @param persistent whether the pool is to be persistent
+   * @param shared whether the pool is to be shared
+   */
+  public SizedResourcePoolImpl(ResourceType<P> type, long size, ResourceUnit unit, boolean persistent, boolean shared) {
+    super(type, persistent, shared);
     if (unit == null) {
       throw new NullPointerException("ResourceUnit can not be null");
     }
-    if (size <= 0) {
+    if (size <= 0 && !shared) {
       throw new IllegalArgumentException("Size must be greater than 0");
     }
     if (!type.isPersistable() && persistent) {
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
     }
     if (type == org.ehcache.config.ResourceType.Core.HEAP && unit instanceof MemoryUnit){
+      // TODO: not true in ARC Phase 2
       LOGGER.info("Byte based heap resources are deprecated and will be removed in a future version.");
     }
     this.size = size;
@@ -102,16 +116,18 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String toString() {
-    return "Pool {" + getSize() + " " + getUnit() + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
+    return "Pool {" + getSize() + " " + getUnit() + " " + getType() +
+      (isPersistent() ? ", persistent" : "") +
+      (isShared() ? ", shared" : "") +
+      "}";
   }
 
   @Override
   public String readableString() {
-    return getSize() + " " + getUnit() + " " + (isPersistent() ? "(persistent)" : "");
+    return getSize() + " " + getUnit() +
+      (isPersistent() ? ", persistent" : "") +
+      (isShared() ? ", shared" : "");
   }
 }

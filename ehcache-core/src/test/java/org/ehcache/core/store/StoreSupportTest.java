@@ -64,6 +64,10 @@ public class StoreSupportTest {
       return 10;
     }
     @Override
+    public boolean isShareable() {
+      return false;
+    }
+    @Override
     public String toString() {
       return "anyResourceType";
     }
@@ -148,6 +152,10 @@ public class StoreSupportTest {
       @Override
       public boolean requiresSerialization() {
         return true;
+      }
+      @Override
+      public boolean isShareable() {
+        return false;
       }
       @Override
       public int getTierHeight() {

@@ -27,6 +27,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.SharedResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
@@ -90,6 +91,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.SharedResourcePoolsBuilder.newSharedResourcePoolsBuilder;
 import static org.ehcache.core.util.ClassLoading.servicesOfType;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
@@ -242,6 +244,8 @@ public class ConfigurationParser {
 
     FluentConfigurationBuilder<?> managerBuilder = newConfigurationBuilder().withClassLoader(classLoader);
     managerBuilder = serviceCreationConfigurationParser.parse(annotatedDocument, jaxbModel, classLoader, managerBuilder);
+    SharedResourcePools sharedResourcePools = resourceConfigurationParser.parse(jaxbModel, newSharedResourcePoolsBuilder());
+    managerBuilder = managerBuilder.withSharedResources(sharedResourcePools);
 
     for (CacheDefinition cacheDefinition : getCacheElements(jaxbModel)) {
       String alias = cacheDefinition.id();
@@ -296,6 +300,7 @@ public class ConfigurationParser {
     Document document = documentBuilder.newDocument();
 
     serviceCreationConfigurationParser.unparse(document, configuration, configType);
+    resourceConfigurationParser.unparse(document, configuration.getSharedResourcePools().values(), configType);
 
     for (Map.Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations().entrySet()) {
       CacheConfiguration<?, ?> cacheConfiguration = cacheConfigurationEntry.getValue();

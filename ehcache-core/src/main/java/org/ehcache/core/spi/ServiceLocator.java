@@ -265,7 +265,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       OptionalInt highestRank = typedServiceFactories.stream().mapToInt(ServiceFactory::rank).max();
 
       if (highestRank.isPresent()) {
-        typedServiceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> with(f.create(config)));
+        typedServiceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> f.multiCreate(config).forEach(this::with));
         return this;
       } else {
         throw new IllegalStateException("No factories exist for " + serviceType);
@@ -390,9 +390,10 @@ public final class ServiceLocator implements ServiceProvider<Service> {
           }
 
           T service = factory.create(null);
-
-          //we copy the service map so that if upstream dependency resolution fails we don't pollute the real resolved set
-          resolved = new ServiceMap(resolved).add(service);
+          if (service != null) {
+            //we copy the service map so that if upstream dependency resolution fails we don't pollute the real resolved set
+            resolved = new ServiceMap(resolved).add(service);
+          }
         }
       }
       if (resolved.contains(requested)) {

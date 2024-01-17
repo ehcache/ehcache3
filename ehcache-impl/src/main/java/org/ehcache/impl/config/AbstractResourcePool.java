@@ -28,6 +28,7 @@ import org.ehcache.config.ResourceType;
 public abstract class AbstractResourcePool<P extends ResourcePool, T extends ResourceType<P>> implements ResourcePool {
   private final T type;
   private final boolean persistent;
+  private final boolean shared;
 
   /**
    * Creates a {@code AbstractResourcePool} instance.
@@ -35,12 +36,13 @@ public abstract class AbstractResourcePool<P extends ResourcePool, T extends Res
    * @param type the non-{@code null} {@code ResourceType}
    * @param persistent whether or not this {@code ResourcePool} is persistent
    */
-  protected AbstractResourcePool(T type, boolean persistent) {
+  protected AbstractResourcePool(T type, boolean persistent, boolean shared) {
     if (type == null) {
       throw new NullPointerException("ResourceType may not be null");
     }
     this.type = type;
     this.persistent = persistent;
+    this.shared = shared;
   }
 
   /**
@@ -61,6 +63,14 @@ public abstract class AbstractResourcePool<P extends ResourcePool, T extends Res
 
   /**
    * {@inheritDoc}
+   */
+  @Override
+  public boolean isShared() {
+    return shared;
+  }
+
+  /**
+   * {@inheritDoc}
    *
    * @throws IllegalArgumentException {@inheritDoc}
    */
@@ -75,5 +85,6 @@ public abstract class AbstractResourcePool<P extends ResourcePool, T extends Res
       throw new IllegalArgumentException("ResourcePool for " + newPool.getType() + " with isPersistent="
           + newPool.isPersistent() + " can not replace isPersistent=" + this.isPersistent());
     }
+    // TODO - revisit to determine the rules when updating a shared resource with a non-shared resource and vice versa
   }
 }

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the {@link ResourcePools} interface.
@@ -43,6 +44,14 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
     }
     validateResourcePools(pools.values());
     this.pools = pools;
+  }
+
+  public ResourcePoolsImpl(ResourcePool pool) {
+    if (pool == null) {
+      throw new IllegalArgumentException("Resource pool not defined");
+    }
+    this.pools = new HashMap<>();
+    this.pools.put(pool.getType(), pool);
   }
 
   /**
@@ -67,6 +76,8 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
   @Override
   public ResourcePools validateAndMerge(ResourcePools toBeUpdated) {
     Set<ResourceType<?>> resourceTypeSet = toBeUpdated.getResourceTypeSet();
+
+    // TODO: determine which of these conditions need reconsideration in the context of shared resources
 
     // Ensure update pool types already exist in existing pools
     if(!getResourceTypeSet().containsAll(resourceTypeSet)) {
@@ -94,6 +105,14 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
     return new ResourcePoolsImpl(poolsMap);
   }
 
+  @Override
+  public Set<ResourceType<?>> getResourceTypeSetDesignatedForSharing() {
+    return pools.values().stream()
+      .filter(ResourcePool::isShared)
+      .map(ResourcePool::getType)
+      .collect(Collectors.toSet());
+  }
+
   /**
    * Validates some required relationships between {@link org.ehcache.config.ResourceType.Core core resources}.
    *
@@ -102,7 +121,7 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
     List<SizedResourcePool> ordered = new ArrayList<>(pools.size());
     for(ResourcePool pool : pools) {
-      if (pool instanceof SizedResourcePool) {
+      if (pool instanceof SizedResourcePool && ((SizedResourcePool) pool).getSize() != 0) {
         ordered.add((SizedResourcePool)pool);
       }
     }

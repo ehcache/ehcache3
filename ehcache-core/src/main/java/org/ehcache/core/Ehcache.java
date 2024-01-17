@@ -264,8 +264,8 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     private final Logger logger;
     private final Map<K, V> entriesToRemap;
     private final ExpiryPolicy<? super K, ? super V> expiry;
-    private final AtomicInteger actualPutCount = new AtomicInteger();
-    private final AtomicInteger actualUpdateCount = new AtomicInteger();
+    private AtomicInteger actualPutCount = new AtomicInteger();
+    private AtomicInteger actualUpdateCount = new AtomicInteger();
 
     public PutAllFunction(Logger logger, Map<K, V> entriesToRemap, ExpiryPolicy<? super K, ? super V> expiry) {
       this.logger = logger;
@@ -298,6 +298,14 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       return mutations.entrySet();
     }
 
+    public Logger getLogger() {
+      return logger;
+    }
+
+    public ExpiryPolicy<? super K, ? super V> getExpiry() {
+      return expiry;
+    }
+
     public Map<K, V> getEntriesToRemap() {
       return entriesToRemap;
     }
@@ -313,11 +321,19 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     public AtomicInteger getActualUpdateCount() {
       return actualUpdateCount;
     }
+
+    public void setActualPutCount(AtomicInteger actualPutCount) {
+      this.actualPutCount = actualPutCount;
+    }
+
+    public void setActualUpdateCount(AtomicInteger actualUpdateCount) {
+      this.actualUpdateCount = actualUpdateCount;
+    }
   }
 
   public static class RemoveAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
 
-    private final AtomicInteger actualRemoveCount = new AtomicInteger();
+    private AtomicInteger actualRemoveCount = new AtomicInteger();
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
@@ -338,6 +354,10 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
     public AtomicInteger getActualRemoveCount() {
       return actualRemoveCount;
+    }
+
+    public void setActualRemoveCount(AtomicInteger actualRemoveCount) {
+      this.actualRemoveCount = actualRemoveCount;
     }
   }
 

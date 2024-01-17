@@ -26,13 +26,14 @@ import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
 
 import static java.util.Collections.unmodifiableMap;
 import java.util.HashMap;
+
+import static org.ehcache.config.units.MemoryUnit.B;
 import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
@@ -128,12 +129,17 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param size the pool size
    * @param unit the pool size unit
    * @param persistent if the pool is to be persistent
+   * @param shared if the pool is to be shared
    * @return a new builder with the added pool
    *
    * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
    */
-  public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent) {
-    return with(new SizedResourcePoolImpl<>(type, size, unit, persistent));
+  public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent, boolean shared) {
+    ResourceType<SizedResourcePool> resourceType = type;
+    if (shared) {
+      resourceType = new ResourceType.SharedResource(type);
+    }
+    return with(new SizedResourcePoolImpl<>(resourceType, size, unit, persistent, shared));
   }
 
   /**
@@ -146,7 +152,16 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains a heap resource
    */
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
-    return with(ResourceType.Core.HEAP, size, unit, false);
+    return with(ResourceType.Core.HEAP, size, unit, false, false);
+  }
+
+  /**
+   * Informs the cache manager that an existing {@link org.ehcache.config.ResourceType.Core#HEAP heap} shared pool,
+   * defined on the cache manager, should be used for the cache's on-heap caching requirements.
+   * @return a new builder with the added pool
+   */
+  public ResourcePoolsBuilder sharedHeap() {
+    return with(ResourceType.Core.HEAP, 0, B, false, true);
   }
 
   /**
@@ -159,7 +174,16 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains an offheap resource
    */
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
-    return with(ResourceType.Core.OFFHEAP, size, unit, false);
+    return with(ResourceType.Core.OFFHEAP, size, unit, false, false);
+  }
+
+  /**
+   * Informs the cache manager that an existing {@link org.ehcache.config.ResourceType.Core#OFFHEAP offheap} shared pool,
+   * defined on the cache manager, should be used for the cache's offheap caching requirements.
+   * @return a new builder with the added pool
+   */
+  public ResourcePoolsBuilder sharedOffheap() {
+    return with(ResourceType.Core.OFFHEAP, 0, B, false, true);
   }
 
   /**
@@ -186,7 +210,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains a disk resource
    */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
-    return with(ResourceType.Core.DISK, size, unit, persistent);
+    return with(ResourceType.Core.DISK, size, unit, persistent, false);
   }
 
   /**

@@ -23,6 +23,8 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+import java.util.Collection;
+import java.util.Collections;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
@@ -59,6 +61,20 @@ public interface ServiceFactory<T extends Service> {
    * @return the new service, not {@link Service#start(ServiceProvider) started}
    */
   T create(ServiceCreationConfiguration<T, ?> configuration);
+
+  /**
+   * Creates a collection of one or more services using the passed in {@link ServiceCreationConfiguration}.
+   * Whether multiple services are created, is based on the contents of {@link ServiceCreationConfiguration}
+   * and how the consuming factory interprets it.
+   * <p>
+   * Note that a {@code null} configuration may be supported or even required by a service implementation.
+   *
+   * @param configuration the creation configuration, can be {@code null} for some services
+   * @return the new collection of services, not {@link Service#start(ServiceProvider) started}
+   */
+  default Collection<T> multiCreate(ServiceCreationConfiguration<T, ?> configuration) {
+    return Collections.singleton(create(configuration));
+  }
 
   /**
    * Queries a {@code ServiceFactory} to know which concrete {@link Service} type it produces.

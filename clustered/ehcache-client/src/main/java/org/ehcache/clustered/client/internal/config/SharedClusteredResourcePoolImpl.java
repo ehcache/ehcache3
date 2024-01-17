@@ -38,7 +38,7 @@ public class SharedClusteredResourcePoolImpl
    *                       by this pool
    */
   public SharedClusteredResourcePoolImpl(final String sharedResourcePool) {
-    super(ClusteredResourceType.Types.SHARED, true);
+    super(ClusteredResourceType.Types.SHARED, true, false);
 
     if (sharedResourcePool == null) {
       throw new NullPointerException("sharedResourcePool identifier can not be null");

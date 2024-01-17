@@ -77,6 +77,11 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
       }
 
       @Override
+      public boolean isShareable() {
+        return false;
+      }
+
+      @Override
       public boolean requiresSerialization() {
         return true;
       }
