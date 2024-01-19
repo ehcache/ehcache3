@@ -501,7 +501,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigs);
     if (storeProvider == null) {
-      storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resourceTypes, serviceConfigs);
+      storeProvider = StoreSupport.select(Store.Provider.class, serviceLocator, resourceTypes, serviceConfigs);
     }
 
     Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);

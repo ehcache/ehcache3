@@ -883,15 +883,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      if (clusteringService == null) {
-        return 0;
-      } else {
-        return CLUSTER_RESOURCES.contains(authorityResource) ? 1 : 0;
-      }
-    }
-
-    @Override
     public void start(final ServiceProvider<Service> serviceProvider) {
       connectLock.lock();
       try {
@@ -915,7 +906,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {

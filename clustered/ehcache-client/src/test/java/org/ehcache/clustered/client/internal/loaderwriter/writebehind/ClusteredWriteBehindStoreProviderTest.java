@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
+import static java.util.Collections.singleton;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -68,13 +69,13 @@ public class ClusteredWriteBehindStoreProviderTest {
     ServiceLocator serviceLocator = dependencySet().with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED,
+    assertThat(provider.rank(singleton(ClusteredResourceType.Types.DEDICATED),
                                       Arrays.asList(cacheLoaderWriterConfiguration, writeBehindConfiguration)),
                is(3));
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED,
+    assertThat(provider.rank(singleton(ClusteredResourceType.Types.DEDICATED),
                                       Collections.singletonList(writeBehindConfiguration)),
                is(0));
-    assertThat(provider.rankAuthority(new ClusteredStoreProviderTest.UnmatchedResourceType(), Arrays.asList(cacheLoaderWriterConfiguration,
+    assertThat(provider.rank(singleton(new ClusteredStoreProviderTest.UnmatchedResourceType()), Arrays.asList(cacheLoaderWriterConfiguration,
                                                                                                             writeBehindConfiguration)),
                is(0));
   }

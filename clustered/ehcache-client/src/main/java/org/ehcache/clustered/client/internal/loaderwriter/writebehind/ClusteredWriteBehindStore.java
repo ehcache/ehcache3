@@ -318,14 +318,5 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       }
       return parentRank + 1;
     }
-
-    @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      int parentRank = super.rankAuthority(authorityResource, serviceConfigs);
-      if (parentRank == 0 || serviceConfigs.stream().noneMatch(WriteBehindConfiguration.class::isInstance)) {
-        return 0;
-      }
-      return parentRank + 1;
-    }
   }
 }
