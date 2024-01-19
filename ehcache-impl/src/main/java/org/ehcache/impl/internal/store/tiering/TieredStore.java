@@ -23,6 +23,7 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.store.StoreSupport;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -37,7 +38,6 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +50,9 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static java.util.Collections.singleton;
+import static org.ehcache.core.store.StoreSupport.trySelect;
 
 /**
  * A {@link Store} implementation supporting a tiered caching model.
@@ -411,43 +414,25 @@ public class TieredStore<K, V> implements Store<K, V> {
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       if (resourceTypes.size() == 1) {
         return 0;
+      } else {
+        Set<ResourceType<?>> cachingResources = new HashSet<>(resourceTypes);
+        Set<ResourceType<?>> authorityResources = getAuthorityResources(resourceTypes);
+        cachingResources.removeAll(authorityResources);
+
+        return trySelect(AuthoritativeTier.Provider.class, serviceProvider, tier -> tier.rankAuthority(authorityResources, serviceConfigs)).map(a -> a.rankAuthority(authorityResources, serviceConfigs))
+          .flatMap(ar -> trySelect(CachingTier.Provider.class, serviceProvider, tier -> tier.rankCachingTier(cachingResources, serviceConfigs)).map(a -> a.rankCachingTier(cachingResources, serviceConfigs)).map(cr -> ar + cr))
+          .orElse(0);
       }
-      ResourceType<?> authorityResource = getAuthorityResource(resourceTypes);
-      int authorityRank = 0;
-      Collection<AuthoritativeTier.Provider> authorityProviders = serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class);
-      for (AuthoritativeTier.Provider authorityProvider : authorityProviders) {
-        int newRank = authorityProvider.rankAuthority(authorityResource, serviceConfigs);
-        if (newRank > authorityRank) {
-          authorityRank = newRank;
-        }
-      }
-      if (authorityRank == 0) {
-        return 0;
-      }
-      Set<ResourceType<?>> cachingResources = new HashSet<>(resourceTypes);
-      cachingResources.remove(authorityResource);
-      int cachingTierRank = 0;
-      Collection<CachingTier.Provider> cachingTierProviders = serviceProvider.getServicesOfType(CachingTier.Provider.class);
-      for (CachingTier.Provider cachingTierProvider : cachingTierProviders) {
-        int newRank = cachingTierProvider.rankCachingTier(cachingResources, serviceConfigs);
-        if (newRank > cachingTierRank) {
-          cachingTierRank = newRank;
-        }
-      }
-      if (cachingTierRank == 0) {
-        return 0;
-      }
-      return authorityRank + cachingTierRank;
     }
 
-    private ResourceType<?> getAuthorityResource(Set<ResourceType<?>> resourceTypes) {
+    private Set<ResourceType<?>> getAuthorityResources(Set<ResourceType<?>> resourceTypes) {
       ResourceType<?> authorityResource = null;
       for (ResourceType<?> resourceType : resourceTypes) {
         if (authorityResource == null || authorityResource.getTierHeight() > resourceType.getTierHeight()) {
           authorityResource = resourceType;
         }
       }
-      return authorityResource;
+      return singleton(authorityResource);
     }
 
     @Override
@@ -460,18 +445,18 @@ public class TieredStore<K, V> implements Store<K, V> {
             + resourcePools.getResourceTypeSet());
       }
 
-      ResourceType<?> authorityResource = getAuthorityResource(resourcePools.getResourceTypeSet());
-      AuthoritativeTier.Provider authoritativeTierProvider = getAuthoritativeTierProvider(authorityResource, enhancedServiceConfigs);
+      Set<ResourceType<?>> authorityResources = getAuthorityResources(resourcePools.getResourceTypeSet());
+      AuthoritativeTier.Provider authoritativeTierProvider = getAuthoritativeTierProvider(authorityResources, enhancedServiceConfigs);
 
       Set<ResourceType<?>> cachingResources = new HashSet<>(resourcePools.getResourceTypeSet());
-      cachingResources.remove(authorityResource);
+      cachingResources.removeAll(authorityResources);
 
       CachingTier.Provider cachingTierProvider = getCachingTierProvider(cachingResources, enhancedServiceConfigs);
 
       final ServiceConfiguration<?, ?>[] configurations =
           enhancedServiceConfigs.toArray(new ServiceConfiguration<?, ?>[enhancedServiceConfigs.size()]);
-      CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, configurations);
-      AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, configurations);
+      CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(cachingResources, storeConfig, configurations);
+      AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(authorityResources, storeConfig, configurations);
 
       TieredStore<K, V> store = new TieredStore<>(cachingTier, authoritativeTier);
       StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
@@ -484,35 +469,17 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
 
     private CachingTier.Provider getCachingTierProvider(Set<ResourceType<?>> cachingResources, List<ServiceConfiguration<?, ?>> enhancedServiceConfigs) {
-      CachingTier.Provider cachingTierProvider = null;
-      Collection<CachingTier.Provider> cachingTierProviders = serviceProvider.getServicesOfType(CachingTier.Provider.class);
-      for (CachingTier.Provider provider : cachingTierProviders) {
-        if (provider.rankCachingTier(cachingResources, enhancedServiceConfigs) != 0) {
-          cachingTierProvider = provider;
-          break;
-        }
-      }
+      CachingTier.Provider cachingTierProvider = StoreSupport.select(CachingTier.Provider.class, serviceProvider, tier -> tier.rankCachingTier(cachingResources, enhancedServiceConfigs));
       if (cachingTierProvider == null) {
         throw new AssertionError("No CachingTier.Provider found although ranking found one for " + cachingResources);
       }
       return cachingTierProvider;
     }
 
-    AuthoritativeTier.Provider getAuthoritativeTierProvider(ResourceType<?> authorityResource, List<ServiceConfiguration<?, ?>> enhancedServiceConfigs) {
-      AuthoritativeTier.Provider authoritativeTierProvider = null;
-      Collection<AuthoritativeTier.Provider> authorityProviders = serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class);
-      int highestRank = 0;
-      for (AuthoritativeTier.Provider provider : authorityProviders) {
-        int rank = provider.rankAuthority(authorityResource, enhancedServiceConfigs);
-        if (rank != 0) {
-          if (highestRank < rank) {
-            authoritativeTierProvider = provider;
-            highestRank = rank;
-          }
-        }
-      }
+    AuthoritativeTier.Provider getAuthoritativeTierProvider(Set<ResourceType<?>> authorityResources, List<ServiceConfiguration<?, ?>> enhancedServiceConfigs) {
+      AuthoritativeTier.Provider authoritativeTierProvider = StoreSupport.select(AuthoritativeTier.Provider.class, serviceProvider, tier -> tier.rankAuthority(authorityResources, enhancedServiceConfigs));
       if (authoritativeTierProvider == null) {
-        throw new AssertionError("No AuthoritativeTier.Provider found although ranking found one for " + authorityResource);
+        throw new AssertionError("No AuthoritativeTier.Provider found although ranking found one for " + authorityResources);
       }
       return authoritativeTierProvider;
     }

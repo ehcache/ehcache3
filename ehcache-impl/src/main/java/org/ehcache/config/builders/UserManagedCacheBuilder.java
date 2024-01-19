@@ -40,6 +40,7 @@ import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
 import org.ehcache.core.util.ClassLoading;
@@ -80,7 +81,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
-import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
@@ -284,10 +284,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         serviceConfigsList.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriter));
       }
 
-      Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigsList);
-      if (storeProvider == null) {
-        storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
-      }
+      Store.Provider storeProvider = StoreSupport.trySelect(WrapperStore.Provider.class, serviceLocator, wrapper -> wrapper.wrapperStoreRank(serviceConfigsList))
+        .map(Store.Provider.class::cast).orElseGet(() -> StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resources, serviceConfigsList)));
 
       Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader,
         expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer, cacheLoaderWriter);

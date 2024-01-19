@@ -162,7 +162,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new caching tier
      */
-    <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link CachingTier}.

@@ -864,15 +864,16 @@ public class TieredStoreTest {
         .thenReturn(new HashSet<>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)));
 
     OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
-    Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
-    when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
-    when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
+    Set<ResourceType<?>> cachingResources = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
+    when(onHeapStoreProvider.rankCachingTier(eq(cachingResources), any(Collection.class))).thenReturn(1);
+    when(onHeapStoreProvider.createCachingTier(eq(cachingResources), any(Store.Configuration.class),
       ArgumentMatchers.any()))
         .thenReturn(stringCachingTier);
 
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
-    when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
-    when(offHeapStoreProvider.createAuthoritativeTier(
+    Set<ResourceType<?>> authorityResources = Collections.<ResourceType<?>>singleton( ResourceType.Core.OFFHEAP);
+    when(offHeapStoreProvider.rankAuthority(eq(authorityResources), any(Collection.class))).thenReturn(1);
+    when(offHeapStoreProvider.createAuthoritativeTier(eq(authorityResources),
             any(Store.Configuration.class), ArgumentMatchers.any()))
         .thenReturn(stringAuthoritativeTier);
 
@@ -940,14 +941,14 @@ public class TieredStoreTest {
     provider.start(serviceProvider);
 
     AuthoritativeTier.Provider provider1 = mock(AuthoritativeTier.Provider.class);
-    when(provider1.rankAuthority(any(ResourceType.class), any())).thenReturn(1);
+    when(provider1.rankAuthority(any(Set.class), any())).thenReturn(1);
     AuthoritativeTier.Provider provider2 = mock(AuthoritativeTier.Provider.class);
-    when(provider2.rankAuthority(any(ResourceType.class), any())).thenReturn(2);
+    when(provider2.rankAuthority(any(Set.class), any())).thenReturn(2);
 
     when(serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class)).thenReturn(Arrays.asList(provider1,
                                                                                                        provider2));
 
-    assertSame(provider.getAuthoritativeTierProvider(mock(ResourceType.class), Collections.emptyList()), provider2);
+    assertSame(provider.getAuthoritativeTierProvider(mock(Set.class), Collections.emptyList()), provider2);
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {

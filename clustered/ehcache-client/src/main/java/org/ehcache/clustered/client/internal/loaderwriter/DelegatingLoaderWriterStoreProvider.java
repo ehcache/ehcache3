@@ -17,7 +17,6 @@ package org.ehcache.clustered.client.internal.loaderwriter;
 
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
-import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.AbstractWrapperStoreProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
@@ -25,7 +24,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import java.util.Collection;
-import java.util.Set;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
@@ -36,11 +34,6 @@ public class DelegatingLoaderWriterStoreProvider extends AbstractWrapperStorePro
   protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     DelegatingLoaderWriterStore<K, V> loaderWriterStore = new DelegatingLoaderWriterStore<>(store);
     return loaderWriterStore;
-  }
-
-  @Override
-  public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
   }
 
   @Override
