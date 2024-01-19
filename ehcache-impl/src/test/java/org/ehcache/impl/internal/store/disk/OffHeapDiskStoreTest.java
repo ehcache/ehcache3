@@ -324,8 +324,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @SuppressWarnings("unchecked")
   public void testAuthoritativeRank() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    assertThat(provider.rankAuthority(ResourceType.Core.DISK, EMPTY_LIST), is(1));
-    assertThat(provider.rankAuthority(new UnmatchedResourceType(), EMPTY_LIST), is(0));
+    assertThat(provider.rankAuthority(singleton(ResourceType.Core.DISK), EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(singleton(new UnmatchedResourceType()), EMPTY_LIST), is(0));
   }
 
   @Test

@@ -16,12 +16,15 @@
 
 package org.ehcache.core.spi.store.tiering;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.Collection;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -77,7 +80,7 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
      *
      * @return the new higher caching tier
      */
-    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link HigherCachingTier}.
@@ -94,6 +97,22 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
      * @param resource the higher caching tier to initialise
      */
     void initHigherCachingTier(HigherCachingTier<?, ?> resource);
+
+    /**
+     * Gets the internal ranking for the {@link HigherCachingTier} instances provided by this {@code Provider} of the
+     * caching tier's ability to handle the specified resources.
+       * <p>
+     * A higher rank value indicates a more capable {@code CachingTier}.
+     *
+     * @param resourceTypes the set of {@code ResourceType}s for the store to handle
+     * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
+     *                       to the ranking
+     *
+     * @return a non-negative rank indicating the ability of a {@code CachingTier} created by this {@code Provider}
+     *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the caching tier
+     *      can not handle the type specified in {@code resourceTypes}
+     */
+    int rankHigherCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
 }

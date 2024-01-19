@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -78,10 +79,10 @@ public class StoreSupportTest {
         expectedProvider
     );
 
+    Set<ResourceType<?>> resources = Collections.singleton(anyResourceType);
+    List<ServiceConfiguration<?, ?>> serviceConfigs = Collections.emptyList();
     final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
-    final Store.Provider selectedProvider = StoreSupport.selectStoreProvider(serviceLocator,
-        Collections.<ResourceType<?>>singleton(anyResourceType),
-        Collections.<ServiceConfiguration<?, ?>>emptyList());
+    final Store.Provider selectedProvider = StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resources, serviceConfigs));
 
     assertThat(selectedProvider, is(Matchers.<Store.Provider>sameInstance(expectedProvider)));
 
@@ -105,13 +106,13 @@ public class StoreSupportTest {
     final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
 
     try {
-      StoreSupport.selectStoreProvider(serviceLocator,
-          Collections.<ResourceType<?>>singleton(anyResourceType),
-          Collections.<ServiceConfiguration<?, ?>>emptyList());
+      Set<ResourceType<?>> resources = Collections.singleton(anyResourceType);
+      List<ServiceConfiguration<?, ?>> serviceConfigs = Collections.emptyList();
+      StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resources, serviceConfigs));
       fail();
     } catch (IllegalStateException e) {
       // expected
-      assertThat(e.getMessage(), startsWith("Multiple Store.Providers "));
+      assertThat(e.getMessage(), startsWith("Multiple Store.Provider types"));
     }
 
     for (final TestBaseProvider provider : storeProviders) {
@@ -122,9 +123,9 @@ public class StoreSupportTest {
   @Test
   public void testSelectStoreProviderNoProviders() throws Exception {
     try {
-      StoreSupport.selectStoreProvider(dependencySet().build(),
-          Collections.<ResourceType<?>>singleton(anyResourceType),
-          Collections.<ServiceConfiguration<?, ?>>emptyList());
+      Set<ResourceType<?>> resources = Collections.singleton(anyResourceType);
+      List<ServiceConfiguration<?, ?>> serviceConfigs = Collections.emptyList();
+      StoreSupport.select(Store.Provider.class, dependencySet().build(), store -> store.rank(resources, serviceConfigs));
       fail();
     } catch (IllegalStateException e) {
       // expected
@@ -162,9 +163,9 @@ public class StoreSupportTest {
 
     final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
     try {
-      StoreSupport.selectStoreProvider(serviceLocator,
-          Collections.<ResourceType<?>>singleton(otherResourceType),
-          Collections.<ServiceConfiguration<?, ?>>emptyList());
+      Set<ResourceType<?>> resources = Collections.singleton(otherResourceType);
+      List<ServiceConfiguration<?, ?>> serviceConfigs = Collections.emptyList();
+      StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resources, serviceConfigs));
       fail();
     } catch (IllegalStateException e) {
       // expected

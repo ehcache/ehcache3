@@ -41,6 +41,7 @@ import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
 import org.ehcache.core.util.ClassLoading;
@@ -499,10 +500,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
       operationStatisticsEnabled, keySerializer, valueSerializer, loaderWriter, useLoaderInAtomics);
 
-    Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigs);
-    if (storeProvider == null) {
-      storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resourceTypes, serviceConfigs);
-    }
+
+    Store.Provider storeProvider = StoreSupport.trySelect(WrapperStore.Provider.class, serviceLocator, wrapper -> wrapper.wrapperStoreRank(serviceConfigs))
+      .map(Store.Provider.class::cast).orElseGet(() -> StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resourceTypes, serviceConfigs)));
 
     Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
