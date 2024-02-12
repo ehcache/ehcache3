@@ -28,7 +28,6 @@ import org.ehcache.config.ResourceType;
 public abstract class AbstractResourcePool<P extends ResourcePool, T extends ResourceType<P>> implements ResourcePool {
   private final T type;
   private final boolean persistent;
-  private final boolean shared;
 
   /**
    * Creates a {@code AbstractResourcePool} instance.
@@ -36,13 +35,12 @@ public abstract class AbstractResourcePool<P extends ResourcePool, T extends Res
    * @param type the non-{@code null} {@code ResourceType}
    * @param persistent whether or not this {@code ResourcePool} is persistent
    */
-  protected AbstractResourcePool(T type, boolean persistent, boolean shared) {
+  protected AbstractResourcePool(T type, boolean persistent) {
     if (type == null) {
       throw new NullPointerException("ResourceType may not be null");
     }
     this.type = type;
     this.persistent = persistent;
-    this.shared = shared;
   }
 
   /**
@@ -59,14 +57,6 @@ public abstract class AbstractResourcePool<P extends ResourcePool, T extends Res
   @Override
   public boolean isPersistent() {
     return persistent;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public boolean isShared() {
-    return shared;
   }
 
   /**

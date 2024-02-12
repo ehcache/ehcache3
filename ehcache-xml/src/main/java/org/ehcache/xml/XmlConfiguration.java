@@ -18,11 +18,9 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.Builder;
 import org.ehcache.config.FluentConfigurationBuilder;
-import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.javadoc.PublicApi;
@@ -360,7 +358,7 @@ public class XmlConfiguration implements Configuration {
   }
 
   @Override
-  public Map<ResourceType<?>, ResourcePool> getSharedResourcePools() {
+  public ResourcePools getSharedResourcePools() {
     return configuration.getSharedResourcePools();
   }
 

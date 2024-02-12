@@ -20,6 +20,7 @@ import org.ehcache.config.Builder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.impl.config.SharedResourcePool;
 import org.ehcache.impl.config.SizedResourcePoolImpl;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.impl.config.ResourcePoolsImpl;
@@ -33,7 +34,6 @@ import java.util.Map;
 import static java.util.Collections.unmodifiableMap;
 import java.util.HashMap;
 
-import static org.ehcache.config.units.MemoryUnit.B;
 import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
@@ -129,17 +129,12 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param size the pool size
    * @param unit the pool size unit
    * @param persistent if the pool is to be persistent
-   * @param shared if the pool is to be shared
    * @return a new builder with the added pool
    *
    * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
    */
-  public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent, boolean shared) {
-    ResourceType<SizedResourcePool> resourceType = type;
-    if (shared) {
-      resourceType = new ResourceType.SharedResource(type);
-    }
-    return with(new SizedResourcePoolImpl<>(resourceType, size, unit, persistent, shared));
+  public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent) {
+    return with(new SizedResourcePoolImpl<>(type, size, unit, persistent));
   }
 
   /**
@@ -152,7 +147,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains a heap resource
    */
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
-    return with(ResourceType.Core.HEAP, size, unit, false, false);
+    return with(ResourceType.Core.HEAP, size, unit, false);
   }
 
   /**
@@ -161,7 +156,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @return a new builder with the added pool
    */
   public ResourcePoolsBuilder sharedHeap() {
-    return with(ResourceType.Core.HEAP, 0, B, false, true);
+    return shared(ResourceType.Core.HEAP, false);
   }
 
   /**
@@ -174,7 +169,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains an offheap resource
    */
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
-    return with(ResourceType.Core.OFFHEAP, size, unit, false, false);
+    return with(ResourceType.Core.OFFHEAP, size, unit, false);
   }
 
   /**
@@ -183,7 +178,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @return a new builder with the added pool
    */
   public ResourcePoolsBuilder sharedOffheap() {
-    return with(ResourceType.Core.OFFHEAP, 0, B, false, true);
+    return shared(ResourceType.Core.OFFHEAP, false);
   }
 
   /**
@@ -210,7 +205,11 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains a disk resource
    */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
-    return with(ResourceType.Core.DISK, size, unit, persistent, false);
+    return with(ResourceType.Core.DISK, size, unit, persistent);
+  }
+
+  public ResourcePoolsBuilder shared(ResourceType<?> type, boolean persistent) {
+    return with(new SharedResourcePool<>(type, persistent));
   }
 
   /**

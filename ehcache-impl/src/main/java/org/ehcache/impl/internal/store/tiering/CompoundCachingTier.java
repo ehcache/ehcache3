@@ -20,10 +20,6 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.impl.internal.store.shared.SharedOffHeapStoreProvider;
-import org.ehcache.impl.internal.store.shared.SharedOnHeapStoreProvider;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
@@ -260,7 +256,6 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       if (serviceProvider == null) {
         throw new RuntimeException("ServiceProvider is null.");
       }
-      Set<ResourceType<?>> cachingResources = storeConfig.getResourcePools().getResourceTypeSet();
 
       Set<ResourceType<?>> upperResources = singleton(Collections.max(resourceTypes, comparingInt(ResourceType::getTierHeight)));
       Set<ResourceType<?>> lowerResources = singleton(Collections.min(resourceTypes, comparingInt(ResourceType::getTierHeight)));

@@ -17,28 +17,22 @@
 package org.ehcache.impl.config.store.shared;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.SharedResourcePools;
-import org.ehcache.impl.config.ResourcePoolsImpl;
-import org.ehcache.impl.internal.store.shared.SharedStoreProvider;
+import org.ehcache.impl.internal.store.shared.SharedStorageProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+public class SharedStorageConfiguration implements ServiceCreationConfiguration<SharedStorageProvider, Object> {
+  private final ResourcePools resourcePools;
 
-public class SharedStoreProviderConfiguration implements ServiceCreationConfiguration<SharedStoreProvider, String> {
-
-  private final ResourcePools sharedResourcePools;
-
-
-  public SharedStoreProviderConfiguration(SharedResourcePools sharedResourcePools) {
-    this.sharedResourcePools = new ResourcePoolsImpl(sharedResourcePools.getSharedResourcePools());
-  }
-
-
-  public ResourcePools getSharedResourcePools() {
-    return sharedResourcePools;
+  public SharedStorageConfiguration(ResourcePools resourcePools) {
+    this.resourcePools = resourcePools;
   }
 
   @Override
-  public Class<SharedStoreProvider> getServiceType() {
-    return SharedStoreProvider.class;
+  public Class<SharedStorageProvider> getServiceType() {
+    return SharedStorageProvider.class;
+  }
+
+  public ResourcePools getResourcePools() {
+    return resourcePools;
   }
 }

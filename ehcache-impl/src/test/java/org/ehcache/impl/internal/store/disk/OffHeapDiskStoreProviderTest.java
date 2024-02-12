@@ -45,7 +45,6 @@ import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 
-import java.util.Collections;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
@@ -153,11 +152,6 @@ public class OffHeapDiskStoreProviderTest {
                }
 
                @Override
-               public boolean isShared() {
-                 return false;
-               }
-
-               @Override
                public void validateUpdate(ResourcePool newPool) {
                  throw new UnsupportedOperationException("TODO Implement me!");
                }
@@ -172,11 +166,6 @@ public class OffHeapDiskStoreProviderTest {
            @Override
            public ResourcePools validateAndMerge(ResourcePools toBeUpdated) throws IllegalArgumentException, UnsupportedOperationException {
              throw new UnsupportedOperationException("TODO Implement me!");
-           }
-
-           @Override
-           public Set<ResourceType<?>> getResourceTypeSetDesignatedForSharing() {
-             return Collections.emptySet();
            }
          };
        }

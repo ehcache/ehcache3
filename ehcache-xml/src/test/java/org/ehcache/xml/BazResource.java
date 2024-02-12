@@ -32,11 +32,6 @@ public class BazResource implements ResourcePool {
   }
 
   @Override
-  public boolean isShared() {
-    return false;
-  }
-
-  @Override
   public void validateUpdate(ResourcePool newPool) {
 
   }

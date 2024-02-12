@@ -22,6 +22,7 @@ import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.FluentConfigurationBuilder;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.EhcacheManager;
@@ -31,7 +32,7 @@ import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfi
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
-import org.ehcache.impl.config.store.shared.SharedStoreProviderConfiguration;
+import org.ehcache.impl.config.store.shared.SharedStorageConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
@@ -379,12 +380,12 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
   }
 
   /**
-   * Defines a {@link org.ehcache.config.SharedResourcePools}, containing one or more {@link SizedResourcePool}s that configured caches
+   * Defines a {@link org.ehcache.config.ResourcePools}, containing one or more {@link org.ehcache.config.ResourcePool}s that configured caches
    * can reference, such that their caching requirements will be managed via the shared pool.
    * @param sharedResourcePoolsBuilder the resources to share
    * @return a new builder with the added configuration
    */
-  public CacheManagerBuilder<T> sharedResources(SharedResourcePoolsBuilder sharedResourcePoolsBuilder) {
-    return using(new SharedStoreProviderConfiguration(sharedResourcePoolsBuilder.build()));
+  public CacheManagerBuilder<T> sharedResources(Builder<? extends ResourcePools> sharedResourcePoolsBuilder) {
+    return using(new SharedStorageConfiguration(sharedResourcePoolsBuilder.build()));
   }
 }

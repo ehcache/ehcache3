@@ -30,7 +30,7 @@ public class ClusteredResourcePoolImpl
         implements ClusteredResourcePool {
 
   public ClusteredResourcePoolImpl() {
-    super(ClusteredResourceType.Types.UNKNOWN, true, false);
+    super(ClusteredResourceType.Types.UNKNOWN, true);
   }
 
   @Override

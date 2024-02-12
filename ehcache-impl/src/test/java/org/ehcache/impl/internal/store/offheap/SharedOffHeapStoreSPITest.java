@@ -39,7 +39,13 @@ import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.portability.AssertingOffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
-import org.ehcache.impl.internal.store.shared.StorePartition;
+import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
+import org.ehcache.impl.internal.store.shared.composites.CompositeEvictionAdvisor;
+import org.ehcache.impl.internal.store.shared.composites.CompositeExpiryPolicy;
+import org.ehcache.impl.internal.store.shared.composites.CompositeSerializer;
+import org.ehcache.impl.internal.store.shared.authoritative.AuthoritativeTierPartition;
+import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationListener;
+import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationValve;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
@@ -56,12 +62,6 @@ import java.util.Map;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.core.config.store.StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeValue;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeSerializer;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeExpiryPolicy;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeEvictionAdvisor;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeInvalidationValve;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeInvalidationListener;
 
 /**
  * SharedOffHeapStoreSPITest
@@ -70,8 +70,8 @@ import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeInv
 public class SharedOffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String> {
 
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
-  private StorePartition<String, String> storePartition;
-  private OffHeapStore<CompositeValue<?>, CompositeValue<?>> sharedStore;
+  private AuthoritativeTier<String, String> storePartition;
+  private OffHeapStore<CompositeValue<String>, CompositeValue<String>> sharedStore;
 
   @Before
   public void setUp() {
@@ -102,7 +102,7 @@ public class SharedOffHeapStoreSPITest extends AuthoritativeTierSPITest<String, 
         final Map<Integer, EvictionAdvisor<?, ?>> evictionAdvisorMap = new HashMap<>();
         final Map<Integer, ExpiryPolicy<?, ?>> expiryPolicyMap = new HashMap<>();
         final Map<Integer, AuthoritativeTier.InvalidationValve> invalidationValveMap = new HashMap<>();
-        final Map<Integer, CachingTier.InvalidationListener> invalidationListenerMap = new HashMap<>();
+        final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap = new HashMap<>();
 
         ResourcePools resourcePools = getOffHeapResourcePool(capacity);
         SizedResourcePool resourcePool = resourcePools.getPoolForResource(OFFHEAP);
@@ -116,16 +116,16 @@ public class SharedOffHeapStoreSPITest extends AuthoritativeTierSPITest<String, 
           new ResourcePoolsImpl(resourcePool),
           DEFAULT_DISPATCHER_CONCURRENCY,
           true,
-          new CompositeSerializer<>(keySerializerMap),
-          new CompositeSerializer<>(valueSerializerMap),
+          new CompositeSerializer(keySerializerMap),
+          new CompositeSerializer(valueSerializerMap),
           null,
           false);
 
         StatisticsService statisticsService = new DefaultStatisticsService();
-        sharedStore = new OffHeapStore<CompositeValue<?>, CompositeValue<?>>(storeConfiguration, timeSource, new TestStoreEventDispatcher<>(), MemoryUnit.MB
+        sharedStore = new OffHeapStore<CompositeValue<String>, CompositeValue<String>>(storeConfiguration, timeSource, new TestStoreEventDispatcher<>(), MemoryUnit.MB
           .toBytes(resourcePool.getSize()), statisticsService) {
           @Override
-          protected OffHeapValueHolderPortability<StorePartition.CompositeValue<?>> createValuePortability(Serializer<StorePartition.CompositeValue<?>> serializer) {
+          protected OffHeapValueHolderPortability<CompositeValue<String>> createValuePortability(Serializer<CompositeValue<String>> serializer) {
             return new AssertingOffHeapValueHolderPortability<>(serializer);
           }
         };
@@ -134,8 +134,8 @@ public class SharedOffHeapStoreSPITest extends AuthoritativeTierSPITest<String, 
         ((LowerCachingTier) sharedStore).setInvalidationListener(new CompositeInvalidationListener(invalidationListenerMap));
         OffHeapStore.Provider.init(sharedStore);
 
-        Serializer<String> keySerializer = new JavaSerializer<>(SharedOffHeapStoreTest.class.getClassLoader());
-        Serializer<String> valueSerializer = new JavaSerializer<>(SharedOffHeapStoreTest.class.getClassLoader());
+        Serializer<String> keySerializer = new JavaSerializer<>(SharedOffHeapStoreSPITest.class.getClassLoader());
+        Serializer<String> valueSerializer = new JavaSerializer<>(SharedOffHeapStoreSPITest.class.getClassLoader());
 
         int storeId = 1;
         keySerializerMap.put(storeId, keySerializer);
@@ -147,7 +147,7 @@ public class SharedOffHeapStoreSPITest extends AuthoritativeTierSPITest<String, 
           evictionAdvisorMap.put(storeId, AbstractOffHeapStore.wrap(evictionAdvisor));
         }
 
-        storePartition = new StorePartition<>(storeId, String.class, String.class, sharedStore, invalidationValveMap, invalidationListenerMap, statisticsService, true);
+        storePartition = new AuthoritativeTierPartition<>(storeId, String.class, String.class, sharedStore);
         statisticsService.registerWithParent(sharedStore, storePartition);
         return storePartition;
       }
