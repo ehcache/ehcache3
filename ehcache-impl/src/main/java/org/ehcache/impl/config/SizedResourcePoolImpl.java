@@ -46,24 +46,11 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
    * @param persistent whether the pool is to be persistent
    */
   public SizedResourcePoolImpl(ResourceType<P> type, long size, ResourceUnit unit, boolean persistent) {
-    this(type, size, unit, persistent, false);
-  }
-
-  /**
-   * Creates a new resource pool based on the provided parameters.
-   *
-   * @param type the resource type
-   * @param size the size
-   * @param unit the unit for the size
-   * @param persistent whether the pool is to be persistent
-   * @param shared whether the pool is to be shared
-   */
-  public SizedResourcePoolImpl(ResourceType<P> type, long size, ResourceUnit unit, boolean persistent, boolean shared) {
-    super(type, persistent, shared);
+    super(type, persistent);
     if (unit == null) {
       throw new NullPointerException("ResourceUnit can not be null");
     }
-    if (size <= 0 && !shared) {
+    if (size <= 0) {
       throw new IllegalArgumentException("Size must be greater than 0");
     }
     if (!type.isPersistable() && persistent) {
@@ -120,14 +107,12 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
   public String toString() {
     return "Pool {" + getSize() + " " + getUnit() + " " + getType() +
       (isPersistent() ? ", persistent" : "") +
-      (isShared() ? ", shared" : "") +
       "}";
   }
 
   @Override
   public String readableString() {
     return getSize() + " " + getUnit() +
-      (isPersistent() ? ", persistent" : "") +
-      (isShared() ? ", shared" : "");
+      (isPersistent() ? ", persistent" : "");
   }
 }

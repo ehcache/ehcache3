@@ -16,42 +16,48 @@
 
 package org.ehcache.impl.internal.store.shared;
 
-import org.ehcache.config.*;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
-import org.ehcache.core.spi.store.tiering.LowerCachingTier;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
+import org.ehcache.impl.internal.store.shared.composites.CompositeEvictionAdvisor;
+import org.ehcache.impl.internal.store.shared.composites.CompositeExpiryPolicy;
+import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationValve;
+import org.ehcache.impl.internal.store.shared.composites.CompositeSerializer;
+import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
+import org.ehcache.impl.internal.store.shared.store.StorePartition;
+import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.*;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-import static java.util.Objects.requireNonNull;
 import static org.ehcache.core.config.store.StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeValue;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeSerializer;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeExpiryPolicy;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeEvictionAdvisor;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeInvalidationValve;
-import static org.ehcache.impl.internal.store.shared.StorePartition.CompositeInvalidationListener;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-//@ServiceDependencies({OnHeapStore.Provider.class, OffHeapStore.Provider.class})
-@OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
-public abstract class SharedStoreProvider implements Store.Provider {
+public class SharedStorage implements Service {
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(SharedStoreProvider.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(SharedStorage.class);
   protected ServiceProvider<Service> serviceProvider;
 
   private int id = 0;
@@ -60,17 +66,16 @@ public abstract class SharedStoreProvider implements Store.Provider {
   private final Map<Integer, EvictionAdvisor<?, ?>> evictionAdvisorMap = new HashMap<>();
   private final Map<Integer, ExpiryPolicy<?, ?>> expiryPolicyMap = new HashMap<>();
   private final Map<Integer, AuthoritativeTier.InvalidationValve> invalidationValveMap = new HashMap<>();
-  private final Map<Integer, CachingTier.InvalidationListener> invalidationListenerMap = new HashMap<>();
+  private final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap = new HashMap<>();
 
   protected final ResourcePool resourcePool;
   private Store.Provider storeProvider = null;
   private Store<CompositeValue<?>, CompositeValue<?>> store = null;
 
-  public SharedStoreProvider(ResourcePool resourcePool) {
+  public SharedStorage(ResourcePool resourcePool) {
     this.resourcePool = resourcePool;
   }
 
-  @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     this.serviceProvider = serviceProvider;
     if (resourcePool != null) {
@@ -83,7 +88,6 @@ public abstract class SharedStoreProvider implements Store.Provider {
     }
   }
 
-  @Override
   public void stop() {
     if (storeProvider != null && store != null) {
       storeProvider.releaseStore(store);
@@ -120,8 +124,8 @@ public abstract class SharedStoreProvider implements Store.Provider {
 
     Class<?> keyType = CompositeValue.class;
     Class<?> valueType = CompositeValue.class;
-    Serializer<?> keySerializer = new CompositeSerializer<>(keySerializerMap);
-    Serializer<?> valueSerializer = new CompositeSerializer<>(valueSerializerMap);
+    Serializer<?> keySerializer = new CompositeSerializer(keySerializerMap);
+    Serializer<?> valueSerializer = new CompositeSerializer(valueSerializerMap);
 
     ServiceConfiguration<?, ?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?, ?>[serviceConfigs.size()]);
 
@@ -131,24 +135,18 @@ public abstract class SharedStoreProvider implements Store.Provider {
       keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, DEFAULT_DISPATCHER_CONCURRENCY,
       true, keySerializer, valueSerializer, cacheLoaderWriter, false);
 
-    Store.Provider storeProvider = StoreSupport.trySelect(WrapperStore.Provider.class, serviceProvider, wrapper -> wrapper.wrapperStoreRank(serviceConfigs))
-      .map(Store.Provider.class::cast).orElseGet(() -> StoreSupport.select(Store.Provider.class, serviceProvider, store -> store.rank(resourceTypes, serviceConfigs)));
+    storeProvider = StoreSupport.select(Store.Provider.class, serviceProvider, store -> store.rank(resourceTypes, serviceConfigs));
     store = storeProvider.createStore(storeConfig, serviceConfigArray);
     if (store instanceof AuthoritativeTier) {
       ((AuthoritativeTier) store).setInvalidationValve(new CompositeInvalidationValve(invalidationValveMap));
     }
-    if (store instanceof LowerCachingTier) {
-      ((LowerCachingTier) store).setInvalidationListener(new CompositeInvalidationListener(invalidationListenerMap));
+    if (store instanceof CachingTier) {
+      ((CachingTier) store).setInvalidationListener(new CompositeInvalidationListener(invalidationListenerMap));
     }
     storeProvider.initStore(store);
   }
 
-  @Override
-  public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
-    return createStoreInternal(storeConfig, serviceConfigs);
-  }
-
-  protected <K, V> Store<K, V> createStoreInternal(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+  protected <T, U, K, V> U createPartition(Store.Configuration<K, V> storeConfig, PartitionFactory<T, U> partitionFactory) {
     int storeId = ++id;
     keySerializerMap.put(storeId, storeConfig.getKeySerializer());
     valueSerializerMap.put(storeId, storeConfig.getValueSerializer());
@@ -162,16 +160,9 @@ public abstract class SharedStoreProvider implements Store.Provider {
     }
     evictionAdvisorMap.put(storeId, evictionAdvisor);
 
-    StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
-    Store<K, V> storePartition = new StorePartition<>(storeId, storeConfig.getKeyType(), storeConfig.getValueType(), store, invalidationValveMap, invalidationListenerMap, statisticsService, true);
-
-    if (statisticsService != null) {
-      statisticsService.registerWithParent(store, storePartition);
-    }
-    return storePartition;
+    return partitionFactory.createPartition(storeId, (T) store, this);
   }
 
-  @Override
   public void releaseStore(Store<?, ?> store) {
     if (!(store instanceof StorePartition)) {
       throw new IllegalArgumentException("Given store is not managed by this provider : " + store);
@@ -188,22 +179,18 @@ public abstract class SharedStoreProvider implements Store.Provider {
     }
   }
 
-  @Override
-  public void initStore(Store<?, ?> resource) {
-    // no-op: stores referencing a shared store do not require initialization
+
+  public boolean supports(Class<?> providerClass) {
+    return providerClass.isInstance(store);
   }
 
-  @Override
-  public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    return 0;
+  public Map<Integer, CachingTier.InvalidationListener<?, ?>> getInvalidationListeners() {
+    return invalidationListenerMap;
   }
 
-  protected int rankInternal(Set<ResourceType<?>> resourceTypes) {
-    return resourceTypes.size() == 1 ? rankInternal(resourceTypes.stream().findFirst().get()) : 0;
-  }
 
-  protected int rankInternal(ResourceType<?> resourceType) {
-    return (resourceType instanceof ResourceType.SharedResource &&
-      ((ResourceType.SharedResource) resourceType).getResourceType() == requireNonNull(this.resourcePool).getType()) ? 1 : 0;
+  public interface PartitionFactory<T, U> {
+
+    U createPartition(int id, T storage, SharedStorage shared);
   }
 }

@@ -325,35 +325,14 @@ public class XmlConfigurationTest {
     XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
 
     CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeap");
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(0L));
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).isShared(), equalTo(true));
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
 
     tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedOffheap");
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getSize(), equalTo(0L));
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).isShared(), equalTo(true));
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
 
     tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeapAndOffheap");
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(0L));
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).isShared(), equalTo(true));
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getSize(), equalTo(0L));
-    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).isShared(), equalTo(true));
-  }
-
-  @Test
-  public void testSharedResourcesWithBadConfiguration() throws Exception {
-    try {
-      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/resources-caches-bad-heap-config.xml"));
-      fail("Expected XmlConfigurationException");
-    } catch (XmlConfigurationException ex) {
-      assertThat(ex.getCause().getMessage(), containsString("Can not add 'Pool {0 B heap, shared}'; configuration already contains 'Pool {1000 MB heap}'"));
-    }
-
-    try {
-      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/resources-caches-bad-offheap-config.xml"));
-      fail("Expected XmlConfigurationException");
-    } catch (XmlConfigurationException ex) {
-      assertThat(ex.getCause().getMessage(), containsString("Can not add 'Pool {0 B offheap, shared}'; configuration already contains 'Pool {1000 MB offheap}'"));
-    }
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
   }
 
   @Test

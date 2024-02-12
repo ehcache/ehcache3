@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of the {@link ResourcePools} interface.
@@ -39,9 +38,6 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
   private final Map<ResourceType<?>, ResourcePool> pools;
 
   public ResourcePoolsImpl(Map<ResourceType<?>, ResourcePool> pools) {
-    if (pools.isEmpty()) {
-      throw new IllegalArgumentException("No resource pools defined");
-    }
     validateResourcePools(pools.values());
     this.pools = pools;
   }
@@ -103,14 +99,6 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
     }
 
     return new ResourcePoolsImpl(poolsMap);
-  }
-
-  @Override
-  public Set<ResourceType<?>> getResourceTypeSetDesignatedForSharing() {
-    return pools.values().stream()
-      .filter(ResourcePool::isShared)
-      .map(ResourcePool::getType)
-      .collect(Collectors.toSet());
   }
 
   /**

@@ -602,13 +602,21 @@
     </xs:annotation>
   </xs:element>
 
-  <xs:complexType name="resources-type">
-    <xs:sequence>
-      <xs:element ref="ehcache:resource" minOccurs="1" maxOccurs="unbounded"/>
-    </xs:sequence>
-  </xs:complexType>
+  <xs:element name="sharedDisk" type="xs:string" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          Used to inform the cache manager that a shared disk resource should be used to manage this cache's offheap entries.
+        </xs:documentation>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
 
-  <xs:complexType name="shared-resources-type">
+  <xs:complexType name="resources-type">
     <xs:sequence>
       <xs:element ref="ehcache:resource" minOccurs="1" maxOccurs="unbounded"/>
     </xs:sequence>

@@ -43,13 +43,6 @@ public interface ResourcePools {
   Set<ResourceType<?>> getResourceTypeSet();
 
   /**
-   * Gets the set of all {@link ResourceType}s whose pools have been configured to use the corresponding shared instances
-   * defined on the Cache Manager
-   * @return a set of {@link ResourceType}s
-   */
-  Set<ResourceType<?>> getResourceTypeSetDesignatedForSharing();
-
-  /**
    * Get a copy of this {@code ResourcePools} merged with the given {@code ResourcePools}, validating that
    * the updates to the contained {@link ResourcePool}s are legal.
    *

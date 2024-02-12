@@ -265,7 +265,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       OptionalInt highestRank = typedServiceFactories.stream().mapToInt(ServiceFactory::rank).max();
 
       if (highestRank.isPresent()) {
-        typedServiceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> f.multiCreate(config).forEach(this::with));
+        typedServiceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> with(f.create(config)));
         return this;
       } else {
         throw new IllegalStateException("No factories exist for " + serviceType);

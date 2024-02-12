@@ -125,7 +125,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
-  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, LowerCachingTier.Provider {
+  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, LowerCachingTier.Provider, ElementalProvider {
 
     private final Logger logger = EhcachePrefixLoggerFactory.getLogger(Provider.class);
 

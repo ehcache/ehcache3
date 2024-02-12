@@ -18,8 +18,7 @@ package org.ehcache.config.builders;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourceType;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.core.config.CoreConfigurationBuilder;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
@@ -55,9 +54,9 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
    * @return a new configuration builder
    */
   public static ConfigurationBuilder newConfigurationBuilder(Configuration seed) {
-    return new ConfigurationBuilder(seed.getSharedResourcePools(),new ConfigurationBuilder(new ConfigurationBuilder(
+    return new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(
         new ConfigurationBuilder(new ConfigurationBuilder(), seed.getCacheConfigurations()),
-        seed.getServiceCreationConfigurations()), seed.getClassLoader()));
+        seed.getServiceCreationConfigurations()), seed.getClassLoader()), seed.getSharedResourcePools());
   }
 
   protected ConfigurationBuilder() {
@@ -76,8 +75,8 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
     super(builder, classLoader);
   }
 
-  protected ConfigurationBuilder(Map<ResourceType<?>, ResourcePool> sharedResourcePools, ConfigurationBuilder builder) {
-    super(sharedResourcePools, builder);
+  protected ConfigurationBuilder(ConfigurationBuilder builder,  ResourcePools sharedResourcePools) {
+    super(builder, sharedResourcePools);
   }
 
   /**
@@ -175,7 +174,7 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
   }
 
   @Override
-  protected ConfigurationBuilder newBuilderWithSharedResourcePools(Map<ResourceType<?>, ResourcePool> sharedResourcePools) {
-    return new ConfigurationBuilder(sharedResourcePools, this);
+  protected ConfigurationBuilder newBuilderWithSharedResourcePools(ResourcePools sharedResourcePools) {
+    return new ConfigurationBuilder(this, sharedResourcePools);
   }
 }

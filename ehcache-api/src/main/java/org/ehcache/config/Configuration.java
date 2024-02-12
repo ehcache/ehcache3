@@ -64,7 +64,7 @@ public interface Configuration {
    * Returns a mapping of {@link ResourceType}s to {@link ResourcePool}s, for all configured shared resource pools
    * @return a map of ResourceTypes to shared ResourcePools
    */
-  Map<ResourceType<?>, ResourcePool> getSharedResourcePools();
+  ResourcePools getSharedResourcePools();
 
   /**
    * Creates a builder seeded with this configuration.

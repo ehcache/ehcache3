@@ -39,14 +39,6 @@ public interface ResourcePool {
   boolean isPersistent();
 
   /**
-   * Designates whether the underlying resource is to be shared across multiple caches, operating
-   * within an automatic resource control (ARC) feature set.
-   *
-   * @return {@code true} if shared, {@code false} otherwise
-   */
-  boolean isShared();
-
-  /**
    * Validates whether or not a new {@code ResourcePool} can replace this {@code ResourcePool} on a running
    * {@link org.ehcache.Cache Cache}.
    *
