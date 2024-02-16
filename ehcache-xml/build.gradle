@@ -153,6 +153,11 @@ tasks.register('lowerBoundTest', Test) {
   classpath -= configurations.testRuntimeClasspath
   //add the classpath we want
   classpath += configurations.lowerBoundTestRuntimeClasspath
+
+  if (testJava.javaVersion.isJava9Compatible()) {
+    // Older JAXB versions do reflection on java.lang.ClassLoader
+    jvmArgs += '--add-opens=java.base/java.lang=ALL-UNNAMED'
+  }
 }
 
 tasks.register('jakartaTest', Test) {
