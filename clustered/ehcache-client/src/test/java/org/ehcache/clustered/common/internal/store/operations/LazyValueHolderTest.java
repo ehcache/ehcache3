@@ -42,7 +42,7 @@ public class LazyValueHolderTest {
   @Test
   public void testGetValueDecodeOnlyOnce() throws Exception {
     Date date = mock(Date.class);
-    ByteBuffer buffer = mock(ByteBuffer.class);
+    ByteBuffer buffer = ByteBuffer.allocate(0);
     doReturn(date).when(serializer).read(buffer);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(buffer, serializer);
@@ -56,7 +56,7 @@ public class LazyValueHolderTest {
   @Test
   public void testEncodeEncodesOnlyOnce() throws Exception {
     Date date = mock(Date.class);
-    ByteBuffer buffer = mock(ByteBuffer.class);
+    ByteBuffer buffer = ByteBuffer.allocate(0);
     doReturn(buffer).when(serializer).serialize(date);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(date);

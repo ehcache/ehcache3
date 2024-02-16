@@ -36,7 +36,7 @@ public class SerializingCopierTest {
   public void testCopy() throws Exception {
     Serializer<String> serializer = uncheckedGenericMock(Serializer.class);
     String in = new String("foo");
-    ByteBuffer buff = mock(ByteBuffer.class);
+    ByteBuffer buff = ByteBuffer.allocate(0);
     when(serializer.serialize(in)).thenReturn(buff);
     when(serializer.read(buff)).thenReturn(new String("foo"));
 
