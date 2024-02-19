@@ -79,7 +79,7 @@ public class StoreSupportTest {
     );
 
     final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
-    final Store.Provider selectedProvider = StoreSupport.selectStoreProvider(serviceLocator,
+    final Store.Provider selectedProvider = StoreSupport.select(Store.Provider.class, serviceLocator,
         Collections.<ResourceType<?>>singleton(anyResourceType),
         Collections.<ServiceConfiguration<?, ?>>emptyList());
 
@@ -105,13 +105,13 @@ public class StoreSupportTest {
     final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
 
     try {
-      StoreSupport.selectStoreProvider(serviceLocator,
+      StoreSupport.select(Store.Provider.class, serviceLocator,
           Collections.<ResourceType<?>>singleton(anyResourceType),
           Collections.<ServiceConfiguration<?, ?>>emptyList());
       fail();
     } catch (IllegalStateException e) {
       // expected
-      assertThat(e.getMessage(), startsWith("Multiple Store.Providers "));
+      assertThat(e.getMessage(), startsWith("Multiple Store.Provider types"));
     }
 
     for (final TestBaseProvider provider : storeProviders) {
@@ -122,7 +122,7 @@ public class StoreSupportTest {
   @Test
   public void testSelectStoreProviderNoProviders() throws Exception {
     try {
-      StoreSupport.selectStoreProvider(dependencySet().build(),
+      StoreSupport.select(Store.Provider.class, dependencySet().build(),
           Collections.<ResourceType<?>>singleton(anyResourceType),
           Collections.<ServiceConfiguration<?, ?>>emptyList());
       fail();
@@ -162,7 +162,7 @@ public class StoreSupportTest {
 
     final ServiceLocator serviceLocator = dependencySet().with(storeProviders).build();
     try {
-      StoreSupport.selectStoreProvider(serviceLocator,
+      StoreSupport.select(Store.Provider.class, serviceLocator,
           Collections.<ResourceType<?>>singleton(otherResourceType),
           Collections.<ServiceConfiguration<?, ?>>emptyList());
       fail();

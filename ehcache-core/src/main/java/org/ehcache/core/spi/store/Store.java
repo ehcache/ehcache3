@@ -19,17 +19,14 @@ package org.ehcache.core.spi.store;
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -555,7 +552,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * Implementation of {@link Provider} have to be thread-safe.
    */
   @PluralService
-  interface Provider extends Service {
+  interface Provider extends ResourceRankableService {
 
     /**
      * Creates a new Store instance
@@ -577,20 +574,6 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * @param resource the store to initialize
      */
     void initStore(Store<?, ?> resource);
-
-    /**
-     * Gets the internal ranking for the {@link Store} instances provided by this {@code Provider} of the store's
-     * ability to handle the specified resources.  A higher rank value indicates a more capable {@code Store}.
-     *
-     * @param resourceTypes the set of {@code ResourceType}s for the store to handle
-     * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
-     *                       to the ranking
-     *
-     * @return a non-negative rank indicating the ability of a {@code Store} created by this {@code Provider}
-     *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the store
-     *      can not handle all types specified in {@code resourceTypes}
-     */
-    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
   /**

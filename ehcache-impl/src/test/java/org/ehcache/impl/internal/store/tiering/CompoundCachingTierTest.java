@@ -16,10 +16,13 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -290,11 +293,21 @@ public class CompoundCachingTierTest {
   @SuppressWarnings("unchecked")
   public void testRankCachingTier() throws Exception {
     CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
-    HashSet<ResourceType<?>> resourceTypes = new HashSet<>(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
-    assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(2));
 
-    resourceTypes.clear();
-    resourceTypes.add(new UnmatchedResourceType());
-    assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(0));
+    ServiceLocator serviceLocator = ServiceLocator.dependencySet()
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(provider).build();
+    serviceLocator.startAllServices();
+    try {
+      HashSet<ResourceType<?>> resourceTypes = new HashSet<>(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
+      assertThat(provider.rank(resourceTypes, EMPTY_LIST), is(2));
+
+      resourceTypes.clear();
+      resourceTypes.add(new UnmatchedResourceType());
+      assertThat(provider.rank(resourceTypes, EMPTY_LIST), is(0));
+    } finally {
+      serviceLocator.stopAllServices();
+    }
   }
 }

@@ -16,12 +16,15 @@
 
 package org.ehcache.core.spi.store.tiering;
 
+import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.store.ResourceRankableService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -65,7 +68,7 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
    * {@link Service} interface for providing {@link HigherCachingTier} instances.
    */
   @PluralService
-  interface Provider extends Service {
+  interface Provider extends ResourceRankableService {
 
     /**
      * Creates a new {@link HigherCachingTier} instance using the provided configuration
@@ -77,7 +80,7 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
      *
      * @return the new higher caching tier
      */
-    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> HigherCachingTier<K, V> createHigherCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link HigherCachingTier}.

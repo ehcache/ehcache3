@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceProvider;
 import java.util.Arrays;
 import java.util.Map;
 
-import static org.ehcache.core.store.StoreSupport.selectStoreProvider;
+import static org.ehcache.core.store.StoreSupport.select;
 
 @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
 public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provider {
@@ -38,7 +38,7 @@ public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provi
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
 
-    Store.Provider underlyingStoreProvider = selectStoreProvider(serviceProvider, storeConfig.getResourcePools().getResourceTypeSet(),
+    Store.Provider underlyingStoreProvider = select(Store.Provider.class, serviceProvider, storeConfig.getResourcePools().getResourceTypeSet(),
         Arrays.asList(serviceConfigs));
     Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 

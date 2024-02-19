@@ -769,11 +769,6 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
-    }
-
-    @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       Set<ResourceType.Core> supportedTypes = EnumSet.allOf(ResourceType.Core.class);
 
@@ -792,7 +787,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
       List<ServiceConfiguration<?, ?>> serviceConfigList = Arrays.asList(serviceConfigs);
 
-      Store.Provider underlyingStoreProvider = StoreSupport.selectStoreProvider(serviceProvider,
+      Store.Provider underlyingStoreProvider = StoreSupport.select(Store.Provider.class, serviceProvider,
               storeConfig.getResourcePools().getResourceTypeSet(), serviceConfigList);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();

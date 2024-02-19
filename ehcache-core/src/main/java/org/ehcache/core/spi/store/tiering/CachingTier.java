@@ -17,6 +17,7 @@
 package org.ehcache.core.spi.store.tiering;
 
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.store.ResourceRankableService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
@@ -24,7 +25,6 @@ import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -150,7 +150,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    * Multiple providers may exist in a single {@link org.ehcache.CacheManager}.
    */
   @PluralService
-  interface Provider extends Service {
+  interface Provider extends ResourceRankableService {
 
     /**
      * Creates a new {@link CachingTier} instance using the provided configuration
@@ -162,7 +162,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new caching tier
      */
-    <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link CachingTier}.
@@ -179,22 +179,6 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
      * @param resource the caching tier to initialise
      */
     void initCachingTier(CachingTier<?, ?> resource);
-
-    /**
-     * Gets the internal ranking for the {@link CachingTier} instances provided by this {@code Provider} of the
-     * caching tier's ability to handle the specified resources.
-     * <p>
-     * A higher rank value indicates a more capable {@code CachingTier}.
-     *
-     * @param resourceTypes the set of {@code ResourceType}s for the store to handle
-     * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
-     *                       to the ranking
-     *
-     * @return a non-negative rank indicating the ability of a {@code CachingTier} created by this {@code Provider}
-     *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the caching tier
-     *      can not handle the type specified in {@code resourceTypes}
-     */
-    int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
 }

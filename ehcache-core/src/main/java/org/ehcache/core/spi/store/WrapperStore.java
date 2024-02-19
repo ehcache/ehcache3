@@ -16,10 +16,12 @@
 
 package org.ehcache.core.spi.store;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * Marker interface for {@link Store}s which act like wrapper and does not have any storage, rather
@@ -34,6 +36,11 @@ public interface WrapperStore<K, V> extends Store<K, V> {
    */
   @PluralService
   interface Provider extends Store.Provider {
+
+    @Override
+    default int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+      return 0;
+    }
 
     /**
      * Gets the internal ranking for the {@code WrapperStore} instances provided by this {@code Provider} of the wrapper
