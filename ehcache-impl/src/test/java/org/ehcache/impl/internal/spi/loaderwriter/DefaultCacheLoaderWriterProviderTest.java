@@ -24,8 +24,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
@@ -35,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.core.spi.ServiceLocatorUtils.withServiceLocator;
 import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -103,20 +102,20 @@ public class DefaultCacheLoaderWriterProviderTest {
   }
 
   @Test
-  public void testCreationConfigurationPreservedAfterStopStart() {
+  public void testCreationConfigurationPreservedAfterStopStart() throws Exception {
     DefaultCacheLoaderWriterProviderConfiguration configuration = new DefaultCacheLoaderWriterProviderConfiguration();
     configuration.addLoaderFor("cache", MyLoader.class);
-    DefaultCacheLoaderWriterProvider loaderWriterProvider = new DefaultCacheLoaderWriterProvider(configuration);
 
-    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
-    loaderWriterProvider.start(serviceProvider);
     CacheConfiguration<Object, Object> cacheConfiguration = uncheckedGenericMock(CacheConfiguration.class);
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), instanceOf(MyLoader.class));
 
-    loaderWriterProvider.stop();
-    loaderWriterProvider.start(serviceProvider);
+    DefaultCacheLoaderWriterProvider service = new DefaultCacheLoaderWriterProvider(configuration);
+    withServiceLocator(service, provider -> {
+      assertThat(provider.createCacheLoaderWriter("cache", cacheConfiguration), instanceOf(MyLoader.class));
+    });
 
-    assertThat(loaderWriterProvider.createCacheLoaderWriter("cache", cacheConfiguration), instanceOf(MyLoader.class));
+    withServiceLocator(service, provider -> {
+      assertThat(provider.createCacheLoaderWriter("cache", cacheConfiguration), instanceOf(MyLoader.class));
+    });
   }
 
   public static class MyLoader implements CacheLoaderWriter<Object, Object> {

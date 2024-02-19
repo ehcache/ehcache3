@@ -16,7 +16,9 @@
 
 package org.ehcache.transactions.xa.txmgr.provider;
 
+import org.ehcache.core.spi.service.InstantiatorService;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 
@@ -38,10 +40,11 @@ import javax.transaction.TransactionManager;
  * Note that in this scheme, the lookup instance is not expected to cache the {@code TransactionManagerWrapper}
  * unless it can be considered a singleton.
  */
+@ServiceDependencies(InstantiatorService.class)
 public class LookupTransactionManagerProvider implements TransactionManagerProvider<TransactionManager> {
 
-  private final TransactionManagerLookup<TransactionManager> lookup;
-  private volatile TransactionManagerWrapper<TransactionManager> transactionManagerWrapper;
+  private final LookupTransactionManagerProviderConfiguration config;
+  private TransactionManagerWrapper<TransactionManager> transactionManagerWrapper;
 
   /**
    * Creates a new instance with the provided configuration.
@@ -54,11 +57,7 @@ public class LookupTransactionManagerProvider implements TransactionManagerProvi
     if (config == null) {
       throw new NullPointerException("LookupTransactionManagerProviderConfiguration cannot be null");
     }
-    try {
-      lookup = config.getTransactionManagerLookup().newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
-      throw new IllegalArgumentException("Could not instantiate lookup class", e);
-    }
+    this.config = config;
   }
 
   /**
@@ -74,7 +73,8 @@ public class LookupTransactionManagerProvider implements TransactionManagerProvi
    */
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
-    this.transactionManagerWrapper = lookup.lookupTransactionManagerWrapper();
+    InstantiatorService instantiatorService = serviceProvider.getService(InstantiatorService.class);
+    this.transactionManagerWrapper = instantiatorService.instantiate(config.getTransactionManagerLookup()).lookupTransactionManagerWrapper();
   }
 
   /**

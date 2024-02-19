@@ -45,7 +45,7 @@ public class UserManagedCacheBuilderTest {
 
     final UserManagedCacheConfiguration<String, Object, TestUserManagedCache<String, Object>> cfg = builder -> new UserManagedCacheBuilder<String, Object, TestUserManagedCache<String, Object>>(String.class, Object.class) {
       @Override
-      TestUserManagedCache<String, Object> build(final ServiceLocator.DependencySet dependencySet) {
+      TestUserManagedCache<String, Object> internalBuild() {
         return new TestUserManagedCache<>();
       }
     };

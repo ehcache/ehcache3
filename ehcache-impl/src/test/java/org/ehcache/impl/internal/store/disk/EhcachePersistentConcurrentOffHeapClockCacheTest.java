@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.classes.DefaultInstantiatorService;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.AbstractEhcacheOffHeapBackingMapTest;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
@@ -64,7 +65,7 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-      serializationProvider.start(providerContaining());
+      serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
       MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentConcurrentOffHeapClockCacheTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentConcurrentOffHeapClockCacheTest.class.getClassLoader());

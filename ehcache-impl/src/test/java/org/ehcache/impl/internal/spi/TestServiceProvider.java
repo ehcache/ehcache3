@@ -33,6 +33,11 @@ public final class TestServiceProvider {
 
     for (Service s : services) {
       servicesMap.put(s.getClass(), s);
+      for (Class<?> service : s.getClass().getInterfaces()) {
+        if (!service.equals(Service.class) && Service.class.isAssignableFrom(service)) {
+          servicesMap.put(service.asSubclass(Service.class), s);
+        }
+      }
     }
 
     return new ServiceProvider<Service>() {

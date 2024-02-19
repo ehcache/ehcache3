@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.disk.factories;
 
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.classes.DefaultInstantiatorService;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory.EhcachePersistentSegment;
 import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
@@ -70,7 +71,7 @@ public class EhcachePersistentSegmentTest {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-      serializationProvider.start(providerContaining());
+      serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
       MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
