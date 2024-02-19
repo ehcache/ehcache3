@@ -28,6 +28,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.impl.internal.classes.DefaultInstantiatorService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.CachePersistenceException;
@@ -247,7 +248,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final ExpiryPolicy<? super String, ? super String> expiry) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-      serializationProvider.start(providerContaining(diskResourceService));
+      serializationProvider.start(providerContaining(diskResourceService, new DefaultInstantiatorService()));
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
@@ -275,7 +276,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, ExpiryPolicy<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-      serializationProvider.start(providerContaining(diskResourceService));
+      serializationProvider.start(providerContaining(diskResourceService, new DefaultInstantiatorService()));
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);

@@ -40,6 +40,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,6 +53,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
@@ -262,11 +264,10 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         .filter(f -> serviceType.isAssignableFrom(f.getServiceType())).map(f -> (ServiceFactory<T>) f)
         .collect(toList());
 
-      OptionalInt highestRank = typedServiceFactories.stream().mapToInt(ServiceFactory::rank).max();
+      Optional<ServiceFactory<T>> highestRank = typedServiceFactories.stream().max(comparing(ServiceFactory::rank));
 
       if (highestRank.isPresent()) {
-        typedServiceFactories.stream().filter(f -> highestRank.getAsInt() == f.rank()).forEach(f -> with(f.create(config)));
-        return this;
+        return with(highestRank.get().create(config));
       } else {
         throw new IllegalStateException("No factories exist for " + serviceType);
       }
