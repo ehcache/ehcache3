@@ -89,6 +89,7 @@ javadoc {
 
 jar {
   bnd(
+    'Automatic-Module-Name': 'org.ehcache.jcache',
     'Export-Package': '!org.ehcache.jsr107.tck, !org.ehcache.jsr107.internal.*, org.ehcache.jsr107.*',
     'Import-Package': 'javax.cache.*;resolution:=optional, *',
   )
