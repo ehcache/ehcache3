@@ -49,6 +49,7 @@ import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -478,13 +479,13 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
-  public ValueHolder<V> getAndCompute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) {
+  public ValueHolder<V> getAndCompute(final K key, final BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
 
   @Override
-  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) {
+  public ValueHolder<V> computeAndGet(final K key, final BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction, final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }
@@ -499,7 +500,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
    * The assumption is that this method will be invoked only by cache.putAll and cache.removeAll methods.
    */
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction)
+  public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction)
       throws StoreAccessException {
     Map<K, ValueHolder<V>> valueHolderMap = new HashMap<>();
     if(remappingFunction instanceof Ehcache.PutAllFunction) {
@@ -525,7 +526,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, final Supplier<Boolean> replaceEqual) {
+  public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, final Supplier<Boolean> replaceEqual) {
     // TODO: Make appropriate ServerStoreProxy call
     throw new UnsupportedOperationException("Implement me");
   }

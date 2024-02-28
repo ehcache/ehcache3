@@ -136,13 +136,13 @@ public class OnHeapStoreKeyCopierTest {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {
-        assertThat(value, is(VALUE));
+        assertThat(value.get(), is(VALUE));
         assertThat(key, is(copyKey));
         if (copyForRead) {
           key.state = "Changed!";
         }
       }
-      return value;
+      return value == null ? null : value.get();
     });
 
     if (copyForRead) {
@@ -162,13 +162,13 @@ public class OnHeapStoreKeyCopierTest {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {
-        assertThat(value, is(VALUE));
+        assertThat(value.get(), is(VALUE));
         assertThat(key, is(copyKey));
         if (copyForRead) {
           key.state = "Changed!";
         }
       }
-      return value;
+      return value == null ? null : value.get();
     }, NOT_REPLACE_EQUAL, () -> false);
 
     if (copyForRead) {
@@ -188,13 +188,13 @@ public class OnHeapStoreKeyCopierTest {
       if (copyForWrite) {
         assertThat(value, nullValue());
       } else {
-        assertThat(value, is(VALUE));
+        assertThat(value.get(), is(VALUE));
         assertThat(key, is(copyKey));
         if (copyForRead) {
           key.state = "Changed!";
         }
       }
-      return value;
+      return value == null ? null : value.get();
     }, REPLACE_EQUAL, () -> false);
 
     if (copyForRead) {

@@ -376,7 +376,7 @@ public abstract class AbstractOffHeapStoreTest {
       expiry().access(Duration.ZERO).update(Duration.ZERO).build());
 
     offHeapStore.put("key", "value");
-    Store.ValueHolder<String> result = offHeapStore.computeAndGet("key", (s, s2) -> s2, () -> false, () -> false);
+    Store.ValueHolder<String> result = offHeapStore.computeAndGet("key", (s, s2) -> s2.get(), () -> false, () -> false);
 
     assertThat(result, valueHeld("value"));
   }

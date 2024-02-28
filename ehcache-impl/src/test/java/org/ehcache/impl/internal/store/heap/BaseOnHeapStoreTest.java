@@ -575,7 +575,7 @@ public abstract class BaseOnHeapStoreTest {
     long accessTime = installedHolder.lastAccessTime();
     timeSource.advanceTime(1);
 
-    ValueHolder<String> newValue = store.computeAndGet("key", (mappedKey, mappedValue) -> mappedValue, () -> true, () -> false);
+    ValueHolder<String> newValue = store.computeAndGet("key", (mappedKey, mappedValue) -> mappedValue.get(), () -> true, () -> false);
 
     assertThat(newValue.get(), equalTo("value"));
     assertThat(createTime + 1, equalTo(newValue.creationTime()));
@@ -596,7 +596,7 @@ public abstract class BaseOnHeapStoreTest {
     long accessTime = installedHolder.lastAccessTime();
     timeSource.advanceTime(1);
 
-    ValueHolder<String> newValue = store.computeAndGet("key", (mappedKey, mappedValue) -> mappedValue, () -> false, () -> false);
+    ValueHolder<String> newValue = store.computeAndGet("key", (mappedKey, mappedValue) -> mappedValue.get(), () -> false, () -> false);
 
     assertThat(newValue.get(), equalTo("value"));
     assertThat(createTime, equalTo(newValue.creationTime()));
@@ -672,7 +672,7 @@ public abstract class BaseOnHeapStoreTest {
 
     ValueHolder<String> oldValue = store.getAndCompute("key", (mappedKey, mappedValue) -> {
       assertThat(mappedKey, equalTo("key"));
-      assertThat(mappedValue, equalTo("value"));
+      assertThat(mappedValue.get(), equalTo("value"));
       return "value2";
     });
 
@@ -731,7 +731,7 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put("key", "value");
-    ValueHolder<String> result = store.computeAndGet("key", (key, value) -> value, () -> false, () -> false);
+    ValueHolder<String> result = store.computeAndGet("key", (key, value) -> value.get(), () -> false, () -> false);
     assertThat(result, valueHeld("value"));
   }
 

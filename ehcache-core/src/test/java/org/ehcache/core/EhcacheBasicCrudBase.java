@@ -385,7 +385,7 @@ public abstract class EhcacheBasicCrudBase {
      * <code>this.{@link Store#getAndCompute(Object, BiFunction)} (keys, mappingFunction, () -> { returns true; })</code>
      */
     @Override
-    public ValueHolder<String> getAndCompute(final String key, final BiFunction<? super String, ? super String, ? extends String> mappingFunction)
+    public ValueHolder<String> getAndCompute(final String key, final BiFunction<? super String, ? super ValueHolder<String>, ? extends String> mappingFunction)
         throws StoreAccessException {
       return this.computeAndGet(key, mappingFunction, REPLACE_EQUAL_TRUE, INVOKE_WRITER_FALSE);
     }
@@ -409,12 +409,12 @@ public abstract class EhcacheBasicCrudBase {
     private FakeValueHolder computeInternal(
         final String key,
         final FakeValueHolder currentValue,
-        final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
+        final BiFunction<? super String, ? super ValueHolder<String>, ? extends String> mappingFunction,
         final Supplier<Boolean> replaceEqual) throws StoreAccessException {
 
       String remappedValue;
       try {
-        remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.get()));
+        remappedValue = mappingFunction.apply(key, currentValue);
       } catch (StorePassThroughException cpte) {
         Throwable cause = cpte.getCause();
         if(cause instanceof RuntimeException) {
@@ -449,7 +449,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public ValueHolder<String> computeAndGet(
             final String key,
-            final BiFunction<? super String, ? super String, ? extends String> mappingFunction,
+            final BiFunction<? super String, ? super ValueHolder<String>, ? extends String> mappingFunction,
             final Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter)
         throws StoreAccessException {
       this.checkFailingKey(key);
@@ -497,7 +497,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public Map<String, ValueHolder<String>> bulkCompute(
         final Set<? extends String> keys,
-        final Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction)
+        final Function<Iterable<? extends Map.Entry<? extends String, ? extends ValueHolder<String>>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction)
         throws StoreAccessException {
       return this.bulkCompute(keys, remappingFunction, REPLACE_EQUAL_TRUE);
     }
@@ -511,7 +511,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public Map<String, Store.ValueHolder<String>> bulkCompute(
         final Set<? extends String> keys,
-        final Function<Iterable<? extends Entry<? extends String, ? extends String>>, Iterable<? extends Entry<? extends String, ? extends String>>> remappingFunction,
+        final Function<Iterable<? extends Entry<? extends String, ? extends ValueHolder<String>>>, Iterable<? extends Entry<? extends String, ? extends String>>> remappingFunction,
         final Supplier<Boolean> replaceEqual)
         throws StoreAccessException {
 
@@ -519,7 +519,7 @@ public abstract class EhcacheBasicCrudBase {
       for (final String key : keys) {
         final ValueHolder<String> newValue = this.computeAndGet(key,
           (key1, oldValue) -> {
-            final Entry<String, String> entry = new AbstractMap.SimpleEntry<>(key1, oldValue);
+            final Entry<String, ValueHolder<String>> entry = new AbstractMap.SimpleEntry<>(key1, oldValue);
             final Entry<? extends String, ? extends String> remappedEntry =
                 remappingFunction.apply(Collections.singletonList(entry)).iterator().next();
             return remappedEntry.getValue();

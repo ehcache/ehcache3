@@ -22,6 +22,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
@@ -75,6 +76,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
 import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
@@ -237,7 +239,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
-      V newValue = currentContext.newValueOf(key);
+      ValueHolder<V> newValue = currentContext.newValueHolderOf(key);
       currentContext.addCommand(key, new StoreRemoveCommand<>(oldValue));
       return newValue != null;
     }
@@ -262,7 +264,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
-      V newValue = currentContext.newValueOf(key);
+      ValueHolder<V> newValue = currentContext.newValueHolderOf(key);
       if (newValue == null) {
         currentContext.addCommand(key, new StorePutCommand<>(oldValue, new XAValueHolder<>(value, timeSource.getTimeMillis())));
         return null;
@@ -293,10 +295,10 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
-      V newValue = currentContext.newValueOf(key);
+      ValueHolder<V> newValue = currentContext.newValueHolderOf(key);
       if (newValue == null) {
         return RemoveStatus.KEY_MISSING;
-      } else if (!newValue.equals(value)) {
+      } else if (!newValue.get().equals(value)) {
         return RemoveStatus.KEY_PRESENT;
       } else {
         currentContext.addCommand(key, new StoreRemoveCommand<>(oldValue));
@@ -327,7 +329,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
-      V newValue = currentContext.newValueOf(key);
+      ValueHolder<V> newValue = currentContext.newValueHolderOf(key);
       if (newValue == null) {
         return null;
       } else {
@@ -361,10 +363,10 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     checkValue(newValue);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
-      V modifiedValue = currentContext.newValueOf(key);
+      ValueHolder<V> modifiedValue = currentContext.newValueHolderOf(key);
       if (modifiedValue == null) {
         return ReplaceStatus.MISS_NOT_PRESENT;
-      } else if (!modifiedValue.equals(oldValue)) {
+      } else if (!modifiedValue.get().equals(oldValue)) {
         return ReplaceStatus.MISS_PRESENT;
       } else {
         V previousValue = currentContext.oldValueOf(key);
@@ -512,7 +514,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   }
 
   @Override
-  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
@@ -523,9 +525,9 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
     SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.get();
     V oldValue = softLock == null ? null : softLock.getOldValue();
-    V newValue = mappingFunction.apply(key, oldValue);
+    V newValue = mappingFunction.apply(key, oldValue == null ? null : new XAValueHolder<V>(oldValue, softLockValueHolder.creationTime()));
     XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<>(newValue, timeSource.getTimeMillis());
-    if (Objects.equals(oldValue, newValue) && !replaceEqual.get()) {
+    if (!replaceEqual.get() && Objects.equals(oldValue, newValue)) {
       return xaValueHolder;
     }
     if (newValue != null) {
@@ -548,26 +550,26 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   }
 
   @Override
-  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
-      V computed = mappingFunction.apply(key, currentContext.newValueOf(key));
+      V computed = mappingFunction.apply(key, currentContext.newValueHolderOf(key));
       XAValueHolder<V> returnValueholder = null;
       if (computed != null) {
         checkValue(computed);
         XAValueHolder<V> xaValueHolder = new XAValueHolder<>(computed, timeSource.getTimeMillis());
-        V returnValue = currentContext.newValueOf(key);
+        ValueHolder<V> returnValue = currentContext.newValueHolderOf(key);
         V oldValue = currentContext.oldValueOf(key);
         if (returnValue != null) {
-          returnValueholder = new XAValueHolder<>(returnValue, timeSource.getTimeMillis());
+          returnValueholder = new XAValueHolder<>(returnValue.get(), timeSource.getTimeMillis());
         }
         currentContext.addCommand(key, new StorePutCommand<>(oldValue, xaValueHolder));
       } else {
-        V returnValue = currentContext.newValueOf(key);
+        ValueHolder<V> returnValue = currentContext.newValueHolderOf(key);
         V oldValue = currentContext.oldValueOf(key);
         if (returnValue != null) {
-          returnValueholder = new XAValueHolder<>(returnValue, timeSource.getTimeMillis());
+          returnValueholder = new XAValueHolder<>(returnValue.get(), timeSource.getTimeMillis());
         }
         if (oldValue != null) {
           currentContext.addCommand(key, new StoreRemoveCommand<>(oldValue));
@@ -583,7 +585,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     XAValueHolder<V> oldValueHolder = null;
     SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.get();
     V oldValue = softLock == null ? null : softLock.getOldValue();
-    V newValue = mappingFunction.apply(key, oldValue);
+    V newValue = mappingFunction.apply(key, oldValue == null ? null : new XAValueHolder<V>(oldValue, softLockValueHolder.creationTime()));
     XAValueHolder<V> xaValueHolder = newValue == null ? null : new XAValueHolder<>(newValue, timeSource.getTimeMillis());
     if (newValue != null) {
       checkValue(newValue);
@@ -648,8 +650,8 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     return xaValueHolder;
   }
 
-  private ValueHolder<V> updateCommandForKey(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, XATransactionContext<K, V> currentContext) {
-    V newValue = mappingFunction.apply(key, currentContext.newValueOf(key));
+  private ValueHolder<V> updateCommandForKey(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, XATransactionContext<K, V> currentContext) {
+    V newValue = mappingFunction.apply(key, currentContext.newValueHolderOf(key));
     XAValueHolder<V> xaValueHolder = null;
     V oldValue = currentContext.oldValueOf(key);
     if (newValue == null) {
@@ -681,18 +683,18 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<>();
     for (K key : keys) {
       checkKey(key);
 
       final ValueHolder<V> newValue = computeAndGet(key, (k, oldValue) -> {
-        final Set<Map.Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
+        final Set<Map.Entry<K, ValueHolder<V>>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
         final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
         final java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = entries.iterator();
         final Map.Entry<? extends K, ? extends V> next = iterator.next();

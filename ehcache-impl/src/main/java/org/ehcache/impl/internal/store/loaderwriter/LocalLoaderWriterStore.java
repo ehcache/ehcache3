@@ -85,7 +85,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
   @Override
   public PutStatus put(K key, V value) throws StoreAccessException {
-    BiFunction<K, V, V> remappingFunction = (key1, previousValue) -> {
+    BiFunction<K, ValueHolder<? super V>, V> remappingFunction = (key1, previousValue) -> {
       try {
         cacheLoaderWriter.write(key1, value);
       } catch (Exception e) {
@@ -132,7 +132,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   public boolean remove(K key) throws StoreAccessException {
     boolean[] modified = { false };
 
-    BiFunction<K, V, V> remappingFunction = (key1, previousValue) -> {
+    BiFunction<K, ValueHolder<? super V>, V> remappingFunction = (key1, previousValue) -> {
       modified[0] = (previousValue != null);
 
       try {
@@ -150,14 +150,14 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   @Override
   public RemoveStatus remove(K key, V value) throws StoreAccessException {
     boolean[] hitRemoved = { false, false }; // index 0 = hit, 1 = removed
-    BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
-      inCache = loadFromLoaderWriter(key, inCache);
-      if(inCache == null) {
+    BiFunction<K, ValueHolder<V>, V> remappingFunction = (k, inCache) -> {
+      V existingValue = loadFromLoaderWriter(key, inCache);
+      if(existingValue == null) {
         return null;
       }
 
       hitRemoved[0] = true;
-      if (value.equals(inCache)) {
+      if (value.equals(existingValue)) {
         try {
           cacheLoaderWriter.delete(k);
         } catch (Exception e) {
@@ -166,7 +166,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
         hitRemoved[1] = true;
         return null;
       }
-      return inCache;
+      return existingValue;
     };
 
     delegate.computeAndGet(key, remappingFunction, SUPPLY_FALSE, SUPPLY_FALSE);
@@ -186,9 +186,9 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
     @SuppressWarnings("unchecked")
     V[] old = (V[]) new Object[1];
 
-    BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
-      inCache = loadFromLoaderWriter(key, inCache);
-      if(inCache == null) {
+    BiFunction<K, ValueHolder<V>, V> remappingFunction = (k, inCache) -> {
+      V existingValue = loadFromLoaderWriter(key, inCache);
+      if(existingValue == null) {
         return null;
       }
 
@@ -198,9 +198,9 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
         throw new StorePassThroughException(newCacheWritingException(e));
       }
 
-      old[0] = inCache;
+      old[0] = existingValue;
 
-      if (newValueAlreadyExpired(LOG, expiry, key, inCache, value)) {
+      if (newValueAlreadyExpired(LOG, expiry, key, () -> existingValue, value)) {
         return null;
       }
       return value;
@@ -217,14 +217,14 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   public ReplaceStatus replace(K key, V oldValue, V newValue) throws StoreAccessException {
     boolean[] successHit = { false, false }; // index 0 = success, 1 = hit
 
-    BiFunction<K, V, V> remappingFunction = (k, inCache) -> {
-      inCache = loadFromLoaderWriter(key, inCache);
-      if(inCache == null) {
+    BiFunction<K, ValueHolder<V>, V> remappingFunction = (k, inCache) -> {
+      V existingValue = loadFromLoaderWriter(key, inCache);
+      if(existingValue == null) {
         return null;
       }
 
       successHit[1] = true;
-      if (oldValue.equals(inCache)) {
+      if (oldValue.equals(existingValue)) {
         try {
           cacheLoaderWriter.write(key, newValue);
         } catch (Exception e) {
@@ -233,12 +233,13 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
         successHit[0] = true;
 
-        if (newValueAlreadyExpired(LOG, expiry, key, oldValue, newValue)) {
+        if (newValueAlreadyExpired(LOG, expiry, key, () -> existingValue, newValue)) {
           return null;
         }
         return newValue;
+      } else {
+        return existingValue;
       }
-      return inCache;
     };
 
     delegate.computeAndGet(key, remappingFunction, SUPPLY_FALSE, SUPPLY_FALSE);
@@ -269,7 +270,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   }
 
   @Override
-  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction) throws StoreAccessException {
     return delegate.getAndCompute(key, (mappedKey, mappedValue) -> {
       V newValue = mappingFunction.apply(mappedKey, mappedValue);
       if (newValue == null) {
@@ -294,9 +295,9 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   }
 
   @Override
-  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
 
-    BiFunction<? super K, ? super V, ? extends V> remappingFunction = (mappedKey, mappedValue) -> {
+    BiFunction<? super K, ? super ValueHolder<V>, ? extends V> remappingFunction = (mappedKey, mappedValue) -> {
       V newValue = mappingFunction.apply(mappedKey, mappedValue);
       if (invokeWriter.get()) {
         try {
@@ -321,7 +322,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     // we are not expecting failures and these two maps are only used in case of failures. So keep them small
     Set<K> successes = new HashSet<>(1);
     Map<K, Exception> failures = new HashMap<>(1);
@@ -347,16 +348,16 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
     int[] actualRemoveCount = { 0 };
 
-    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
+    Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
             entries -> {
               Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, entriesToRemove, deleteSuccesses, deleteFailures);
 
               int size = CollectionUtil.findBestCollectionSize(entries, 1);
               Map<K, V> results = new LinkedHashMap<>(size);
 
-              for (Map.Entry<? extends K, ? extends V> entry : entries) {
+              for (Map.Entry<? extends K, ? extends ValueHolder<V>> entry : entries) {
                 K key = entry.getKey();
-                V existingValue = entry.getValue();
+                ValueHolder<V> existingValue = entry.getValue();
 
                 if (deleteSuccesses.contains(key)) {
                   if (existingValue != null) {
@@ -368,7 +369,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
                   if (unknowns.contains(key)) {
                     results.put(key, null);
                   } else {
-                    results.put(key, existingValue);
+                    results.put(key, existingValue.get());
                   }
                 }
               }
@@ -393,7 +394,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
 
     // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
     // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
-    Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
+    Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
             entries1 -> {
               // If we have a writer, first write this batch
               cacheLoaderWriterWriteAllCall(entries1, entriesToRemap, successes, failures);
@@ -402,9 +403,9 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
               Map<K, V> mutations = new LinkedHashMap<>(size);
 
               // then record we handled these mappings
-              for (Map.Entry<? extends K, ? extends V> entry : entries1) {
+              for (Map.Entry<? extends K, ? extends ValueHolder<V>> entry : entries1) {
                 K key = entry.getKey();
-                V existingValue = entry.getValue();
+                ValueHolder<V> existingValue = entry.getValue();
                 V newValue = entriesToRemap.remove(key);
 
                 if (newValueAlreadyExpired(LOG, expiry, key, existingValue, newValue)) {
@@ -414,7 +415,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
                   mutations.put(key, newValue);
 
                 } else {
-                  mutations.put(key, existingValue);
+                  mutations.put(key, existingValue == null ? null : existingValue.get());
                 }
               }
 
@@ -430,7 +431,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
     return null;
   }
 
@@ -494,27 +495,25 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
     return delegate.getConfigurationChangeListeners();
   }
 
-  private V loadFromLoaderWriter(K key, V inCache) {
+  private V loadFromLoaderWriter(K key, ValueHolder<V> inCache) {
     if (inCache == null) {
       if (useLoaderInAtomics) {
         try {
-          inCache = cacheLoaderWriter.load(key);
-          if (inCache == null) {
-            return null;
-          }
+          return cacheLoaderWriter.load(key);
         } catch (Exception e) {
           throw new StorePassThroughException(newCacheLoadingException(e));
         }
       } else {
         return null;
       }
+    } else {
+      return inCache.get();
     }
-    return inCache;
   }
 
-  private void cacheLoaderWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) throws IllegalStateException {
+  private void cacheLoaderWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) throws IllegalStateException {
     Map<K, V> toWrite = new HashMap<>();
-    for (Map.Entry<? extends K, ? extends V> entry: entries) {
+    for (Map.Entry<? extends K, ? extends ValueHolder<V>> entry: entries) {
       V value = entriesToRemap.get(entry.getKey());
       if (value == null) {
         continue;
@@ -537,10 +536,10 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
     }
   }
 
-  private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, ? extends V> entriesToRemove, Set<K> successes, Map<K, Exception> failures) {
+  private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> entries, Map<K, ? extends V> entriesToRemove, Set<K> successes, Map<K, Exception> failures) {
     Set<K> unknowns = new HashSet<>();
     Set<K> toDelete = new HashSet<>();
-    for (Map.Entry<? extends K, ? extends V> entry : entries) {
+    for (Map.Entry<? extends K, ? extends ValueHolder<V>> entry : entries) {
       K key = entry.getKey();
       if (entriesToRemove.containsKey(key)) {
         toDelete.add(key);
@@ -573,7 +572,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
     failures.putAll((Map<K, Exception>)bcle.getFailures());
   }
 
-  private static <K, V> boolean newValueAlreadyExpired(Logger logger, ExpiryPolicy<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
+  private static <K, V> boolean newValueAlreadyExpired(Logger logger, ExpiryPolicy<? super K, ? super V> expiry, K key, Supplier<V> oldValue, V newValue) {
     if (newValue == null) {
       return false;
     }
@@ -583,7 +582,7 @@ public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
       if (oldValue == null) {
         duration = expiry.getExpiryForCreation(key, newValue);
       } else {
-        duration = expiry.getExpiryForUpdate(key, () -> oldValue, newValue);
+        duration = expiry.getExpiryForUpdate(key, oldValue, newValue);
       }
     } catch (RuntimeException re) {
       logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);

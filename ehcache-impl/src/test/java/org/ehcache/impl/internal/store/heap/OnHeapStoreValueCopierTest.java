@@ -37,9 +37,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.toMap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -125,8 +127,8 @@ public class OnHeapStoreValueCopierTest {
     Store.ValueHolder<Value> computedVal = store.getAndCompute(KEY, (aLong, value) -> VALUE);
     Store.ValueHolder<Value> oldValue = store.get(KEY);
     store.getAndCompute(KEY, (aLong, value) -> {
-      compareReadValues(value, oldValue.get());
-      return value;
+      compareReadValues(value.get(), oldValue.get());
+      return value.get();
     });
 
     compareValues(VALUE, computedVal.get());
@@ -136,8 +138,8 @@ public class OnHeapStoreValueCopierTest {
   public void testComputeWithoutReplaceEqual() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, NOT_REPLACE_EQUAL, () -> false);
     store.computeAndGet(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.get());
-      return value;
+      compareReadValues(value.get(), firstValue.get());
+      return value.get();
     }, NOT_REPLACE_EQUAL, () -> false);
 
     compareValues(VALUE, firstValue.get());
@@ -147,8 +149,8 @@ public class OnHeapStoreValueCopierTest {
   public void testComputeWithReplaceEqual() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, REPLACE_EQUAL, () -> false);
     store.computeAndGet(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.get());
-      return value;
+      compareReadValues(value.get(), firstValue.get());
+      return value.get();
     }, REPLACE_EQUAL, () -> false);
 
     compareValues(VALUE, firstValue.get());
@@ -169,8 +171,8 @@ public class OnHeapStoreValueCopierTest {
   public void testBulkCompute() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet());
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
-      return entries;
+      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue().get());
+      return StreamSupport.stream(entries.spliterator(), false).collect(toMap(e -> e.getKey(), e -> e.getValue().get())).entrySet();
     });
     compareValues(VALUE, results.get(KEY).get());
   }
@@ -179,8 +181,8 @@ public class OnHeapStoreValueCopierTest {
   public void testBulkComputeWithoutReplaceEqual() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet(), NOT_REPLACE_EQUAL);
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
-      return entries;
+      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue().get());
+      return StreamSupport.stream(entries.spliterator(), false).collect(toMap(e -> e.getKey(), e -> e.getValue().get())).entrySet();
     }, NOT_REPLACE_EQUAL);
     compareValues(VALUE, results.get(KEY).get());
   }
@@ -189,8 +191,8 @@ public class OnHeapStoreValueCopierTest {
   public void testBulkComputeWithReplaceEqual() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet(), REPLACE_EQUAL);
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
-      return entries;
+      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue().get());
+      return StreamSupport.stream(entries.spliterator(), false).collect(toMap(e -> e.getKey(), e -> e.getValue().get())).entrySet();
     }, REPLACE_EQUAL);
     compareValues(VALUE, results.get(KEY).get());
   }

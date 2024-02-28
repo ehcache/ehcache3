@@ -81,8 +81,8 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       Map<K, Store.ValueHolder<V>> mapFromRemappingFunction = kvStore.bulkCompute(inputKeys, entries -> {
         Map<K, V> update = new HashMap<>();
-        for (Map.Entry<? extends K, ? extends V> entry : entries) {
-          update.put(entry.getKey(), entry.getValue());
+        for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : entries) {
+          update.put(entry.getKey(), entry.getValue().get());
         }
         return update.entrySet();
       }
@@ -134,7 +134,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
         Map<K, V> update = new HashMap<>();
-        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+        for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : entries) {
           update.put(entry.getKey(), null);
         }
         return update.entrySet();
@@ -167,13 +167,13 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
         Map<K, V> update = new HashMap<>();
-        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+        for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : entries) {
           if (mappedEntries.containsKey(entry.getKey())) {
-            assertThat(entry.getValue(), is(mappedEntries.get(entry.getKey())));
+            assertThat(entry.getValue().get(), is(mappedEntries.get(entry.getKey())));
           } else {
             assertThat(entry.getValue(), is(nullValue()));
           }
-          update.put(entry.getKey(), entry.getValue());
+          update.put(entry.getKey(), entry.getValue().get());
         }
         return update.entrySet();
       }
@@ -199,7 +199,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
         Map<K, V> update = new HashMap<>();
-        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+        for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : entries) {
           update.put(entry.getKey(), computedEntries.get(entry.getKey()));
         }
         return update.entrySet();
@@ -230,7 +230,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
         Map<K, V> update = new HashMap<>();
-        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+        for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : entries) {
           if (factory.getKeyType() == String.class) {
             update.put((K)new StringBuffer(entry.getKey().toString()), computedEntries.get(entry.getKey()));
           } else {
@@ -264,7 +264,7 @@ public class StoreBulkComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.bulkCompute(inputKeys, entries -> {
         Map<K, V> update = new HashMap<>();
-        for (Map.Entry<? extends K, ? extends V> entry : entries) {
+        for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : entries) {
           if (factory.getKeyType() == String.class) {
             update.put(entry.getKey(), (V)new StringBuffer(computedEntries.get(entry.getKey()).toString()));
           } else {
