@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.shared.composites;
 
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.resilience.StoreAccessException;
 
 import java.util.Map;
@@ -31,9 +32,10 @@ public class CompositeInvalidationValve implements AuthoritativeTier.Invalidatio
 
   @Override
   public void invalidateAll() throws StoreAccessException {
+    // no storeId provided, iterate through all valves
     invalidationValveMap.forEach((k, v) -> {
       try {
-        v.invalidateAll();  // how to tell which storeId to use???
+        v.invalidateAll();
       } catch (StoreAccessException e) {
         throw new RuntimeException(e);
       }
@@ -41,10 +43,11 @@ public class CompositeInvalidationValve implements AuthoritativeTier.Invalidatio
   }
 
   @Override
-  public void invalidateAllWithHash(long hash) throws StoreAccessException {
-    invalidationValveMap.forEach((k, v) -> {
+  public void invalidateAllWithHash(long keyValueHash) throws StoreAccessException {
+   // no storeId provided, iterate through all valves
+   invalidationValveMap.forEach((k, v) -> {
       try {
-        v.invalidateAllWithHash(hash); // correct the hash
+        v.invalidateAllWithHash(CompositeValue.compositeHash(k, HashUtils.longHashToInt(keyValueHash)));
       } catch (StoreAccessException e) {
         throw new RuntimeException(e);
       }

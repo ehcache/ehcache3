@@ -37,15 +37,15 @@ public class CompositeValue<T> {
 
   @Override
   public int hashCode() {
-    return mergeHashes(storeId, value.hashCode());
+    return compositeHash(storeId, value.hashCode());
   }
 
-  public static int mergeHashes(int hashA, int hashB) {
-    return hashA * 31 + hashB;
+  public static int compositeHash(int storeId, int valueHash) {
+    return storeId * 31 + valueHash;
   }
 
-  public static int unmergeHashB(int merged, int hashA) {
-    return merged - (hashA * 31);
+  public static int valueOnlyHash(int compositeHash, int storeId) {
+    return compositeHash - storeId * 31;
   }
 
   @Override
