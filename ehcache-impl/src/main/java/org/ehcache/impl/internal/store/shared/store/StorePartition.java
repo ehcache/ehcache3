@@ -57,14 +57,18 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
     this.valueType = valueType;
   }
 
-  private void checkKey(K keyObject) {
-    if (!keyType.isInstance(Objects.requireNonNull((Object) keyObject))) {
+  protected K checkKey(K keyObject) {
+    if (keyType.isInstance(Objects.requireNonNull((Object) keyObject))) {
+      return keyObject;
+    } else {
       throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + keyObject.getClass().getName());
     }
   }
 
-  private void checkValue(V valueObject) {
-    if (!valueType.isInstance(Objects.requireNonNull((Object) valueObject))) {
+  protected V checkValue(V valueObject) {
+    if (valueType.isInstance(Objects.requireNonNull((Object) valueObject))) {
+      return valueObject;
+    } else {
       throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
     }
   }

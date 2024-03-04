@@ -22,6 +22,8 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.impl.internal.store.shared.store.StorePartition;
 import org.ehcache.spi.resilience.StoreAccessException;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,7 +62,23 @@ public class AuthoritativeTierPartition<K, V> extends StorePartition<K, V> imple
 
   @Override
   public Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> bulkComputeIfAbsentAndFault(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
-    return bulkComputeIfAbsent((Set<? extends K>) keys, mappingFunction).entrySet();
+    Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends ValueHolder<CompositeValue<V>>>> results = shared()
+      .bulkComputeIfAbsentAndFault(compositeSet(keys), compositeKeys -> {
+        Set<K> extractedKeys = new HashSet<>();
+        compositeKeys.forEach(k -> extractedKeys.add(checkKey(k.getValue())));
+        Map<CompositeValue<K>, CompositeValue<V>> encodedResults = new HashMap<>();
+        Iterable<? extends Map.Entry<? extends K, ? extends V>> extractedResults = mappingFunction.apply(extractedKeys);
+          extractedResults.forEach(entry -> {
+            checkKey(entry.getKey());
+            V value = entry.getValue() == null ? null : checkValue(entry.getValue());
+            encodedResults.put(composite(entry.getKey()), composite(value));
+            });
+          return encodedResults.entrySet();
+      });
+
+    Map<K, ValueHolder<V>> decodedResults = new HashMap<>();
+    results.forEach(e -> decodedResults.put(e.getKey().getValue(), decode(e.getValue())));
+    return decodedResults.entrySet();
   }
 
   @Override

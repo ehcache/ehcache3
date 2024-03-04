@@ -59,7 +59,7 @@ public class AbstractPartition<S> {
     return valueHolder == null ? null : new MappingValueHolder<>(valueHolder, this::composite);
   }
 
-  protected <T> Set<CompositeValue<T>> compositeSet(Set<? extends T> keys) {
+  protected <T> Set<CompositeValue<T>> compositeSet(Iterable<? extends T> keys) {
     Set<CompositeValue<T>> compositeValueSet = new HashSet<>();
     keys.forEach(k -> compositeValueSet.add(composite(k)));
     return compositeValueSet;
