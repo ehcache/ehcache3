@@ -1656,7 +1656,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   @SuppressWarnings("deprecation")
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, org.ehcache.core.spi.store.heap.SizeOfEngineProvider.class})
   @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
-  public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider {
+  public static class Provider extends BaseStoreProvider implements CachingTier.Provider, HigherCachingTier.Provider, ElementalProvider {
 
     private final Logger logger = EhcachePrefixLoggerFactory.getLogger(Provider.class);
 
