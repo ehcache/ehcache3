@@ -125,7 +125,7 @@ public class SharedStorage implements Service {
       keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, DEFAULT_DISPATCHER_CONCURRENCY,
       true, keySerializer, valueSerializer, cacheLoaderWriter, false);
 
-    storeProvider = StoreSupport.select(Store.Provider.class, serviceProvider, store -> store.rank(resourceTypes, serviceConfigs));
+    storeProvider = StoreSupport.select(Store.ElementalProvider.class, serviceProvider, store -> store.rank(resourceTypes, serviceConfigs));
     store = storeProvider.createStore(storeConfig, serviceConfigArray);
     if (store instanceof AuthoritativeTier) {
       ((AuthoritativeTier) store).setInvalidationValve(new CompositeInvalidationValve(invalidationValveMap));

@@ -593,9 +593,11 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
+  @PluralService
   interface ElementalProvider extends Provider {
 
   }
+
   /**
    * The basic configuration for a Store.
    *
