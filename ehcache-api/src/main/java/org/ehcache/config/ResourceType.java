@@ -59,42 +59,30 @@ public interface ResourceType<T extends ResourcePool> {
   int getTierHeight();
 
   /**
-   * Indicates whether this {@code ResourceType} supports being shared by multiple caches.
-   * <p>
-   * Sharing in this context means that a {@link ResourcePool} of this {@code ResourceType} can be populated
-   * with entries that belong to multiple caches for the purpose of Automatic Resource Control.
-   *
-   * @return {@code true} if it supports sharing, {@code false} otherwise
-   */
-  boolean isShareable();
-
-  /**
    * An enumeration of core {@link ResourceType}s in Ehcache.
    */
   enum Core implements ResourceType<SizedResourcePool> {
     /**
      * Heap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} not required.
      */
-    HEAP(false, false, 10000, true),
+    HEAP(false, false, 10000),
     /**
      * OffHeap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    OFFHEAP(false, true, 1000, true),
+    OFFHEAP(false, true, 1000),
     /**
      * Disk: persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    DISK(true, true, 100, false);
+    DISK(true, true, 100);
 
     private final boolean persistable;
     private final boolean requiresSerialization;
     private final int tierHeight;
-    private final boolean shareable;
 
-    Core(boolean persistable, final boolean requiresSerialization, int tierHeight, boolean shareable) {
+    Core(boolean persistable, final boolean requiresSerialization, int tierHeight) {
       this.persistable = persistable;
       this.requiresSerialization = requiresSerialization;
       this.tierHeight = tierHeight;
-      this.shareable = shareable;
     }
 
     @Override
@@ -115,11 +103,6 @@ public interface ResourceType<T extends ResourcePool> {
     @Override
     public int getTierHeight() {
       return tierHeight;
-    }
-
-    @Override
-    public boolean isShareable() {
-      return shareable;
     }
 
     @Override
@@ -153,11 +136,6 @@ public interface ResourceType<T extends ResourcePool> {
     @Override
     public int getTierHeight() {
       return delegate.getTierHeight();
-    }
-
-    @Override
-    public boolean isShareable() {
-      return delegate.isShareable();
     }
 
     public ResourceType<?> getResourceType() {

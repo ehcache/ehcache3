@@ -32,10 +32,7 @@ public class UnmatchedResourceType implements ResourceType<ResourcePool> {
   public boolean isPersistable() {
     return true;
   }
-  @Override
-  public boolean isShareable() {
-    return true;
-  }
+
   @Override
   public boolean requiresSerialization() {
     return true;

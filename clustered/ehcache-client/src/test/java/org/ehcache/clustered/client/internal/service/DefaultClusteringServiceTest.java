@@ -162,11 +162,6 @@ public class DefaultClusteringServiceTest {
       public int getTierHeight() {
         throw new UnsupportedOperationException(".getTierHeight not implemented");
       }
-
-      @Override
-      public boolean isShareable() {
-        return false;
-      }
     }), is(false));
   }
 

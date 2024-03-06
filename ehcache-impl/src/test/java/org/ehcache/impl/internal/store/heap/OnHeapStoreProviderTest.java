@@ -59,10 +59,6 @@ public class OnHeapStoreProviderTest {
         return true;
       }
       @Override
-      public boolean isShareable() {
-        return true;
-      }
-      @Override
       public boolean requiresSerialization() {
         return true;
       }
