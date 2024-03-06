@@ -921,10 +921,6 @@ public class TieredStoreTest {
         return true;
       }
       @Override
-      public boolean isShareable() {
-        return false;
-      }
-      @Override
       public boolean requiresSerialization() {
         return true;
       }
