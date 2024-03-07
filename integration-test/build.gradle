@@ -16,6 +16,7 @@
 
 plugins {
   id 'org.ehcache.build.conventions.java'
+  id 'me.champeau.jmh' version '0.7.2'
 }
 
 dependencies {
@@ -31,4 +32,7 @@ dependencies {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
   testImplementation "org.terracotta:statistics:$parent.statisticVersion"
+
+  testImplementation 'io.rainfall:rainfall-ehcache:1.6.10'
+  jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.36'
 }
