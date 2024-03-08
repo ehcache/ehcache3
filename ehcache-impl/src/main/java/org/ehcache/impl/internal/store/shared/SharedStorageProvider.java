@@ -19,7 +19,6 @@ package org.ehcache.impl.internal.store.shared;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
@@ -28,7 +27,6 @@ import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 @ServiceDependencies(Store.ElementalProvider.class)
 @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
@@ -62,8 +60,8 @@ public class SharedStorageProvider implements Service {
     return storage.get(resourceType).createPartition(storeConfig, partitionFactory);
   }
 
-  public boolean supports(Class<?> storeageType, ResourceType<?> resourceType) {
+  public boolean supports(Class<?> storageType, ResourceType<?> resourceType) {
     SharedStorage sharedStorage = storage.get(resourceType);
-    return sharedStorage != null && sharedStorage.supports(storeageType);
+    return sharedStorage != null && sharedStorage.supports(storageType);
   }
 }

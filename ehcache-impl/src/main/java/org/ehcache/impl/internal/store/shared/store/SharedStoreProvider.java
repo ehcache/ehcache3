@@ -17,69 +17,28 @@
 package org.ehcache.impl.internal.store.shared.store;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.internal.store.shared.AbstractSharedTierProvider;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
-import org.ehcache.impl.internal.store.shared.SharedStorageProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ServiceProvider;
-
 import java.util.Collection;
 import java.util.Set;
 
-@ServiceDependencies({SharedStorageProvider.class, StatisticsService.class})
-public class SharedStoreProvider implements Store.Provider {
-
-  private SharedStorageProvider sharedStorage;
-  private StatisticsService statisticsService;
-
-  @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
-    sharedStorage = serviceProvider.getService(SharedStorageProvider.class);
-    statisticsService = serviceProvider.getService(StatisticsService.class);
-  }
-
-  @Override
-  public void stop() {
-    sharedStorage = null;
-    statisticsService = null;
-  }
+ public class SharedStoreProvider extends AbstractSharedTierProvider implements Store.Provider {
 
   @Override
   public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    if (resourceTypes.size() == 1 && sharedStorage != null) {
-      ResourceType<?> resourceType = resourceTypes.iterator().next();
-      if (resourceType instanceof ResourceType.SharedResource && sharedStorage.supports(Store.class, ((ResourceType.SharedResource<?>) resourceType).getResourceType())) {
-        return 1;
-      } else {
-        return 0;
-      }
-    } else {
-      return 0;
-    }
+    return rank(Store.class, resourceTypes);
   }
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
-    Set<ResourceType<?>> resourceTypes = storeConfig.getResourcePools().getResourceTypeSet();
-    if (resourceTypes.size() == 1) {
-      ResourceType<?> resourceType = resourceTypes.iterator().next();
-      if (resourceType instanceof ResourceType.SharedResource) {
-        return sharedStorage.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(((ResourceType.SharedResource<?>) resourceType).getResourceType(), storeConfig, (id, store, storage) -> {
-          StorePartition<K, V> partition = new StorePartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
-          if (statisticsService != null) {
-            statisticsService.registerWithParent(store, partition);
-          }
-          return partition;
-        });
-      } else {
-        throw new AssertionError();
-      }
-    } else {
-      throw new AssertionError();
-    }
+    ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(storeConfig.getResourcePools().getResourceTypeSet());
+    return sharedStorage.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
+      StorePartition<K, V> partition = new StorePartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
+      associateStoreStatsWithPartition(store, partition);
+      return partition;
+    });
   }
 
   @Override
