@@ -50,6 +50,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.ehcache.core.config.store.StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
@@ -73,19 +74,17 @@ public class SharedStorage implements Service {
   private Store<CompositeValue<?>, CompositeValue<?>> store = null;
 
   public SharedStorage(ResourcePool resourcePool) {
-    this.resourcePool = resourcePool;
+    this.resourcePool = Objects.requireNonNull((resourcePool));
   }
 
   public void start(ServiceProvider<Service> serviceProvider) {
     this.serviceProvider = serviceProvider;
-    if (resourcePool != null) {
-      Collection<ServiceConfiguration<?, ?>> serviceConfigs = new HashSet<>();
-      // above from adjustedServiceConfigs during cache creation in EhcacheManager.createNewEhcache
-      ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
-      // above from EhcacheManager:  this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
-      CacheLoaderWriter<?, ?> cacheLoaderWriter = null; // placeholder for later implementation
-      createSharedStore(classLoader, serviceConfigs, cacheLoaderWriter);
-    }
+    Collection<ServiceConfiguration<?, ?>> serviceConfigs = new HashSet<>();
+    // above from adjustedServiceConfigs during cache creation in EhcacheManager.createNewEhcache
+    ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
+    // above from EhcacheManager:  this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
+    CacheLoaderWriter<?, ?> cacheLoaderWriter = null; // placeholder for later implementation
+    createSharedStore(classLoader, serviceConfigs, cacheLoaderWriter);
   }
 
   public void stop() {

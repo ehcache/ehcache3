@@ -17,68 +17,30 @@
 package org.ehcache.impl.internal.store.shared.caching.higher;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
+import org.ehcache.impl.internal.store.shared.AbstractSharedTierProvider;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
-import org.ehcache.impl.internal.store.shared.SharedStorageProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Collection;
 import java.util.Set;
 
-@ServiceDependencies({SharedStorageProvider.class, StatisticsService.class})
-public class SharedHigherCachingTierProvider implements HigherCachingTier.Provider {
-  private SharedStorageProvider sharedStorage;
-  private StatisticsService statisticsService;
-
-  @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
-    sharedStorage = serviceProvider.getService(SharedStorageProvider.class);
-    statisticsService = serviceProvider.getService(StatisticsService.class);
-  }
-
-  @Override
-  public void stop() {
-    sharedStorage = null;
-    statisticsService = null;
-  }
+public class SharedHigherCachingTierProvider extends AbstractSharedTierProvider implements HigherCachingTier.Provider {
 
   @Override
   public int rankHigherCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    if (resourceTypes.size() == 1 && sharedStorage != null) {
-      ResourceType<?> resourceType = resourceTypes.iterator().next();
-      if (resourceType instanceof ResourceType.SharedResource && sharedStorage.supports(HigherCachingTier.class, ((ResourceType.SharedResource<?>) resourceType).getResourceType())) {
-        return 1;
-      } else {
-        return 0;
-      }
-    } else {
-      return 0;
-    }
+    return rank(HigherCachingTier.class, resourceTypes);
   }
 
   @Override
   public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
-    if (resourceTypes.size() == 1) {
-      ResourceType<?> resourceType = resourceTypes.iterator().next();
-      if (resourceType instanceof ResourceType.SharedResource) {
-        return sharedStorage.<HigherCachingTier<CompositeValue<K>, CompositeValue<V>>, HigherCachingTier<K, V>, K, V>partition(((ResourceType.SharedResource<?>) resourceType).getResourceType(), storeConfig, (id, store, shared) -> {
-          HigherCachingTierPartition<K, V> partition = new HigherCachingTierPartition<>(id, store, shared.getInvalidationListeners());
-          if (statisticsService != null) {
-            statisticsService.registerWithParent(store, partition);
-          }
-          return partition;
-        });
-      } else {
-        throw new AssertionError();
-      }
-    } else {
-      throw new AssertionError();
-    }
+    ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
+    return sharedStorage.<HigherCachingTier<CompositeValue<K>, CompositeValue<V>>, HigherCachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, shared) -> {
+      HigherCachingTierPartition<K, V> partition = new HigherCachingTierPartition<>(id, store, shared.getInvalidationListeners());
+      associateStoreStatsWithPartition(store, partition);
+      return partition;
+    });
   }
 
   @Override

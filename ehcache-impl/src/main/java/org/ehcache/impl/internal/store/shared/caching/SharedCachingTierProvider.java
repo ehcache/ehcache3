@@ -17,68 +17,30 @@
 package org.ehcache.impl.internal.store.shared.caching;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.impl.internal.store.shared.AbstractSharedTierProvider;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
-import org.ehcache.impl.internal.store.shared.SharedStorageProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Collection;
 import java.util.Set;
 
-@ServiceDependencies({SharedStorageProvider.class, StatisticsService.class})
-public class SharedCachingTierProvider implements CachingTier.Provider {
-  private SharedStorageProvider sharedStorage;
-  private StatisticsService statisticsService;
-
-  @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
-    sharedStorage = serviceProvider.getService(SharedStorageProvider.class);
-    statisticsService = serviceProvider.getService(StatisticsService.class);
-  }
-
-  @Override
-  public void stop() {
-    sharedStorage = null;
-    statisticsService = null;
-  }
+public class SharedCachingTierProvider extends AbstractSharedTierProvider implements CachingTier.Provider {
 
   @Override
   public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    if (resourceTypes.size() == 1 && sharedStorage != null) {
-      ResourceType<?> resourceType = resourceTypes.iterator().next();
-      if (resourceType instanceof ResourceType.SharedResource && sharedStorage.supports(CachingTier.class, ((ResourceType.SharedResource<?>) resourceType).getResourceType())) {
-        return 1;
-      } else {
-        return 0;
-      }
-    } else {
-      return 0;
-    }
+    return rank(CachingTier.class, resourceTypes);
   }
 
   @Override
   public <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
-    if (resourceTypes.size() == 1) {
-      ResourceType<?> resourceType = resourceTypes.iterator().next();
-      if (resourceType instanceof ResourceType.SharedResource) {
-        return sharedStorage.<CachingTier<CompositeValue<K>, CompositeValue<V>>, CachingTier<K, V>, K, V>partition(((ResourceType.SharedResource<?>) resourceType).getResourceType(), storeConfig, (id, store, shared) -> {
-          CachingTierPartition<K, V> partition = new CachingTierPartition<>(id, store, shared.getInvalidationListeners());
-          if (statisticsService != null) {
-            statisticsService.registerWithParent(store, partition);
-          }
-          return partition;
-        });
-      } else {
-        throw new AssertionError();
-      }
-    } else {
-      throw new AssertionError();
-    }
+    ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
+    return sharedStorage.<CachingTier<CompositeValue<K>, CompositeValue<V>>, CachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, shared) -> {
+      CachingTierPartition<K, V> partition = new CachingTierPartition<>(id, store, shared.getInvalidationListeners());
+      associateStoreStatsWithPartition(store, partition);
+      return partition;
+    });
   }
 
   @Override

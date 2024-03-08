@@ -60,8 +60,8 @@ public class SharedStorageProvider implements Service {
     return storage.get(resourceType).createPartition(storeConfig, partitionFactory);
   }
 
-  public boolean supports(Class<?> storeageType, ResourceType<?> resourceType) {
+  public boolean supports(Class<?> storageType, ResourceType<?> resourceType) {
     SharedStorage sharedStorage = storage.get(resourceType);
-    return sharedStorage != null && sharedStorage.supports(storeageType);
+    return sharedStorage != null && sharedStorage.supports(storageType);
   }
 }
