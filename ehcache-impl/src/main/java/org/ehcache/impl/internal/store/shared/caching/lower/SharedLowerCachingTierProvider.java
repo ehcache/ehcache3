@@ -36,7 +36,7 @@ public class SharedLowerCachingTierProvider extends AbstractSharedTierProvider i
   @Override
   public <K, V> LowerCachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
-    return sharedStorage.<LowerCachingTier<CompositeValue<K>, CompositeValue<V>>, LowerCachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
+    return sharedStorageProvider.<LowerCachingTier<CompositeValue<K>, CompositeValue<V>>, LowerCachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
       LowerCachingTierPartition<K, V> partition = new LowerCachingTierPartition<>(id, store, storage.getInvalidationListeners());
       associateStoreStatsWithPartition(store, partition);
       return partition;

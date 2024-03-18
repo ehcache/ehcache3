@@ -16,31 +16,17 @@
 
 package org.ehcache.impl.internal.store.shared.authoritative;
 
-import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.core.Ehcache;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventFilter;
-import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
-import org.ehcache.event.EventType;
-import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.impl.internal.store.shared.store.StorePartition;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.InvalidParameterException;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class AuthoritativeTierPartition<K, V> extends StorePartition<K, V> implements AuthoritativeTier<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AuthoritativeTierPartition.class);

@@ -2,7 +2,6 @@ package org.ehcache.impl.internal.store.shared.composites;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.shared.store.StorePartition;
 
 import java.util.Map;

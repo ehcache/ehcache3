@@ -36,7 +36,7 @@ public class SharedHigherCachingTierProvider extends AbstractSharedTierProvider 
   @Override
   public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
-    return sharedStorage.<HigherCachingTier<CompositeValue<K>, CompositeValue<V>>, HigherCachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, shared) -> {
+    return sharedStorageProvider.<HigherCachingTier<CompositeValue<K>, CompositeValue<V>>, HigherCachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, shared) -> {
       HigherCachingTierPartition<K, V> partition = new HigherCachingTierPartition<>(id, store, shared.getInvalidationListeners());
       associateStoreStatsWithPartition(store, partition);
       return partition;

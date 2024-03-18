@@ -22,7 +22,6 @@ import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.spi.resilience.StoreAccessException;

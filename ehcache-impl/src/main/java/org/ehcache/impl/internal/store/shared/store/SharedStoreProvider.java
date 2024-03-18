@@ -34,7 +34,7 @@ import java.util.Set;
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(storeConfig.getResourcePools().getResourceTypeSet());
-    return sharedStorage.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
+    return sharedStorageProvider.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
       StorePartition<K, V> partition = new StorePartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
       associateStoreStatsWithPartition(store, partition);
       return partition;

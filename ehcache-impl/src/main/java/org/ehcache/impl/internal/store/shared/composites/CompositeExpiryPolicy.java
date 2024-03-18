@@ -1,7 +1,6 @@
 package org.ehcache.impl.internal.store.shared.composites;
 
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.internal.store.shared.store.StorePartition;
 
 import java.time.Duration;
 import java.util.Map;

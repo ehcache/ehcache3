@@ -40,9 +40,9 @@ public class CacheManagerBuilderSharedResourcesTest {
   public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   private final Long LONG1 = 11L;
-  private final Long LONG2 =22L;
+  private final Long LONG2 = 22L;
   private final Double DOUBLE1 = 11.0;
-  private final Double DOUBLE2 =22.0;
+  private final Double DOUBLE2 = 22.0;
   private final String STRING1 = "11";
   private final String STRING2 = "22";
 
@@ -101,20 +101,6 @@ public class CacheManagerBuilderSharedResourcesTest {
     exerciseCacheApi(c1, c2, LONG1, LONG2);
     cacheManager.close();
   }
-
-  /* From 3.10 docs:
-  Tiers hierarchy
-  Ehcache requires the size of the heap tier to be smaller than the size of the offheap tier,
-  and the size of the offheap tier to be smaller than the size of the disk tier.
-  While Ehcache cannot verify at configuration time that a count-based sizing for heap
-  will be smaller than a byte-based sizing for another tier, you should make sure that is the case during testing.
-  The following are valid configurations:
-  heap + offheap
-  heap + offheap + disk
-  heap + offheap + clustered
-  heap + disk
-  heap + clustered
-  */
 
   @Test
   public void testTwoTierSharedOffHeap() {
