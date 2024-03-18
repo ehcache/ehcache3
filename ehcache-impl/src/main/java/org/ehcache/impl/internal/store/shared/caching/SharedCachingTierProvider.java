@@ -36,7 +36,7 @@ public class SharedCachingTierProvider extends AbstractSharedTierProvider implem
   @Override
   public <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
-    return sharedStorage.<CachingTier<CompositeValue<K>, CompositeValue<V>>, CachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, shared) -> {
+    return sharedStorageProvider.<CachingTier<CompositeValue<K>, CompositeValue<V>>, CachingTier<K, V>, K, V>partition(resourceType.getResourceType(), storeConfig, (id, store, shared) -> {
       CachingTierPartition<K, V> partition = new CachingTierPartition<>(id, store, shared.getInvalidationListeners());
       associateStoreStatsWithPartition(store, partition);
       return partition;

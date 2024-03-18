@@ -43,10 +43,9 @@ public class SharedStorageProvider implements Service {
   public void start(ServiceProvider<Service> serviceProvider) {
     for (ResourceType<?> resourceType : resourcePools.getResourceTypeSet()) {
       ResourcePool pool = resourcePools.getPoolForResource(resourceType);
-
-      SharedStorage sharedStoreProvider = new SharedStorage(pool);
-      sharedStoreProvider.start(serviceProvider);
-      storage.put(resourceType, sharedStoreProvider);
+      SharedStorage sharedStorage = new SharedStorage(pool);
+      sharedStorage.start(serviceProvider);
+      storage.put(resourceType, sharedStorage);
     }
   }
 

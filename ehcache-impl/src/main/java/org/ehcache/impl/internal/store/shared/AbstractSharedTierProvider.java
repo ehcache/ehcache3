@@ -29,18 +29,18 @@ import java.util.Set;
 @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
 public abstract class AbstractSharedTierProvider implements Service {
 
-  protected SharedStorageProvider sharedStorage;
+  protected SharedStorageProvider sharedStorageProvider;
   protected StatisticsService statisticsService;
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
-    sharedStorage = serviceProvider.getService(SharedStorageProvider.class);
+    sharedStorageProvider = serviceProvider.getService(SharedStorageProvider.class);
     statisticsService = serviceProvider.getService(StatisticsService.class);
   }
 
   @Override
   public void stop() {
-    sharedStorage = null;
+    sharedStorageProvider = null;
     statisticsService = null;
   }
 
@@ -53,7 +53,7 @@ public abstract class AbstractSharedTierProvider implements Service {
   protected <T> int rank(Class<T> type, Set<ResourceType<?>> resourceTypes) {
     if (resourceTypes.size() == 1) {
       ResourceType<?> resourceType = resourceTypes.iterator().next();
-      if (resourceType instanceof ResourceType.SharedResource && sharedStorage.supports(type, ((ResourceType.SharedResource<?>) resourceType).getResourceType())) {
+      if (resourceType instanceof ResourceType.SharedResource && sharedStorageProvider.supports(type, ((ResourceType.SharedResource<?>) resourceType).getResourceType())) {
         return 1;
       } else {
         return 0;
