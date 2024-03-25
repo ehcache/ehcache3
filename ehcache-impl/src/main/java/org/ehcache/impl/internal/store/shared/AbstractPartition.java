@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.shared;
 
+import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 
@@ -27,7 +28,7 @@ import java.util.function.Function;
 public class AbstractPartition<S> {
 
 
-  private final int id;
+  protected final int id;
   private final S shared;
 
   public AbstractPartition(int id, S shared) {
@@ -68,6 +69,10 @@ public class AbstractPartition<S> {
     public MappingValueHolder(Store.ValueHolder<T> valueHolder, Function<T, U> mapping) {
       this.delegate = valueHolder;
       this.mapping = mapping;
+    }
+
+    public Store.ValueHolder<T> getDelegate() {
+      return delegate;
     }
 
     @Override
