@@ -26,7 +26,7 @@ import java.util.function.Function;
 
 public class AbstractPartition<S> {
 
-  private final int id;
+  protected final int id;
   private final S shared;
 
   public AbstractPartition(int id, S shared) {

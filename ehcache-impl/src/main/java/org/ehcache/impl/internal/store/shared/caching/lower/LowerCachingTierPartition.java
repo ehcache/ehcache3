@@ -24,6 +24,7 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
 import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
+import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,10 +107,7 @@ public class LowerCachingTierPartition<K, V> extends AbstractPartition<LowerCach
   }
 
   @Override
-  public void invalidateAllWithHash(long hash) throws StoreAccessException {
-    // batton down the hatches...  xor with store id???
-    // method used when a clustered store evicts the hash
-    // this is the hash code of the key that the clustered removed
-    shared().invalidateAllWithHash(hash);
+  public void invalidateAllWithHash(long keyValueHash) throws StoreAccessException {
+    shared().invalidateAllWithHash(CompositeValue.compositeHash(id, HashUtils.longHashToInt(keyValueHash)));
   }
 }
