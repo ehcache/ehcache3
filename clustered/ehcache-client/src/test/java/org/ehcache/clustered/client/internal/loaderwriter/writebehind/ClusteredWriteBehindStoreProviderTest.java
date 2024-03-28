@@ -68,14 +68,14 @@ public class ClusteredWriteBehindStoreProviderTest {
     ServiceLocator serviceLocator = dependencySet().with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED,
+    assertThat(provider.rankAuthority(Collections.singleton(ClusteredResourceType.Types.DEDICATED),
                                       Arrays.asList(cacheLoaderWriterConfiguration, writeBehindConfiguration)),
-               is(3));
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED,
+               is(5));
+    assertThat(provider.rankAuthority(Collections.singleton(ClusteredResourceType.Types.DEDICATED),
                                       Collections.singletonList(writeBehindConfiguration)),
                is(0));
-    assertThat(provider.rankAuthority(new ClusteredStoreProviderTest.UnmatchedResourceType(), Arrays.asList(cacheLoaderWriterConfiguration,
-                                                                                                            writeBehindConfiguration)),
+    assertThat(provider.rankAuthority(Collections.singleton(new ClusteredStoreProviderTest.UnmatchedResourceType()),
+                                      Arrays.asList(cacheLoaderWriterConfiguration, writeBehindConfiguration)),
                is(0));
   }
 }

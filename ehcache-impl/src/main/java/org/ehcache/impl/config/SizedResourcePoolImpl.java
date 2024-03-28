@@ -57,6 +57,7 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
     }
     if (type == org.ehcache.config.ResourceType.Core.HEAP && unit instanceof MemoryUnit){
+      // TODO: not true in ARC Phase 2
       LOGGER.info("Byte based heap resources are deprecated and will be removed in a future version.");
     }
     this.size = size;
@@ -102,16 +103,16 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String toString() {
-    return "Pool {" + getSize() + " " + getUnit() + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
+    return "Pool {" + getSize() + " " + getUnit() + " " + getType() +
+      (isPersistent() ? ", persistent" : "") +
+      "}";
   }
 
   @Override
   public String readableString() {
-    return getSize() + " " + getUnit() + " " + (isPersistent() ? "(persistent)" : "");
+    return getSize() + " " + getUnit() +
+      (isPersistent() ? ", persistent" : "");
   }
 }

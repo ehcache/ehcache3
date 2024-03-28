@@ -390,9 +390,10 @@ public final class ServiceLocator implements ServiceProvider<Service> {
           }
 
           T service = factory.create(null);
-
-          //we copy the service map so that if upstream dependency resolution fails we don't pollute the real resolved set
-          resolved = new ServiceMap(resolved).add(service);
+          if (service != null) {
+            //we copy the service map so that if upstream dependency resolution fails we don't pollute the real resolved set
+            resolved = new ServiceMap(resolved).add(service);
+          }
         }
       }
       if (resolved.contains(requested)) {

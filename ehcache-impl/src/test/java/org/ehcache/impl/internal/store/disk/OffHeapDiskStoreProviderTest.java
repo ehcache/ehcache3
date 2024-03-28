@@ -159,9 +159,8 @@ public class OffHeapDiskStoreProviderTest {
            }
 
            @Override
-           @SuppressWarnings("unchecked")
            public Set<ResourceType<?>> getResourceTypeSet() {
-             return (Set) singleton(ResourceType.Core.OFFHEAP);
+             return singleton(ResourceType.Core.OFFHEAP);
            }
 
            @Override

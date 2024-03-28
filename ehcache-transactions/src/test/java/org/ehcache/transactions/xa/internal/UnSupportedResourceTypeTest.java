@@ -78,5 +78,10 @@ public class UnSupportedResourceTypeTest {
     public int getTierHeight() {
       return 0;
     }
+
+    @Override
+    public boolean isShareable() {
+      return false;
+    }
   }
 }

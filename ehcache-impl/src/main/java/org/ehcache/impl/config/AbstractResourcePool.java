@@ -75,5 +75,6 @@ public abstract class AbstractResourcePool<P extends ResourcePool, T extends Res
       throw new IllegalArgumentException("ResourcePool for " + newPool.getType() + " with isPersistent="
           + newPool.isPersistent() + " can not replace isPersistent=" + this.isPersistent());
     }
+    // TODO - revisit to determine the rules when updating a shared resource with a non-shared resource and vice versa
   }
 }

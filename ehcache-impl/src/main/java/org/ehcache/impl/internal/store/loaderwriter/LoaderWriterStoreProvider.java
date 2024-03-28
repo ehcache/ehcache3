@@ -83,11 +83,6 @@ public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
   }
 
   @Override
-  public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
-  }
-
-  @Override
   public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
     CacheLoaderWriterConfiguration<?> loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
     if (loaderWriterConfiguration == null) {

@@ -15,6 +15,7 @@
  */
 package org.ehcache.core.spi.store;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.spi.service.OptionalServiceDependencies;
@@ -23,9 +24,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import static org.ehcache.core.store.StoreSupport.selectStoreProvider;
+import static org.ehcache.core.store.StoreSupport.select;
 
 @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
 public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provider {
@@ -38,8 +41,10 @@ public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provi
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
 
-    Store.Provider underlyingStoreProvider = selectStoreProvider(serviceProvider, storeConfig.getResourcePools().getResourceTypeSet(),
-        Arrays.asList(serviceConfigs));
+    Set<ResourceType<?>> resources = storeConfig.getResourcePools().getResourceTypeSet();
+    List<ServiceConfiguration<?, ?>> configs = Arrays.asList(serviceConfigs);
+    Store.Provider underlyingStoreProvider = select(Store.Provider.class, serviceProvider, store -> store.rank(resources, configs));
+
     Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 
     Store<K, V> wrappedStore = wrap(store, storeConfig, serviceConfigs);

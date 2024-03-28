@@ -125,6 +125,22 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    *
    * @param keyType the key type
    * @param valueType the value type
+   * @param classLoader the class loader
+   * @param dispatcherConcurrency the level of concurrency for ordered events
+   * @param keySerializer the key serializer
+   * @param valueSerializer the value serializer
+   */
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, ClassLoader classLoader,
+               int dispatcherConcurrency, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    this(keyType, valueType, null, classLoader, null, null, dispatcherConcurrency,
+      true, keySerializer, valueSerializer, null, false);
+  }
+
+  /**
+   * Creates a new {@code StoreConfigurationImpl} based on the provided parameters.
+   *
+   * @param keyType the key type
+   * @param valueType the value type
    * @param evictionAdvisor the eviction advisor
    * @param classLoader the class loader
    * @param expiry the expiry policy

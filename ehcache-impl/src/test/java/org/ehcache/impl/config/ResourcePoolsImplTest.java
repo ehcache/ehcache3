@@ -65,6 +65,11 @@ public class ResourcePoolsImplTest {
     }
 
     @Override
+    public boolean isShareable() {
+      return false;
+    }
+
+    @Override
     public boolean requiresSerialization() {
       return false;
     }

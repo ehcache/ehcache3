@@ -20,19 +20,20 @@ import org.ehcache.config.Builder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.impl.config.SharedResourcePool;
 import org.ehcache.impl.config.SizedResourcePoolImpl;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.impl.config.ResourcePoolsImpl;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
 
 import static java.util.Collections.unmodifiableMap;
 import java.util.HashMap;
+
 import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
@@ -150,6 +151,15 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   }
 
   /**
+   * Informs the cache manager that an existing {@link org.ehcache.config.ResourceType.Core#HEAP heap} shared pool,
+   * defined on the cache manager, should be used for the cache's on-heap caching requirements.
+   * @return a new builder with the added pool
+   */
+  public ResourcePoolsBuilder sharedHeap() {
+    return shared(ResourceType.Core.HEAP, false);
+  }
+
+  /**
    * Convenience method to add an {@link org.ehcache.config.ResourceType.Core#OFFHEAP offheap} pool.
    *
    * @param size the pool size
@@ -160,6 +170,15 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    */
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
     return with(ResourceType.Core.OFFHEAP, size, unit, false);
+  }
+
+  /**
+   * Informs the cache manager that an existing {@link org.ehcache.config.ResourceType.Core#OFFHEAP offheap} shared pool,
+   * defined on the cache manager, should be used for the cache's offheap caching requirements.
+   * @return a new builder with the added pool
+   */
+  public ResourcePoolsBuilder sharedOffheap() {
+    return shared(ResourceType.Core.OFFHEAP, false);
   }
 
   /**
@@ -187,6 +206,10 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
     return with(ResourceType.Core.DISK, size, unit, persistent);
+  }
+
+  public ResourcePoolsBuilder shared(ResourceType<?> type, boolean persistent) {
+    return with(new SharedResourcePool<>(type, persistent));
   }
 
   /**
