@@ -40,6 +40,7 @@ import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.impl.internal.store.tiering.TieredStore;
 import org.ehcache.internal.TestTimeSource;
+import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
@@ -55,6 +56,7 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.utils.JavaSerializer;
 import org.ehcache.transactions.xa.utils.TestXid;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -126,14 +128,20 @@ public class XAStoreTest {
   private final ExpiryPolicy<Object, Object> expiry = timeToLiveExpiration(ofSeconds(1));
   private Copier<Long> keyCopier;
   private Copier<SoftLock<String>> valueCopier;
+  private ServiceLocator serviceLocator;
 
   @Before
   public void setUp() {
     transactionManagerWrapper = new TransactionManagerWrapper<>(testTransactionManager, new NullXAResourceRegistry());
+
+    serviceLocator = dependencySet().with(CopyProvider.class).build();
+    serviceLocator.startAllServices();
+
     classLoader = ClassLoader.getSystemClassLoader();
     keySerializer = new JavaSerializer<>(classLoader);
     valueSerializer = new JavaSerializer<>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+
+    CopyProvider copyProvider = serviceLocator.getService(CopyProvider.class);
     keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
     valueCopier = copyProvider.createValueCopier(valueClass, valueSerializer);
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
@@ -145,6 +153,11 @@ public class XAStoreTest {
     eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
     onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     journal = new TransientJournal<>();
+  }
+
+  @After
+  public void stop() throws Exception {
+    serviceLocator.stopAllServices();
   }
 
   @Test

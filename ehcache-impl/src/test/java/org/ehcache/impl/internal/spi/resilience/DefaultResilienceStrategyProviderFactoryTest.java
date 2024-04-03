@@ -23,6 +23,7 @@ import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.junit.Test;
 
+import static org.ehcache.core.spi.ServiceLocatorUtils.withServiceLocator;
 import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
@@ -33,9 +34,10 @@ import static org.mockito.Mockito.mock;
 public class DefaultResilienceStrategyProviderFactoryTest {
 
   @Test
-  public void testNullGivesValidFactory() {
-    ResilienceStrategyProvider provider = new DefaultResilienceStrategyProviderFactory().create(null);
-    assertThat(provider.createResilienceStrategy("test", uncheckedGenericMock(CacheConfiguration.class), uncheckedGenericMock(RecoveryStore.class)), notNullValue());
+  public void testNullGivesValidFactory() throws Exception {
+    withServiceLocator(new DefaultResilienceStrategyProviderFactory().create(null), provider -> {
+      assertThat(provider.createResilienceStrategy("test", uncheckedGenericMock(CacheConfiguration.class), uncheckedGenericMock(RecoveryStore.class)), notNullValue());
+    });
   }
 
   @Test

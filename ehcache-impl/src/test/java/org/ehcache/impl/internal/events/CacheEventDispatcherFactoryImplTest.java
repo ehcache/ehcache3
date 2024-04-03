@@ -16,18 +16,18 @@
 
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.core.spi.ServiceLocatorUtils;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.spi.service.Service;
 import org.junit.Test;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 
+import static org.ehcache.core.spi.ServiceLocatorUtils.withServiceLocator;
 import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -45,53 +45,45 @@ import static org.mockito.Mockito.when;
 public class CacheEventDispatcherFactoryImplTest {
 
   @Test
-  public void testConfigurationOfThreadPoolAlias() {
-    ServiceProvider<Service> serviceProvider = uncheckedGenericMock(ServiceProvider.class);
-    when(serviceProvider.getService(ExecutionService.class)).thenReturn(mock(ExecutionService.class));
-    CacheEventDispatcherFactoryImpl factory = new CacheEventDispatcherFactoryImpl();
-    factory.start(serviceProvider);
-    DefaultCacheEventDispatcherConfiguration config = spy(new DefaultCacheEventDispatcherConfiguration("aName"));
-    @SuppressWarnings("unchecked")
-    Store<Object, Object> store = mock(Store.class);
-    factory.createCacheEventDispatcher(store, config);
-    verify(config).getThreadPoolAlias();
+  public void testConfigurationOfThreadPoolAlias() throws Exception {
+    withServiceLocator(new CacheEventDispatcherFactoryImpl(), provider -> {
+      DefaultCacheEventDispatcherConfiguration config = spy(new DefaultCacheEventDispatcherConfiguration("aName"));
+      @SuppressWarnings("unchecked")
+      Store<Object, Object> store = mock(Store.class);
+      provider.createCacheEventDispatcher(store, config);
+      verify(config).getThreadPoolAlias();
+    });
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void testCreateCacheEventDispatcherReturnsDisabledDispatcherWhenNoThreadPool() throws Exception {
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     ExecutionService executionService = mock(ExecutionService.class);
-    when(serviceProvider.getService(ExecutionService.class)).thenReturn(executionService);
     when(executionService.getOrderedExecutor(eq("myAlias"), any(BlockingQueue.class))).thenThrow(IllegalArgumentException.class);
     when(executionService.getUnorderedExecutor(eq("myAlias"), any(BlockingQueue.class))).thenThrow(IllegalArgumentException.class);
 
-    CacheEventDispatcherFactoryImpl cacheEventDispatcherFactory = new CacheEventDispatcherFactoryImpl();
-    cacheEventDispatcherFactory.start(serviceProvider);
-
-    Store<Object, Object> store = uncheckedGenericMock(Store.class);
-    try {
-      cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
-      // expected
-    }
+    withServiceLocator(new CacheEventDispatcherFactoryImpl(), deps -> deps.with(executionService), cacheEventDispatcherFactory -> {
+      Store<Object, Object> store = uncheckedGenericMock(Store.class);
+      try {
+        cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
+        fail("expected IllegalArgumentException");
+      } catch (IllegalArgumentException iae) {
+        // expected
+      }
+    });
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void testCreateCacheEventReturnsDisabledDispatcherWhenThreadPoolFound() throws Exception {
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     ExecutionService executionService = mock(ExecutionService.class);
-    when(serviceProvider.getService(ExecutionService.class)).thenReturn(executionService);
     when(executionService.getOrderedExecutor(eq("myAlias"), any(BlockingQueue.class))).thenReturn(mock(ExecutorService.class));
     when(executionService.getUnorderedExecutor(eq("myAlias"), any(BlockingQueue.class))).thenReturn(mock(ExecutorService.class));
 
-    CacheEventDispatcherFactoryImpl cacheEventDispatcherFactory = new CacheEventDispatcherFactoryImpl();
-    cacheEventDispatcherFactory.start(serviceProvider);
-
-    Store<Object, Object> store = mock(Store.class);
-    CacheEventDispatcher<Object, Object> dispatcher = cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
-    assertThat(dispatcher, instanceOf(CacheEventDispatcherImpl.class));
+    withServiceLocator(new CacheEventDispatcherFactoryImpl(), deps -> deps.with(executionService), cacheEventDispatcherFactory -> {
+      Store<Object, Object> store = mock(Store.class);
+      CacheEventDispatcher<Object, Object> dispatcher = cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
+      assertThat(dispatcher, instanceOf(CacheEventDispatcherImpl.class));
+    });
   }
 }

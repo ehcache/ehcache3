@@ -23,6 +23,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.impl.internal.classes.DefaultInstantiatorService;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.TimeSource;
@@ -51,7 +52,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   protected OffHeapStore<String, String> createAndInitStore(TimeSource timeSource, ExpiryPolicy<? super String, ? super String> expiry) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-      serializationProvider.start(providerContaining());
+      serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, classLoader);
@@ -75,7 +76,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   protected OffHeapStore<String, byte[]> createAndInitStore(TimeSource timeSource, ExpiryPolicy<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-      serializationProvider.start(providerContaining());
+      serializationProvider.start(providerContaining(new DefaultInstantiatorService()));
       ClassLoader classLoader = getClass().getClassLoader();
       Serializer<String> keySerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
