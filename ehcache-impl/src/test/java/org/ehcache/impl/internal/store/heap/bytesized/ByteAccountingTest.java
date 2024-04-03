@@ -435,7 +435,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().access(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.computeAndGet(KEY, (s, s2) -> s2, () -> false, () -> false);
+    store.computeAndGet(KEY, (s, s2) -> s2.get(), () -> false, () -> false);
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
@@ -446,7 +446,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, expiry().update(Duration.ZERO).build());
 
     store.put(KEY, VALUE);
-    store.getAndCompute(KEY, (s, s2) -> s2);
+    store.getAndCompute(KEY, (s, s2) -> s2.get());
 
     assertThat(store.getCurrentUsageInBytes(), is(0L));
   }

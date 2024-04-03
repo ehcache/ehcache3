@@ -226,7 +226,7 @@ public class StoreGetAndComputeTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).get(), is(value));
 
-      kvStore.computeAndGet(key, (keyParam, oldValue) -> oldValue, () -> { throw re; }, () -> false);
+      kvStore.computeAndGet(key, (keyParam, oldValue) -> oldValue.get(), () -> { throw re; }, () -> false);
     } catch (StoreAccessException e) {
       assertThat(e.getCause(), is(re));
     }
@@ -248,7 +248,7 @@ public class StoreGetAndComputeTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).get(), is(value));
 
-      kvStore.computeAndGet(key, (keyParam, oldValue) -> oldValue, () -> { throw re; }, () -> false);
+      kvStore.computeAndGet(key, (keyParam, oldValue) -> oldValue.get(), () -> { throw re; }, () -> false);
     } catch (RuntimeException e) {
       assertThat(e, is(exception));
     }
@@ -268,7 +268,7 @@ public class StoreGetAndComputeTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
 
-      Store.ValueHolder<V> result = kvStore.getAndCompute(key, (k, v) -> v);
+      Store.ValueHolder<V> result = kvStore.getAndCompute(key, (k, v) -> v.get());
       assertThat(result.get(), is(value));
       assertThat(kvStore.get(key), nullValue());
     } catch (StoreAccessException e) {

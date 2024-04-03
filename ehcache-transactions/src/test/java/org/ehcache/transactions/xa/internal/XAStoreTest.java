@@ -710,14 +710,14 @@ public class XAStoreTest {
       assertThat(xaStore.get(1L).get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return "un";
       });
       assertThat(computed2.get(), equalTo("one"));
       assertThat(xaStore.get(1L).get(), equalTo("un"));
       Store.ValueHolder<String> computed3 = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("un"));
+        assertThat(s.get(), equalTo("un"));
         return null;
       });
       assertThat(computed3.get(), equalTo("un"));
@@ -738,7 +738,7 @@ public class XAStoreTest {
       assertThat(xaStore.get(1L).get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return null;
       });
       assertThat(computed2.get(), equalTo("one"));
@@ -759,7 +759,7 @@ public class XAStoreTest {
       assertThat(xaStore.get(1L).get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return null;
       });
       assertThat(computed2.get(), equalTo("one"));
@@ -780,7 +780,7 @@ public class XAStoreTest {
       assertThat(xaStore.get(1L).get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return "un";
       });
       assertThat(computed2.get(), equalTo("one"));
@@ -794,7 +794,7 @@ public class XAStoreTest {
     {
       Store.ValueHolder<String> computed = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("un"));
+        assertThat(s.get(), equalTo("un"));
         return "eins";
       });
       assertThat(computed.get(), equalTo("un"));
@@ -808,7 +808,7 @@ public class XAStoreTest {
     {
       Store.ValueHolder<String> computed = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("eins"));
+        assertThat(s.get(), equalTo("eins"));
         return null;
       });
       assertThat(computed.get(), equalTo("eins"));
@@ -822,7 +822,7 @@ public class XAStoreTest {
     {
       Store.ValueHolder<String> computed1 = xaStore.getAndCompute(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("eins"));
+        assertThat(s.get(), equalTo("eins"));
         return null;
       });
       assertThat(computed1.get(), equalTo("eins"));
@@ -899,13 +899,13 @@ public class XAStoreTest {
       assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return "un";
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed2.get(), equalTo("un"));
       Store.ValueHolder<String> computed3 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("un"));
+        assertThat(s.get(), equalTo("un"));
         return null;
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed3, is(nullValue()));
@@ -924,7 +924,7 @@ public class XAStoreTest {
       assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return null;
       }, SUPPLY_FALSE, SUPPLY_FALSE);
       assertThat(computed2, is(nullValue()));
@@ -943,7 +943,7 @@ public class XAStoreTest {
       assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return null;
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed2, is(nullValue()));
@@ -962,7 +962,7 @@ public class XAStoreTest {
       assertThat(computed1.get(), equalTo("one"));
       Store.ValueHolder<String> computed2 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("one"));
+        assertThat(s.get(), equalTo("one"));
         return "un";
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed2.get(), equalTo("un"));
@@ -975,7 +975,7 @@ public class XAStoreTest {
     {
       Store.ValueHolder<String> computed = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("un"));
+        assertThat(s.get(), equalTo("un"));
         return "eins";
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed.get(), equalTo("eins"));
@@ -988,7 +988,7 @@ public class XAStoreTest {
     {
       Store.ValueHolder<String> computed = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("eins"));
+        assertThat(s.get(), equalTo("eins"));
         return null;
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed, is(nullValue()));
@@ -1001,7 +1001,7 @@ public class XAStoreTest {
     {
       Store.ValueHolder<String> computed1 = xaStore.computeAndGet(1L, (aLong, s) -> {
         assertThat(aLong, is(1L));
-        assertThat(s, equalTo("eins"));
+        assertThat(s.get(), equalTo("eins"));
         return null;
       }, SUPPLY_TRUE, SUPPLY_FALSE);
       assertThat(computed1, is(nullValue()));
@@ -1295,9 +1295,9 @@ public class XAStoreTest {
     {
       Map<Long, Store.ValueHolder<String>> computedMap = xaStore.bulkCompute(asSet(1L, 2L, 3L), entries -> {
         Map<Long, String> result = new HashMap<>();
-        for (Map.Entry<? extends Long, ? extends String> entry : entries) {
+        for (Map.Entry<? extends Long, ? extends Store.ValueHolder<String>> entry : entries) {
           Long key = entry.getKey();
-          String value = entry.getValue();
+          Store.ValueHolder<String> value = entry.getValue();
           assertThat(value, is(nullValue()));
           result.put(key, "stuff#" + key);
         }
@@ -1311,9 +1311,9 @@ public class XAStoreTest {
 
       computedMap = xaStore.bulkCompute(asSet(0L, 1L, 3L), entries -> {
         Map<Long, String> result = new HashMap<>();
-        for (Map.Entry<? extends Long, ? extends String> entry : entries) {
+        for (Map.Entry<? extends Long, ? extends Store.ValueHolder<String>> entry : entries) {
           Long key = entry.getKey();
-          String value = entry.getValue();
+          Store.ValueHolder<String> value = entry.getValue();
 
           switch (key.intValue()) {
             case 0:
@@ -1321,7 +1321,7 @@ public class XAStoreTest {
               break;
             case 1:
             case 3:
-              assertThat(value, equalTo("stuff#" + key));
+              assertThat(value.get(), equalTo("stuff#" + key));
               break;
           }
 

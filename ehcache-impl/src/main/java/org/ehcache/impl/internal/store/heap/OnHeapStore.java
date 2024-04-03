@@ -95,6 +95,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static java.util.Collections.singletonMap;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.config.ExpiryUtils.isExpiryDurationInfinite;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleException;
@@ -1145,7 +1146,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
+  public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -1167,13 +1168,12 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         }
 
         OnHeapValueHolder<V> holder;
-        V existingValue = mappedValue == null ? null : mappedValue.get();
         if (mappedValue != null) {
           oldValue.set(mappedValue);
         }
-        V computedValue = mappingFunction.apply(mappedKey, existingValue);
+        V computedValue = mappingFunction.apply(mappedKey, mappedValue);
         if (computedValue == null) {
-          if (existingValue != null) {
+          if (mappedValue != null) {
             eventSink.removed(mappedKey, mappedValue);
             outcome.set(StoreOperationOutcomes.ComputeOutcome.REMOVED);
             delta -= mappedValue.size();
@@ -1213,7 +1213,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super ValueHolder<V>, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
 
     computeObserver.begin();
@@ -1235,16 +1235,15 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
         }
 
         OnHeapValueHolder<V> holder;
-        V existingValue = mappedValue == null ? null : mappedValue.get();
-        V computedValue = mappingFunction.apply(mappedKey, existingValue);
+        V computedValue = mappingFunction.apply(mappedKey, mappedValue);
         if (computedValue == null) {
-          if (existingValue != null) {
+          if (mappedValue != null) {
             eventSink.removed(mappedKey, mappedValue);
             outcome.set(StoreOperationOutcomes.ComputeOutcome.REMOVED);
             delta -= mappedValue.size();
           }
           holder = null;
-        } else if (Objects.equals(existingValue, computedValue) && !replaceEqual.get() && mappedValue != null) {
+        } else if (mappedValue != null && !replaceEqual.get() && Objects.equals(mappedValue.get(), computedValue)) {
           holder = strategy.setAccessAndExpiryWhenCallerlUnderLock(key, mappedValue, now, eventSink);
           outcome.set(StoreOperationOutcomes.ComputeOutcome.HIT);
           if (holder == null) {
@@ -1394,12 +1393,12 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Entry<? extends K, ? extends V>>, Iterable<? extends Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K,? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>>, Iterable<? extends Map.Entry<? extends K,? extends V>>> remappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException {
 
     // The Store here is free to slice & dice the keys as it sees fit
     // As this OnHeapStore doesn't operate in segments, the best it can do is do a "bulk" write in batches of... one!
@@ -1409,8 +1408,7 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
       checkKey(key);
 
       ValueHolder<V> newValue = computeAndGet(key, (k, oldValue) -> {
-        Set<Entry<K, V>> entrySet = Collections.singletonMap(k, oldValue).entrySet();
-        Iterable<? extends Entry<? extends K, ? extends V>> entries = remappingFunction.apply(entrySet);
+        Iterable<? extends Entry<? extends K, ? extends V>> entries = remappingFunction.apply(Collections.singletonMap(k, oldValue).entrySet());
         java.util.Iterator<? extends Entry<? extends K, ? extends V>> iterator = entries.iterator();
         Entry<? extends K, ? extends V> next = iterator.next();
 

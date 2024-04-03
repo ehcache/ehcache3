@@ -120,12 +120,6 @@ public class XATransactionContext<K, V> {
     return command != null ? command.getNewValueHolder() : null;
   }
 
-  public V newValueOf(K key) {
-    Command<V> command = commands.get(key);
-    XAValueHolder<V> valueHolder = command == null ? null : command.getNewValueHolder();
-    return valueHolder == null ? null : valueHolder.get();
-  }
-
   public int prepare() throws StoreAccessException, IllegalStateException, TransactionTimeoutException {
     try {
       if (hasTimedOut()) {

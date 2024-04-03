@@ -86,7 +86,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L), is(nullValue()));
     assertThat(xaTransactionContext.oldValueOf(1L), is(nullValue()));
-    assertThat(xaTransactionContext.newValueOf(1L), is(nullValue()));
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("old", new XAValueHolder<>("new", timeSource.getTimeMillis())));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -95,7 +94,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
     xaTransactionContext.addCommand(1L, new StoreRemoveCommand<>("old"));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -104,7 +102,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L), is(nullValue()));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), is(nullValue()));
 
     xaTransactionContext.addCommand(1L, new StoreEvictCommand<>("old"));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -113,7 +110,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(true));
     assertThat(xaTransactionContext.newValueHolderOf(1L), is(nullValue()));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), is(nullValue()));
   }
 
   @Test
@@ -126,7 +122,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
     xaTransactionContext.addCommand(1L, new StoreRemoveCommand<>("old"));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -135,7 +130,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L), is(nullValue()));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), is(nullValue()));
 
     xaTransactionContext.addCommand(1L, new StoreRemoveCommand<>("old2"));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -144,7 +138,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L), is(nullValue()));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old2"));
-    assertThat(xaTransactionContext.newValueOf(1L), is(nullValue()));
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("old2", new XAValueHolder<>("new2", timeSource.getTimeMillis())));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -153,7 +146,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new2"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old2"));
-    assertThat(xaTransactionContext.newValueOf(1L), equalTo("new2"));
   }
 
   @Test
@@ -167,7 +159,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(false));
     assertThat(xaTransactionContext.newValueHolderOf(1L).get(), equalTo("new"));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), equalTo("new"));
 
     xaTransactionContext.addCommand(1L, new StoreEvictCommand<>("old"));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -176,7 +167,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(true));
     assertThat(xaTransactionContext.newValueHolderOf(1L), is(nullValue()));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), is(nullValue()));
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<>("old2", new XAValueHolder<>("new2", timeSource.getTimeMillis())));
     assertThat(xaTransactionContext.touched(1L), is(true));
@@ -185,7 +175,6 @@ public class XATransactionContextTest {
     assertThat(xaTransactionContext.evicted(1L), is(true));
     assertThat(xaTransactionContext.newValueHolderOf(1L), is(nullValue()));
     assertThat(xaTransactionContext.oldValueOf(1L), equalTo("old"));
-    assertThat(xaTransactionContext.newValueOf(1L), is(nullValue()));
   }
 
   @Test

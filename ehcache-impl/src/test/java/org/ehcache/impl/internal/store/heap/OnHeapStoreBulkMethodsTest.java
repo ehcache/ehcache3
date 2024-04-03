@@ -93,8 +93,8 @@ public class OnHeapStoreBulkMethodsTest {
 
     Map<Number, Store.ValueHolder<Number>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), entries -> {
       Map<Number, Number> newValues = new HashMap<>();
-      for (Map.Entry<? extends Number, ? extends Number> entry : entries) {
-        final Number currentValue = entry.getValue();
+      for (Map.Entry<? extends Number, ? extends Store.ValueHolder<Number>> entry : entries) {
+        final Store.ValueHolder<Number> currentValue = entry.getValue();
         if(currentValue == null) {
           if(entry.getKey().equals(4)) {
             newValues.put(entry.getKey(), null);
@@ -102,7 +102,7 @@ public class OnHeapStoreBulkMethodsTest {
             newValues.put(entry.getKey(), 0);
           }
         } else {
-          newValues.put(entry.getKey(), currentValue.intValue() * 2);
+          newValues.put(entry.getKey(), currentValue.get().intValue() * 2);
         }
 
       }
@@ -142,7 +142,7 @@ public class OnHeapStoreBulkMethodsTest {
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2)), entries -> {
       Map<Number, CharSequence> newValues = new HashMap<>();
-      for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
+      for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : entries) {
         if(entry.getKey().intValue() == 1) {
           newValues.put(entry.getKey(), "un");
         } else if (entry.getKey().intValue() == 2)  {
@@ -169,7 +169,7 @@ public class OnHeapStoreBulkMethodsTest {
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(2, 1, 5)), entries -> {
       Map<Number, CharSequence> newValues = new HashMap<>();
-      for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
+      for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : entries) {
         newValues.put(entry.getKey(), null);
       }
       return newValues.entrySet();
@@ -193,13 +193,13 @@ public class OnHeapStoreBulkMethodsTest {
 
     Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), entries -> {
       Map<Number, CharSequence> result1 = new HashMap<>();
-      for (Map.Entry<? extends Number, ? extends CharSequence> entry : entries) {
+      for (Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> entry : entries) {
         if (entry.getKey().equals(1)) {
           result1.put(entry.getKey(), null);
         } else if (entry.getKey().equals(3)) {
           result1.put(entry.getKey(), null);
         } else {
-          result1.put(entry.getKey(), entry.getValue());
+          result1.put(entry.getKey(), entry.getValue().get());
         }
       }
       return result1.entrySet();

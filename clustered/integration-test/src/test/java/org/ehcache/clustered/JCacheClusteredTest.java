@@ -47,6 +47,7 @@ public class JCacheClusteredTest {
 
   private static final Properties TCK_PROPERTIES = new Properties();
   static {
+    TCK_PROPERTIES.setProperty("org.jsr107.tck.support.server.address", "127.0.0.1");
     TCK_PROPERTIES.setProperty("java.net.preferIPv4Stack", "true");
     TCK_PROPERTIES.setProperty("javax.management.builder.initial", "org.ehcache.jsr107.internal.tck.Eh107MBeanServerBuilder");
     TCK_PROPERTIES.setProperty("org.jsr107.tck.management.agentId", "Eh107MBeanServer");

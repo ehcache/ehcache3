@@ -271,7 +271,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @return a Mockito {@code any} matcher for {@code Function}
    */
   @SuppressWarnings("unchecked")
-  static Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> getAnyEntryIterableFunction() {
+  static Function<Iterable<? extends Map.Entry<? extends String, ? extends Store.ValueHolder<String>>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> getAnyEntryIterableFunction() {
     return any(Function.class);   // unchecked
   }
 

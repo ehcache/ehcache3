@@ -109,6 +109,7 @@ task tckTest(type: Test, dependsOn: unpackTckTests) {
   reports.junitXml.destination = file("$buildDir/tck-tests-results")
   reports.html.destination = file("$buildDir/reports/tck-tests")
 
+  systemProperty 'org.jsr107.tck.support.server.address', '127.0.0.1'
   systemProperty 'java.net.preferIPv4Stack', 'true'
   systemProperty 'javax.management.builder.initial', 'org.ehcache.jsr107.internal.tck.Eh107MBeanServerBuilder'
   systemProperty 'org.jsr107.tck.management.agentId', 'Eh107MBeanServer'
