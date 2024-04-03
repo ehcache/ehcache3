@@ -18,6 +18,7 @@ package org.ehcache.core.store;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.store.ResourceRankableService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.spi.service.ServiceProvider;
@@ -26,6 +27,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -60,6 +62,20 @@ public final class StoreSupport {
     }
   }
 
+  public static <T extends ResourceRankableService> T select(Class<T> serviceType,
+                                                                          ServiceProvider<? super T> serviceProvider, Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+    return trySelect(serviceType, serviceProvider, resourceTypes, serviceConfigs).orElseThrow(() -> {
+      Class<?> enclosingClass = serviceType.getEnclosingClass();
+      String type = enclosingClass == null ? serviceType.getSimpleName() : enclosingClass.getSimpleName() + "." + serviceType.getSimpleName();
+      StringBuilder sb = new StringBuilder("No " + type + " types found to handle configured resource types ");
+      sb.append(resourceTypes);
+      sb.append(" from ");
+      sb.append(serviceProvider.getServicesOfType(serviceType).stream().map(p -> p.getClass().getName())
+        .collect(Collectors.joining(", ", "{", "}")));
+      return new IllegalStateException(sb.toString());
+    });
+  }
+
   /**
    * Chooses a {@link org.ehcache.core.spi.store.Store.Provider Store.Provider} from those
    * available through the {@link ServiceLocator} that best supports the resource types and
@@ -77,14 +93,13 @@ public final class StoreSupport {
    * @throws IllegalStateException if no suitable {@code Store.Provider} is available or if
    *        multiple {@code Store.Provider} implementations return the same top ranking
    */
-  public static Store.Provider selectStoreProvider(
-      ServiceProvider<Service> serviceProvider, Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+  public static <T extends ResourceRankableService> Optional<T> trySelect(Class<T> serviceType,
+      ServiceProvider<? super T> serviceProvider, Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
 
-    Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
-    List<Store.Provider> filteredStoreProviders = storeProviders.stream().filter(provider -> !(provider instanceof WrapperStore.Provider)).collect(Collectors.toList());
+    Collection<T> storeProviders = serviceProvider.getServicesOfType(serviceType);
     int highRank = 0;
-    List<Store.Provider> rankingProviders = new ArrayList<>();
-    for (Store.Provider provider : filteredStoreProviders) {
+    List<T> rankingProviders = new ArrayList<>();
+    for (T provider : storeProviders) {
       int rank = provider.rank(resourceTypes, serviceConfigs);
       if (rank > highRank) {
         highRank = rank;
@@ -96,33 +111,18 @@ public final class StoreSupport {
     }
 
     if (rankingProviders.isEmpty()) {
-      StringBuilder sb = new StringBuilder("No Store.Provider found to handle configured resource types ");
-      sb.append(resourceTypes);
-      sb.append(" from ");
-      formatStoreProviders(filteredStoreProviders, sb);
-      throw new IllegalStateException(sb.toString());
+      return Optional.empty();
     } else if (rankingProviders.size() > 1) {
-      StringBuilder sb = new StringBuilder("Multiple Store.Providers found to handle configured resource types ");
+      Class<?> enclosingClass = serviceType.getEnclosingClass();
+      String type = enclosingClass == null ? serviceType.getSimpleName() : enclosingClass.getSimpleName() + "." + serviceType.getSimpleName();
+      StringBuilder sb = new StringBuilder("Multiple " + type + " types found to handle configured resource types ");
       sb.append(resourceTypes);
       sb.append(": ");
-      formatStoreProviders(rankingProviders, sb);
+      sb.append(rankingProviders.stream().map(p -> p.getClass().getName())
+        .collect(Collectors.joining(", ", "{", "}")));
       throw new IllegalStateException(sb.toString());
+    } else {
+      return Optional.of(rankingProviders.get(0));
     }
-
-    return rankingProviders.get(0);
-  }
-
-  private static void formatStoreProviders(final Collection<Store.Provider> storeProviders, final StringBuilder sb) {
-    sb.append('{');
-    boolean prependSeparator = false;
-    for (final Store.Provider provider : storeProviders) {
-      if (prependSeparator) {
-        sb.append(", ");
-      } else {
-        prependSeparator = true;
-      }
-      sb.append(provider.getClass().getName());
-    }
-    sb.append('}');
   }
 }

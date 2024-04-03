@@ -143,11 +143,6 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      return authorityResource.equals(ResourceType.Core.OFFHEAP) ? 1 : 0;
-    }
-
-    @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
 
@@ -230,7 +225,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
@@ -253,7 +248,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> LowerCachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
       tierOperationStatistics.put(lowerCachingTier, new OperationStatistic<?>[] {
