@@ -23,6 +23,7 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 
 import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * Internal wrapper for {@link CacheEventListener} and their configuration.
@@ -86,8 +87,8 @@ public final class EventListenerWrapper<K, V> implements CacheEventListener<K, V
     return listener;
   }
 
-  public boolean isForEventType(EventType type) {
-    return forEvents.contains(type);
+  public Set<EventType> getEventTypes() {
+    return forEvents;
   }
 
   public boolean isOrdered() {
