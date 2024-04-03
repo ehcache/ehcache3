@@ -16,6 +16,7 @@
 package org.ehcache.impl.internal.spi.resilience;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.core.spi.service.InstantiatorService;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyProviderConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
@@ -24,10 +25,12 @@ import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
+@ServiceDependencies(InstantiatorService.class)
 public class DefaultResilienceStrategyProvider implements ResilienceStrategyProvider {
 
   private final ComponentProvider regularStrategies;

@@ -16,6 +16,7 @@
 
 plugins {
   id 'org.ehcache.build.internal-module'
+  id 'java-test-fixtures'
 }
 
 publishing.publications.withType(MavenPublication) {

@@ -24,8 +24,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.ehcache.core.spi.ServiceLocatorUtils.withServiceLocator;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.terracotta.utilities.test.matchers.ThrowsMatcher.threw;
 
 /**
  * @author Ludovic Orban
@@ -44,32 +47,33 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
+    withServiceLocator(new ClassInstanceProvider<>(null, configClass), provider -> {
 
-    classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
-    TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
+      provider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
+      TestService obj = provider.newInstance("test stuff", (ServiceConfiguration) null);
 
-    assertThat(obj.theString, is(nullValue()));
+      assertThat(obj.theString, is(nullValue()));
+    });
   }
 
   @Test
   public void testNewInstanceUsingAliasAndArg() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
+    withServiceLocator(new ClassInstanceProvider<>(null, configClass), provider -> {
+      provider.preconfigured.put("test stuff", new ClassInstanceConfiguration<>(TestService.class, "test string"));
+      TestService obj = provider.newInstance("test stuff", (ServiceConfiguration<?, ?>) null);
 
-    classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<>(TestService.class, "test string"));
-    TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?, ?>) null);
-
-    assertThat(obj.theString, equalTo("test string"));
+      assertThat(obj.theString, equalTo("test string"));
+    });
   }
 
   @Test
   public void testNewInstanceUsingServiceConfig() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
+    withServiceLocator(new ClassInstanceProvider<>(null, configClass), provider -> {
+      TestServiceConfiguration config = new TestServiceConfiguration();
+      TestService obj = provider.newInstance("test stuff", config);
 
-    TestServiceConfiguration config = new TestServiceConfiguration();
-    TestService obj = classInstanceProvider.newInstance("test stuff", config);
-
-    assertThat(obj.theString, is(nullValue()));
+      assertThat(obj.theString, is(nullValue()));
+    });
   }
 
   @Test
@@ -77,92 +81,96 @@ public class ClassInstanceProviderTest {
     TestServiceProviderConfiguration factoryConfig = new TestServiceProviderConfiguration();
     factoryConfig.getDefaults().put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
 
-    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(factoryConfig, configClass);
-    classInstanceProvider.start(null);
-
-    TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
-    assertThat(obj.theString, is(nullValue()));
+    withServiceLocator(new ClassInstanceProvider<>(factoryConfig, configClass), provider -> {
+      TestService obj = provider.newInstance("test stuff", (ServiceConfiguration) null);
+      assertThat(obj.theString, is(nullValue()));
+    });
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testReleaseInstanceByAnotherProvider() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<String>, String> classInstanceProvider = new ClassInstanceProvider<>(null, null);
-
-    classInstanceProvider.releaseInstance("foo");
+    withServiceLocator(new ClassInstanceProvider<>(null, null), provider -> {
+      assertThat(() -> provider.releaseInstance("foo"), threw(instanceOf(IllegalArgumentException.class)));
+    });
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testReleaseSameInstanceMultipleTimesThrows() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<String>, String> classInstanceProvider = new ClassInstanceProvider<>(null, null);
-    classInstanceProvider.providedVsCount.put("foo", new AtomicInteger(1));
+    withServiceLocator(new ClassInstanceProvider<>(null, null), provider -> {
+      provider.providedVsCount.put("foo", new AtomicInteger(1));
 
-    classInstanceProvider.releaseInstance("foo");
-    classInstanceProvider.releaseInstance("foo");
+      provider.releaseInstance("foo");
+      assertThat(() -> provider.releaseInstance("foo"), threw(instanceOf(IllegalArgumentException.class)));
+    });
   }
 
   @Test
   public void testReleaseCloseableInstance() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<Closeable>, Closeable> classInstanceProvider = new ClassInstanceProvider<>(null, null);
-    Closeable closeable = mock(Closeable.class);
-    classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
-    classInstanceProvider.instantiated.add(closeable);
+    withServiceLocator(new ClassInstanceProvider<>(null, null), provider -> {
+      Closeable closeable = mock(Closeable.class);
+      provider.providedVsCount.put(closeable, new AtomicInteger(1));
+      provider.instantiated.add(closeable);
 
-    classInstanceProvider.releaseInstance(closeable);
-    verify(closeable).close();
+      provider.releaseInstance(closeable);
+      verify(closeable).close();
+    });
   }
 
   @Test(expected = IOException.class)
   public void testReleaseCloseableInstanceThrows() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<Closeable>, Closeable> classInstanceProvider = new ClassInstanceProvider<>(null, null);
-    Closeable closeable = mock(Closeable.class);
-    doThrow(IOException.class).when(closeable).close();
-    classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
-    classInstanceProvider.instantiated.add(closeable);
+    withServiceLocator(new ClassInstanceProvider<>(null, null), provider -> {
+      Closeable closeable = mock(Closeable.class);
+      doThrow(IOException.class).when(closeable).close();
+      provider.providedVsCount.put(closeable, new AtomicInteger(1));
+      provider.instantiated.add(closeable);
 
-    classInstanceProvider.releaseInstance(closeable);
+      provider.releaseInstance(closeable);
+    });
   }
 
   @Test
   public void testNewInstanceWithActualInstanceInServiceConfig() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
+    withServiceLocator(new ClassInstanceProvider<>(null, configClass), provider -> {
 
-    TestService service = new TestService();
-    TestServiceConfiguration config = new TestServiceConfiguration(service);
+      TestService service = new TestService();
+      TestServiceConfiguration config = new TestServiceConfiguration(service);
 
-    TestService newService = classInstanceProvider.newInstance("test stuff", config);
+      TestService newService = provider.newInstance("test stuff", config);
 
-    assertThat(newService, sameInstance(service));
+      assertThat(newService, sameInstance(service));
+    });
   }
 
   @Test
   public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
-    ClassInstanceProvider<String, ClassInstanceConfiguration<TestService>, TestService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
+    withServiceLocator(new ClassInstanceProvider<>(null, configClass), provider -> {
 
-    TestService service = new TestService();
-    TestServiceConfiguration config = new TestServiceConfiguration(service);
+      TestService service = new TestService();
+      TestServiceConfiguration config = new TestServiceConfiguration(service);
 
-    TestService newService = classInstanceProvider.newInstance("test stuff", config);
-    assertThat(newService, sameInstance(service));
-    assertThat(classInstanceProvider.providedVsCount.get(service).get(), is(1));
-    newService = classInstanceProvider.newInstance("test stuff", config);
-    assertThat(newService, sameInstance(service));
-    assertThat(classInstanceProvider.providedVsCount.get(service).get(), is(2));
+      TestService newService = provider.newInstance("test stuff", config);
+      assertThat(newService, sameInstance(service));
+      assertThat(provider.providedVsCount.get(service).get(), is(1));
+      newService = provider.newInstance("test stuff", config);
+      assertThat(newService, sameInstance(service));
+      assertThat(provider.providedVsCount.get(service).get(), is(2));
+    });
   }
 
   @Test
-  public void testInstancesNotCreatedByProviderDoesNotClose() throws IOException {
+  public void testInstancesNotCreatedByProviderDoesNotClose() throws Exception {
     @SuppressWarnings("unchecked")
     Class<ClassInstanceConfiguration<TestCloseableService>> configClass = (Class) ClassInstanceConfiguration.class;
-    ClassInstanceProvider<String, ClassInstanceConfiguration<TestCloseableService>, TestCloseableService> classInstanceProvider = new ClassInstanceProvider<>(null, configClass);
+    withServiceLocator(new ClassInstanceProvider<>(null, configClass), provider -> {
 
-    TestCloseableService service = mock(TestCloseableService.class);
-    TestCloaseableServiceConfig config = new TestCloaseableServiceConfig(service);
+      TestCloseableService service = mock(TestCloseableService.class);
+      TestCloaseableServiceConfig config = new TestCloaseableServiceConfig(service);
 
-    TestCloseableService newService = classInstanceProvider.newInstance("testClose", config);
-    assertThat(newService, sameInstance(service));
-    classInstanceProvider.releaseInstance(newService);
-    verify(service, times(0)).close();
-
+      TestCloseableService newService = provider.newInstance("testClose", config);
+      assertThat(newService, sameInstance(service));
+      provider.releaseInstance(newService);
+      verify(service, times(0)).close();
+    });
   }
 
 

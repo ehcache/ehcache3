@@ -17,6 +17,8 @@
 package org.ehcache.impl.internal.classes;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.core.spi.service.InstantiatorService;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -24,7 +26,6 @@ import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -32,14 +33,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.ehcache.impl.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 /**
  * @author Alex Snaps
  */
-public class ClassInstanceProvider<K, C extends ClassInstanceConfiguration<? extends T>, T> {
+@ServiceDependencies(InstantiatorService.class)
+public class ClassInstanceProvider<K, C extends ClassInstanceConfiguration<? extends T>, T> implements Service {
 
   /**
    * The order in which entries are put in is kept.
@@ -54,6 +55,8 @@ public class ClassInstanceProvider<K, C extends ClassInstanceConfiguration<? ext
 
   private final Class<C> cacheLevelConfig;
   private final boolean uniqueClassLevelConfig;
+
+  private InstantiatorService instantiator;
 
   protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, C> factoryConfig,
                                   Class<C> cacheLevelConfig) {
@@ -117,12 +120,8 @@ public class ClassInstanceProvider<K, C extends ClassInstanceConfiguration<? ext
     if(config.getInstance() != null) {
       instance = config.getInstance();
     } else {
-      try {
-        instance = invokeConstructor(config.getClazz(), config.getArguments());
-        instantiated.add(instance);
-      } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
-        throw new RuntimeException(e);
-      }
+      instance = instantiator.instantiate(config.getClazz(), config.getArguments());
+      instantiated.add(instance);
     }
 
     AtomicInteger currentCount = providedVsCount.putIfAbsent(instance, new AtomicInteger(1));
@@ -153,10 +152,10 @@ public class ClassInstanceProvider<K, C extends ClassInstanceConfiguration<? ext
   }
 
   public void start(ServiceProvider<Service> serviceProvider) {
-    // default no-op
+    this.instantiator = serviceProvider.getService(InstantiatorService.class);
   }
 
   public void stop() {
-    // default no-op
+    this.instantiator = null;
   }
 }
