@@ -50,6 +50,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
+import org.ehcache.spi.persistence.PersistableIdentityService;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
@@ -232,9 +233,12 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
             .getResourcePools()
             .getPoolForResource(resourceType);
         if (!resourcePool.isPersistent()) {
-          PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
+          PersistableIdentityService persistableIdentityService = getPersistableIdentityService(resourceType);
           try {
-            persistableResourceService.destroy(alias);
+            if (persistableIdentityService instanceof PersistableResourceService) {
+              //TODO - revisit for shared resources
+              ((PersistableResourceService)persistableIdentityService).destroy(alias);
+            }
           } catch (CachePersistenceException e) {
             LOGGER.warn("Unable to clear persistence space for cache {}", alias, e);
           }
@@ -426,16 +430,16 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
     for (ResourceType<?> resourceType : resourceTypes) {
       if (resourceType.isPersistable()) {
-        final PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
+        final PersistableIdentityService persistableIdentityService = getPersistableIdentityService(resourceType);
 
         try {
-          final PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableResourceService
+          final PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableIdentityService
               .getPersistenceSpaceIdentifier(alias, config);
           serviceConfigs.add(spaceIdentifier);
           lifeCycledList.add(new LifeCycledAdapter() {
             @Override
             public void close() throws Exception {
-              persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
+              persistableIdentityService.releasePersistenceSpaceIdentifier(spaceIdentifier);
             }
           });
         } catch (CachePersistenceException e) {
@@ -523,9 +527,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return store;
   }
 
-  private PersistableResourceService getPersistableResourceService(ResourceType<?> resourceType) {
-    Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
-    for (PersistableResourceService service : services) {
+  private PersistableIdentityService getPersistableIdentityService(ResourceType<?> resourceType) {
+    Collection<PersistableIdentityService> services = serviceLocator.getServicesOfType(PersistableIdentityService.class);
+    for (PersistableIdentityService service : services) {
       if (service.handlesResourceType(resourceType)) {
         return service;
       }

@@ -51,7 +51,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.persistence.PersistableIdentityService.PersistenceSpaceIdentifier;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

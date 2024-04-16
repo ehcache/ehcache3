@@ -18,11 +18,14 @@ package org.ehcache.impl.internal.store.shared;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.impl.internal.store.shared.store.SharedStoreProvider;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
+import java.util.Arrays;
 import java.util.Set;
 
 @ServiceDependencies({SharedStorageProvider.class})
@@ -74,5 +77,12 @@ public abstract class AbstractSharedTierProvider implements Service {
     } else {
       throw new AssertionError();
     }
+  }
+
+  protected String extractAlias(ServiceConfiguration<?,?>[] serviceConfigs) {
+    return Arrays.stream(serviceConfigs)
+      .filter(SharedStoreProvider.SharedPersistentSpaceIdentifier.class::isInstance)
+      .map(SharedStoreProvider.SharedPersistentSpaceIdentifier.class::cast)
+      .findFirst().map(SharedStoreProvider.SharedPersistentSpaceIdentifier::getName).orElse(null);
   }
 }

@@ -55,8 +55,8 @@ public class SharedStorageProvider implements Service {
     storage.clear();
   }
 
-  public <T, U, K, V> U partition(ResourceType<?> resourceType, Store.Configuration<K, V> storeConfig, SharedStorage.PartitionFactory<T, U> partitionFactory) {
-    return storage.get(resourceType).createPartition(storeConfig, partitionFactory);
+  public <T, U, K, V> U partition(String alias, ResourceType<?> resourceType, Store.Configuration<K, V> storeConfig, SharedStorage.PartitionFactory<T, U> partitionFactory) {
+    return storage.get(resourceType).createPartition(alias, storeConfig, partitionFactory);
   }
 
   public boolean supports(Class<?> storageType, ResourceType<?> resourceType) {

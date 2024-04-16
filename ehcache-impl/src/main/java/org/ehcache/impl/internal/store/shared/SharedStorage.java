@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.shared;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
@@ -39,6 +40,9 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.impl.internal.store.shared.store.StorePartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.StateHolder;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -50,9 +54,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
 import static org.ehcache.core.config.store.StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
@@ -61,7 +66,7 @@ public class SharedStorage implements Service {
   protected static final Logger LOGGER = LoggerFactory.getLogger(SharedStorage.class);
   protected ServiceProvider<Service> serviceProvider;
 
-  private int id = 0;
+  private int lastUsedId = 0;
   private final Map<Integer, Serializer<?>> keySerializerMap = new HashMap<>();
   private final Map<Integer, Serializer<?>> valueSerializerMap = new HashMap<>();
   private final Map<Integer, EvictionAdvisor<?, ?>> evictionAdvisorMap = new HashMap<>();
@@ -72,9 +77,11 @@ public class SharedStorage implements Service {
   protected final ResourcePool resourcePool;
   private Store.Provider storeProvider = null;
   private Store<CompositeValue<?>, CompositeValue<?>> store = null;
+  private PersistableResourceService persistableResourceService = null;
+  private StateHolder<String, Integer> partitionMappings = null;
 
   public SharedStorage(ResourcePool resourcePool) {
-    this.resourcePool = Objects.requireNonNull((resourcePool));
+    this.resourcePool = requireNonNull((resourcePool));
   }
 
   public void start(ServiceProvider<Service> serviceProvider) {
@@ -88,6 +95,12 @@ public class SharedStorage implements Service {
   }
 
   public void stop() {
+    try {
+      if (persistableResourceService != null) {
+        persistableResourceService.releasePersistenceSpaceIdentifier(persistableResourceService.getRootSpaceIdentifier(true));
+      }
+    } catch (Exception ignored) {
+    }
     if (storeProvider != null && store != null) {
       storeProvider.releaseStore(store);
     }
@@ -96,45 +109,39 @@ public class SharedStorage implements Service {
   private void createSharedStore(ClassLoader classLoader,
                                  Collection<ServiceConfiguration<?, ?>> serviceConfigs,
                                  CacheLoaderWriter<?, ?> cacheLoaderWriter) {
-    ResourcePools resourcePools = new ResourcePoolsImpl(resourcePool);
-    Set<ResourceType<?>> resourceTypes = resourcePools.getResourceTypeSet();
-
-//    TODO:  Support for persistence.  This block taken from EhcacheManager.getStore
-//    final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
-//    for (ResourceType<?> resourceType : resourceTypes) {
-//      if (resourceType.isPersistable()) {
-//        String identifier = alias;
-//        final PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
-//        try {
-//          final PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableResourceService
-//            .getPersistenceSpaceIdentifier(identifier, config);
-//          serviceConfigs.add(spaceIdentifier);
-//          lifeCycledList.add(new LifeCycledAdapter() {
-//            @Override
-//            public void close() throws Exception {
-//              persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
-//            }
-//          });
-//        } catch (CachePersistenceException e) {
-//          throw new RuntimeException("Unable to handle persistence", e);
-//        }
-//      }
-//    }
-
+    if (resourcePool.isPersistent()) {
+      Set<PersistableResourceService> persistenceServices = serviceProvider.getServicesOfType(PersistableResourceService.class)
+        .stream()
+        .filter(persistence -> persistence.handlesResourceType(resourcePool.getType()))
+        .collect(Collectors.toSet());
+      if (persistenceServices.size() > 1) {
+        throw new IllegalStateException("Multiple persistence services for " + resourcePool.getType());
+      } else if (persistenceServices.isEmpty()) {
+        throw new IllegalStateException("No persistence services for " + resourcePool.getType());
+      } else {
+        try {
+          persistableResourceService = persistenceServices.iterator().next();
+          PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableResourceService.getRootSpaceIdentifier(true);
+          serviceConfigs.add(spaceIdentifier);
+          StateRepository sharedState = persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "partition-mappings");
+          partitionMappings = sharedState.getPersistentStateHolder("partition-mappings", String.class, Integer.class, c -> true, null);
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException("Unable to handle persistence", e);
+        }
+      }
+    }
     Class<?> keyType = CompositeValue.class;
     Class<?> valueType = CompositeValue.class;
     Serializer<?> keySerializer = new CompositeSerializer(keySerializerMap);
     Serializer<?> valueSerializer = new CompositeSerializer(valueSerializerMap);
-
-    ServiceConfiguration<?, ?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?, ?>[serviceConfigs.size()]);
-
     ExpiryPolicy<?, ?> expiry = new CompositeExpiryPolicy<>(expiryPolicyMap);
     EvictionAdvisor<?, ?> evictionAdvisor = new CompositeEvictionAdvisor(evictionAdvisorMap);
-    Store.Configuration storeConfig = new StoreConfigurationImpl(
-      keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, DEFAULT_DISPATCHER_CONCURRENCY,
-      true, keySerializer, valueSerializer, cacheLoaderWriter, false);
+    ResourcePools resourcePools = new ResourcePoolsImpl(resourcePool);
+    Store.Configuration storeConfig = new StoreConfigurationImpl(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools,
+      DEFAULT_DISPATCHER_CONCURRENCY,true, keySerializer, valueSerializer, cacheLoaderWriter, false);
 
-    storeProvider = StoreSupport.select(Store.ElementalProvider.class, serviceProvider, store -> store.rank(resourceTypes, serviceConfigs));
+    ServiceConfiguration<?, ?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?, ?>[serviceConfigs.size()]);
+    storeProvider = StoreSupport.select(Store.ElementalProvider.class, serviceProvider, store -> store.rank(resourcePools.getResourceTypeSet(), serviceConfigs));
     store = storeProvider.createStore(storeConfig, serviceConfigArray);
     if (store instanceof AuthoritativeTier) {
       ((AuthoritativeTier) store).setInvalidationValve(new CompositeInvalidationValve(invalidationValveMap));
@@ -145,8 +152,25 @@ public class SharedStorage implements Service {
     storeProvider.initStore(store);
   }
 
-  protected <T, U, K, V> U createPartition(Store.Configuration<K, V> storeConfig, PartitionFactory<T, U> partitionFactory) {
-    int storeId = ++id;
+  protected <T, U, K, V> U createPartition(String alias, Store.Configuration<K, V> storeConfig, PartitionFactory<T, U> partitionFactory) {
+    Integer storeId;
+    if (resourcePool.isPersistent()) {
+      storeId = partitionMappings.get(requireNonNull(alias));
+      if (storeId == null) {
+        while (true) {
+          //TODO - broken for clustered
+          lastUsedId = partitionMappings.entrySet().stream().mapToInt(Map.Entry::getValue).max().orElse(0);
+          storeId = lastUsedId + 1;
+          if (null == partitionMappings.putIfAbsent(alias, storeId)) {
+            lastUsedId = storeId;
+            break;
+          }
+        }
+      }
+    } else {
+      storeId = ++lastUsedId;
+    }
+    // LOGGER.warn("Type: " + resourcePool + " Alias: " + alias + " Id: " + storeId);
     keySerializerMap.put(storeId, storeConfig.getKeySerializer());
     valueSerializerMap.put(storeId, storeConfig.getValueSerializer());
     expiryPolicyMap.put(storeId, storeConfig.getExpiry());

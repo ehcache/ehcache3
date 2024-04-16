@@ -208,8 +208,21 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
     return with(ResourceType.Core.DISK, size, unit, persistent);
   }
 
+  /**
+   * Informs the cache manager that an existing {@link org.ehcache.config.ResourceType.Core#DISK disk} shared pool,
+   * defined on the cache manager, should be used for the cache's disk caching requirements.
+   * @return a new builder with the added pool
+   */
+  public ResourcePoolsBuilder sharedDisk() {
+    return shared(ResourceType.Core.DISK, true);
+  }
+
   public ResourcePoolsBuilder shared(ResourceType<?> type, boolean persistent) {
     return with(new SharedResourcePool<>(type, persistent));
+  }
+
+  public ResourcePoolsBuilder shared(ResourceType<?> type) {
+    return with(new SharedResourcePool<>(type, type.isPersistable()));
   }
 
   /**

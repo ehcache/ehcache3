@@ -38,7 +38,7 @@ import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.persistence.PersistableIdentityService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;

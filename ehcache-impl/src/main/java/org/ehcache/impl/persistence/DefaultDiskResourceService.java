@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentMap;
 public class DefaultDiskResourceService implements DiskResourceService {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDiskResourceService.class);
   static final String PERSISTENCE_SPACE_OWNER = "file";
-
+  static final String ROOT_SPACE_FOLDER = "CacheManagerResources";
   private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private volatile LocalPersistenceService persistenceService;
   private volatile boolean isStarted;
@@ -101,7 +101,15 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public PersistenceSpaceIdentifier<DiskResourceService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    boolean persistent = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent();
+    return getPersistenceSpaceIdentifier(name, config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent());
+  }
+
+  @Override
+  public PersistenceSpaceIdentifier<DiskResourceService> getRootSpaceIdentifier(boolean persistent) throws CachePersistenceException {
+    return getPersistenceSpaceIdentifier(ROOT_SPACE_FOLDER, persistent);
+  }
+
+  private PersistenceSpaceIdentifier<DiskResourceService> getPersistenceSpaceIdentifier(String name, boolean persistent) throws CachePersistenceException {
     while (true) {
       PersistenceSpace persistenceSpace = knownPersistenceSpaces.get(name);
       if (persistenceSpace != null) {

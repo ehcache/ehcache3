@@ -64,8 +64,8 @@ public class CacheManagerBuilderSharedResourcesTest {
     Cache<Double, Double> c5 = cacheManager.getCache("c5", Double.class, Double.class);
     Cache<Double, Double> c6 = cacheManager.getCache("c6", Double.class, Double.class);
     exerciseCacheApi(c1, c2, LONG1, LONG2);
-    exerciseCacheApi(c3, c4,  STRING1, STRING2);
-    exerciseCacheApi(c5, c6,  DOUBLE1, DOUBLE2);
+    exerciseCacheApi(c3, c4, STRING1, STRING2);
+    exerciseCacheApi(c5, c6, DOUBLE1, DOUBLE2);
     cacheManager.close();
   }
 
@@ -169,6 +169,310 @@ public class CacheManagerBuilderSharedResourcesTest {
     c2 = cacheManager.getCache("c2", Long.class, Long.class);
     exerciseCacheApi(c1, c2, LONG1, LONG2);
     cacheManager.close();
+  }
+
+  @Test
+  public void testSharedDisk() throws IOException {
+    long heapSize = 30;
+    long offHeapSize = 80;
+    long diskSize = 90;
+    File folder = new File(temporaryFolder.newFolder().getAbsolutePath());
+    //File folder = new File("C:\\temp\\test");
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c3", cacheConfig(String.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c5", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c6", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c7", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c8", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c9", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .build(true)) {
+
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, String> c2 = cacheManager.getCache("c2", Long.class, String.class);
+      Cache<String, Long> c3 = cacheManager.getCache("c3", String.class, Long.class);
+      Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
+      Cache<Long, Long> c5 = cacheManager.getCache("c5", Long.class, Long.class);
+      Cache<Long, Long> c6 = cacheManager.getCache("c6", Long.class, Long.class);
+      Cache<Long, String> c7 = cacheManager.getCache("c7", Long.class, String.class);
+      Cache<Long, Long> c8 = cacheManager.getCache("c8", Long.class, Long.class);
+      Cache<String, String> c9 = cacheManager.getCache("c9", String.class, String.class);
+
+      c1.put(1L, 11L);
+      c2.put(2L, "22");
+      c3.put("3", 33L);
+      c4.put("4", "44");
+      c5.put(5L, 55L);
+      c6.put(6L, 66L);
+      c7.put(7L, "77");
+      c8.put(8L, 88L);
+      c9.put("9", "99");
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c9", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .build(true)) {
+      Cache<String, String> c9 = cacheManager.getCache("c9", String.class, String.class);
+      assertThat(c9.get("9"), is("99"));
+      c9.put("99", "999");
+    }
+    long key = 87;
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c8", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .build(true)) {
+      Cache<Long, Long> c8 = cacheManager.getCache("c8", Long.class, Long.class);
+      assertThat(c8.get(8L), is(88L));
+      c8.put(key, 888L);
+      assertThat(c8.get(key), is(888L));
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c7", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .build(true)) {
+      Cache<Long, String> c7 = cacheManager.getCache("c7", Long.class, String.class);
+      assertThat(c7.get(7L), is("77"));
+      c7.put(77L, "777");
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c6", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .build(true)) {
+      Cache<Long, Long> c6 = cacheManager.getCache("c6", Long.class, Long.class);
+      assertThat(c6.get(6L), is(66L));
+      c6.put(66L, 666L);
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c5", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .build(true)) {
+      Cache<Long, Long> c5 = cacheManager.getCache("c5", Long.class, Long.class);
+      assertThat(c5.get(5L), is(55L));
+      c5.put(55L, 555L);
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .build(true)) {
+      Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
+      assertThat(c4.get("4"), is("44"));
+      c4.put("44", "444");
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c3", cacheConfig(String.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .build(true)) {
+      Cache<String, Long> c3 = cacheManager.getCache("c3", String.class, Long.class);
+      assertThat(c3.get("3"), is(33L));
+      c3.put("33", 333L);
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .build(true)) {
+      Cache<Long, String> c2 = cacheManager.getCache("c2", Long.class, String.class);
+      assertThat(c2.get(2L), is("22"));
+      c2.put(22L, "222");
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      assertThat(c1.get(1L), is(11L));
+      c1.put(11L, 111L);
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c3", cacheConfig(String.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c5", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c6", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c7", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c8", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c9", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .build(true)) {
+
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, String> c2 = cacheManager.getCache("c2", Long.class, String.class);
+      Cache<String, Long> c3 = cacheManager.getCache("c3", String.class, Long.class);
+      Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
+      Cache<Long, Long> c5 = cacheManager.getCache("c5", Long.class, Long.class);
+      Cache<Long, Long> c6 = cacheManager.getCache("c6", Long.class, Long.class);
+      Cache<Long, String> c7 = cacheManager.getCache("c7", Long.class, String.class);
+      Cache<Long, Long> c8 = cacheManager.getCache("c8", Long.class, Long.class);
+      Cache<String, String> c9 = cacheManager.getCache("c9", String.class, String.class);
+
+      assertThat(c1.get(1L), is(11L));
+      assertThat(c2.get(2L), is("22"));
+      assertThat(c3.get("3"), is(33L));
+      assertThat(c4.get("4"), is("44"));
+      assertThat(c5.get(5L), is(55L));
+      assertThat(c6.get(6L), is(66L));
+      assertThat(c7.get(7L), is("77"));
+      assertThat(c8.get(8L), is(88L));
+      assertThat(c9.get("9"), is("99"));
+
+      assertThat(c1.get(11L), is(111L));
+      assertThat(c2.get(22L), is("222"));
+      assertThat(c3.get("33"), is(333L));
+      assertThat(c4.get("44"), is("444"));
+      assertThat(c5.get(55L), is(555L));
+      assertThat(c6.get(66L), is(666L));
+      assertThat(c7.get(77L), is("777"));
+      assertThat(c8.get(key), is(888L));
+      assertThat(c9.get("99"), is("999"));
+    }
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c9", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c8", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c7", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c6", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c5", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c3", cacheConfig(String.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .build(true)) {
+
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, String> c2 = cacheManager.getCache("c2", Long.class, String.class);
+      Cache<String, Long> c3 = cacheManager.getCache("c3", String.class, Long.class);
+      Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
+      Cache<Long, Long> c5 = cacheManager.getCache("c5", Long.class, Long.class);
+      Cache<Long, Long> c6 = cacheManager.getCache("c6", Long.class, Long.class);
+      Cache<Long, String> c7 = cacheManager.getCache("c7", Long.class, String.class);
+      Cache<Long, Long> c8 = cacheManager.getCache("c8", Long.class, Long.class);
+      Cache<String, String> c9 = cacheManager.getCache("c9", String.class, String.class);
+
+      assertThat(c1.get(1L), is(11L));
+      assertThat(c2.get(2L), is("22"));
+      assertThat(c3.get("3"), is(33L));
+      assertThat(c4.get("4"), is("44"));
+      assertThat(c5.get(5L), is(55L));
+      assertThat(c6.get(6L), is(66L));
+      assertThat(c7.get(7L), is("77"));
+      assertThat(c8.get(8L), is(88L));
+      assertThat(c9.get("9"), is("99"));
+
+      assertThat(c1.get(11L), is(111L));
+      assertThat(c2.get(22L), is("222"));
+      assertThat(c3.get("33"), is(333L));
+      assertThat(c4.get("44"), is("444"));
+      assertThat(c5.get(55L), is(555L));
+      assertThat(c6.get(66L), is(666L));
+      assertThat(c7.get(77L), is("777"));
+      assertThat(c8.get(key), is(888L));
+      assertThat(c9.get("99"), is("999"));
+    }
+
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c10", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c11", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c12", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c13", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().disk(diskSize, MB, true)))
+      .withCache("c14", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).disk(diskSize, MB, true)))
+      .withCache("c15", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().disk(diskSize, MB, true)))
+      .build(true)) {
+
+      Cache<Long, Long> c10 = cacheManager.getCache("c10", Long.class, Long.class);
+      Cache<Long, Long> c11 = cacheManager.getCache("c11", Long.class, Long.class);
+      Cache<Long, Long> c12 = cacheManager.getCache("c12", Long.class, Long.class);
+      Cache<Long, Long> c13 = cacheManager.getCache("c13", Long.class, Long.class);
+      Cache<Long, Long> c14 = cacheManager.getCache("c14", Long.class, Long.class);
+      Cache<Long, Long> c15 = cacheManager.getCache("c15", Long.class, Long.class);
+
+      c10.put(10L, 10L);
+      c11.put(11L, 11L);
+      c12.put(12L, 12L);
+      c13.put(13L, 13L);
+      c14.put(14L, 14L);
+      c15.put(15L, 15L);
+    }
+
+    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence((folder)))
+      .sharedResources(newResourcePoolsBuilder().offheap(offHeapSize, MB).disk(diskSize, MB, true))
+      .withCache("c15", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().disk(diskSize, MB, true)))
+      .withCache("c14", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).disk(diskSize, MB, true)))
+      .withCache("c13", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().disk(diskSize, MB, true)))
+      .withCache("c12", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c11", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c10", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c9", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c8", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedOffheap().sharedDisk()))
+      .withCache("c7", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c6", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(heapSize, MB).sharedDisk()))
+      .withCache("c5", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c3", cacheConfig(String.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
+      .build(true)) {
+
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, String> c2 = cacheManager.getCache("c2", Long.class, String.class);
+      Cache<String, Long> c3 = cacheManager.getCache("c3", String.class, Long.class);
+      Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
+      Cache<Long, Long> c5 = cacheManager.getCache("c5", Long.class, Long.class);
+      Cache<Long, Long> c6 = cacheManager.getCache("c6", Long.class, Long.class);
+      Cache<Long, String> c7 = cacheManager.getCache("c7", Long.class, String.class);
+      Cache<Long, Long> c8 = cacheManager.getCache("c8", Long.class, Long.class);
+      Cache<String, String> c9 = cacheManager.getCache("c9", String.class, String.class);
+      Cache<Long, Long> c10 = cacheManager.getCache("c10", Long.class, Long.class);
+      Cache<Long, Long> c11 = cacheManager.getCache("c11", Long.class, Long.class);
+      Cache<Long, Long> c12 = cacheManager.getCache("c12", Long.class, Long.class);
+      Cache<Long, Long> c13 = cacheManager.getCache("c13", Long.class, Long.class);
+      Cache<Long, Long> c14 = cacheManager.getCache("c14", Long.class, Long.class);
+      Cache<Long, Long> c15 = cacheManager.getCache("c15", Long.class, Long.class);
+
+      assertThat(c1.get(1L), is(11L));
+      assertThat(c2.get(2L), is("22"));
+      assertThat(c3.get("3"), is(33L));
+      assertThat(c4.get("4"), is("44"));
+      assertThat(c5.get(5L), is(55L));
+      assertThat(c6.get(6L), is(66L));
+      assertThat(c7.get(7L), is("77"));
+      assertThat(c8.get(8L), is(88L));
+      assertThat(c9.get("9"), is("99"));
+
+      assertThat(c1.get(11L), is(111L));
+      assertThat(c2.get(22L), is("222"));
+      assertThat(c3.get("33"), is(333L));
+      assertThat(c4.get("44"), is("444"));
+      assertThat(c5.get(55L), is(555L));
+      assertThat(c6.get(66L), is(666L));
+      assertThat(c7.get(77L), is("777"));
+      assertThat(c8.get(key), is(888L));
+      assertThat(c9.get("99"), is("999"));
+
+      assertThat(c10.get(10L), is(10L));
+      assertThat(c11.get(11L), is(11L));
+      assertThat(c12.get(12L), is(12L));
+      assertThat(c13.get(13L), is(13L));
+      assertThat(c14.get(14L), is(14L));
+      assertThat(c15.get(15L), is(15L));
+    }
   }
 
   private <K, V> CacheConfiguration<K, V> cacheConfig(Class<K> keyType, Class<V> valueType, ResourcePoolsBuilder poolsBuilder) {
