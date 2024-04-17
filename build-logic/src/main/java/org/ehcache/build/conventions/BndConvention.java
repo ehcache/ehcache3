@@ -69,7 +69,7 @@ public class BndConvention implements Plugin<Project> {
       });
       properties.put(Constants.BUNDLE_SYMBOLICNAME, project.getGroup() + "." + project.getName());
       properties.put(Constants.BUNDLE_DOCURL, "http://ehcache.org");
-      properties.put(Constants.BUNDLE_LICENSE, "LICENSE");
+      properties.put(Constants.BUNDLE_LICENSE, "Apache-2.0");
       properties.put(Constants.BUNDLE_VENDOR, "Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.");
       properties.put(Constants.BUNDLE_VERSION, osgiFixedVersion(project.getVersion().toString()));
       properties.put(Constants.SERVICE_COMPONENT, "OSGI-INF/*.xml");
