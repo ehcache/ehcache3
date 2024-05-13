@@ -90,6 +90,27 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
     }
   }
 
+  public static class RemoveMessage extends KeyBasedMessage {
+
+    private static final long serialVersionUID = 7263513962868446471L;
+
+    private final Object value;
+
+    public RemoveMessage(final String cacheId, final String mapId, final Object key, final Object value) {
+      super(cacheId, mapId, key);
+      this.value = value;
+    }
+
+    public Object getValue() {
+      return value;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.REMOVE;
+    }
+  }
+
   public static class EntrySetMessage extends StateRepositoryOpMessage {
 
     private static final long serialVersionUID = 5230634750732779978L;

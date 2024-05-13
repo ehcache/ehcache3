@@ -40,9 +40,8 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.impl.internal.store.shared.store.StorePartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.persistence.PersistableIdentityService;
 import org.ehcache.spi.persistence.PersistableResourceService;
-import org.ehcache.spi.persistence.StateHolder;
-import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -64,8 +63,7 @@ import static org.ehcache.core.config.store.StoreEventSourceConfiguration.DEFAUL
 public class SharedStorage implements Service {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(SharedStorage.class);
-  protected ServiceProvider<Service> serviceProvider;
-
+  private ServiceProvider<Service> serviceProvider;
   private int lastUsedId = 0;
   private final Map<Integer, Serializer<?>> keySerializerMap = new HashMap<>();
   private final Map<Integer, Serializer<?>> valueSerializerMap = new HashMap<>();
@@ -73,15 +71,17 @@ public class SharedStorage implements Service {
   private final Map<Integer, ExpiryPolicy<?, ?>> expiryPolicyMap = new HashMap<>();
   private final Map<Integer, AuthoritativeTier.InvalidationValve> invalidationValveMap = new HashMap<>();
   private final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap = new HashMap<>();
-
-  protected final ResourcePool resourcePool;
+  private final ResourcePool resourcePool;
   private Store.Provider storeProvider = null;
   private Store<CompositeValue<?>, CompositeValue<?>> store = null;
-  private PersistableResourceService persistableResourceService = null;
-  private StateHolder<String, Integer> partitionMappings = null;
+  private StateHolderIdGenerator<String> sharedPersistence = null;
+  private PersistableIdentityService.PersistenceSpaceIdentifier<?> spaceIdentifier;
+  private PersistableResourceService persistableResourceService;
+  private final boolean usePersistence;
 
   public SharedStorage(ResourcePool resourcePool) {
     this.resourcePool = requireNonNull((resourcePool));
+    this.usePersistence = resourcePool.isPersistent();
   }
 
   public void start(ServiceProvider<Service> serviceProvider) {
@@ -96,8 +96,8 @@ public class SharedStorage implements Service {
 
   public void stop() {
     try {
-      if (persistableResourceService != null) {
-        persistableResourceService.releasePersistenceSpaceIdentifier(persistableResourceService.getRootSpaceIdentifier(true));
+      if (spaceIdentifier != null) {
+        persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
       }
     } catch (Exception ignored) {
     }
@@ -109,7 +109,7 @@ public class SharedStorage implements Service {
   private void createSharedStore(ClassLoader classLoader,
                                  Collection<ServiceConfiguration<?, ?>> serviceConfigs,
                                  CacheLoaderWriter<?, ?> cacheLoaderWriter) {
-    if (resourcePool.isPersistent()) {
+    if (resourcePool.getType().isPersistable()) {
       Set<PersistableResourceService> persistenceServices = serviceProvider.getServicesOfType(PersistableResourceService.class)
         .stream()
         .filter(persistence -> persistence.handlesResourceType(resourcePool.getType()))
@@ -121,10 +121,9 @@ public class SharedStorage implements Service {
       } else {
         try {
           persistableResourceService = persistenceServices.iterator().next();
-          PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableResourceService.getRootSpaceIdentifier(true);
+          spaceIdentifier = persistableResourceService.getRootSpaceIdentifier(true);
           serviceConfigs.add(spaceIdentifier);
-          StateRepository sharedState = persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "partition-mappings");
-          partitionMappings = sharedState.getPersistentStateHolder("partition-mappings", String.class, Integer.class, c -> true, null);
+          sharedPersistence = new StateHolderIdGenerator(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "persistent-partition-ids"), String.class);
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to handle persistence", e);
         }
@@ -153,24 +152,13 @@ public class SharedStorage implements Service {
   }
 
   protected <T, U, K, V> U createPartition(String alias, Store.Configuration<K, V> storeConfig, PartitionFactory<T, U> partitionFactory) {
-    Integer storeId;
-    if (resourcePool.isPersistent()) {
-      storeId = partitionMappings.get(requireNonNull(alias));
-      if (storeId == null) {
-        while (true) {
-          //TODO - broken for clustered
-          lastUsedId = partitionMappings.entrySet().stream().mapToInt(Map.Entry::getValue).max().orElse(0);
-          storeId = lastUsedId + 1;
-          if (null == partitionMappings.putIfAbsent(alias, storeId)) {
-            lastUsedId = storeId;
-            break;
-          }
-        }
-      }
+    int storeId;
+    if (usePersistence) {
+      storeId = sharedPersistence.map(requireNonNull(alias));
     } else {
       storeId = ++lastUsedId;
     }
-    // LOGGER.warn("Type: " + resourcePool + " Alias: " + alias + " Id: " + storeId);
+    LOGGER.warn("Type: " + resourcePool + ", Alias: " + alias + ", Id: " + storeId);
     keySerializerMap.put(storeId, storeConfig.getKeySerializer());
     valueSerializerMap.put(storeId, storeConfig.getValueSerializer());
     expiryPolicyMap.put(storeId, storeConfig.getExpiry());
@@ -182,7 +170,6 @@ public class SharedStorage implements Service {
       evictionAdvisor = (EvictionAdvisor<K, V>) AbstractOffHeapStore.wrap(evictionAdvisor);
     }
     evictionAdvisorMap.put(storeId, evictionAdvisor);
-
     return partitionFactory.createPartition(storeId, (T) store, this);
   }
 
@@ -195,13 +182,11 @@ public class SharedStorage implements Service {
     } catch (Exception ex) {
       LOGGER.error("Error clearing the store", ex);
     }
-
     StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
     if (statisticsService != null) {
       statisticsService.cleanForNode(store);
     }
   }
-
 
   public boolean supports(Class<?> providerClass) {
     return providerClass.isInstance(store);
@@ -211,9 +196,7 @@ public class SharedStorage implements Service {
     return invalidationListenerMap;
   }
 
-
   public interface PartitionFactory<T, U> {
-
     U createPartition(int id, T storage, SharedStorage shared);
   }
 }

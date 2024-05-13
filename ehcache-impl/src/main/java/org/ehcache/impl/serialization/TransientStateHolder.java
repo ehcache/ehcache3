@@ -41,6 +41,11 @@ public class TransientStateHolder<K, V> implements StateHolder<K, V>, Serializab
   }
 
   @Override
+  public boolean remove(final K key, final V value) {
+    return map.remove(key, value);
+  }
+
+  @Override
   public Set<Map.Entry<K, V>> entrySet() {
     return map.entrySet();
   }

@@ -34,6 +34,10 @@ public class StateRepositoryMessageFactory {
     return new StateRepositoryOpMessage.PutIfAbsentMessage(cacheId, mapId, key, value);
   }
 
+  public StateRepositoryOpMessage removeMessage(Object key, Object value) {
+    return new StateRepositoryOpMessage.RemoveMessage(cacheId, mapId, key, value);
+  }
+
   public StateRepositoryOpMessage entrySetMessage() {
     return new StateRepositoryOpMessage.EntrySetMessage(cacheId, mapId);
   }
