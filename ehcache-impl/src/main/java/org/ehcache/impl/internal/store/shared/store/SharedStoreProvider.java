@@ -38,8 +38,9 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(storeConfig.getResourcePools().getResourceTypeSet());
-    return sharedStorageProvider.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(extractAlias(serviceConfigs), resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
-      StorePartition<K, V> partition = new StorePartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
+    String alias = extractAlias(serviceConfigs);
+    return sharedStorageProvider.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(alias, resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
+      StorePartition<K, V> partition = new StorePartition<>(alias, id, storeConfig.getKeyType(), storeConfig.getValueType(), store, storage.isPersistent(), cacheManager);
       associateStoreStatsWithPartition(store, partition);
       return partition;
     });
@@ -70,7 +71,7 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
    }
 
    @Override
-   public PersistenceSpaceIdentifier<?> getRootSpaceIdentifier(boolean persistent) {
+   public PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(boolean persistent) {
      return null;
    }
 

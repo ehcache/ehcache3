@@ -187,7 +187,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if (alias == null) {
       throw new NullPointerException("Alias cannot be null");
     }
-    removeCache(alias, true);
+    removeCache(alias, true, false);
   }
 
   /**
@@ -196,7 +196,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
    * @param alias the alias of the cache to remove
    * @param removeFromConfig if {@code true}, the cache configuration is altered to remove the cache
    */
-  private void removeCache(final String alias, final boolean removeFromConfig) {
+  private void removeCache(final String alias, final boolean removeFromConfig, boolean destroy) {
     statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
@@ -208,7 +208,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
         if (!statusTransitioner.isTransitioning()) {
           for (CacheManagerListener listener : listeners) {
-            listener.cacheRemoved(alias, ehcache);
+            if (destroy) {
+              listener.cacheDestroyed(alias, ehcache);
+            } else {
+              listener.cacheRemoved(alias, ehcache);
+            }
           }
         }
 
@@ -236,7 +240,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
           PersistableIdentityService persistableIdentityService = getPersistableIdentityService(resourceType);
           try {
             if (persistableIdentityService instanceof PersistableResourceService) {
-              //TODO - revisit for shared resources
               ((PersistableResourceService)persistableIdentityService).destroy(alias);
             }
           } catch (CachePersistenceException e) {
@@ -597,7 +600,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         while (!initiatedCaches.isEmpty()) {
           String toBeClosed = initiatedCaches.pop();
           try {
-            removeCache(toBeClosed, false);
+            removeCache(toBeClosed, false, false);
           } catch (Exception exceptionClosingCache) {
             LOGGER.error("Cache '{}' could not be removed after initialization failure due to ", toBeClosed, exceptionClosingCache);
           }
@@ -630,7 +633,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     try {
       for (String alias : caches.keySet()) {
         try {
-          removeCache(alias, false);
+          removeCache(alias, false, false);
         } catch (Exception e) {
           if(firstException == null) {
             firstException = e;
@@ -689,7 +692,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     try {
-      removeCache(alias, true);
+      removeCache(alias, true, true);
       destroyPersistenceSpace(alias);
     } finally {
       // if it was started, stop it

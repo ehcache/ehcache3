@@ -50,6 +50,11 @@ public class CompositeSerializer implements Serializer<CompositeValue<?>> {
 
   @Override
   public boolean equals(CompositeValue<?> object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
-    return object.equals(read(binary));
+    int id = binary.getInt();
+    if (id == object.getStoreId()) {
+      return object.getValue().equals(serializerMap.get(id).read(binary));
+    } else {
+      return false;
+    }
   }
 }

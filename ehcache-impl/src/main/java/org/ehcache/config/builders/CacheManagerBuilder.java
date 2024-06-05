@@ -385,6 +385,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    * @return a new builder with the added configuration
    */
   public CacheManagerBuilder<T> sharedResources(Builder<? extends ResourcePools> sharedResourcePoolsBuilder) {
-    return using(new SharedStorageConfiguration(sharedResourcePoolsBuilder.build()));
+    ResourcePools pools = sharedResourcePoolsBuilder.build();
+    return new CacheManagerBuilder<>(this, configBuilder.withSharedResources(pools).withService(new SharedStorageConfiguration(pools)));
   }
 }

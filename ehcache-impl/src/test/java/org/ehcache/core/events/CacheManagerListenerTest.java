@@ -79,7 +79,7 @@ public class CacheManagerListenerTest {
   public void testCacheDestroyTriggersCacheRemoved() throws Exception {
     Cache<Long, String> cache = cacheManager.getCache(CACHE, Long.class, String.class);
     cacheManager.destroyCache(CACHE);
-    verify(cacheManagerListener).cacheRemoved(CACHE, cache);
+    verify(cacheManagerListener).cacheDestroyed(CACHE, cache);
   }
 
   @Test

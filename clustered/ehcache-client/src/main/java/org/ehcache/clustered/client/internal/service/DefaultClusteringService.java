@@ -65,6 +65,8 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 
+  static final String CACHE_MANAGER_SHARED_RESOURCES = "CacheManagerSharedResources";
+
   static final String CONNECTION_PREFIX = "Ehcache:";
 
   private final ClusteringServiceConfiguration configuration;
@@ -169,7 +171,16 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
   }
 
   @Override
-  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+  public PersistenceSpaceIdentifier<ClusteringService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+    return getPersistenceSpaceIdentifier(name);
+  }
+
+  @Override
+  public PersistenceSpaceIdentifier<ClusteringService> getSharedResourcesSpaceIdentifier(boolean persistent) {
+    return getPersistenceSpaceIdentifier(CACHE_MANAGER_SHARED_RESOURCES);
+  }
+
+  private PersistenceSpaceIdentifier<ClusteringService> getPersistenceSpaceIdentifier(String name) {
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
     if(clusteredSpace != null) {
       return clusteredSpace.identifier;

@@ -17,9 +17,13 @@
 package org.ehcache.impl.internal.store.shared.store;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.Status;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
+import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.impl.internal.store.shared.AbstractPartition;
@@ -49,12 +53,54 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
   private static final Supplier<Boolean> SUPPLY_TRUE = () -> Boolean.TRUE;
   private final Class<K> keyType;
   private final Class<V> valueType;
+  private final String alias;
+  private final boolean persistent;
 
-  public StorePartition(int id, Class<K> keyType, Class<V> valueType,
-                        Store<CompositeValue<K>, CompositeValue<V>> store) {
+  public StorePartition(String alias, int id, Class<K> keyType, Class<V> valueType,
+                        Store<CompositeValue<K>, CompositeValue<V>> store, boolean persistent, CacheManager cacheManager) {
     super(id, store);
     this.keyType = keyType;
     this.valueType = valueType;
+    this.alias = alias;
+    this.persistent = persistent;
+
+    if (cacheManager != null) {
+      ((InternalCacheManager) cacheManager).registerListener(new CacheManagerListener() {
+        @Override
+        public void stateTransition(Status from, Status to) {
+        }
+
+        @Override
+        public void cacheAdded(String alias, Cache<?, ?> cache) {
+        }
+
+        @Override
+        public void cacheRemoved(String alias, Cache<?, ?> cache) {
+          if (!isPersistent()) {
+            cacheDestroyed(alias, cache);
+          }
+        }
+
+        @Override
+        public void cacheDestroyed(String alias, Cache<?, ?> cache) {
+          if (alias.equals(getAlias())) {
+            try {
+              clear();
+            } catch (StoreAccessException ex) {
+              throw new RuntimeException(ex);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  public String getAlias() {
+    return alias;
+  }
+
+  public boolean isPersistent() {
+    return persistent;
   }
 
   protected K checkKey(K keyObject) {
@@ -224,7 +270,6 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
   }
 
   @Override
-
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
 
     Iterator<Cache.Entry<CompositeValue<K>, ValueHolder<CompositeValue<V>>>> iterator = shared().iterator();

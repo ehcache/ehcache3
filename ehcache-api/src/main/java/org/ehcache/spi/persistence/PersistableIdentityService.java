@@ -54,7 +54,25 @@ public interface PersistableIdentityService extends Service {
    */
   PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
 
-  default PersistenceSpaceIdentifier<?> getRootSpaceIdentifier(boolean persistent) throws CachePersistenceException {
+  default PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, boolean persistent) throws CachePersistenceException {
+    return null;
+  }
+
+  /**
+   * Returns a {@link PersistableResourceService.PersistenceSpaceIdentifier} for the space where shared resources are stored.
+   * <p>
+   * This method may create a new persistence space or load one. The returned identifier is the only way to interact
+   * with the shared persistence space.
+   *
+   * @param persistent whether or not the space is persistent
+   * @throws CachePersistenceException if the persistence space cannot be created
+   *
+   * @return an identifier for the shared resources persistence space
+   *
+   * @see PersistableResourceService#getStateRepositoryWithin(PersistableIdentityService.PersistenceSpaceIdentifier, String)
+   */
+
+  default PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(boolean persistent) throws CachePersistenceException {
     return null;
   }
 

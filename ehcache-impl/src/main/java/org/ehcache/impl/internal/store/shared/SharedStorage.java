@@ -74,14 +74,19 @@ public class SharedStorage implements Service {
   private final ResourcePool resourcePool;
   private Store.Provider storeProvider = null;
   private Store<CompositeValue<?>, CompositeValue<?>> store = null;
-  private StateHolderIdGenerator<String> sharedPersistence = null;
-  private PersistableIdentityService.PersistenceSpaceIdentifier<?> spaceIdentifier;
+  private StateHolderIdGenerator<String> persistentPartitionIds = null;
+  private PersistableIdentityService.PersistenceSpaceIdentifier<?> sharedResourcesSpaceIdentifier;
+  private PersistableIdentityService.PersistenceSpaceIdentifier<?> sharedResourceTypeSpaceIdentifier;
   private PersistableResourceService persistableResourceService;
-  private final boolean usePersistence;
+  private final boolean persistent;
 
   public SharedStorage(ResourcePool resourcePool) {
     this.resourcePool = requireNonNull((resourcePool));
-    this.usePersistence = resourcePool.isPersistent();
+    this.persistent = resourcePool.isPersistent();
+  }
+
+  public boolean isPersistent() {
+    return persistent;
   }
 
   public void start(ServiceProvider<Service> serviceProvider) {
@@ -96,34 +101,50 @@ public class SharedStorage implements Service {
 
   public void stop() {
     try {
-      if (spaceIdentifier != null) {
-        persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
+      if (storeProvider != null && store != null) {
+        storeProvider.releaseStore(store);
+      }
+      if (persistableResourceService != null) {
+          if (persistent) {
+            if (sharedResourcesSpaceIdentifier != null) {
+              persistableResourceService.releasePersistenceSpaceIdentifier(sharedResourcesSpaceIdentifier);
+            }
+            if (sharedResourceTypeSpaceIdentifier != null) {
+              persistableResourceService.releasePersistenceSpaceIdentifier(sharedResourceTypeSpaceIdentifier);
+            }
+          } else {
+            if (sharedResourcesSpaceIdentifier != null) {
+              persistableResourceService.destroy(sharedResourcesSpaceIdentifier.toString());
+            }
+            if (sharedResourceTypeSpaceIdentifier != null) {
+              persistableResourceService.destroy(sharedResourceTypeSpaceIdentifier.toString());
+            }
+        }
       }
     } catch (Exception ignored) {
-    }
-    if (storeProvider != null && store != null) {
-      storeProvider.releaseStore(store);
     }
   }
 
   private void createSharedStore(ClassLoader classLoader,
                                  Collection<ServiceConfiguration<?, ?>> serviceConfigs,
                                  CacheLoaderWriter<?, ?> cacheLoaderWriter) {
-    if (resourcePool.getType().isPersistable()) {
+    ResourceType<?> type = resourcePool.getType();
+    if (type.isPersistable()) {
       Set<PersistableResourceService> persistenceServices = serviceProvider.getServicesOfType(PersistableResourceService.class)
         .stream()
-        .filter(persistence -> persistence.handlesResourceType(resourcePool.getType()))
+        .filter(persistence -> persistence.handlesResourceType(type))
         .collect(Collectors.toSet());
       if (persistenceServices.size() > 1) {
-        throw new IllegalStateException("Multiple persistence services for " + resourcePool.getType());
+        throw new IllegalStateException("Multiple persistence services for " + type);
       } else if (persistenceServices.isEmpty()) {
-        throw new IllegalStateException("No persistence services for " + resourcePool.getType());
+        throw new IllegalStateException("No persistence services for " + type);
       } else {
         try {
           persistableResourceService = persistenceServices.iterator().next();
-          spaceIdentifier = persistableResourceService.getRootSpaceIdentifier(true);
-          serviceConfigs.add(spaceIdentifier);
-          sharedPersistence = new StateHolderIdGenerator(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "persistent-partition-ids"), String.class);
+          sharedResourcesSpaceIdentifier = persistableResourceService.getSharedResourcesSpaceIdentifier(persistent);
+          persistentPartitionIds = new StateHolderIdGenerator(persistableResourceService.getStateRepositoryWithin(sharedResourcesSpaceIdentifier, "persistent-partition-ids"), String.class);
+          sharedResourceTypeSpaceIdentifier = persistableResourceService.getPersistenceSpaceIdentifier(sharedResourcesSpaceIdentifier.toString() + type, persistent);
+          serviceConfigs.add(sharedResourceTypeSpaceIdentifier);
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to handle persistence", e);
         }
@@ -153,8 +174,8 @@ public class SharedStorage implements Service {
 
   protected <T, U, K, V> U createPartition(String alias, Store.Configuration<K, V> storeConfig, PartitionFactory<T, U> partitionFactory) {
     int storeId;
-    if (usePersistence) {
-      storeId = sharedPersistence.map(requireNonNull(alias));
+    if (persistent) {
+      storeId = persistentPartitionIds.map(requireNonNull(alias));
     } else {
       storeId = ++lastUsedId;
     }

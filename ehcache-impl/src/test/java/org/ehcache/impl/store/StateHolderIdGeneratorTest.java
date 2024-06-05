@@ -56,7 +56,7 @@ public class StateHolderIdGeneratorTest {
     dependencySet.with(diskResourceService);
     serviceLocator = dependencySet.build();
     serviceLocator.startAllServices();
-    spaceIdentifier = diskResourceService.getRootSpaceIdentifier(true);
+    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(true);
     sharedPersistence = new StateHolderIdGenerator<>(diskResourceService.getStateRepositoryWithin(spaceIdentifier, "persistent-partition-ids"), String.class);
   }
   @Test
@@ -67,14 +67,14 @@ public class StateHolderIdGeneratorTest {
     serviceLocator.stopAllServices();
 
     serviceLocator.startAllServices();
-    spaceIdentifier = diskResourceService.getRootSpaceIdentifier(true);
+    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(true);
     namesToMap.addAll(getNames());
     map(namesToMap);
     diskResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
     serviceLocator.stopAllServices();
 
     serviceLocator.startAllServices();
-    spaceIdentifier = diskResourceService.getRootSpaceIdentifier(true);
+    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(true);
     namesToMap.addAll(getNames());
     map(namesToMap);
     diskResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);

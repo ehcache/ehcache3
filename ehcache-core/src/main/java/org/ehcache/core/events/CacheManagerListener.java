@@ -44,4 +44,16 @@ public interface CacheManagerListener extends StateChangeListener {
    */
   void cacheRemoved(String alias, Cache<?, ?> cache);
 
+  /**
+   * Fires just after the @{link Cache} was deregistered with the {@link org.ehcache.CacheManager}, but wasn't yet made
+   * {@link org.ehcache.Status#UNINITIALIZED}. So that no other thread can get a handle to this {@link Cache} anymore,
+   * but the {@link CacheManagerListener} can still interact with it
+   *
+   * @param alias the alias the {@link Cache} is being deregistered
+   * @param cache the actual {@link Cache} being removed
+   */
+  default void cacheDestroyed(String alias, Cache<?, ?> cache) {
+
+  }
+
 }

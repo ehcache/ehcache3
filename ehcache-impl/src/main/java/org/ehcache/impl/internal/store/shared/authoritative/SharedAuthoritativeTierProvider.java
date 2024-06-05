@@ -36,8 +36,9 @@ public class SharedAuthoritativeTierProvider extends AbstractSharedTierProvider 
   @Override
   public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
-    return sharedStorageProvider.<AuthoritativeTier<CompositeValue<K>, CompositeValue<V>>, AuthoritativeTier<K, V>, K, V>partition(extractAlias(serviceConfigs), resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
-      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
+    String alias = extractAlias(serviceConfigs);
+    return sharedStorageProvider.<AuthoritativeTier<CompositeValue<K>, CompositeValue<V>>, AuthoritativeTier<K, V>, K, V>partition(alias, resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
+      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition<>(alias, id, storeConfig.getKeyType(), storeConfig.getValueType(), store, storage.isPersistent(), cacheManager);
       associateStoreStatsWithPartition(store, partition);
       return partition;
     });
