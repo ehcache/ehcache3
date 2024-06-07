@@ -415,8 +415,13 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
       Iterable<Map.Entry<K, V>> results = function.apply(keys);
       results.forEach(entry -> {
         keyCheck(entry.getKey());
-        valueCheck(entry.getValue());
-        encodedResults.put(new CompositeValue<>(storeId, entry.getKey()), new CompositeValue<>(storeId, entry.getValue()));
+        if (entry.getValue() == null) {
+          encodedResults.put(new CompositeValue<>(storeId, entry.getKey()), null);
+        } else {
+          V value = entry.getValue();
+          valueCheck(value);
+          encodedResults.put(new CompositeValue<>(storeId, entry.getKey()), new CompositeValue<>(storeId, value));
+        }
       });
       return encodedResults.entrySet();
     }

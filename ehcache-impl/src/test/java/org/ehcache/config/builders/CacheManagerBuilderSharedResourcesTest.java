@@ -20,7 +20,10 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.StateTransitionException;
 import org.ehcache.config.CacheConfiguration;
+import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -29,6 +32,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,8 +54,31 @@ public class CacheManagerBuilderSharedResourcesTest {
   private final long DISK_SIZE = 90;
 
   @Test
+  public void testSharedHeapMultiType() {
+    try (CacheManager cacheManager = newCacheManagerBuilder()
+      .sharedResources(newResourcePoolsBuilder().heap(60, MB))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedHeap()))
+      .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedHeap()))
+      .withCache("c3", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedHeap()))
+      .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedHeap()))
+      .withCache("c5", cacheConfig(Double.class, Double.class, newResourcePoolsBuilder().sharedHeap()))
+      .withCache("c6", cacheConfig(Double.class, Double.class, newResourcePoolsBuilder().sharedHeap()))
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      Cache<String, String> c3 = cacheManager.getCache("c3", String.class, String.class);
+      Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
+      Cache<Double, Double> c5 = cacheManager.getCache("c5", Double.class, Double.class);
+      Cache<Double, Double> c6 = cacheManager.getCache("c6", Double.class, Double.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+      exerciseCacheApi(c3, c4, STRING1, STRING2);
+      exerciseCacheApi(c5, c6, DOUBLE1, DOUBLE2);
+    }
+  }
+
+  @Test
   public void testSharedOffHeapMultiType() {
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    try (CacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedOffheap()))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedOffheap()))
@@ -59,126 +86,153 @@ public class CacheManagerBuilderSharedResourcesTest {
       .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedOffheap()))
       .withCache("c5", cacheConfig(Double.class, Double.class, newResourcePoolsBuilder().sharedOffheap()))
       .withCache("c6", cacheConfig(Double.class, Double.class, newResourcePoolsBuilder().sharedOffheap()))
-      .build(true);
-    Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    Cache<String, String> c3 = cacheManager.getCache("c3", String.class, String.class);
-    Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
-    Cache<Double, Double> c5 = cacheManager.getCache("c5", Double.class, Double.class);
-    Cache<Double, Double> c6 = cacheManager.getCache("c6", Double.class, Double.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    exerciseCacheApi(c3, c4, STRING1, STRING2);
-    exerciseCacheApi(c5, c6, DOUBLE1, DOUBLE2);
-    cacheManager.close();
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      Cache<String, String> c3 = cacheManager.getCache("c3", String.class, String.class);
+      Cache<String, String> c4 = cacheManager.getCache("c4", String.class, String.class);
+      Cache<Double, Double> c5 = cacheManager.getCache("c5", Double.class, Double.class);
+      Cache<Double, Double> c6 = cacheManager.getCache("c6", Double.class, Double.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+      exerciseCacheApi(c3, c4, STRING1, STRING2);
+      exerciseCacheApi(c5, c6, DOUBLE1, DOUBLE2);
+    }
+  }
+
+  @Test
+  public void testSharedHeap() {
+    try (CacheManager cacheManager = newCacheManagerBuilder()
+      .sharedResources(newResourcePoolsBuilder().heap(60, MB))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB)))
+      .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedHeap()))
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
+    try (CacheManager cacheManager = newCacheManagerBuilder()
+      .sharedResources(newResourcePoolsBuilder().heap(60, MB))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedHeap()))
+      .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB)))
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
+    try (CacheManager cacheManager = newCacheManagerBuilder()
+      .sharedResources(newResourcePoolsBuilder().heap(60, MB))
+      .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedHeap()))
+      .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedHeap()))
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
   }
 
   @Test
   public void testSharedOffHeap() {
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    try (CacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().offheap(10, MB)))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedOffheap()))
-      .build(true);
-    Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
-
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
+    try (CacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedOffheap()))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().offheap(10, MB)))
-      .build(true);
-    c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
-
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
+    try (CacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedOffheap()))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedOffheap()))
-      .build(true);
-    c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
   }
 
   @Test
   public void testTwoTierSharedOffHeap() {
-    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    try (CacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).offheap(20, MB)))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap()))
-      .build(true);
-    Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
+      .build(true) ) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
 
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    try (CacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap()))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).offheap(20, MB)))
-      .build(true);
-    c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
+      .build(true) ) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
 
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    try (CacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap()))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap()))
-      .build(true);
-    c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
+      .build(true) ) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
   }
 
   @Test
   public void testThreeTierSharedOffHeap() throws IOException {
-    PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
-      .with(CacheManagerBuilder.persistence((new File(temporaryFolder.newFolder().getAbsolutePath()))))
+      .with(CacheManagerBuilder.persistence(new File(temporaryFolder.newFolder().getAbsolutePath())))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).offheap(20, MB).disk(30, MB)))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap().disk(30, MB)))
-      .build(true);
-    Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
-
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
-      .with(CacheManagerBuilder.persistence((new File(temporaryFolder.newFolder().getAbsolutePath()))))
+      .with(CacheManagerBuilder.persistence(new File(temporaryFolder.newFolder().getAbsolutePath())))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap().disk(30, MB)))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).offheap(20, MB).disk(30, MB)))
-      .build(true);
-    c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
-
-    cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
       .sharedResources(newResourcePoolsBuilder().offheap(60, MB))
-      .with(CacheManagerBuilder.persistence((new File(temporaryFolder.newFolder().getAbsolutePath()))))
+      .with(CacheManagerBuilder.persistence(new File(temporaryFolder.newFolder().getAbsolutePath())))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap().disk(30, MB)))
       .withCache("c2", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(10, MB).sharedOffheap().disk(30, MB)))
-      .build(true);
-    c1 = cacheManager.getCache("c1", Long.class, Long.class);
-    c2 = cacheManager.getCache("c2", Long.class, Long.class);
-    exerciseCacheApi(c1, c2, LONG1, LONG2);
-    cacheManager.close();
+      .build(true)) {
+      Cache<Long, Long> c1 = cacheManager.getCache("c1", Long.class, Long.class);
+      Cache<Long, Long> c2 = cacheManager.getCache("c2", Long.class, Long.class);
+      exerciseCacheApi(c1, c2, LONG1, LONG2);
+    }
   }
 
   @Test
   public void testSharedDisk() throws IOException {
     File folder = new File(temporaryFolder.newFolder().getAbsolutePath());
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
@@ -211,8 +265,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       c8.put(8L, 88L);
       c9.put("9", "99");
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c9", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedOffheap().sharedDisk()))
       .build(true)) {
@@ -220,8 +274,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c9.get("9"), is("99"));
       c9.put("99", "999");
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c8", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedOffheap().sharedDisk()))
       .build(true)) {
@@ -230,8 +284,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       c8.put(88L, 888L);
       assertThat(c8.get(88L), is(888L));
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c7", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedDisk()))
       .build(true)) {
@@ -239,8 +293,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c7.get(7L), is("77"));
       c7.put(77L, "777");
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c6", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedDisk()))
       .build(true)) {
@@ -248,8 +302,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c6.get(6L), is(66L));
       c6.put(66L, 666L);
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c5", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .build(true)) {
@@ -257,8 +311,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c5.get(5L), is(55L));
       c5.put(55L, 555L);
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c4", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
       .build(true)) {
@@ -266,8 +320,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c4.get("4"), is("44"));
       c4.put("44", "444");
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c3", cacheConfig(String.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .build(true)) {
@@ -275,8 +329,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c3.get("3"), is(33L));
       c3.put("33", 333L);
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
       .build(true)) {
@@ -284,8 +338,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c2.get(2L), is("22"));
       c2.put(22L, "222");
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .build(true)) {
@@ -293,8 +347,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c1.get(1L), is(11L));
       c1.put(11L, 111L);
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .withCache("c2", cacheConfig(Long.class, String.class, newResourcePoolsBuilder().sharedDisk()))
@@ -337,8 +391,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c8.get(88L), is(888L));
       assertThat(c9.get("99"), is("999"));
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c9", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedOffheap().sharedDisk()))
       .withCache("c8", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedOffheap().sharedDisk()))
@@ -381,8 +435,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       assertThat(c8.get(88L), is(888L));
       assertThat(c9.get("99"), is("999"));
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c10", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .withCache("c11", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedDisk()))
@@ -406,8 +460,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       c14.put(14L, 14L);
       c15.put(15L, 15L);
     }
-    try (PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cacheManager = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c15", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedOffheap().disk(DISK_SIZE, MB, true)))
       .withCache("c14", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).disk(DISK_SIZE, MB, true)))
@@ -531,8 +585,8 @@ public class CacheManagerBuilderSharedResourcesTest {
   @Test
   public void testRemoveDestroySingleTierSharedDiskCache() throws IOException {
     File folder = new File(temporaryFolder.newFolder().getAbsolutePath());
-    try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cm = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .withCache("c2", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
@@ -542,8 +596,8 @@ public class CacheManagerBuilderSharedResourcesTest {
       c1.put(88L, 888L);
       c2.put("9", "99");
     }
-    try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cm = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, true))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .withCache("c2", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
@@ -570,8 +624,8 @@ public class CacheManagerBuilderSharedResourcesTest {
     } catch (CachePersistenceException e) {
       throw new RuntimeException(e);
     }
-    try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    try (PersistentCacheManager cm = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, false))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .withCache("c2", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
@@ -733,17 +787,74 @@ public class CacheManagerBuilderSharedResourcesTest {
     }
   }
 
+  @Test
+  public void testSupportedSharedResources() throws IOException {
+    // No shared resources, cache sharing heap
+    assertInvalidCacheCreation(newResourcePoolsBuilder(),
+      newResourcePoolsBuilder().sharedHeap(),
+      "No Store.Provider types found to handle configuration");
+
+    // No shared resources, cache sharing offheap
+    assertInvalidCacheCreation(newResourcePoolsBuilder(),
+      newResourcePoolsBuilder().sharedOffheap(),
+      "No Store.Provider types found to handle configuration");
+
+    // No shared resources, cache sharing disk
+    assertInvalidCacheCreation(newResourcePoolsBuilder(),
+      newResourcePoolsBuilder().sharedDisk(),
+      "No Store.Provider types found to handle configuration");
+
+    // Shared offheap, cache sharing offheap
+    assertValidCacheCreation(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB),
+      newResourcePoolsBuilder().sharedOffheap());
+
+    // Shared heap, sharing offHeap
+    assertInvalidCacheCreation(newResourcePoolsBuilder().heap(HEAP_SIZE, MB),
+      newResourcePoolsBuilder().sharedOffheap(),
+      "No Store.Provider types found to handle configuration");
+
+    // Shared heap/offHeap, cache sharing disk
+    assertInvalidCacheCreation(newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB),
+      newResourcePoolsBuilder().sharedDisk(),
+      "No Store.Provider types found to handle configuration");
+  }
+
+  void assertInvalidCacheCreation(ResourcePoolsBuilder sharedResources, ResourcePoolsBuilder cacheResources, String exception) throws IOException {
+    try (PersistentCacheManager cm = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(temporaryFolder.newFolder().getAbsolutePath()))
+      .sharedResources(sharedResources)
+      .build(true)) {
+      cm.createCache("c1", cacheConfig(Long.class, Long.class, cacheResources));
+      Assert.fail("Expected IllegalStateException");
+    } catch (IllegalStateException ex) {
+      assertThat(ex.getCause().getMessage(), Matchers.containsString(exception));
+    } catch (StateTransitionException e) {
+      assertThat(e.getMessage(), Matchers.containsString(exception));
+    }
+  }
+
+  void assertValidCacheCreation(ResourcePoolsBuilder sharedResources, ResourcePoolsBuilder cacheResources) throws IOException {
+    try (PersistentCacheManager cm = newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(temporaryFolder.newFolder().getAbsolutePath()))
+      .sharedResources(sharedResources)
+      .build(true)) {
+      cm.createCache("c1", cacheConfig(Long.class, Long.class, cacheResources));
+    } catch (Exception ex) {
+      Assert.fail("Unexpected Exception - " + ex.getMessage());
+    }
+  }
+
   private PersistentCacheManager threeTierWithDisk(File folder, boolean persistent) {
-    return CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    return newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, persistent)))
       .withCache("c2", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, persistent)))
       .build(true);
   }
 
   private PersistentCacheManager threeTierWithSharedDisk(File folder, boolean persistent) {
-    return CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    return newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, persistent))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedOffheap().sharedDisk()))
       .withCache("c2", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedOffheap().sharedDisk()))
@@ -751,8 +862,8 @@ public class CacheManagerBuilderSharedResourcesTest {
   }
 
   private PersistentCacheManager twoTierWithSharedDisk(File folder, boolean persistent) {
-    return CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence((folder)))
+    return newCacheManagerBuilder()
+      .with(CacheManagerBuilder.persistence(folder))
       .sharedResources(newResourcePoolsBuilder().disk(DISK_SIZE, MB, persistent))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedDisk()))
       .withCache("c2", cacheConfig(String.class, String.class, newResourcePoolsBuilder().heap(HEAP_SIZE, MB).sharedDisk()))
