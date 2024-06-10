@@ -128,7 +128,7 @@ public class SharedStorage implements Service {
       } else {
         try {
           persistableResourceService = persistenceServices.iterator().next();
-          sharedResourcesSpaceIdentifier = persistableResourceService.getSharedResourcesSpaceIdentifier(resourcePool);
+          sharedResourcesSpaceIdentifier = persistableResourceService.getSharedPersistenceSpaceIdentifier(resourcePool);
           persistentPartitionIds = new StateHolderIdGenerator(persistableResourceService.getStateRepositoryWithin(sharedResourcesSpaceIdentifier, "persistent-partition-ids"), String.class);
           serviceConfigs.add(sharedResourcesSpaceIdentifier);
         } catch (CachePersistenceException e) {

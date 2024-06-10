@@ -60,7 +60,42 @@ public interface FluentConfigurationBuilder<B extends FluentConfigurationBuilder
    */
   B withCache(String alias, CacheConfiguration<?, ?> config);
 
-  B withSharedResources(ResourcePools sharedResourcePools);
+  /**
+   * Sets the shared {@link ResourcePools} in the returned builder.
+   * <p>
+   * Shared {@link ResourcePools} are optionally available to all caches within a cache manager.
+   *
+   * @param resourcePools the resource pools to use
+   * @return a new builder with the added shared resource pools
+   *
+   * @see #withSharedResources (Builder)
+   * @see #updateSharedResources(UnaryOperator)
+   */
+  B withSharedResources(ResourcePools resourcePools);
+
+  /**
+   * Convenience method to set the shared {@link ResourcePools} through a {@link Builder}.
+   *
+   * @param builder the builder providing the resource pool
+   * @return a new builder with the added shared resource pools
+   *
+   * @see #withSharedResources(ResourcePools)
+   * @see #updateSharedResources(UnaryOperator)
+   */
+  default B withSharedResources(Builder<? extends ResourcePools> builder) {
+    return withSharedResources(builder.build());
+  }
+
+  /**
+   * Updates the configured shared resource pools.
+   *
+   * @param update resource pool update operation
+   * @return a new build with updated resource pools
+   *
+   * @see #withSharedResources(ResourcePools)
+   * @see #withSharedResources(Builder)
+   */
+  B updateSharedResources(UnaryOperator<ResourcePools> update);
 
   /**
    * Adds the cache configuration built by a builder to this configuration.

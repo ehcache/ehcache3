@@ -75,6 +75,7 @@ public interface ResourceType<T extends ResourcePool> {
      */
     DISK(true, true, 100);
 
+
     private final boolean persistable;
     private final boolean requiresSerialization;
     private final int tierHeight;

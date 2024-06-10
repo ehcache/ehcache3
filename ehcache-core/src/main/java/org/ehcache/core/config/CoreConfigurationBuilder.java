@@ -129,6 +129,11 @@ public class CoreConfigurationBuilder<B extends CoreConfigurationBuilder<B>> imp
   }
 
   @Override
+  public B updateSharedResources(UnaryOperator<ResourcePools> update) {
+    return withSharedResources(update.apply(resourcePools));
+  }
+
+  @Override
   public B withCache(String alias, CacheConfiguration<?, ?> config) {
     Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<>(caches);
     newCaches.put(alias, config);

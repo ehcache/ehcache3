@@ -114,7 +114,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
   }
 
   @Override
-  public PersistenceSpaceIdentifier<DiskResourceService> getSharedResourcesSpaceIdentifier(ResourcePool resource) throws CachePersistenceException {
+  public PersistenceSpaceIdentifier<DiskResourceService> getSharedPersistenceSpaceIdentifier(ResourcePool resource) throws CachePersistenceException {
     return getPersistenceSpaceIdentifier(CACHE_MANAGER_SHARED_RESOURCES, resource);
   }
 

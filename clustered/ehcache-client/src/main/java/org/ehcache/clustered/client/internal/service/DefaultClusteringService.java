@@ -176,7 +176,7 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
   }
 
   @Override
-  public PersistenceSpaceIdentifier<ClusteringService> getSharedResourcesSpaceIdentifier(ResourcePool resource) {
+  public PersistenceSpaceIdentifier<ClusteringService> getSharedPersistenceSpaceIdentifier(ResourcePool resource) {
     return getPersistenceSpaceIdentifier(CACHE_MANAGER_SHARED_RESOURCES);
   }
 

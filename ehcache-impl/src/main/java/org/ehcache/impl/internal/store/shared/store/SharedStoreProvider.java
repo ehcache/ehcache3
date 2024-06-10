@@ -77,7 +77,7 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
   }
 
   @Override
-  public PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(ResourcePool resource) {
+  public PersistenceSpaceIdentifier<?> getSharedPersistenceSpaceIdentifier(ResourcePool resource) {
     throw new UnsupportedOperationException();
   }
 

@@ -93,8 +93,8 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(ResourcePool resource) throws CachePersistenceException {
-    return diskResourceService.getSharedResourcesSpaceIdentifier(resource);
+  public PersistenceSpaceIdentifier<?> getSharedPersistenceSpaceIdentifier(ResourcePool resource) throws CachePersistenceException {
+    return diskResourceService.getSharedPersistenceSpaceIdentifier(resource);
   }
 
   @Override
