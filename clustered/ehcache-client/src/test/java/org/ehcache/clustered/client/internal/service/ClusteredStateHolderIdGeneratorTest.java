@@ -71,7 +71,7 @@ public class ClusteredStateHolderIdGeneratorTest {
     ClusterTierClientEntity clientEntity = clusterService.getConnectionState().createClusterTierClientEntity("CacheManagerSharedResources", serverStoreConfiguration, false);
     assertThat(clientEntity, notNullValue());
 
-    spaceIdentifier = clusterService.getSharedResourcesSpaceIdentifier(true);
+    spaceIdentifier = clusterService.getSharedResourcesSpaceIdentifier(resourcePool);
     sharedPersistence = new StateHolderIdGenerator<>(clusterService.getStateRepositoryWithin(spaceIdentifier, "persistent-partition-ids"), String.class);
   }
 
@@ -91,12 +91,12 @@ public class ClusteredStateHolderIdGeneratorTest {
     map(namesToMap);
     clusterService.releasePersistenceSpaceIdentifier(spaceIdentifier);
 
-    spaceIdentifier = clusterService.getSharedResourcesSpaceIdentifier(true);
+    spaceIdentifier = clusterService.getSharedResourcesSpaceIdentifier(null);
     namesToMap.addAll(getNames());
     map(namesToMap);
     clusterService.releasePersistenceSpaceIdentifier(spaceIdentifier);
 
-    spaceIdentifier = clusterService.getSharedResourcesSpaceIdentifier(true);
+    spaceIdentifier = clusterService.getSharedResourcesSpaceIdentifier(null);
     namesToMap.addAll(getNames());
     map(namesToMap);
     clusterService.releasePersistenceSpaceIdentifier(spaceIdentifier);

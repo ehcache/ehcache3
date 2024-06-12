@@ -143,10 +143,9 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         final OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, timeSource, noOpEventDispatcher, offheapSize, new DefaultStatisticsService());
 
         try {
-          CacheConfiguration<String, String> cacheConfiguration = uncheckedGenericMock(CacheConfiguration.class);
-          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
+          ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build();
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, resourcePools.getPoolForResource(ResourceType.Core.DISK));
           FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);

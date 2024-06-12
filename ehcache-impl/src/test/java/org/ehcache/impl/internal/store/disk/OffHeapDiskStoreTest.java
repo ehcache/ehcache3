@@ -18,13 +18,12 @@ package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
@@ -131,9 +130,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration<Long, String> cacheConfiguration = uncheckedGenericMock(CacheConfiguration.class);
-    when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MB, false).build();
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", resourcePools.getPoolForResource(ResourceType.Core.DISK));
 
     {
       Store.Configuration<Long, String> storeConfig1 = uncheckedGenericMock(Store.Configuration.class);
@@ -180,9 +178,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
-    when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MB, false).build();
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", resourcePools.getPoolForResource(ResourceType.Core.DISK));
 
     {
       Store.Configuration<Long, Object[]> storeConfig1 = uncheckedGenericMock(Store.Configuration.class);
@@ -224,9 +221,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
-    CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
-    when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+    ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MB, false).build();
+    PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", resourcePools.getPoolForResource(ResourceType.Core.DISK));
 
     Store.Configuration<Long, Object[]> storeConfig1 = uncheckedGenericMock(Store.Configuration.class);
     when(storeConfig1.getKeyType()).thenReturn(Long.class);
@@ -353,9 +349,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   private FileBasedPersistenceContext getPersistenceContext() {
     try {
-      CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
-      when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
-      PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
+      ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MB, false).build();
+      PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier("cache", resourcePools.getPoolForResource(ResourceType.Core.DISK));
       return diskResourceService.createPersistenceContextWithin(space, "store");
     } catch (CachePersistenceException e) {
       throw new AssertionError(e);

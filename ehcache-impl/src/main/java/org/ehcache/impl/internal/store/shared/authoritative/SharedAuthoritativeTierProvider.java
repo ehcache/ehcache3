@@ -38,7 +38,7 @@ public class SharedAuthoritativeTierProvider extends AbstractSharedTierProvider 
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
     String alias = extractAlias(serviceConfigs);
     return sharedStorageProvider.<AuthoritativeTier<CompositeValue<K>, CompositeValue<V>>, AuthoritativeTier<K, V>, K, V>partition(alias, resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
-      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition<>(alias, id, storeConfig.getKeyType(), storeConfig.getValueType(), store, storage.isPersistent(), cacheManager);
+      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
       associateStoreStatsWithPartition(store, partition);
       return partition;
     });

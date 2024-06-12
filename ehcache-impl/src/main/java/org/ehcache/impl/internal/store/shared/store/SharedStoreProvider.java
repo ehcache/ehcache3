@@ -17,19 +17,23 @@
 package org.ehcache.impl.internal.store.shared.store;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.shared.AbstractSharedTierProvider;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
-import org.ehcache.spi.persistence.PersistableIdentityService;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Collection;
 import java.util.Set;
 
-public class SharedStoreProvider extends AbstractSharedTierProvider implements Store.Provider, PersistableIdentityService
-  {
+public class SharedStoreProvider extends AbstractSharedTierProvider implements Store.Provider, PersistableResourceService {
+
   @Override
   public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
     return rank(Store.class, resourceTypes);
@@ -40,7 +44,7 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(storeConfig.getResourcePools().getResourceTypeSet());
     String alias = extractAlias(serviceConfigs);
     return sharedStorageProvider.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(alias, resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
-      StorePartition<K, V> partition = new StorePartition<>(alias, id, storeConfig.getKeyType(), storeConfig.getValueType(), store, storage.isPersistent(), cacheManager);
+      StorePartition<K, V> partition = new StorePartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
       associateStoreStatsWithPartition(store, partition);
       return partition;
     });
@@ -56,45 +60,76 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
 
   }
 
-   @Override
-   public boolean handlesResourceType(ResourceType<?> resourceType) {
-     if (resourceType instanceof ResourceType.SharedResource) {
-       return ((ResourceType.SharedResource<?>) resourceType).getResourceType().isPersistable();
-     } else {
-       return false;
-     }
-   }
+  @Override
+  public boolean handlesResourceType(ResourceType<?> resourceType) {
+    if (resourceType instanceof ResourceType.SharedResource) {
+      return sharedStorageProvider.supports(Store.class, ((ResourceType.SharedResource<?>) resourceType).getResourceType());
+    } else {
+      return false;
+    }
+  }
 
-   @Override
-   public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-     return new SharedPersistentSpaceIdentifier(name);
-   }
+  @Override
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, ResourcePool resource) throws CachePersistenceException {
+    return new SharedPersistentSpaceIdentifier(name, resource);
+  }
 
-   @Override
-   public PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(boolean persistent) {
-     return null;
-   }
+  @Override
+  public PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(ResourcePool resource) {
+    throw new UnsupportedOperationException();
+  }
 
-   @Override
-   public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
-    //no-op
-   }
+  @Override
+  public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
+    SharedPersistentSpaceIdentifier sharedSpaceIdentifier = (SharedPersistentSpaceIdentifier) identifier;
+    if (!sharedSpaceIdentifier.getResource().isPersistent()) {
+      ResourceType.SharedResource<?> type = (ResourceType.SharedResource<?>) sharedSpaceIdentifier.getResource().getType();
+      sharedStorageProvider.destroyPartition(type.getResourceType(), sharedSpaceIdentifier.getName());
+    }
+  }
 
-   static public class SharedPersistentSpaceIdentifier implements PersistenceSpaceIdentifier<SharedStoreProvider> {
+  @Override
+  public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
+    throw new UnsupportedOperationException();
+  }
 
-     final private String name;
+  @Override
+  public void destroy(String name) throws CachePersistenceException {
+    sharedStorageProvider.destroyPartition(name);
+  }
 
-     SharedPersistentSpaceIdentifier(String name) {
-       this.name = name;
-     }
+  @Override
+  public void destroyAll() {
+    //nothing - can we rely on the other services?
+  }
 
-     @Override
-     public Class<SharedStoreProvider> getServiceType() {
-       return SharedStoreProvider.class;
-     }
+  @SuppressWarnings("unchecked")
+  @Override
+  public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    start((ServiceProvider<Service>) serviceProvider);
+  }
 
-     public String getName() {
-       return name;
-     }
-   }
- }
+  static public class SharedPersistentSpaceIdentifier implements PersistenceSpaceIdentifier<SharedStoreProvider> {
+
+    private final String name;
+    private final ResourcePool resource;
+
+    SharedPersistentSpaceIdentifier(String name, ResourcePool resource) {
+      this.name = name;
+      this.resource = resource;
+    }
+
+    @Override
+    public Class<SharedStoreProvider> getServiceType() {
+      return SharedStoreProvider.class;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public ResourcePool getResource() {
+      return resource;
+    }
+  }
+}

@@ -58,6 +58,7 @@ import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.persistence.PersistableIdentityService;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -72,6 +73,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,7 +82,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.config.ResourceType.Core.DISK;
+import static java.util.stream.Collectors.toSet;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
@@ -204,30 +206,29 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       List<LifeCycled> lifeCycledList = new ArrayList<>();
 
       Set<ResourceType<?>> resources = resourcePools.getResourceTypeSet();
-      boolean persistent = resources.contains(DISK);
-      if (persistent) {
+      Set<ResourceType<?>> persistableResources = resources.stream().filter(ResourceType::isPersistable).collect(toSet());
+      if (!persistableResources.isEmpty()) {
         if (id == null) {
           throw new IllegalStateException("Persistent user managed caches must have an id set");
         }
-        final DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
-        if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
-          try {
-            diskResourceService.destroy(id);
-          } catch (CachePersistenceException cpex) {
-            throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + id, cpex);
-          }
-        }
-        try{
-          final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = diskResourceService.getPersistenceSpaceIdentifier(id, cacheConfig);
-          lifeCycledList.add(new LifeCycledAdapter() {
-            @Override
-            public void close() throws Exception {
-              diskResourceService.releasePersistenceSpaceIdentifier(identifier);
+        Collection<PersistableResourceService> persistableResourceServices = serviceLocator.getServicesOfType(PersistableResourceService.class);
+        for (PersistableResourceService persistableResourceService : persistableResourceServices) {
+          for (ResourceType<?> resourceType : persistableResources) {
+            if (persistableResourceService.handlesResourceType(resourceType)) {
+              try {
+                PersistableIdentityService.PersistenceSpaceIdentifier<?> identifier = persistableResourceService.getPersistenceSpaceIdentifier(id, resourcePools.getPoolForResource(resourceType));
+                lifeCycledList.add(new LifeCycledAdapter() {
+                  @Override
+                  public void close() throws Exception {
+                    persistableResourceService.releasePersistenceSpaceIdentifier(identifier);
+                  }
+                });
+                serviceConfigsList.add(identifier);
+              } catch (CachePersistenceException cpex) {
+                throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
+              }
             }
-          });
-          serviceConfigsList.add(identifier);
-        } catch (CachePersistenceException cpex) {
-          throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
+          }
         }
       }
 
@@ -317,14 +318,10 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         resilienceStrategy = new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
       }
 
-      if (persistent) {
-        DiskResourceService diskResourceService = serviceLocator
-          .getService(DiskResourceService.class);
-        if (diskResourceService == null) {
-          throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
-        }
+      if (!persistableResources.isEmpty()) {
+        Collection<PersistableResourceService> persistableResourceServices = serviceLocator.getServicesOfType(PersistableResourceService.class);
 
-        PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<>(cacheConfig, store, resilienceStrategy, diskResourceService, cacheLoaderWriter, eventDispatcher, id);
+        PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<>(cacheConfig, store, resilienceStrategy, persistableResourceServices, cacheLoaderWriter, eventDispatcher, id);
         registerListeners(cache, serviceLocator, lifeCycledList);
         for (LifeCycled lifeCycled : lifeCycledList) {
           cache.addHook(lifeCycled);

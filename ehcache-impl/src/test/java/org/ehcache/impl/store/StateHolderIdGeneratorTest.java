@@ -16,7 +16,11 @@
 
 package org.ehcache.impl.store;
 
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.impl.config.SizedResourcePoolImpl;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.store.shared.StateHolderIdGenerator;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
@@ -46,6 +50,7 @@ public class StateHolderIdGeneratorTest {
   private StateHolderIdGenerator<String> sharedPersistence;
   private PersistableIdentityService.PersistenceSpaceIdentifier<?> spaceIdentifier;
   private DefaultDiskResourceService diskResourceService;
+  private ResourcePool diskResource;
 
   @Before
   public void before() throws Throwable {
@@ -56,7 +61,8 @@ public class StateHolderIdGeneratorTest {
     dependencySet.with(diskResourceService);
     serviceLocator = dependencySet.build();
     serviceLocator.startAllServices();
-    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(true);
+    diskResource = new SizedResourcePoolImpl<>(ResourceType.Core.DISK, 1, MemoryUnit.MB, true);
+    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(diskResource);
     sharedPersistence = new StateHolderIdGenerator<>(diskResourceService.getStateRepositoryWithin(spaceIdentifier, "persistent-partition-ids"), String.class);
   }
   @Test
@@ -67,14 +73,14 @@ public class StateHolderIdGeneratorTest {
     serviceLocator.stopAllServices();
 
     serviceLocator.startAllServices();
-    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(true);
+    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(diskResource);
     namesToMap.addAll(getNames());
     map(namesToMap);
     diskResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
     serviceLocator.stopAllServices();
 
     serviceLocator.startAllServices();
-    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(true);
+    spaceIdentifier = diskResourceService.getSharedResourcesSpaceIdentifier(diskResource);
     namesToMap.addAll(getNames());
     map(namesToMap);
     diskResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);

@@ -20,6 +20,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -30,7 +31,7 @@ import java.util.Map;
 
 @ServiceDependencies(Store.ElementalProvider.class)
 @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
-public class SharedStorageProvider implements Service {
+public class SharedStorageProvider implements MaintainableService {
 
   private final ResourcePools resourcePools;
 
@@ -49,6 +50,19 @@ public class SharedStorageProvider implements Service {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    for (ResourceType<?> resourceType : resourcePools.getResourceTypeSet()) {
+      ResourcePool pool = resourcePools.getPoolForResource(resourceType);
+      if (pool.isPersistent()) {
+        SharedStorage sharedStorage = new SharedStorage(pool);
+        sharedStorage.start((ServiceProvider<Service>) serviceProvider);
+        storage.put(resourceType, sharedStorage);
+      }
+    }
+  }
+
   @Override
   public void stop() {
     storage.values().forEach(SharedStorage::stop);
@@ -62,5 +76,13 @@ public class SharedStorageProvider implements Service {
   public boolean supports(Class<?> storageType, ResourceType<?> resourceType) {
     SharedStorage sharedStorage = storage.get(resourceType);
     return sharedStorage != null && sharedStorage.supports(storageType);
+  }
+
+  public void destroyPartition(ResourceType<?> resourceType, String alias) {
+    storage.get(resourceType).destroyPartition(alias);
+  }
+
+  public void destroyPartition(String name) {
+    storage.values().forEach(type -> type.destroyPartition(name));
   }
 }

@@ -16,9 +16,7 @@
 
 package org.ehcache.impl.internal.store.shared;
 
-import org.ehcache.CacheManager;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.internal.store.shared.store.SharedStoreProvider;
 import org.ehcache.spi.service.OptionalServiceDependencies;
@@ -36,20 +34,17 @@ public abstract class AbstractSharedTierProvider implements Service {
 
   protected SharedStorageProvider sharedStorageProvider;
   protected StatisticsService statisticsService;
-  protected CacheManager cacheManager;
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     sharedStorageProvider = serviceProvider.getService(SharedStorageProvider.class);
     statisticsService = serviceProvider.getService(StatisticsService.class);
-    cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
   }
 
   @Override
   public void stop() {
     sharedStorageProvider = null;
     statisticsService = null;
-    cacheManager = null;
   }
 
   protected void associateStoreStatsWithPartition(Object toAssociate, Object parent) {

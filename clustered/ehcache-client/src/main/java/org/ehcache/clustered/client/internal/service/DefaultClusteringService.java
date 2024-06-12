@@ -35,7 +35,7 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.persistence.StateRepository;
@@ -171,12 +171,12 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
   }
 
   @Override
-  public PersistenceSpaceIdentifier<ClusteringService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+  public PersistenceSpaceIdentifier<ClusteringService> getPersistenceSpaceIdentifier(String name, ResourcePool resource) {
     return getPersistenceSpaceIdentifier(name);
   }
 
   @Override
-  public PersistenceSpaceIdentifier<ClusteringService> getSharedResourcesSpaceIdentifier(boolean persistent) {
+  public PersistenceSpaceIdentifier<ClusteringService> getSharedResourcesSpaceIdentifier(ResourcePool resource) {
     return getPersistenceSpaceIdentifier(CACHE_MANAGER_SHARED_RESOURCES);
   }
 

@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.persistence;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -88,8 +88,13 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    return diskResourceService.getPersistenceSpaceIdentifier(name, config);
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, ResourcePool resourcePool) throws CachePersistenceException {
+    return diskResourceService.getPersistenceSpaceIdentifier(name, resourcePool);
+  }
+
+  @Override
+  public PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(ResourcePool resource) throws CachePersistenceException {
+    return diskResourceService.getSharedResourcesSpaceIdentifier(resource);
   }
 
   @Override

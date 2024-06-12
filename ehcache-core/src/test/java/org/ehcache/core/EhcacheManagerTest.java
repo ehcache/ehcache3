@@ -473,7 +473,7 @@ public class EhcacheManagerTest {
 
   @Test
   public void testClosesStartedCachesDownWhenInitThrows() {
-    final Set<Cache<?,?>> caches = new HashSet<>();
+    final Set<String> caches = new HashSet<>();
     final CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
@@ -491,7 +491,7 @@ public class EhcacheManagerTest {
       <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                             final Class<K> keyType, final Class<V> valueType) {
         final InternalCache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
-        caches.add(ehcache);
+        caches.add(alias);
         if(caches.size() == 1) {
           when(storeProvider.createStore(
                   ArgumentMatchers.<Store.Configuration<K,V>>any(), ArgumentMatchers.<ServiceConfiguration<?, ?>>any()))
@@ -501,9 +501,9 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
-        super.closeEhcache(alias, ehcache);
-        caches.remove(ehcache);
+      protected void internalRemoveCache(final String alias) {
+        super.internalRemoveCache(alias);
+        caches.remove(alias);
       }
     };
 
@@ -550,8 +550,8 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
-        super.closeEhcache(alias, ehcache);
+      protected void internalRemoveCache(final String alias) {
+        super.internalRemoveCache(alias);
         if(alias.equals("foobar")) {
           throw thrown;
         }

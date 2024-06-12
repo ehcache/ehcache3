@@ -181,18 +181,16 @@ public class DefaultClusteringServiceTest {
 
   @Test
   public void testCreate() throws Exception {
-    CacheConfigurationBuilder<Long, String> configBuilder =
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredShared("primary")));
+    ResourcePools resourcePools = ResourcePoolsBuilder.newResourcePoolsBuilder()
+      .with(ClusteredResourcePoolBuilder.clusteredShared("primary")).build();
+
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
-    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", configBuilder
-        .build());
+    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", resourcePools.getPoolForResource(DEDICATED));
     assertThat(spaceIdentifier, instanceOf(ClusteredCacheIdentifier.class));
     assertThat(((ClusteredCacheIdentifier) spaceIdentifier).getId(), is("cacheAlias"));
   }

@@ -17,7 +17,7 @@
 package org.ehcache.spi.persistence;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -45,18 +45,14 @@ public interface PersistableIdentityService extends Service {
    * with the persistence space.
    *
    * @param name the name of the persistence context
-   * @param config the configuration for the associated cache
+   * @param resource the associated persistable resource pool
    * @throws CachePersistenceException if the persistence space cannot be created
    *
    * @return an identifier for the persistence space
    *
    * @see PersistableResourceService#getStateRepositoryWithin(PersistableIdentityService.PersistenceSpaceIdentifier, String)
    */
-  PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
-
-  default PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, boolean persistent) throws CachePersistenceException {
-    return null;
-  }
+  PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, ResourcePool resource) throws CachePersistenceException;
 
   /**
    * Returns a {@link PersistableResourceService.PersistenceSpaceIdentifier} for the space where shared resources are stored.
@@ -64,7 +60,7 @@ public interface PersistableIdentityService extends Service {
    * This method may create a new persistence space or load one. The returned identifier is the only way to interact
    * with the shared persistence space.
    *
-   * @param persistent whether or not the space is persistent
+   * @param resource the associated shared persistable resource pool
    * @throws CachePersistenceException if the persistence space cannot be created
    *
    * @return an identifier for the shared resources persistence space
@@ -72,9 +68,7 @@ public interface PersistableIdentityService extends Service {
    * @see PersistableResourceService#getStateRepositoryWithin(PersistableIdentityService.PersistenceSpaceIdentifier, String)
    */
 
-  default PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(boolean persistent) throws CachePersistenceException {
-    return null;
-  }
+  PersistenceSpaceIdentifier<?> getSharedResourcesSpaceIdentifier(ResourcePool resource) throws CachePersistenceException;
 
   /**
    * Releases a previously obtained {@link PersistenceSpaceIdentifier}.

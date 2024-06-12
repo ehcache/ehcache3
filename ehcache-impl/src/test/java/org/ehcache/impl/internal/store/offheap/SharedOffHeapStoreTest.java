@@ -523,7 +523,7 @@ public class SharedOffHeapStoreTest {
                                                      EvictionAdvisor evictionAdvisor,
                                                      ExpiryPolicy<? super String, ? super String> expiry) throws UnsupportedTypeException {
       setupMaps(partitionId, keyType, valueType, evictionAdvisor, expiry);
-      StorePartition<K, V> partition = new StorePartition<>("", partitionId, keyType, valueType, sharedStore, false, null);
+      StorePartition<K, V> partition = new StorePartition<>(partitionId, keyType, valueType, sharedStore);
       statisticsService.registerWithParent(sharedStore, partition);
       return partition;
     }
@@ -532,7 +532,7 @@ public class SharedOffHeapStoreTest {
                                                                              EvictionAdvisor evictionAdvisor,
                                                                              ExpiryPolicy<? super String, ? super String> expiry) throws UnsupportedTypeException {
       setupMaps(partitionId, keyType, valueType, evictionAdvisor, expiry);
-      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition("", partitionId, keyType, valueType, sharedStore, false, null);
+      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition(partitionId, keyType, valueType, sharedStore);
       statisticsService.registerWithParent(sharedStore, partition);
       return partition;
     }

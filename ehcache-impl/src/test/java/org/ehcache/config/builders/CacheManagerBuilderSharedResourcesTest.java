@@ -36,8 +36,11 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
+import static org.terracotta.utilities.test.matchers.ThrowsMatcher.threw;
+
 import org.terracotta.org.junit.rules.TemporaryFolder;
 
 public class CacheManagerBuilderSharedResourcesTest {
@@ -525,8 +528,8 @@ public class CacheManagerBuilderSharedResourcesTest {
     }
   }
   @Test
-  public void testRemoveDestroyUnsharedDiskCache() throws IOException {
-    File folder = new File(temporaryFolder.newFolder().getAbsolutePath());
+  public void testRemoveDestroyUnsharedPersistentDiskCache() throws IOException {
+    File folder = temporaryFolder.newFolder();
     try (PersistentCacheManager cm = threeTierWithDisk(folder, true)) {
       Cache<Long, Long> c1 = getLongCache(cm);
       Cache<String, String> c2 = getStringCache(cm);
@@ -555,7 +558,13 @@ public class CacheManagerBuilderSharedResourcesTest {
     } catch (CachePersistenceException e) {
       throw new RuntimeException(e);
     }
-    try (PersistentCacheManager cm = threeTierWithDisk(folder, false)) {
+
+    assertThat(() -> threeTierWithDisk(folder, false), threw(instanceOf(StateTransitionException.class)));
+  }
+
+  @Test
+  public void testRemoveDestroyUnsharedNonPersistentDiskCache() throws IOException {
+    try (PersistentCacheManager cm = threeTierWithDisk(temporaryFolder.newFolder(), false)) {
       Cache<Long, Long> c1 = getLongCache(cm);
       Cache<String, String> c2 = getStringCache(cm);
       assertThat(c1.containsKey(88L), is(false));
@@ -583,7 +592,7 @@ public class CacheManagerBuilderSharedResourcesTest {
   }
 
   @Test
-  public void testRemoveDestroySingleTierSharedDiskCache() throws IOException {
+  public void testRemoveDestroySingleTierSharedPersistentDiskCache() throws IOException {
     File folder = new File(temporaryFolder.newFolder().getAbsolutePath());
     try (PersistentCacheManager cm = newCacheManagerBuilder()
       .with(CacheManagerBuilder.persistence(folder))
@@ -624,8 +633,12 @@ public class CacheManagerBuilderSharedResourcesTest {
     } catch (CachePersistenceException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Test
+  public void testRemoveDestroySingleTierSharedNonPersistentDiskCache() throws IOException {
     try (PersistentCacheManager cm = newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(folder))
+      .with(CacheManagerBuilder.persistence(temporaryFolder.newFolder()))
       .sharedResources(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB, false))
       .withCache("c1", cacheConfig(Long.class, Long.class, newResourcePoolsBuilder().sharedDisk()))
       .withCache("c2", cacheConfig(String.class, String.class, newResourcePoolsBuilder().sharedDisk()))
@@ -655,7 +668,7 @@ public class CacheManagerBuilderSharedResourcesTest {
   }
 
   @Test
-  public void testRemoveDestroyTwoTierSharedDiskCache() throws IOException {
+  public void testRemoveDestroyTwoTierSharedPersistentDiskCache() throws IOException {
     File folder = new File(temporaryFolder.newFolder().getAbsolutePath());
     try (PersistentCacheManager cm = twoTierWithSharedDisk(folder, true)) {
       Cache<Long, Long> c1 = getLongCache(cm);
@@ -685,7 +698,11 @@ public class CacheManagerBuilderSharedResourcesTest {
     } catch (CachePersistenceException e) {
       throw new RuntimeException(e);
     }
-    try (PersistentCacheManager cm = twoTierWithSharedDisk(folder, false)) {
+  }
+
+  @Test
+  public void testRemoveDestroyTwoTierSharedNonPersistentDiskCache() throws IOException {
+    try (PersistentCacheManager cm = twoTierWithSharedDisk(temporaryFolder.newFolder(), false)) {
       Cache<Long, Long> c1 = getLongCache(cm);
       Cache<String, String> c2 = getStringCache(cm);
       assertThat(c1.containsKey(88L), is(false));
@@ -711,7 +728,7 @@ public class CacheManagerBuilderSharedResourcesTest {
   }
 
   @Test
-  public void testRemoveDestroyThreeTierSharedDiskCache() throws IOException {
+  public void testRemoveDestroyThreeTierSharedPersistentDiskCache() throws IOException {
     File folder = new File(temporaryFolder.newFolder().getAbsolutePath());
     try (PersistentCacheManager cm = threeTierWithSharedDisk(folder, true)) {
       Cache<Long, Long> c1 = getLongCache(cm);
@@ -741,7 +758,11 @@ public class CacheManagerBuilderSharedResourcesTest {
     } catch (CachePersistenceException e) {
       throw new RuntimeException(e);
     }
-    try (PersistentCacheManager cm = threeTierWithSharedDisk(folder, false)) {
+  }
+
+  @Test
+  public void testRemoveDestroyThreeTierSharedNonPersistentDiskCache() throws IOException {
+    try (PersistentCacheManager cm = threeTierWithSharedDisk(temporaryFolder.newFolder(), false)) {
       Cache<Long, Long> c1 = getLongCache(cm);
       Cache<String, String> c2 = getStringCache(cm);
       assertThat(c1.containsKey(88L), is(false));
@@ -802,7 +823,7 @@ public class CacheManagerBuilderSharedResourcesTest {
     // No shared resources, cache sharing disk
     assertInvalidCacheCreation(newResourcePoolsBuilder(),
       newResourcePoolsBuilder().sharedDisk(),
-      "No Store.Provider types found to handle configuration");
+      "No service found for persistable resource: shared(disk)");
 
     // Shared offheap, cache sharing offheap
     assertValidCacheCreation(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB),
@@ -816,7 +837,7 @@ public class CacheManagerBuilderSharedResourcesTest {
     // Shared heap/offHeap, cache sharing disk
     assertInvalidCacheCreation(newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB),
       newResourcePoolsBuilder().sharedDisk(),
-      "No Store.Provider types found to handle configuration");
+      "No service found for persistable resource: shared(disk)");
   }
 
   void assertInvalidCacheCreation(ResourcePoolsBuilder sharedResources, ResourcePoolsBuilder cacheResources, String exception) throws IOException {

@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.shared;
 
+import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
@@ -42,6 +43,7 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationLi
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.persistence.PersistableIdentityService;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -76,7 +78,6 @@ public class SharedStorage implements Service {
   private Store<CompositeValue<?>, CompositeValue<?>> store = null;
   private StateHolderIdGenerator<String> persistentPartitionIds = null;
   private PersistableIdentityService.PersistenceSpaceIdentifier<?> sharedResourcesSpaceIdentifier;
-  private PersistableIdentityService.PersistenceSpaceIdentifier<?> sharedResourceTypeSpaceIdentifier;
   private PersistableResourceService persistableResourceService;
   private final boolean persistent;
 
@@ -100,28 +101,17 @@ public class SharedStorage implements Service {
   }
 
   public void stop() {
-    try {
-      if (storeProvider != null && store != null) {
-        storeProvider.releaseStore(store);
-      }
-      if (persistableResourceService != null) {
-          if (persistent) {
-            if (sharedResourcesSpaceIdentifier != null) {
-              persistableResourceService.releasePersistenceSpaceIdentifier(sharedResourcesSpaceIdentifier);
-            }
-            if (sharedResourceTypeSpaceIdentifier != null) {
-              persistableResourceService.releasePersistenceSpaceIdentifier(sharedResourceTypeSpaceIdentifier);
-            }
-          } else {
-            if (sharedResourcesSpaceIdentifier != null) {
-              persistableResourceService.destroy(sharedResourcesSpaceIdentifier.toString());
-            }
-            if (sharedResourceTypeSpaceIdentifier != null) {
-              persistableResourceService.destroy(sharedResourceTypeSpaceIdentifier.toString());
-            }
+    if (storeProvider != null && store != null) {
+      storeProvider.releaseStore(store);
+    }
+    if (persistableResourceService != null) {
+      if (sharedResourcesSpaceIdentifier != null) {
+        try {
+          persistableResourceService.releasePersistenceSpaceIdentifier(sharedResourcesSpaceIdentifier);
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
         }
       }
-    } catch (Exception ignored) {
     }
   }
 
@@ -141,10 +131,9 @@ public class SharedStorage implements Service {
       } else {
         try {
           persistableResourceService = persistenceServices.iterator().next();
-          sharedResourcesSpaceIdentifier = persistableResourceService.getSharedResourcesSpaceIdentifier(persistent);
+          sharedResourcesSpaceIdentifier = persistableResourceService.getSharedResourcesSpaceIdentifier(resourcePool);
           persistentPartitionIds = new StateHolderIdGenerator(persistableResourceService.getStateRepositoryWithin(sharedResourcesSpaceIdentifier, "persistent-partition-ids"), String.class);
-          sharedResourceTypeSpaceIdentifier = persistableResourceService.getPersistenceSpaceIdentifier(sharedResourcesSpaceIdentifier.toString() + type, persistent);
-          serviceConfigs.add(sharedResourceTypeSpaceIdentifier);
+          serviceConfigs.add(sharedResourcesSpaceIdentifier);
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to handle persistence", e);
         }
@@ -215,6 +204,25 @@ public class SharedStorage implements Service {
 
   public Map<Integer, CachingTier.InvalidationListener<?, ?>> getInvalidationListeners() {
     return invalidationListenerMap;
+  }
+
+  public void destroyPartition(String alias) {
+    if (persistent) {
+      int id = persistentPartitionIds.map(alias);
+      Store.Iterator<Cache.Entry<CompositeValue<?>, Store.ValueHolder<CompositeValue<?>>>> iterator = store.iterator();
+      while (iterator.hasNext()) {
+        try {
+          Cache.Entry<CompositeValue<?>, Store.ValueHolder<CompositeValue<?>>> next = iterator.next();
+          if (next.getKey().getStoreId() == id) {
+            store.remove(next.getKey());
+          }
+        } catch (StoreAccessException e) {
+          //ignore
+        }
+      }
+    } else {
+      //nothing?!
+    }
   }
 
   public interface PartitionFactory<T, U> {
