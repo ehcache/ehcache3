@@ -85,4 +85,8 @@ public class SharedStorageProvider implements MaintainableService {
   public void destroyPartition(String name) {
     storage.values().forEach(type -> type.destroyPartition(name));
   }
+
+  public void releasePartition(AbstractPartition<?> partition) {
+    storage.get(partition.type()).releasePartition(partition);
+  }
 }

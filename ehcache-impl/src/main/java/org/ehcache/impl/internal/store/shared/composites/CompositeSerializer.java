@@ -45,14 +45,24 @@ public class CompositeSerializer implements Serializer<CompositeValue<?>> {
   public CompositeValue<?> read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     int id = binary.getInt();
     Serializer<?> serializer = serializerMap.get(id);
-    return new CompositeValue<>(id, serializer.read(binary));
+    if (serializer == null) {
+      return new CompositeValue<>(id, null);
+    } else {
+      return new CompositeValue<>(id, serializer.read(binary));
+    }
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
   public boolean equals(CompositeValue<?> object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     int id = binary.getInt();
     if (id == object.getStoreId()) {
-      return object.getValue().equals(serializerMap.get(id).read(binary));
+      Serializer serializer = serializerMap.get(id);
+      if (serializer == null) {
+        return false;
+      } else {
+        return serializer.equals(object.getValue(), binary.slice());
+      }
     } else {
       return false;
     }

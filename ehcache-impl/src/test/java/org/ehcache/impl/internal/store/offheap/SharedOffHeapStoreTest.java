@@ -523,7 +523,7 @@ public class SharedOffHeapStoreTest {
                                                      EvictionAdvisor evictionAdvisor,
                                                      ExpiryPolicy<? super String, ? super String> expiry) throws UnsupportedTypeException {
       setupMaps(partitionId, keyType, valueType, evictionAdvisor, expiry);
-      StorePartition<K, V> partition = new StorePartition<>(partitionId, keyType, valueType, sharedStore);
+      StorePartition<K, V> partition = new StorePartition<>(ResourceType.Core.OFFHEAP, partitionId, keyType, valueType, sharedStore);
       statisticsService.registerWithParent(sharedStore, partition);
       return partition;
     }
@@ -532,7 +532,7 @@ public class SharedOffHeapStoreTest {
                                                                              EvictionAdvisor evictionAdvisor,
                                                                              ExpiryPolicy<? super String, ? super String> expiry) throws UnsupportedTypeException {
       setupMaps(partitionId, keyType, valueType, evictionAdvisor, expiry);
-      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition(partitionId, keyType, valueType, sharedStore);
+      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition(ResourceType.Core.OFFHEAP, partitionId, keyType, valueType, sharedStore);
       statisticsService.registerWithParent(sharedStore, partition);
       return partition;
     }
@@ -541,7 +541,7 @@ public class SharedOffHeapStoreTest {
                                                                            EvictionAdvisor evictionAdvisor,
                                                                            ExpiryPolicy<? super String, ? super String> expiry) throws UnsupportedTypeException {
       setupMaps(partitionId, keyType, valueType, evictionAdvisor, expiry);
-      LowerCachingTierPartition<K, V> partition = new LowerCachingTierPartition(partitionId, sharedStore, invalidationListenerMap);
+      LowerCachingTierPartition<K, V> partition = new LowerCachingTierPartition(ResourceType.Core.OFFHEAP, partitionId, sharedStore, invalidationListenerMap);
       statisticsService.registerWithParent(sharedStore, partition);
       return partition;
     }

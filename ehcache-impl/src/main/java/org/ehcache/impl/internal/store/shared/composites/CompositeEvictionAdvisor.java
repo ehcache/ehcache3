@@ -30,6 +30,11 @@ public class CompositeEvictionAdvisor implements EvictionAdvisor<CompositeValue<
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public boolean adviseAgainstEviction(CompositeValue<?> key, CompositeValue<?> value) {
-    return ((EvictionAdvisor) evictionAdvisorMap.get(key.getStoreId())).adviseAgainstEviction(key.getValue(), value.getValue());
+    EvictionAdvisor<?, ?> evictionAdvisor = evictionAdvisorMap.get(key.getStoreId());
+    if (evictionAdvisor == null) {
+      return false;
+    } else {
+      return ((EvictionAdvisor) evictionAdvisor).adviseAgainstEviction(key.getValue(), value.getValue());
+    }
   }
 }

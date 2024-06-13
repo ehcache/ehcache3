@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.shared.caching;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
@@ -40,9 +41,8 @@ public class CachingTierPartition<K, V> extends AbstractPartition<CachingTier<Co
   private static final Logger LOGGER = LoggerFactory.getLogger(CachingTierPartition.class);
   private final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap;
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public CachingTierPartition(int id, CachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap) {
-    super(id, store);
+  public CachingTierPartition(ResourceType<?> type, int id, CachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap) {
+    super(type, id, store);
     this.invalidationListenerMap = invalidationListenerMap;
   }
 

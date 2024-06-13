@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.shared.authoritative;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.AbstractSharedTierProvider;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -38,7 +39,7 @@ public class SharedAuthoritativeTierProvider extends AbstractSharedTierProvider 
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
     String alias = extractAlias(serviceConfigs);
     return sharedStorageProvider.<AuthoritativeTier<CompositeValue<K>, CompositeValue<V>>, AuthoritativeTier<K, V>, K, V>partition(alias, resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
-      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
+      AuthoritativeTierPartition<K, V> partition = new AuthoritativeTierPartition<>(resourceType.getResourceType(), id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
       associateStoreStatsWithPartition(store, partition);
       return partition;
     });
@@ -46,7 +47,8 @@ public class SharedAuthoritativeTierProvider extends AbstractSharedTierProvider 
 
   @Override
   public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
-
+    AbstractPartition<?> partition = (AbstractPartition<?>) resource;
+    sharedStorageProvider.releasePartition(partition);
   }
 
   @Override

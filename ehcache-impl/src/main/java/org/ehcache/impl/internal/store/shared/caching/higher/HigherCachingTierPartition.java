@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.shared.caching.higher;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
@@ -28,8 +29,8 @@ import java.util.function.Function;
 
 public class HigherCachingTierPartition<K, V> extends CachingTierPartition<K, V> implements HigherCachingTier<K, V> {
 
-  public HigherCachingTierPartition(int id, HigherCachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, InvalidationListener<?, ?>> invalidationListenerMap) {
-    super(id, store, invalidationListenerMap);
+  public HigherCachingTierPartition(ResourceType<?> type, int id, HigherCachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, InvalidationListener<?, ?>> invalidationListenerMap) {
+    super(type, id, store, invalidationListenerMap);
   }
 
   @Override

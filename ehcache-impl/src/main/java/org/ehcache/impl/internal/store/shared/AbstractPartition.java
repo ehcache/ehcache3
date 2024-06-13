@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.shared;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 
@@ -26,15 +27,21 @@ import java.util.function.Function;
 
 public class AbstractPartition<S> {
 
-  protected final int id;
+  private final ResourceType<?> type;
+  private final int id;
   private final S shared;
 
-  public AbstractPartition(int id, S shared) {
+  public AbstractPartition(ResourceType<?> type, int id, S shared) {
+    this.type = type;
     this.id = id;
     this.shared = shared;
   }
 
-  protected int id() {
+  public ResourceType<?> type() {
+    return type;
+  }
+
+  public int id() {
     return id;
   }
 

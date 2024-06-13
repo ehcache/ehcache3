@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.shared.caching.lower;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
@@ -38,8 +39,8 @@ public class LowerCachingTierPartition<K, V> extends AbstractPartition<LowerCach
   private static final Logger LOGGER = LoggerFactory.getLogger(LowerCachingTierPartition.class);
     private final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap;
 
-  public LowerCachingTierPartition(int id, LowerCachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap) {
-    super(id, store);
+  public LowerCachingTierPartition(ResourceType<?> type, int id, LowerCachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap) {
+    super(type, id, store);
     this.invalidationListenerMap = invalidationListenerMap;
   }
 
@@ -108,6 +109,6 @@ public class LowerCachingTierPartition<K, V> extends AbstractPartition<LowerCach
 
   @Override
   public void invalidateAllWithHash(long keyValueHash) throws StoreAccessException {
-    shared().invalidateAllWithHash(CompositeValue.compositeHash(id, HashUtils.longHashToInt(keyValueHash)));
+    shared().invalidateAllWithHash(CompositeValue.compositeHash(id(), HashUtils.longHashToInt(keyValueHash)));
   }
 }

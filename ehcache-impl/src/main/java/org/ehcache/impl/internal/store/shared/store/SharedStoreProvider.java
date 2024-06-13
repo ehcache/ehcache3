@@ -20,6 +20,7 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.AbstractSharedTierProvider;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.spi.persistence.PersistableResourceService;
@@ -44,7 +45,7 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(storeConfig.getResourcePools().getResourceTypeSet());
     String alias = extractAlias(serviceConfigs);
     return sharedStorageProvider.<Store<CompositeValue<K>, CompositeValue<V>>, Store<K, V>, K, V>partition(alias, resourceType.getResourceType(), storeConfig, (id, store, storage) -> {
-      StorePartition<K, V> partition = new StorePartition<>(id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
+      StorePartition<K, V> partition = new StorePartition<>(resourceType.getResourceType(), id, storeConfig.getKeyType(), storeConfig.getValueType(), store);
       associateStoreStatsWithPartition(store, partition);
       return partition;
     });
@@ -52,7 +53,8 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
 
   @Override
   public void releaseStore(Store<?, ?> resource) {
-
+    AbstractPartition<?> partition = (AbstractPartition<?>) resource;
+    sharedStorageProvider.releasePartition(partition);
   }
 
   @Override

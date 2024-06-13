@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.shared.store;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.store.AbstractValueHolder;
@@ -50,9 +51,9 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
   private final Class<K> keyType;
   private final Class<V> valueType;
 
-  public StorePartition(int id, Class<K> keyType, Class<V> valueType,
+  public StorePartition(ResourceType<?> type, int id, Class<K> keyType, Class<V> valueType,
                         Store<CompositeValue<K>, CompositeValue<V>> store) {
-    super(id, store);
+    super(type, id, store);
     this.keyType = keyType;
     this.valueType = valueType;
   }

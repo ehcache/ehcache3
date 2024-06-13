@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.shared.authoritative;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
@@ -36,8 +37,8 @@ public class AuthoritativeTierPartition<K, V> extends StorePartition<K, V> imple
     return (AuthoritativeTier<CompositeValue<K>, CompositeValue<V>>) super.shared();
   }
 
-  public AuthoritativeTierPartition(int id, Class<K> keyType, Class<V> valueType, AuthoritativeTier<CompositeValue<K>, CompositeValue<V>> store) {
-    super(id, keyType, valueType, store);
+  public AuthoritativeTierPartition(ResourceType<?> type, int id, Class<K> keyType, Class<V> valueType, AuthoritativeTier<CompositeValue<K>, CompositeValue<V>> store) {
+    super(type, id, keyType, valueType, store);
   }
 
   @Override

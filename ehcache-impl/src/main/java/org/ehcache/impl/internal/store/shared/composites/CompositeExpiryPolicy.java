@@ -35,16 +35,31 @@ public class CompositeExpiryPolicy<K, V> implements ExpiryPolicy<CompositeValue<
   }
   @Override
   public Duration getExpiryForCreation(CompositeValue<K> key, CompositeValue<V> value) {
-    return getPolicy(key.getStoreId()).getExpiryForCreation(key.getValue(), value.getValue());
+    ExpiryPolicy<K, V> expiryPolicy = getPolicy(key.getStoreId());
+    if (expiryPolicy == null) {
+      return Duration.ZERO;
+    } else {
+      return expiryPolicy.getExpiryForCreation(key.getValue(), value.getValue());
+    }
   }
 
   @Override
   public Duration getExpiryForAccess(CompositeValue<K> key, Supplier<? extends CompositeValue<V>> value) {
-    return getPolicy(key.getStoreId()).getExpiryForAccess(key.getValue(), () -> value.get().getValue());
+    ExpiryPolicy<K, V> expiryPolicy = getPolicy(key.getStoreId());
+    if (expiryPolicy == null) {
+      return Duration.ZERO;
+    } else {
+      return expiryPolicy.getExpiryForAccess(key.getValue(), () -> value.get().getValue());
+    }
   }
 
   @Override
   public Duration getExpiryForUpdate(CompositeValue<K> key, Supplier<? extends CompositeValue<V>> oldValue, CompositeValue<V> newValue) {
-    return getPolicy(key.getStoreId()).getExpiryForUpdate(key.getValue(), () -> oldValue.get().getValue(), newValue.getValue());
+    ExpiryPolicy<K, V> expiryPolicy = getPolicy(key.getStoreId());
+    if (expiryPolicy == null) {
+      return Duration.ZERO;
+    } else {
+      return expiryPolicy.getExpiryForUpdate(key.getValue(), () -> oldValue.get().getValue(), newValue.getValue());
+    }
   }
 }

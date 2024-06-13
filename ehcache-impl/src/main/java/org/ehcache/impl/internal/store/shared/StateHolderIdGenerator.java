@@ -22,13 +22,14 @@ import org.ehcache.spi.persistence.StateRepository;
 import java.io.Serializable;
 
 public class StateHolderIdGenerator<K extends Serializable> {
+  private static final Object DEAD_SENTINEL = new Sentinel();
   volatile int lastUsedId;
   final private StateHolder<K, Integer> forwardMap;
-  final private StateHolder<Integer, K> reverseMap;
+  final private StateHolder<Integer, Serializable> reverseMap;
 
   public StateHolderIdGenerator(StateRepository repository, Class<K> keyClazz) {
     forwardMap = repository.getPersistentStateHolder("forward-map", keyClazz, Integer.class, c -> true, null);
-    reverseMap = repository.getPersistentStateHolder("reverse-map", Integer.class, keyClazz, c -> true, null);
+    reverseMap = repository.getPersistentStateHolder("reverse-map", Integer.class, Serializable.class, c -> true, null);
   }
 
   /***
@@ -41,7 +42,7 @@ public class StateHolderIdGenerator<K extends Serializable> {
     if (existing == null) {
       // key is not mapped, first try to reserve an id for it
       for (int candidate = lastUsedId + 1; ; candidate++) {
-        K mappedKey = reverseMap.putIfAbsent(candidate, key);
+        Serializable mappedKey = reverseMap.putIfAbsent(candidate, key);
         if (mappedKey == null || mappedKey.equals(key)) {
           // candidate Id is now mapped to key, but check if the key has been mapped since the call to get() above?
           existing = forwardMap.putIfAbsent(key, candidate);
@@ -56,10 +57,30 @@ public class StateHolderIdGenerator<K extends Serializable> {
         }
       }
     } else {
+      setLastUsedId(existing);
       return existing;
     }
   }
   private synchronized void setLastUsedId(Integer existing) {
     lastUsedId = Integer.max(existing, lastUsedId);
+  }
+
+  public void clear(K key, int id) {
+    if (!forwardMap.remove(key, id) || !reverseMap.remove(id, key)) {
+      throw new IllegalStateException();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  public void purge(K alias) {
+    int id = forwardMap.get(alias);
+
+    reverseMap.remove(id, alias);
+    reverseMap.putIfAbsent(id, (K) DEAD_SENTINEL);
+    forwardMap.remove(alias, id);
+  }
+
+  static final class Sentinel implements Serializable {
+    private static final long serialVersionUID = 1L;
   }
 }

@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.store.shared;
 
-import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
@@ -38,12 +37,10 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeExpiryPolicy;
 import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationValve;
 import org.ehcache.impl.internal.store.shared.composites.CompositeSerializer;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
-import org.ehcache.impl.internal.store.shared.store.StorePartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.persistence.PersistableIdentityService;
 import org.ehcache.spi.persistence.PersistableResourceService;
-import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -183,18 +180,19 @@ public class SharedStorage implements Service {
     return partitionFactory.createPartition(storeId, (T) store, this);
   }
 
-  public void releaseStore(Store<?, ?> store) {
-    if (!(store instanceof StorePartition)) {
-      throw new IllegalArgumentException("Given store is not managed by this provider : " + store);
-    }
-    try {
-      store.clear();
-    } catch (Exception ex) {
-      LOGGER.error("Error clearing the store", ex);
-    }
+  public void releasePartition(AbstractPartition<?> partition) {
+    int id = partition.id();
+    keySerializerMap.remove(id);
+    valueSerializerMap.remove(id);
+    expiryPolicyMap.remove(id);
+    evictionAdvisorMap.remove(id);
+    expiryPolicyMap.remove(id);
+    invalidationValveMap.remove(id);
+    invalidationListenerMap.remove(id);
+
     StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
     if (statisticsService != null) {
-      statisticsService.cleanForNode(store);
+      statisticsService.cleanForNode(partition);
     }
   }
 
@@ -208,18 +206,7 @@ public class SharedStorage implements Service {
 
   public void destroyPartition(String alias) {
     if (persistent) {
-      int id = persistentPartitionIds.map(alias);
-      Store.Iterator<Cache.Entry<CompositeValue<?>, Store.ValueHolder<CompositeValue<?>>>> iterator = store.iterator();
-      while (iterator.hasNext()) {
-        try {
-          Cache.Entry<CompositeValue<?>, Store.ValueHolder<CompositeValue<?>>> next = iterator.next();
-          if (next.getKey().getStoreId() == id) {
-            store.remove(next.getKey());
-          }
-        } catch (StoreAccessException e) {
-          //ignore
-        }
-      }
+      persistentPartitionIds.purge(alias);
     } else {
       //nothing?!
     }

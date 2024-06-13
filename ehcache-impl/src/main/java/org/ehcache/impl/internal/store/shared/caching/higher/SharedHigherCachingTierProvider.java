@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.shared.caching.higher;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
+import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.AbstractSharedTierProvider;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -37,7 +38,7 @@ public class SharedHigherCachingTierProvider extends AbstractSharedTierProvider 
   public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
     ResourceType.SharedResource<?> resourceType = assertResourceIsShareable(resourceTypes);
     return sharedStorageProvider.<HigherCachingTier<CompositeValue<K>, CompositeValue<V>>, HigherCachingTier<K, V>, K, V>partition(extractAlias(serviceConfigs), resourceType.getResourceType(), storeConfig, (id, store, shared) -> {
-      HigherCachingTierPartition<K, V> partition = new HigherCachingTierPartition<>(id, store, shared.getInvalidationListeners());
+      HigherCachingTierPartition<K, V> partition = new HigherCachingTierPartition<>(resourceType.getResourceType(), id, store, shared.getInvalidationListeners());
       associateStoreStatsWithPartition(store, partition);
       return partition;
     });
@@ -45,7 +46,8 @@ public class SharedHigherCachingTierProvider extends AbstractSharedTierProvider 
 
   @Override
   public void releaseHigherCachingTier(HigherCachingTier<?, ?> resource) {
-
+    AbstractPartition<?> partition = (AbstractPartition<?>) resource;
+    sharedStorageProvider.releasePartition(partition);
   }
 
   @Override
