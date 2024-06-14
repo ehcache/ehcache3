@@ -22,7 +22,11 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.impl.internal.events.StoreEventImpl;
 import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.spi.resilience.StoreAccessException;
@@ -183,7 +187,9 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
         @Override
         public boolean newValueAlreadyExpired(CompositeValue<K> key, CompositeValue<V> oldValue, CompositeValue<V> newValue) {
-          return putAllFunction.newValueAlreadyExpired(key.getValue(), oldValue.getValue(), newValue.getValue());
+          return putAllFunction.newValueAlreadyExpired(key.getValue(),
+            oldValue == null ? null : oldValue.getValue(),
+            newValue == null ? null : newValue.getValue());
         }
 
         @Override
@@ -206,15 +212,17 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
       results = shared().bulkCompute(compositeSet(keys), new BulkComputeMappingFunction<>(id(), keyType, valueType, remappingFunction));
     }
 
-    return results.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getValue(), e -> decode(e.getValue())));
+    Map<K, ValueHolder<V>> decodedResults = new HashMap<>();
+    results.forEach((k, v) -> decodedResults.put(k.getValue(), decode(v)));
+    return decodedResults;
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys,
                                                     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
-    Map<K, ValueHolder<V>> decodedResults = new HashMap<>();
     Map<CompositeValue<K>, ValueHolder<CompositeValue<V>>> results =
       shared().bulkComputeIfAbsent(compositeSet(keys), new BulkComputeIfAbsentMappingFunction<>(id(), keyType, valueType, mappingFunction));
+    Map<K, ValueHolder<V>> decodedResults = new HashMap<>();
     results.forEach((k, v) -> decodedResults.put(k.getValue(), decode(v)));
     return decodedResults;
   }
@@ -237,7 +245,65 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
   @Override
   public StoreEventSource<K, V> getStoreEventSource() {
-    throw new UnsupportedOperationException("this is broken");
+    StoreEventSource<CompositeValue<K>, CompositeValue<V>> storeEventSource = shared().getStoreEventSource();
+    return new StoreEventSource<K, V>() {
+      @Override
+      public void addEventListener(StoreEventListener<K, V> eventListener) {
+        storeEventSource.addEventListener(new StoreEventListener<CompositeValue<K>, CompositeValue<V>>() {
+          @Override
+          public void onEvent(StoreEvent<CompositeValue<K>, CompositeValue<V>> event) {
+            if (event.getKey().getStoreId() == id()) {
+              eventListener.onEvent(new StoreEventImpl<>(event.getType(), event.getKey().getValue(),
+                event.getOldValue() == null ? null : event.getOldValue().getValue(),
+                event.getNewValue() == null ? null : event.getNewValue().getValue()));
+            }
+          }
+
+          @Override
+          public int hashCode() {
+            return eventListener.hashCode();
+          }
+
+          @Override
+          public boolean equals(Object obj) {
+            return super.equals(this) || eventListener.equals(obj);
+          }
+        });
+      }
+
+      @SuppressWarnings("unchecked")
+      @Override
+      public void removeEventListener(StoreEventListener<K, V> eventListener) {
+        storeEventSource.removeEventListener((StoreEventListener<CompositeValue<K>, CompositeValue<V>>) eventListener);
+      }
+
+      @Override
+      public void addEventFilter(StoreEventFilter<K, V> eventFilter) {
+        storeEventSource.addEventFilter((type, key, oldValue, newValue) -> {
+          if (key.getStoreId() == id()) {
+            return eventFilter.acceptEvent(type, key.getValue(), oldValue == null ? null : oldValue.getValue(),
+              newValue == null ? null : newValue.getValue());
+          } else {
+            return true;
+          }
+        });
+      }
+
+      @Override
+      public void setEventOrdering(boolean ordering) throws IllegalArgumentException {
+        storeEventSource.setEventOrdering(ordering);
+      }
+
+      @Override
+      public void setSynchronous(boolean synchronous) throws IllegalArgumentException {
+        storeEventSource.setSynchronous(synchronous);
+      }
+
+      @Override
+      public boolean isEventOrdering() {
+        return storeEventSource.isEventOrdering();
+      }
+    };
   }
 
   @Override

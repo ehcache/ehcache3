@@ -238,8 +238,7 @@ public class SharedOffHeapStoreTest {
     final List<String> expiredKeys = new ArrayList<>();
     storePartition.getStoreEventSource().addEventListener(event -> {
       if (event.getType() == EventType.EXPIRED) {
-        CompositeValue<String> compositeKey = (CompositeValue<String>)(Object)event.getKey();
-        expiredKeys.add(compositeKey.getValue());
+        expiredKeys.add(event.getKey());
       }
     });
     storePartition.put("key1", "value1");
@@ -257,14 +256,14 @@ public class SharedOffHeapStoreTest {
   public void testGetWithExpiryOnAccess() throws Exception {
     createAndInitStore(timeSource, expiry().access(Duration.ZERO).build());
     storePartition.put("key", "value");
-    final AtomicReference<CompositeValue<String>> expired = new AtomicReference<>();
+    final AtomicReference<String> expired = new AtomicReference<>();
     storePartition.getStoreEventSource().addEventListener(event -> {
       if (event.getType() == EventType.EXPIRED) {
-        expired.set((CompositeValue<String>)(Object)event.getKey());
+        expired.set(event.getKey());
       }
     });
     assertThat(storePartition.get("key"), valueHeld("value"));
-    assertThat(((CompositeValue<?>)expired.get()).getValue(), is("key"));
+    assertThat(expired.get(), is("key"));
   }
 
   @Test
