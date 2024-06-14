@@ -123,14 +123,14 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     // Copy all entries to write into a Map
     Map<K, V> entriesToRemap = CollectionUtil.copyMapButFailOnNull(entries);
 
-    PutAllFunction<K, V> putAllFunction = new PutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiryPolicy());
+    PutAllFunction<K, V> putAllFunction = new SimplePutAllFunction<>(logger, entriesToRemap, runtimeConfiguration.getExpiryPolicy());
     store.bulkCompute(entries.keySet(), putAllFunction);
     addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
     addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
   }
 
   protected void doRemoveAll(final Set<? extends K> keys) throws BulkCacheWritingException, StoreAccessException {
-    RemoveAllFunction<K, V> removeAllFunction = new RemoveAllFunction<>();
+    RemoveAllFunction<K, V> removeAllFunction = new SimpleRemoveAllFunction<>();
     store.bulkCompute(keys, removeAllFunction);
     addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, removeAllFunction.getActualRemoveCount().get());
   }
@@ -257,38 +257,24 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     }
   }
 
-  // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
-  // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
-  public static class PutAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
-
-    private final Logger logger;
-    private final Map<K, V> entriesToRemap;
-    private final ExpiryPolicy<? super K, ? super V> expiry;
-    private AtomicInteger actualPutCount = new AtomicInteger();
-    private AtomicInteger actualUpdateCount = new AtomicInteger();
-
-    public PutAllFunction(Logger logger, Map<K, V> entriesToRemap, ExpiryPolicy<? super K, ? super V> expiry) {
-      this.logger = logger;
-      this.entriesToRemap = entriesToRemap;
-      this.expiry = expiry;
-    }
+  public interface PutAllFunction<K, V> extends Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
 
     @Override
-    public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    default Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       Map<K, V> mutations = new LinkedHashMap<>();
 
       // then record we handled these mappings
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
         K key = entry.getKey();
         V existingValue = entry.getValue();
-        V newValue = entriesToRemap.remove(key);
+        V newValue = getEntriesToRemap().remove(key);
 
         if (newValueAlreadyExpired(key, existingValue, newValue)) {
           mutations.put(key, null);
         } else {
-          actualPutCount.incrementAndGet();
+          getActualPutCount().incrementAndGet();
           if(existingValue != null) {
-            actualUpdateCount.incrementAndGet();
+            getActualUpdateCount().incrementAndGet();
           }
           mutations.put(key, newValue);
         }
@@ -298,19 +284,37 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       return mutations.entrySet();
     }
 
-    public Logger getLogger() {
-      return logger;
-    }
+    Map<K, V> getEntriesToRemap();
 
-    public ExpiryPolicy<? super K, ? super V> getExpiry() {
-      return expiry;
+    boolean newValueAlreadyExpired(K key, V oldValue, V newValue);
+
+    AtomicInteger getActualPutCount();
+
+    AtomicInteger getActualUpdateCount();
+
+  }
+
+  // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
+  // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
+  public static class SimplePutAllFunction<K, V> implements PutAllFunction<K, V> {
+
+    private final Logger logger;
+    private final Map<K, V> entriesToRemap;
+    private final ExpiryPolicy<? super K, ? super V> expiry;
+    private final AtomicInteger actualPutCount = new AtomicInteger();
+    private final AtomicInteger actualUpdateCount = new AtomicInteger();
+
+    public SimplePutAllFunction(Logger logger, Map<K, V> entriesToRemap, ExpiryPolicy<? super K, ? super V> expiry) {
+      this.logger = logger;
+      this.entriesToRemap = entriesToRemap;
+      this.expiry = expiry;
     }
 
     public Map<K, V> getEntriesToRemap() {
       return entriesToRemap;
     }
 
-    private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
+    public boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
       return EhcacheBase.newValueAlreadyExpired(logger, expiry, key, oldValue, newValue);
     }
 
@@ -321,22 +325,12 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     public AtomicInteger getActualUpdateCount() {
       return actualUpdateCount;
     }
-
-    public void setActualPutCount(AtomicInteger actualPutCount) {
-      this.actualPutCount = actualPutCount;
-    }
-
-    public void setActualUpdateCount(AtomicInteger actualUpdateCount) {
-      this.actualUpdateCount = actualUpdateCount;
-    }
   }
 
-  public static class RemoveAllFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
-
-    private AtomicInteger actualRemoveCount = new AtomicInteger();
+  public interface RemoveAllFunction<K, V> extends Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
 
     @Override
-    public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+    default Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       Map<K, V> results = new LinkedHashMap<>();
 
       for (Map.Entry<? extends K, ? extends V> entry : entries) {
@@ -344,7 +338,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
         V existingValue = entry.getValue();
 
         if (existingValue != null) {
-          actualRemoveCount.incrementAndGet();
+          getActualRemoveCount().incrementAndGet();
         }
         results.put(key, null);
       }
@@ -352,12 +346,15 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
       return results.entrySet();
     }
 
+    AtomicInteger getActualRemoveCount();
+  }
+
+  public static class SimpleRemoveAllFunction<K, V> implements RemoveAllFunction<K, V> {
+
+    private final AtomicInteger actualRemoveCount = new AtomicInteger();
+
     public AtomicInteger getActualRemoveCount() {
       return actualRemoveCount;
-    }
-
-    public void setActualRemoveCount(AtomicInteger actualRemoveCount) {
-      this.actualRemoveCount = actualRemoveCount;
     }
   }
 

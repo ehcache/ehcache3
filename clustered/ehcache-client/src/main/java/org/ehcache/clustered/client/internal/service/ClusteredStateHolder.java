@@ -91,9 +91,7 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public boolean remove(final K key, final V value) {
     return (Boolean) getResponse(messageFactory.removeMessage(keyCodec.encode(key), valueCodec.encode(value)), true);
   }
-
 }

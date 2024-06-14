@@ -33,7 +33,7 @@ public class CompositeSerializer implements Serializer<CompositeValue<?>> {
   @Override
   public ByteBuffer serialize(CompositeValue<?> compositeValue) throws SerializerException {
     int id = compositeValue.getStoreId();
-    ByteBuffer valueForm = ((Serializer)serializerMap.get(id)).serialize(compositeValue.getValue());
+    ByteBuffer valueForm = ((Serializer) serializerMap.get(id)).serialize(compositeValue.getValue());
     ByteBuffer compositeForm = ByteBuffer.allocate(4 + valueForm.remaining());
     compositeForm.putInt(compositeValue.getStoreId());
     compositeForm.put(valueForm);
@@ -57,11 +57,11 @@ public class CompositeSerializer implements Serializer<CompositeValue<?>> {
   public boolean equals(CompositeValue<?> object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     int id = binary.getInt();
     if (id == object.getStoreId()) {
-      Serializer serializer = serializerMap.get(id);
+      Serializer<?> serializer = serializerMap.get(id);
       if (serializer == null) {
         return false;
       } else {
-        return serializer.equals(object.getValue(), binary.slice());
+        return ((Serializer) serializer).equals(object.getValue(), binary.slice());
       }
     } else {
       return false;

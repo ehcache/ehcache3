@@ -475,7 +475,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
       operationStatisticsEnabled, keySerializer, valueSerializer, loaderWriter, useLoaderInAtomics);
 
-
     Store.Provider storeProvider = StoreSupport.trySelect(WrapperStore.Provider.class, serviceLocator, wrapper -> wrapper.wrapperStoreRank(serviceConfigs))
       .map(Store.Provider.class::cast).orElseGet(() -> StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resourceTypes, serviceConfigs)));
 
@@ -665,7 +664,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         if (ehcache != null) {
           configuration.removeCacheConfiguration(alias);
           for (CacheManagerListener listener : listeners) {
-            listener.cacheDestroyed(alias, ehcache);
+            listener.cacheRemoved(alias, ehcache);
           }
           ehcache.close();
         }

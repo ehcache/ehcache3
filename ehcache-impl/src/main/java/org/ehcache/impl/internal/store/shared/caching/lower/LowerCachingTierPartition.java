@@ -86,7 +86,6 @@ public class LowerCachingTierPartition<K, V> extends AbstractPartition<LowerCach
     shared().invalidate(composite(key));
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void invalidateAll() throws StoreAccessException {
     Store<CompositeValue<K>, CompositeValue<V>> realStore = (Store<CompositeValue<K>, CompositeValue<V>>) shared();

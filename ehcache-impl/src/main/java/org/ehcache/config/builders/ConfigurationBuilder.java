@@ -174,7 +174,7 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
   }
 
   @Override
-  protected ConfigurationBuilder newBuilderWithSharedResourcePools(ResourcePools sharedResourcePools) {
+  protected ConfigurationBuilder newBuilderWith(ResourcePools sharedResourcePools) {
     return new ConfigurationBuilder(this, sharedResourcePools);
   }
 }

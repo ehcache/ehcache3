@@ -22,44 +22,47 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class CompositeExpiryPolicy<K, V> implements ExpiryPolicy<CompositeValue<K>, CompositeValue<V>> {
+public class CompositeExpiryPolicy implements ExpiryPolicy<CompositeValue<?>, CompositeValue<?>> {
   private final Map<Integer, ExpiryPolicy<?, ?>> expiryPolicyMap;
 
   public CompositeExpiryPolicy(Map<Integer, ExpiryPolicy<?, ?>> expiryPolicyMap) {
     this.expiryPolicyMap = expiryPolicyMap;
   }
 
-  @SuppressWarnings("unchecked")
-  private ExpiryPolicy<K, V> getPolicy(int id) {
-    return (ExpiryPolicy<K, V>) expiryPolicyMap.get(id);
+  private ExpiryPolicy<?, ?> getPolicy(int id) {
+    return expiryPolicyMap.get(id);
   }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
-  public Duration getExpiryForCreation(CompositeValue<K> key, CompositeValue<V> value) {
-    ExpiryPolicy<K, V> expiryPolicy = getPolicy(key.getStoreId());
+  public Duration getExpiryForCreation(CompositeValue<?> key, CompositeValue<?> value) {
+    ExpiryPolicy<?, ?> expiryPolicy = getPolicy(key.getStoreId());
     if (expiryPolicy == null) {
       return Duration.ZERO;
     } else {
-      return expiryPolicy.getExpiryForCreation(key.getValue(), value.getValue());
+      return ((ExpiryPolicy) expiryPolicy).getExpiryForCreation(key.getValue(), value.getValue());
     }
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
-  public Duration getExpiryForAccess(CompositeValue<K> key, Supplier<? extends CompositeValue<V>> value) {
-    ExpiryPolicy<K, V> expiryPolicy = getPolicy(key.getStoreId());
+  public Duration getExpiryForAccess(CompositeValue<?> key, Supplier<? extends CompositeValue<?>> value) {
+    ExpiryPolicy<?, ?> expiryPolicy = getPolicy(key.getStoreId());
     if (expiryPolicy == null) {
       return Duration.ZERO;
     } else {
-      return expiryPolicy.getExpiryForAccess(key.getValue(), () -> value.get().getValue());
+      return ((ExpiryPolicy) expiryPolicy).getExpiryForAccess(key.getValue(), () -> value.get().getValue());
     }
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Override
-  public Duration getExpiryForUpdate(CompositeValue<K> key, Supplier<? extends CompositeValue<V>> oldValue, CompositeValue<V> newValue) {
-    ExpiryPolicy<K, V> expiryPolicy = getPolicy(key.getStoreId());
+  public Duration getExpiryForUpdate(CompositeValue<?> key, Supplier<? extends CompositeValue<?>> oldValue, CompositeValue<?> newValue) {
+    ExpiryPolicy<?, ?> expiryPolicy = getPolicy(key.getStoreId());
     if (expiryPolicy == null) {
       return Duration.ZERO;
     } else {
-      return expiryPolicy.getExpiryForUpdate(key.getValue(), () -> oldValue.get().getValue(), newValue.getValue());
+      return ((ExpiryPolicy) expiryPolicy).getExpiryForUpdate(key.getValue(), () -> oldValue.get().getValue(), newValue.getValue());
     }
   }
 }

@@ -31,7 +31,6 @@ import org.ehcache.core.store.StoreSupport;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.ResourcePoolsImpl;
-import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.shared.composites.CompositeEvictionAdvisor;
 import org.ehcache.impl.internal.store.shared.composites.CompositeExpiryPolicy;
 import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationValve;
@@ -58,8 +57,7 @@ import java.util.stream.Collectors;
 import static java.util.Objects.requireNonNull;
 import static org.ehcache.core.config.store.StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
-public class SharedStorage implements Service {
+public class SharedStorage {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(SharedStorage.class);
   private ServiceProvider<Service> serviceProvider;
@@ -93,7 +91,7 @@ public class SharedStorage implements Service {
     // above from adjustedServiceConfigs during cache creation in EhcacheManager.createNewEhcache
     ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
     // above from EhcacheManager:  this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
-    CacheLoaderWriter<?, ?> cacheLoaderWriter = null; // placeholder for later implementation
+    CacheLoaderWriter<CompositeValue<?>, CompositeValue<?>> cacheLoaderWriter = null; // placeholder for later implementation
     createSharedStore(classLoader, serviceConfigs, cacheLoaderWriter);
   }
 
@@ -112,9 +110,10 @@ public class SharedStorage implements Service {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private void createSharedStore(ClassLoader classLoader,
                                  Collection<ServiceConfiguration<?, ?>> serviceConfigs,
-                                 CacheLoaderWriter<?, ?> cacheLoaderWriter) {
+                                 CacheLoaderWriter<CompositeValue<?>, CompositeValue<?>> cacheLoaderWriter) {
     ResourceType<?> type = resourcePool.getType();
     if (type.isPersistable()) {
       Set<PersistableResourceService> persistenceServices = serviceProvider.getServicesOfType(PersistableResourceService.class)
@@ -129,35 +128,36 @@ public class SharedStorage implements Service {
         try {
           persistableResourceService = persistenceServices.iterator().next();
           sharedResourcesSpaceIdentifier = persistableResourceService.getSharedPersistenceSpaceIdentifier(resourcePool);
-          persistentPartitionIds = new StateHolderIdGenerator(persistableResourceService.getStateRepositoryWithin(sharedResourcesSpaceIdentifier, "persistent-partition-ids"), String.class);
+          persistentPartitionIds = new StateHolderIdGenerator<>(persistableResourceService.getStateRepositoryWithin(sharedResourcesSpaceIdentifier, "persistent-partition-ids"), String.class);
           serviceConfigs.add(sharedResourcesSpaceIdentifier);
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to handle persistence", e);
         }
       }
     }
-    Class<?> keyType = CompositeValue.class;
-    Class<?> valueType = CompositeValue.class;
-    Serializer<?> keySerializer = new CompositeSerializer(keySerializerMap);
-    Serializer<?> valueSerializer = new CompositeSerializer(valueSerializerMap);
-    ExpiryPolicy<?, ?> expiry = new CompositeExpiryPolicy<>(expiryPolicyMap);
-    EvictionAdvisor<?, ?> evictionAdvisor = new CompositeEvictionAdvisor(evictionAdvisorMap);
+    @SuppressWarnings({"rawtypes", "unchecked"}) Class<CompositeValue<?>> keyType = (Class) CompositeValue.class;
+    @SuppressWarnings({"rawtypes", "unchecked"}) Class<CompositeValue<?>> valueType = (Class) CompositeValue.class;
+    Serializer<CompositeValue<?>> keySerializer = new CompositeSerializer(keySerializerMap);
+    Serializer<CompositeValue<?>> valueSerializer = new CompositeSerializer(valueSerializerMap);
+    ExpiryPolicy<CompositeValue<?>, CompositeValue<?>> expiry = new CompositeExpiryPolicy(expiryPolicyMap);
+    EvictionAdvisor<CompositeValue<?>, CompositeValue<?>> evictionAdvisor = new CompositeEvictionAdvisor(evictionAdvisorMap);
     ResourcePools resourcePools = new ResourcePoolsImpl(resourcePool);
-    Store.Configuration storeConfig = new StoreConfigurationImpl(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools,
-      DEFAULT_DISPATCHER_CONCURRENCY,true, keySerializer, valueSerializer, cacheLoaderWriter, false);
+    Store.Configuration<CompositeValue<?>, CompositeValue<?>> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools,
+      DEFAULT_DISPATCHER_CONCURRENCY, true, keySerializer, valueSerializer, cacheLoaderWriter, false);
 
-    ServiceConfiguration<?, ?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?, ?>[serviceConfigs.size()]);
+    ServiceConfiguration<?, ?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration<?, ?>[0]);
     storeProvider = StoreSupport.select(Store.ElementalProvider.class, serviceProvider, store -> store.rank(resourcePools.getResourceTypeSet(), serviceConfigs));
     store = storeProvider.createStore(storeConfig, serviceConfigArray);
-    if (store instanceof AuthoritativeTier) {
-      ((AuthoritativeTier) store).setInvalidationValve(new CompositeInvalidationValve(invalidationValveMap));
+    if (store instanceof AuthoritativeTier<?, ?>) {
+      ((AuthoritativeTier<CompositeValue<?>, CompositeValue<?>>) store).setInvalidationValve(new CompositeInvalidationValve(invalidationValveMap));
     }
-    if (store instanceof CachingTier) {
-      ((CachingTier) store).setInvalidationListener(new CompositeInvalidationListener(invalidationListenerMap));
+    if (store instanceof CachingTier<?, ?>) {
+      ((CachingTier<CompositeValue<?>, CompositeValue<?>>) store).setInvalidationListener(new CompositeInvalidationListener(invalidationListenerMap));
     }
     storeProvider.initStore(store);
   }
 
+  @SuppressWarnings("unchecked")
   protected <T, U, K, V> U createPartition(String alias, Store.Configuration<K, V> storeConfig, PartitionFactory<T, U> partitionFactory) {
     int storeId;
     if (persistent) {
@@ -165,16 +165,13 @@ public class SharedStorage implements Service {
     } else {
       storeId = ++lastUsedId;
     }
-    LOGGER.warn("Type: " + resourcePool + ", Alias: " + alias + ", Id: " + storeId);
     keySerializerMap.put(storeId, storeConfig.getKeySerializer());
     valueSerializerMap.put(storeId, storeConfig.getValueSerializer());
     expiryPolicyMap.put(storeId, storeConfig.getExpiry());
 
-    EvictionAdvisor<K, V> evictionAdvisor = (EvictionAdvisor<K, V>) storeConfig.getEvictionAdvisor();
+    EvictionAdvisor<? super K, ? super V> evictionAdvisor = storeConfig.getEvictionAdvisor();
     if (evictionAdvisor == null) {
-      evictionAdvisor = (EvictionAdvisor<K, V>) Eviction.noAdvice();
-    } else if (resourcePool.getType() != ResourceType.Core.HEAP) {
-      evictionAdvisor = (EvictionAdvisor<K, V>) AbstractOffHeapStore.wrap(evictionAdvisor);
+      evictionAdvisor = Eviction.noAdvice();
     }
     evictionAdvisorMap.put(storeId, evictionAdvisor);
     return partitionFactory.createPartition(storeId, (T) store, this);
@@ -207,8 +204,6 @@ public class SharedStorage implements Service {
   public void destroyPartition(String alias) {
     if (persistent) {
       persistentPartitionIds.purge(alias);
-    } else {
-      //nothing?!
     }
   }
 

@@ -37,12 +37,13 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue<K>, CompositeValue<V>>> implements Store<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StorePartition.class);
@@ -170,27 +171,42 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
                                             Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction,
                                             Supplier<Boolean> replaceEqual) throws StoreAccessException {
     Map<CompositeValue<K>, ValueHolder<CompositeValue<V>>> results;
-    Map<K, ValueHolder<V>> decodedResults = new HashMap<>();
+
     if (remappingFunction instanceof Ehcache.PutAllFunction) {
       Ehcache.PutAllFunction<K, V> putAllFunction = (Ehcache.PutAllFunction<K, V>) remappingFunction;
-      Map<CompositeValue<K>, CompositeValue<V>> encodedEntriesToRemap = new HashMap<>();
-      putAllFunction.getEntriesToRemap().forEach((k, v) -> encodedEntriesToRemap.put(composite(k), composite(v)));
-      Ehcache.PutAllFunction<CompositeValue<K>, CompositeValue<V>> encodedRemappingFunction = new Ehcache.PutAllFunction(putAllFunction.getLogger(), encodedEntriesToRemap, putAllFunction.getExpiry());
-      results = shared().bulkCompute(compositeSet(keys), encodedRemappingFunction);
-      results.forEach((k, v) -> decodedResults.put(k.getValue(), decode(v)));
-      putAllFunction.setActualPutCount(encodedRemappingFunction.getActualPutCount());
-      putAllFunction.setActualUpdateCount(encodedRemappingFunction.getActualUpdateCount());
+
+      Ehcache.PutAllFunction<CompositeValue<K>, CompositeValue<V>> compositePutAllFunction = new Ehcache.PutAllFunction<CompositeValue<K>, CompositeValue<V>>() {
+        @Override
+        public Map<CompositeValue<K>, CompositeValue<V>> getEntriesToRemap() {
+          return putAllFunction.getEntriesToRemap().entrySet().stream().collect(Collectors.toMap(e -> composite(e.getKey()), e -> composite(e.getValue())));
+        }
+
+        @Override
+        public boolean newValueAlreadyExpired(CompositeValue<K> key, CompositeValue<V> oldValue, CompositeValue<V> newValue) {
+          return putAllFunction.newValueAlreadyExpired(key.getValue(), oldValue.getValue(), newValue.getValue());
+        }
+
+        @Override
+        public AtomicInteger getActualPutCount() {
+          return putAllFunction.getActualPutCount();
+        }
+
+        @Override
+        public AtomicInteger getActualUpdateCount() {
+          return putAllFunction.getActualUpdateCount();
+        }
+      };
+
+      results = shared().bulkCompute(compositeSet(keys), compositePutAllFunction);
     } else if (remappingFunction instanceof Ehcache.RemoveAllFunction) {
       Ehcache.RemoveAllFunction<K, V> removeAllFunction = (Ehcache.RemoveAllFunction<K, V>) remappingFunction;
-      Ehcache.RemoveAllFunction<CompositeValue<K>, CompositeValue<V>> encodedRemappingFunction = new Ehcache.RemoveAllFunction<>();
-      results = shared().bulkCompute(compositeSet(keys), encodedRemappingFunction);
-      results.forEach((k, v) -> decodedResults.put(k.getValue(), decode(v)));
-      removeAllFunction.setActualRemoveCount(encodedRemappingFunction.getActualRemoveCount());
+      Ehcache.RemoveAllFunction<CompositeValue<K>, CompositeValue<V>> compositeRemappingFunction = removeAllFunction::getActualRemoveCount;
+      results = shared().bulkCompute(compositeSet(keys), compositeRemappingFunction);
     } else {
-      results = shared().bulkCompute(compositeSet(keys), new BulkComputeMappingFunction(id(), keyType, valueType, remappingFunction));
-      results.forEach((k, v) -> decodedResults.put(k.getValue(), decode(v)));
+      results = shared().bulkCompute(compositeSet(keys), new BulkComputeMappingFunction<>(id(), keyType, valueType, remappingFunction));
     }
-    return decodedResults;
+
+    return results.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getValue(), e -> decode(e.getValue())));
   }
 
   @Override
@@ -198,7 +214,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
                                                     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
     Map<K, ValueHolder<V>> decodedResults = new HashMap<>();
     Map<CompositeValue<K>, ValueHolder<CompositeValue<V>>> results =
-      shared().bulkComputeIfAbsent(compositeSet(keys), new BulkComputeIfAbsentMappingFunction(id(), keyType, valueType, mappingFunction));
+      shared().bulkComputeIfAbsent(compositeSet(keys), new BulkComputeIfAbsentMappingFunction<>(id(), keyType, valueType, mappingFunction));
     results.forEach((k, v) -> decodedResults.put(k.getValue(), decode(v)));
     return decodedResults;
   }
@@ -221,8 +237,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
   @Override
   public StoreEventSource<K, V> getStoreEventSource() {
-    //TODO this is broken
-    return (StoreEventSource<K, V>) shared().getStoreEventSource();
+    throw new UnsupportedOperationException("this is broken");
   }
 
   @Override
@@ -319,16 +334,16 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
     }
   }
 
-  public static class BulkComputeMappingFunction<K, V> extends BaseRemappingFunction implements Function<Iterable<Map.Entry<CompositeValue<K>, CompositeValue<V>>>, Iterable<Map.Entry<CompositeValue<K>, CompositeValue<V>>>> {
-    private final Function<Iterable<Map.Entry<K, V>>, Iterable<Map.Entry<K, V>>> function;
+  public static class BulkComputeMappingFunction<K, V> extends BaseRemappingFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>, Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>> {
+    private final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function;
 
-    BulkComputeMappingFunction(int storeId, Class<K> keyType, Class<V> valueType, Function<Iterable<Map.Entry<K, V>>, Iterable<Map.Entry<K, V>>> function) {
+    BulkComputeMappingFunction(int storeId, Class<K> keyType, Class<V> valueType, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function) {
       super(storeId, keyType, valueType);
       this.function = function;
     }
 
     @Override
-    public Iterable<Map.Entry<CompositeValue<K>, CompositeValue<V>>> apply(Iterable<Map.Entry<CompositeValue<K>, CompositeValue<V>>> entries) {
+    public Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> apply(Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> entries) {
       Map<K, V> decodedEntries = new HashMap<>();
       entries.forEach(entry -> {
         K key = entry.getKey().getValue();
@@ -342,7 +357,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
         decodedEntries.put(key, value);
       });
       Map<CompositeValue<K>, CompositeValue<V>> encodedResults = new HashMap<>();
-      Iterable<Map.Entry<K, V>> results = function.apply(decodedEntries.entrySet());
+      Iterable<? extends Map.Entry<? extends K, ? extends V>> results = function.apply(decodedEntries.entrySet());
       results.forEach(entry -> {
         keyCheck(entry.getKey());
         valueCheck(entry.getValue());
@@ -352,23 +367,23 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
     }
   }
 
-  public static class BulkComputeIfAbsentMappingFunction<K, V> extends BaseRemappingFunction implements Function<Iterable<CompositeValue<K>>, Iterable<Map.Entry<CompositeValue<K>, CompositeValue<V>>>> {
-    private final Function<Iterable<K>, Iterable<Map.Entry<K, V>>> function;
+  public static class BulkComputeIfAbsentMappingFunction<K, V> extends BaseRemappingFunction<K, V> implements Function<Iterable<? extends CompositeValue<K>>, Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>> {
+    private final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function;
 
-    BulkComputeIfAbsentMappingFunction(int storeId, Class<K> keyType, Class<V> valueType, Function<Iterable<K>, Iterable<Map.Entry<K, V>>> function) {
+    BulkComputeIfAbsentMappingFunction(int storeId, Class<K> keyType, Class<V> valueType, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function) {
       super(storeId, keyType, valueType);
       this.function = function;
     }
 
     @Override
-    public Iterable<Map.Entry<CompositeValue<K>, CompositeValue<V>>> apply(Iterable<CompositeValue<K>> compositeValues) {
+    public Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> apply(Iterable<? extends CompositeValue<K>> compositeValues) {
       List<K> keys = new ArrayList<>();
       compositeValues.forEach(k -> {
         keyCheck(k.getValue());
         keys.add(k.getValue());
       });
       Map<CompositeValue<K>, CompositeValue<V>> encodedResults = new HashMap<>();
-      Iterable<Map.Entry<K, V>> results = function.apply(keys);
+      Iterable<? extends Map.Entry<? extends K, ? extends V>> results = function.apply(keys);
       results.forEach(entry -> {
         keyCheck(entry.getKey());
         if (entry.getValue() == null) {

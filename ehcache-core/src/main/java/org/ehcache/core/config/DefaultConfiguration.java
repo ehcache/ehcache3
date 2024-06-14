@@ -105,7 +105,6 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
     return unmodifiableMap(caches);
   }
 
-
   /**
    * {@inheritDoc}
    */
@@ -113,6 +112,7 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
   public ResourcePools getSharedResourcePools() {
     return sharedResourcePools;
   }
+
   /**
    * {@inheritDoc}
    */

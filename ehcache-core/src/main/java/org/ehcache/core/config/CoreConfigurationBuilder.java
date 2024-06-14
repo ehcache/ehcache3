@@ -125,7 +125,7 @@ public class CoreConfigurationBuilder<B extends CoreConfigurationBuilder<B>> imp
 
   @Override
   public B withSharedResources(ResourcePools sharedResourcePools) {
-    return newBuilderWithSharedResourcePools(sharedResourcePools);
+    return newBuilderWith(sharedResourcePools);
   }
 
   @Override
@@ -248,7 +248,7 @@ public class CoreConfigurationBuilder<B extends CoreConfigurationBuilder<B>> imp
   }
 
   @SuppressWarnings("unchecked")
-  protected B newBuilderWithSharedResourcePools(ResourcePools sharedResourcePools) {
+  protected B newBuilderWith(ResourcePools sharedResourcePools) {
     if (getClass().equals(CoreConfigurationBuilder.class)) {
       return (B) new CoreConfigurationBuilder<>(this, sharedResourcePools);
     } else {
