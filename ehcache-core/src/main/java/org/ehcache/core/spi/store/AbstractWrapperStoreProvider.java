@@ -18,24 +18,32 @@ package org.ehcache.core.spi.store;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.store.StoreSupport;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.ehcache.core.store.StoreSupport.select;
-
 @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
-public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provider {
+public abstract class AbstractWrapperStoreProvider implements Store.Provider {
 
   private volatile ServiceProvider<Service> serviceProvider;
 
+  private final Set<Class<? extends ServiceConfiguration<?, ?>>> requiredConfigurationTypes;
   private final Map<Store<?, ?>, StoreReference<?, ?>> createdStores = new ConcurrentWeakIdentityHashMap<>();
+
+  @SafeVarargs
+  @SuppressWarnings("varargs")
+  protected AbstractWrapperStoreProvider(Class<? extends ServiceConfiguration<?, ?>> ... requiredConfigurationTypes) {
+    this.requiredConfigurationTypes = new HashSet<>(Arrays.asList(requiredConfigurationTypes));
+  }
 
 
   @Override
@@ -43,17 +51,53 @@ public abstract class AbstractWrapperStoreProvider implements WrapperStore.Provi
 
     Set<ResourceType<?>> resources = storeConfig.getResourcePools().getResourceTypeSet();
     List<ServiceConfiguration<?, ?>> configs = Arrays.asList(serviceConfigs);
-    Store.Provider underlyingStoreProvider = select(Store.Provider.class, serviceProvider, store -> store.rank(resources, configs));
+
+    Store.Provider underlyingStoreProvider = getUnderlyingStoreProvider(resources, configs);
 
     Store<K, V> store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 
     Store<K, V> wrappedStore = wrap(store, storeConfig, serviceConfigs);
-    StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
-    if (statisticsService != null) {
-      statisticsService.registerWithParent(store, wrappedStore);
+    if (wrappedStore != store) {
+      StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
+      if (statisticsService != null) {
+        statisticsService.registerWithParent(store, wrappedStore);
+      }
     }
     createdStores.put(wrappedStore, new StoreReference<>(store, underlyingStoreProvider));
     return wrappedStore;
+  }
+
+  protected Store.Provider getUnderlyingStoreProvider(Set<ResourceType<?>> resources, List<ServiceConfiguration<?, ?>> configs) {
+    return StoreSupport.select(Store.Provider.class, serviceProvider, store -> {
+      if (store instanceof AbstractWrapperStoreProvider && (((AbstractWrapperStoreProvider) store).wrapperRank() >= wrapperRank())) {
+        return 0;
+      } else {
+        return store.rank(resources, configs);
+      }
+    });
+  }
+
+  @Override
+  public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+    if (requiredConfigurationTypes.stream().allMatch(rct -> serviceConfigs.stream().anyMatch(rct::isInstance))) {
+      return StoreSupport.trySelect(Store.Provider.class, serviceProvider, store -> {
+          if (store instanceof AbstractWrapperStoreProvider && (((AbstractWrapperStoreProvider) store).wrapperRank() >= wrapperRank())) {
+            return 0;
+          } else {
+            return store.rank(resourceTypes, serviceConfigs);
+          }
+        })
+        .map(sp -> sp.rank(resourceTypes, serviceConfigs) + wrapperPriority())
+        .orElse(0);
+    } else {
+      return 0;
+    }
+  }
+
+  protected abstract int wrapperRank();
+
+  protected int wrapperPriority() {
+    return 1;
   }
 
   protected abstract <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);

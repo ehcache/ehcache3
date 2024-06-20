@@ -23,9 +23,8 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
@@ -46,7 +45,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assume.assumeThat;
 
 @Deprecated
-public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
+public class ByteSizedOnHeapStoreSPITest extends StoreSPITest<String, String> {
 
   @BeforeClass
   public static void preconditions() {
@@ -90,13 +89,13 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
-        return new OnHeapStore<>(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+        return new OnHeapStore<>(config, timeSource,
             new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new CopiedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, IdentityCopier.identityCopier());
+        return new SimpleOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false);
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {

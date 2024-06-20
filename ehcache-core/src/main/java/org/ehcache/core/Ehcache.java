@@ -98,7 +98,7 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
   }
 
   protected Map<K, V> doGetAllInternal(Set<? extends K> keys, boolean includeNulls) throws StoreAccessException {
-      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new GetAllFunction<>());
+      Map<K, Store.ValueHolder<V>> computedMap = store.bulkComputeIfAbsent(keys, new SimpleGetAllFunction<>());
       Map<K, V> result = new HashMap<>(computedMap.size());
 
       int hits = 0;
@@ -257,6 +257,8 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     }
   }
 
+  // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
+  // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
   public interface PutAllFunction<K, V> extends Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
 
     @Override
@@ -294,8 +296,6 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
 
   }
 
-  // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
-  // but this could happen in batches, i.e. not necessary containing all of the entries of the Iterable passed to this method
   public static class SimplePutAllFunction<K, V> implements PutAllFunction<K, V> {
 
     private final Logger logger;
@@ -358,7 +358,11 @@ public class Ehcache<K, V> extends EhcacheBase<K, V> {
     }
   }
 
-  public static class GetAllFunction<K, V> implements Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
+  public interface GetAllFunction<K, V> extends Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> {
+
+  }
+
+  public static class SimpleGetAllFunction<K, V> implements GetAllFunction<K, V> {
 
     @Override
     public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(final Iterable<? extends K> keys) {

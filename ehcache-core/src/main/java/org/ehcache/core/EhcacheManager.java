@@ -23,6 +23,7 @@ import org.ehcache.Status;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
@@ -32,6 +33,7 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.LifeCycled;
@@ -40,7 +42,6 @@ import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
 import org.ehcache.core.util.ClassLoading;
@@ -49,12 +50,12 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
-import org.ehcache.spi.persistence.PersistableIdentityService;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
@@ -398,24 +399,26 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
                                        Collection<ServiceConfiguration<?, ?>> serviceConfigs,
                                        List<LifeCycled> lifeCycledList, CacheLoaderWriter<? super K, V> loaderWriter) {
 
-    final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
-    for (ResourceType<?> resourceType : resourceTypes) {
-      if (resourceType.isPersistable()) {
-        final PersistableIdentityService persistableIdentityService = getPersistableIdentityService(resourceType);
-
-        try {
-          final PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableIdentityService
-              .getPersistenceSpaceIdentifier(alias, config.getResourcePools().getPoolForResource(resourceType));
-          serviceConfigs.add(spaceIdentifier);
-          lifeCycledList.add(new LifeCycledAdapter() {
-            @Override
-            public void close() throws Exception {
-              persistableIdentityService.releasePersistenceSpaceIdentifier(spaceIdentifier);
-            }
-          });
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException("Unable to handle persistence", e);
-        }
+    Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
+    ResourceType<?> persistentResource = getPersistentResourceType(config.getResourcePools());
+    PersistableResourceService persistableResourceService;
+    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier;
+    if (persistentResource == null) {
+      persistableResourceService = null;
+      spaceIdentifier = null;
+    } else {
+      persistableResourceService = getPersistableResourceService(persistentResource);
+      try {
+        spaceIdentifier = persistableResourceService.getPersistenceSpaceIdentifier(alias, config.getResourcePools().getPoolForResource(persistentResource));
+        serviceConfigs.add(spaceIdentifier);
+        lifeCycledList.add(new LifeCycledAdapter() {
+          @Override
+          public void close() throws Exception {
+            persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
+          }
+        });
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException("Unable to handle persistence", e);
       }
     }
 
@@ -475,17 +478,33 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
       operationStatisticsEnabled, keySerializer, valueSerializer, loaderWriter, useLoaderInAtomics);
 
-    Store.Provider storeProvider = StoreSupport.trySelect(WrapperStore.Provider.class, serviceLocator, wrapper -> wrapper.wrapperStoreRank(serviceConfigs))
-      .map(Store.Provider.class::cast).orElseGet(() -> StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resourceTypes, serviceConfigs)));
+    Store.Provider storeProvider = StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(config.getResourcePools().getResourceTypeSet(), serviceConfigs));
 
     Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 
+    final Serializer<K> kSerializer = keySerializer;
+    final Serializer<V> vSerializer = valueSerializer;
     lifeCycledList.add(new LifeCycled() {
       @Override
-      public void init() {
+      public void init() throws CachePersistenceException {
         storeProviderRef.get().initStore(store);
+        if (kSerializer instanceof StatefulSerializer<?>) {
+          if (persistableResourceService == null) {
+            ((StatefulSerializer<?>) kSerializer).init(new TransientStateRepository());
+          } else {
+            ((StatefulSerializer<?>) kSerializer).init(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "key-serializer"));
+          }
+        }
+        if (vSerializer instanceof StatefulSerializer<?>) {
+          if (persistableResourceService == null) {
+            ((StatefulSerializer<?>) vSerializer).init(new TransientStateRepository());
+          } else {
+            ((StatefulSerializer<?>) vSerializer).init(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "value-serializer"));
+          }
+        }
+
       }
 
       @Override
@@ -497,9 +516,15 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return store;
   }
 
-  private PersistableIdentityService getPersistableIdentityService(ResourceType<?> resourceType) {
-    Collection<PersistableIdentityService> services = serviceLocator.getServicesOfType(PersistableIdentityService.class);
-    for (PersistableIdentityService service : services) {
+  private ResourceType<?> getPersistentResourceType(ResourcePools resourcePools) {
+    return resourcePools.getResourceTypeSet().stream().filter(ResourceType::isPersistable).reduce((a, b) -> {
+      throw new IllegalArgumentException("Multiple persistent resources in resource pools");
+    }).orElse(null);
+  }
+
+  private PersistableResourceService getPersistableResourceService(ResourceType<?> resourceType) {
+    Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
+    for (PersistableResourceService service : services) {
       if (service.handlesResourceType(resourceType)) {
         return service;
       }
@@ -657,6 +682,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         throw maintenance.failed(t);
       }
     }
+
     try {
       final CacheHolder cacheHolder = caches.remove(alias);
       if(cacheHolder != null) {

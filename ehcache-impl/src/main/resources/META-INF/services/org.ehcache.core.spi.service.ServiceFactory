@@ -1,3 +1,4 @@
+org.ehcache.impl.internal.store.copy.CopierStoreProviderFactory
 org.ehcache.impl.internal.store.heap.OnHeapStoreProviderFactory
 org.ehcache.impl.internal.store.offheap.OffHeapStoreProviderFactory
 org.ehcache.impl.internal.store.disk.OffHeapDiskStoreProviderFactory

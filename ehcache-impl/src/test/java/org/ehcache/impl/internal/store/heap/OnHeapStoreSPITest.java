@@ -19,46 +19,36 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
-import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
+import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.terracotta.statistics.StatisticsManager;
 
-import static java.lang.ClassLoader.getSystemClassLoader;
-import static java.lang.Integer.parseInt;
-import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assume.assumeThat;
 
-@Deprecated
-public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
+/**
+ * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
+ * {@link Store} contract.
+ *
+ * @author Aurelien Broszniowski
+ */
 
-  @BeforeClass
-  public static void preconditions() {
-    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
-  }
+public class OnHeapStoreSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
-  private static final int MAGIC_NUM = 500;
 
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
@@ -67,11 +57,7 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
 
   @Before
   public void setUp() {
-
     storeFactory = new StoreFactory<String, String>() {
-
-      final Serializer<String> defaultSerializer = new JavaSerializer<>(getClass().getClassLoader());
-      final Copier<String> defaultCopier = new SerializingCopier<>(defaultSerializer);
 
       @Override
       public Store<String, String> newStore() {
@@ -93,25 +79,26 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
         return newStore(null, evictionAdvisor, ExpiryPolicyBuilder.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
+      @SuppressWarnings("unchecked")
       private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, ExpiryPolicy<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
-          evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0,
-          new JavaSerializer<>(getSystemClassLoader()), new JavaSerializer<>(getSystemClassLoader()));
-        return new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier,
-          new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
+          evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
+        return new OnHeapStore<>(config, timeSource,
+          new NoopSizeOfEngine(), new TestStoreEventDispatcher<>(), new DefaultStatisticsService());
       }
 
       @Override
+      @SuppressWarnings("unchecked")
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new SerializedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, defaultSerializer);
+        return new SimpleOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false);
       }
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          return newResourcePoolsBuilder().heap(10l, MemoryUnit.KB).build();
+          return newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
         } else {
-          return newResourcePoolsBuilder().heap((Long) capacityConstraint * MAGIC_NUM, MemoryUnit.B).build();
+          return newResourcePoolsBuilder().heap((Long)capacityConstraint, EntryUnit.ENTRIES).build();
         }
       }
 
@@ -132,29 +119,28 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        return "" + seed;
       }
 
       @Override
       public void close(final Store<String, String> store) {
-        OnHeapStore.Provider.close((OnHeapStore)store);
-        StatisticsManager.nodeFor(store).clean();
+        closeStore((OnHeapStore<?, ?>) store);
       }
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator serviceLocator = dependencySet().build();
+        ServiceLocator locator = dependencySet().build();
         try {
-          serviceLocator.startAllServices();
+          locator.startAllServices();
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
-        return serviceLocator;
+        return locator;
       }
     };
   }
@@ -163,5 +149,4 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
     OnHeapStore.Provider.close(store);
     StatisticsManager.nodeFor(store).clean();
   }
-
 }

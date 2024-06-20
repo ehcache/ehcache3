@@ -23,8 +23,7 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.util.StatisticsTestUtils;
@@ -1049,8 +1048,8 @@ public abstract class BaseOnHeapStoreTest {
         fail("Got an exception waiting to start thread " + e);
       }
       try {
-        ValueHolder<String> result = store.getOrComputeIfAbsent("42", key -> new CopiedOnHeapValueHolder<>("theAnswer!", System
-          .currentTimeMillis(), -1, false, new IdentityCopier<>()));
+        ValueHolder<String> result = store.getOrComputeIfAbsent("42", key -> new SimpleOnHeapValueHolder<>("theAnswer!", System
+          .currentTimeMillis(), -1, false));
         assertThat(result.get(), is("theAnswer!"));
         endLatch.countDown();
       } catch (Exception e) {
@@ -1095,7 +1094,7 @@ public abstract class BaseOnHeapStoreTest {
           } catch (InterruptedException e) {
             failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
           }
-          return new CopiedOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<>());
+          return new SimpleOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false);
         });
       } catch (StoreAccessException caex) {
         failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
@@ -1136,7 +1135,7 @@ public abstract class BaseOnHeapStoreTest {
           } catch (InterruptedException e) {
             failedInThread.set(new AssertionError("Interrupted exception: " + e.getMessage()));
           }
-          return new CopiedOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<>());
+          return new SimpleOnHeapValueHolder<>("TheAnswer!", System.currentTimeMillis(), false);
         });
       } catch (StoreAccessException caex) {
         failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));

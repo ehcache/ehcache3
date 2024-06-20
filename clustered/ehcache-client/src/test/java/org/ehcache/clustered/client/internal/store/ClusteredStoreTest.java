@@ -529,7 +529,7 @@ public class ClusteredStoreTest {
   public void testBulkComputeIfAbsentGetAll() throws Exception {
     store.put(1L, "one");
     store.put(2L, "two");
-    Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.GetAllFunction<>();
+    Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.SimpleGetAllFunction<>();
     Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkComputeIfAbsent(new HashSet<>(Arrays.asList(1L, 2L)), getAllAllFunction);
 
     assertThat(valueHolderMap.get(1L).get(), is("one"));

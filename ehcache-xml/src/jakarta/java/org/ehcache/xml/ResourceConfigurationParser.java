@@ -174,7 +174,6 @@ public class ResourceConfigurationParser {
     throw new XmlConfigurationException("Can't find parser for element: " + element);
   }
 
-
   public ResourcesType unparse(Document target, ResourcePools resourcePools) {
     List<Element> resources = new ArrayList<>();
     resourcePools.getResourceTypeSet().forEach(resourceType -> {

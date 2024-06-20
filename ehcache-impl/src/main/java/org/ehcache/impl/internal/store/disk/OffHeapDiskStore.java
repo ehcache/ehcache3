@@ -38,9 +38,7 @@ import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.persistence.PersistableIdentityService.PersistenceSpaceIdentifier;
-import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -411,30 +409,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (identifier == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      OffHeapDiskStore<?, ?> diskStore = (OffHeapDiskStore) resource;
-
-      Serializer<?> keySerializer = diskStore.keySerializer;
-      if (keySerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository;
-        try {
-          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException(e);
-        }
-        ((StatefulSerializer)keySerializer).init(stateRepository);
-      }
-      Serializer<?> valueSerializer = diskStore.valueSerializer;
-      if (valueSerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository;
-        try {
-          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException(e);
-        }
-        ((StatefulSerializer)valueSerializer).init(stateRepository);
-      }
-
-      init(diskStore);
+      init((OffHeapDiskStore<?, ?>) resource);
     }
 
     static <K, V> void init(final OffHeapDiskStore<K, V> resource) {

@@ -16,18 +16,67 @@
 
 package org.ehcache.spi.persistence;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.PluralService;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Interface for {@link org.ehcache.spi.service.Service Service}s that handle a {@link ResourceType} which is
  * {@link ResourceType#isPersistable() persistable}.
  */
 @PluralService
-public interface PersistableResourceService extends PersistableIdentityService, MaintainableService {
+public interface PersistableResourceService extends MaintainableService {
+
+  /**
+   * Returns {@code true} if this service handles the given resource type.
+   *
+   * @param resourceType the resource type to check
+   * @return {@code true} if this service handles the resource type
+   */
+  boolean handlesResourceType(ResourceType<?> resourceType);
+
+  /**
+   * Returns a {@link PersistenceSpaceIdentifier} for the space associated to the provided arguments.
+   * <p>
+   * This method may create a new persistence space or load one. The returned identifier is the only way to interact
+   * with the persistence space.
+   *
+   * @param name the name of the persistence context
+   * @param resource the associated persistable resource pool
+   * @throws CachePersistenceException if the persistence space cannot be created
+   *
+   * @return an identifier for the persistence space
+   *
+   * @see #getStateRepositoryWithin(PersistenceSpaceIdentifier, String)
+   */
+  PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, ResourcePool resource) throws CachePersistenceException;
+
+  /**
+   * Returns a {@link PersistenceSpaceIdentifier} for a space shared across all caches.
+   * <p>
+   * This method may create a new persistence space or load one. The returned identifier is the only way to interact
+   * with the persistence space.
+   *
+   * @param resource the associated shared persistable resource pool
+   * @return an identifier for the shared resources persistence space
+   * @throws CachePersistenceException if the persistence space cannot be created
+   */
+  PersistenceSpaceIdentifier<?> getSharedPersistenceSpaceIdentifier(ResourcePool resource) throws CachePersistenceException;
+
+  /**
+   * Releases a previously obtained {@link PersistenceSpaceIdentifier}.
+   * <p>
+   * This indicates to the persistence space that resource linked to the given identifier are no longer needed and thus
+   * enables cleaning up any transient state left.
+   *
+   * @param identifier the {@code PersistenceSpaceIdentifier} to release
+   * @throws CachePersistenceException If the identifier is not known
+   */
+  void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException;
 
   /**
    * Returns a named {@link StateRepository state repository} in the context of the given
@@ -64,4 +113,11 @@ public interface PersistableResourceService extends PersistableIdentityService, 
    * @throws CachePersistenceException if the persistence storage cannot be destroyed
    */
   void destroyAll() throws CachePersistenceException;
+
+  /**
+   * An identifier for an existing persistable resource.
+   *
+   * @param <T> the associated persistence service type
+   */
+  interface PersistenceSpaceIdentifier<T extends PersistableResourceService> extends ServiceConfiguration<T, Void> {}
 }

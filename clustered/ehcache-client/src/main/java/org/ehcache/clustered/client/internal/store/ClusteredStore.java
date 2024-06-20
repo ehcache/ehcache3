@@ -66,9 +66,6 @@ import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.impl.store.HashUtils;
-import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -757,17 +754,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
           CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
         });
         clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
-
-        Serializer<?> keySerializer = clusteredStore.codec.getKeySerializer();
-        if (keySerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
-          ((StatefulSerializer) keySerializer).init(stateRepository);
-        }
-        Serializer<?> valueSerializer = clusteredStore.codec.getValueSerializer();
-        if (valueSerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
-          ((StatefulSerializer) valueSerializer).init(stateRepository);
-        }
       } finally {
         connectLock.unlock();
       }

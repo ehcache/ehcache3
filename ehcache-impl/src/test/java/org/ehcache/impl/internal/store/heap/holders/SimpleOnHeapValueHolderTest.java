@@ -16,32 +16,19 @@
 
 package org.ehcache.impl.internal.store.heap.holders;
 
-import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.copy.ReadWriteCopier;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 
 /**
  * Created by alsu on 20/08/15.
  */
-public class CopiedOnHeapValueHolderTest {
-
-  @Test
-  public void testValueByValue() throws Exception {
-    Person person = new Person("foo", 24);
-    PersonCopier copier = new PersonCopier();
-    CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<>(person, -1, false, copier);
-    person.age = 25;
-
-    assertNotSame(person, valueHolder.get());
-  }
+public class SimpleOnHeapValueHolderTest {
 
   @Test
   public void testValueByRef() throws Exception {
     Person person = new Person("foo", 24);
-    CopiedOnHeapValueHolder<Person> valueHolder = new CopiedOnHeapValueHolder<>(person, -1, false, new IdentityCopier<>());
+    SimpleOnHeapValueHolder<Person> valueHolder = new SimpleOnHeapValueHolder<>(person, -1, false);
     person.age = 25;
 
     assertSame(person, valueHolder.get());
@@ -50,11 +37,6 @@ public class CopiedOnHeapValueHolderTest {
   private static class Person {
     String name;
     int age;
-
-    Person(Person other) {
-      this.name = other.name;
-      this.age = other.age;
-    }
 
     Person(String name, int age) {
       this.name = name;
@@ -78,14 +60,6 @@ public class CopiedOnHeapValueHolderTest {
       result = 31 * result + age;
       result = 31 * result + name.hashCode();
       return result;
-    }
-  }
-
-  public static class PersonCopier extends ReadWriteCopier<Person> {
-
-    @Override
-    public Person copy(final Person obj) {
-      return new Person(obj);
     }
   }
 }

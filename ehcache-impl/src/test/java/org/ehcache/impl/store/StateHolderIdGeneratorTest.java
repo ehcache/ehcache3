@@ -25,7 +25,7 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.store.shared.StateHolderIdGenerator;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
-import org.ehcache.spi.persistence.PersistableIdentityService;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,7 +48,7 @@ public class StateHolderIdGeneratorTest {
   public final TemporaryFolder temporaryFolder = new TemporaryFolder();
   private ServiceLocator serviceLocator;
   private StateHolderIdGenerator<String> sharedPersistence;
-  private PersistableIdentityService.PersistenceSpaceIdentifier<?> spaceIdentifier;
+  private PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier;
   private DefaultDiskResourceService diskResourceService;
   private ResourcePool diskResource;
 

@@ -41,7 +41,7 @@ import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.persistence.PersistableIdentityService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.test.After;
 import org.junit.Before;

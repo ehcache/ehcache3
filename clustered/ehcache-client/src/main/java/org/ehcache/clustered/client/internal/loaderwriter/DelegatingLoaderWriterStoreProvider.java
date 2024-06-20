@@ -23,26 +23,27 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import java.util.Collection;
-
-import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 @ServiceDependencies({CacheLoaderWriterProvider.class, ClusteringService.class})
 public class DelegatingLoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
 
-  @Override
-  protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
-    DelegatingLoaderWriterStore<K, V> loaderWriterStore = new DelegatingLoaderWriterStore<>(store);
-    return loaderWriterStore;
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  public DelegatingLoaderWriterStoreProvider() {
+    super((Class) CacheLoaderWriterConfiguration.class, ClusteredCacheIdentifier.class);
   }
 
   @Override
-  public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    CacheLoaderWriterConfiguration<?> loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
-    ClusteredCacheIdentifier clusteredCacheIdentifier = findSingletonAmongst(ClusteredCacheIdentifier.class, serviceConfigs);
-    if (clusteredCacheIdentifier != null && loaderWriterConfiguration != null) {
-      return 3;
-    }
-    return 0;
+  protected int wrapperRank() {
+    return 2;
+  }
+
+  @Override
+  protected int wrapperPriority() {
+    return super.wrapperPriority() + 1;
+  }
+
+  @Override
+  protected <K, V> Store<K, V> wrap(Store<K, V> store, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    return store;
   }
 }

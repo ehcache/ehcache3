@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Test;
 

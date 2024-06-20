@@ -103,16 +103,16 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String toString() {
-    return "Pool {" + getSize() + " " + getUnit() + " " + getType() +
-      (isPersistent() ? ", persistent" : "") +
-      "}";
+    return "Pool {" + getSize() + " " + getUnit() + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
   }
 
   @Override
   public String readableString() {
-    return getSize() + " " + getUnit() +
-      (isPersistent() ? ", persistent" : "");
+    return getSize() + " " + getUnit() + " " + (isPersistent() ? "(persistent)" : "");
   }
 }

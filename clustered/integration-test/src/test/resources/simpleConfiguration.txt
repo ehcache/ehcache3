@@ -16,7 +16,7 @@ caches:
                     size: 1 MB
                     tierHeight: 1000
                 disk:
-                    size: 2 MB, persistent
+                    size: 2 MB (persistent)
                     tierHeight: 100
 services:
     - org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration:

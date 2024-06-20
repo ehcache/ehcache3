@@ -19,7 +19,7 @@ package org.ehcache.impl.persistence;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.serialization.TransientStateHolder;
+import org.ehcache.core.spi.store.TransientStateHolder;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 import org.terracotta.utilities.classloading.FilteredObjectInputStream;

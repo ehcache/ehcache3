@@ -16,10 +16,12 @@
 
 package org.ehcache.impl.internal.store.shared;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
@@ -88,5 +90,9 @@ public class SharedStorageProvider implements MaintainableService {
 
   public void releasePartition(AbstractPartition<?> partition) {
     storage.get(partition.type()).releasePartition(partition);
+  }
+
+  public StateRepository stateRepository(ResourceType<?> resourceType, String name) throws CachePersistenceException {
+    return storage.get(resourceType).stateRepository(name);
   }
 }

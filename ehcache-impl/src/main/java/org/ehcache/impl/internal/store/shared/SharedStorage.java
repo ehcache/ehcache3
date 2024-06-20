@@ -38,8 +38,8 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeSerializer;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.impl.internal.store.shared.composites.CompositeInvalidationListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.persistence.PersistableIdentityService;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -72,7 +72,7 @@ public class SharedStorage {
   private Store.Provider storeProvider = null;
   private Store<CompositeValue<?>, CompositeValue<?>> store = null;
   private StateHolderIdGenerator<String> persistentPartitionIds = null;
-  private PersistableIdentityService.PersistenceSpaceIdentifier<?> sharedResourcesSpaceIdentifier;
+  private PersistableResourceService.PersistenceSpaceIdentifier<?> sharedResourcesSpaceIdentifier;
   private PersistableResourceService persistableResourceService;
   private final boolean persistent;
 
@@ -205,6 +205,10 @@ public class SharedStorage {
     if (persistent) {
       persistentPartitionIds.purge(alias);
     }
+  }
+
+  public StateRepository stateRepository(String name) throws CachePersistenceException {
+    return persistableResourceService.getStateRepositoryWithin(sharedResourcesSpaceIdentifier, name);
   }
 
   public interface PartitionFactory<T, U> {

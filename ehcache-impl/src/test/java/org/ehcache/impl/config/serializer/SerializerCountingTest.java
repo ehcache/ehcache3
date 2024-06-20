@@ -85,14 +85,14 @@ public class SerializerCountingTest {
                 .build());
 
     cache.put(42L, "TheAnswer!");
-    assertCounters(2, 2, 0, 1, 0, 0);
+    assertCounters(1, 1, 0, 1, 1, 0);
     printSerializationCounters("Put OnHeap (create)");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 1, 0);
+    assertCounters(0, 0, 0, 1, 1, 0);
     printSerializationCounters("Get OnHeap");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(2, 2, 0, 1, 0, 0);
+    assertCounters(1, 1, 0, 1, 1, 0);
     printSerializationCounters("Put OnHeap (update)");
   }
 
@@ -128,17 +128,17 @@ public class SerializerCountingTest {
     );
 
     cache.put(42L, "TheAnswer");
-    assertCounters(2, 1, 0, 1, 0, 0);
+    assertCounters(2, 1, 0, 2, 1, 0);
     printSerializationCounters("Put OffheapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 1, 0, 2, 0);
+    assertCounters(0, 0, 1, 1, 2, 0);
     printSerializationCounters("Get OffheapOnHeapCopy fault");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 1, 0);
+    assertCounters(0, 0, 0, 1, 1, 0);
     printSerializationCounters("Get OffheapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 2, 1, 0, 0);
+    assertCounters(2, 1, 2, 2, 1, 0);
     printSerializationCounters("Put OffheapOnHeapCopy (update faulted)");
   }
 
@@ -153,17 +153,17 @@ public class SerializerCountingTest {
 
 
     cache.put(42L, "TheAnswer");
-    assertCounters(3, 2, 0, 1, 0, 0);
+    assertCounters(2, 1, 0, 2, 1, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 1, 0, 2, 0);
+    assertCounters(0, 0, 1, 1, 2, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy fault");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 1, 0);
+    assertCounters(0, 0, 0, 1, 1, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 2, 1, 0, 0);
+    assertCounters(2, 1, 2, 2, 1, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy (update faulted)");
   }
 

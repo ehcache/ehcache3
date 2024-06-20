@@ -20,6 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -98,7 +99,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllEmptyRequestNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -124,7 +125,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreNoMatchNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -152,7 +153,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreAllMatchStoreAccessExceptionBeforeNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
@@ -181,7 +182,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreAllMatchNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -211,7 +212,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreNoMatchStoreAccessExceptionBeforeNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
@@ -240,7 +241,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreSomeMatchNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -270,7 +271,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreSomeMatchStoreAccessExceptionBeforeNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());

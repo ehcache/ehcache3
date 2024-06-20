@@ -49,7 +49,7 @@ public class SerializersTest {
   public void testStatefulSerializer() throws Exception {
     StatefulSerializerImpl<Long> serializer = new StatefulSerializerImpl<>();
     testSerializerWithByRefHeapCache(serializer);
-    assertThat(serializer.initCount, is(0));
+    assertThat(serializer.initCount, is(1));
 
     serializer = new StatefulSerializerImpl<>();
     testSerializerWithByValueHeapCache(serializer);

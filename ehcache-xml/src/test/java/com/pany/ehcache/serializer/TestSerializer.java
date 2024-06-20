@@ -15,7 +15,7 @@
  */
 package com.pany.ehcache.serializer;
 
-import org.ehcache.impl.serialization.TransientStateRepository;
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;

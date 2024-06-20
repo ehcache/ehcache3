@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.serialization;
+package org.ehcache.core.spi.store;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateHolder;
 
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class TransientStateHolder<K, V> implements StateHolder<K, V>, Serializable {

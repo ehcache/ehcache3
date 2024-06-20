@@ -33,7 +33,6 @@ import java.util.Map;
 
 import static java.util.Collections.unmodifiableMap;
 import java.util.HashMap;
-
 import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
 
 /**

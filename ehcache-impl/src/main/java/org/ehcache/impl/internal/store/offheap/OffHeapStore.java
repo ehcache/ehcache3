@@ -32,8 +32,6 @@ import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.impl.serialization.TransientStateRepository;
-import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
@@ -204,21 +202,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      if (!createdStores.contains(resource)) {
+      if (createdStores.contains(resource)) {
+        init((OffHeapStore<?, ?>) resource);
+      } else {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-
-      OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
-      Serializer<?> keySerializer = offHeapStore.keySerializer;
-      if (keySerializer instanceof StatefulSerializer) {
-        ((StatefulSerializer)keySerializer).init(new TransientStateRepository());
-      }
-      Serializer<?> valueSerializer = offHeapStore.valueSerializer;
-      if (valueSerializer instanceof StatefulSerializer) {
-        ((StatefulSerializer)valueSerializer).init(new TransientStateRepository());
-      }
-
-      init(offHeapStore);
     }
 
     static <K, V> void init(final OffHeapStore<K, V> resource) {

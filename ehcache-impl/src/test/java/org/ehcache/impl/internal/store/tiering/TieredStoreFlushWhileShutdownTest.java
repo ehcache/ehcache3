@@ -35,7 +35,7 @@ import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.persistence.PersistableIdentityService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

@@ -19,7 +19,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 
-public abstract class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
+public abstract class OnHeapStoreTest extends BaseOnHeapStoreTest {
 
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,

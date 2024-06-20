@@ -20,6 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.Test;
 
@@ -86,7 +87,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testRemoveValueNoStoreEntry() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     Ehcache<String, String> ehcache = this.getEhcache();
@@ -106,7 +107,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testRemoveValueUnequalStoreEntry() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
 
     Ehcache<String, String> ehcache = this.getEhcache();
@@ -126,7 +127,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testRemoveValueEqualStoreEntry() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
 
     Ehcache<String, String> ehcache = this.getEhcache();
@@ -147,7 +148,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testRemoveValueNoStoreEntryStoreAccessException() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.emptyMap());
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"), eq("value"));
 
@@ -168,7 +169,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testRemoveValueUnequalStoreEntryStoreAccessException() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"), eq("value"));
 
@@ -189,7 +190,7 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testRemoveValueEqualStoreEntryStoreAccessException() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"), eq("value"));
 

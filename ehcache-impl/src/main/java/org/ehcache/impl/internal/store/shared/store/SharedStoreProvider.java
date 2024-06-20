@@ -92,7 +92,9 @@ public class SharedStoreProvider extends AbstractSharedTierProvider implements S
 
   @Override
   public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
-    throw new UnsupportedOperationException();
+    SharedPersistentSpaceIdentifier sharedSpaceIdentifier = (SharedPersistentSpaceIdentifier) identifier;
+    ResourceType.SharedResource<?> type = (ResourceType.SharedResource<?>) sharedSpaceIdentifier.getResource().getType();
+    return sharedStorageProvider.stateRepository(type.getResourceType(), sharedSpaceIdentifier.getName());
   }
 
   @Override

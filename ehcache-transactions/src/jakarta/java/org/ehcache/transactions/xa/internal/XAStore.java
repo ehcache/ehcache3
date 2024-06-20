@@ -28,13 +28,12 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.spi.store.AbstractWrapperStoreProvider;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.store.StoreConfigurationImpl;
-import org.ehcache.core.store.StoreSupport;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -88,7 +87,7 @@ import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
  * {@link jakarta.transaction.TransactionManager} using the XA 2-phase commit protocol.
  */
-public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V> {
+public class XAStore<K, V> extends BaseStore<K, V> implements Store<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(XAStore.class);
 
@@ -762,11 +761,15 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, TransactionManagerProvider.class})
   @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
-  public static class Provider implements WrapperStore.Provider {
+  public static class Provider extends AbstractWrapperStoreProvider {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile TransactionManagerProvider<TransactionManager> transactionManagerProvider;
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<>();
+
+    public Provider() {
+      super(XAStoreConfiguration.class);
+    }
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
@@ -787,7 +790,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
       List<ServiceConfiguration<?, ?>> serviceConfigList = Arrays.asList(serviceConfigs);
 
-      Store.Provider underlyingStoreProvider = StoreSupport.select(Store.Provider.class, serviceProvider, store -> store.rank(configuredTypes, serviceConfigList));
+      Store.Provider underlyingStoreProvider = getUnderlyingStoreProvider(configuredTypes, serviceConfigList);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
       List<ServiceConfiguration<?, ?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
@@ -950,6 +953,16 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
     }
 
     @Override
+    protected int wrapperRank() {
+      return 1;
+    }
+
+    @Override
+    protected <K, V> Store<K, V> wrap(Store<K, V> store, Configuration<K, V> configuration, ServiceConfiguration<?, ?>... serviceConfigurations) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void releaseStore(Store<?, ?> resource) {
       CreatedStoreRef createdStoreRef = createdStores.remove(resource);
       if (createdStoreRef == null) {
@@ -1002,28 +1015,32 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
+      super.start(serviceProvider);
       this.serviceProvider = serviceProvider;
       this.transactionManagerProvider = uncheckedCast(serviceProvider.getService(TransactionManagerProvider.class));
     }
 
     @Override
     public void stop() {
-      this.transactionManagerProvider = null;
-      this.serviceProvider = null;
+      try {
+        this.transactionManagerProvider = null;
+        this.serviceProvider = null;
+      } finally {
+        super.stop();
+      }
     }
 
     @Override
-    public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
-      if (xaServiceConfiguration == null) {
-        // An XAStore must be configured for use
+    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+      int rank = super.rank(resourceTypes, serviceConfigs);
+      if (rank == 0) {
         return 0;
       } else {
         if (this.transactionManagerProvider == null) {
           throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
         }
+        return rank;
       }
-      return 1;
     }
   }
 

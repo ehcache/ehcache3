@@ -28,14 +28,22 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 
-import java.util.Collection;
-
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 @ServiceDependencies({CacheLoaderWriterProvider.class, WriteBehindProvider.class})
 public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
 
   private volatile WriteBehindProvider writeBehindProvider;
+
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  public LoaderWriterStoreProvider() {
+    super((Class) CacheLoaderWriterConfiguration.class);
+  }
+
+  @Override
+  protected int wrapperRank() {
+    return 2;
+  }
 
   @Override
   @SuppressWarnings("unchecked")
@@ -78,14 +86,5 @@ public class LoaderWriterStoreProvider extends AbstractWrapperStoreProvider {
   public void stop() {
     this.writeBehindProvider = null;
     super.stop();
-  }
-
-  @Override
-  public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-    CacheLoaderWriterConfiguration<?> loaderWriterConfiguration = findSingletonAmongst(CacheLoaderWriterConfiguration.class, serviceConfigs);
-    if (loaderWriterConfiguration == null) {
-      return 0;
-    }
-    return 2;
   }
 }

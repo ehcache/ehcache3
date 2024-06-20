@@ -27,7 +27,7 @@ import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.impl.internal.store.shared.StateHolderIdGenerator;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
-import org.ehcache.spi.persistence.PersistableIdentityService;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class ClusteredStateHolderIdGeneratorTest {
   private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/");
   private ServiceLocator serviceLocator;
   private StateHolderIdGenerator<String> sharedPersistence;
-  private PersistableIdentityService.PersistenceSpaceIdentifier<?> spaceIdentifier;
+  private PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier;
   private DefaultClusteringService clusterService;
 
   @Before

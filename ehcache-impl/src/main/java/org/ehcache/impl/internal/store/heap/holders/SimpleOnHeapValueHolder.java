@@ -16,30 +16,20 @@
 
 package org.ehcache.impl.internal.store.heap.holders;
 
-import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.copy.Copier;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Albin Suresh
  */
-public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
-  private final V copiedValue;
-  @IgnoreSizeOf
-  private final Copier<V> valueCopier;
+public class SimpleOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
+  private final V value;
 
-  protected CopiedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean evictionAdvice, Copier<V> valueCopier) {
+  protected SimpleOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean evictionAdvice) {
     super(id, creationTime, expirationTime, evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
     }
-    if (valueCopier == null) {
-      throw new NullPointerException("null copier");
-    }
-    this.valueCopier = valueCopier;
-    this.copiedValue = valueCopier.copyForWrite(value);
+    this.value = value;
   }
 
   /**
@@ -48,33 +38,28 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
    *
    * @param valueHolder reference value holder
    * @param value the value
-   * @param valueCopier the copier to use for copyForRead
    * @param now timestamp in millis
    * @param expiration computed expiration duration
    */
-  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Copier<V> valueCopier, long now, java.time.Duration expiration) {
+  public SimpleOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, long now, java.time.Duration expiration) {
     super(valueHolder.getId(), valueHolder.creationTime(), valueHolder.expirationTime(), evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
     }
-    if (valueCopier == null) {
-      throw new NullPointerException("null copier");
-    }
-    this.valueCopier = valueCopier;
-    this.copiedValue = value;
+    this.value = value;
     this.accessed(now, expiration);
   }
 
-  public CopiedOnHeapValueHolder(V value, long creationTime, boolean evictionAdvice, Copier<V> valueCopier) {
-    this(value, creationTime, NO_EXPIRE, evictionAdvice, valueCopier);
+  public SimpleOnHeapValueHolder(V value, long creationTime, boolean evictionAdvice) {
+    this(value, creationTime, NO_EXPIRE, evictionAdvice);
   }
 
-  public CopiedOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean evictionAdvice, Copier<V> valueCopier) {
-    this(-1, value, creationTime, expirationTime, evictionAdvice, valueCopier);
+  public SimpleOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean evictionAdvice) {
+    this(-1, value, creationTime, expirationTime, evictionAdvice);
   }
 
   @Override
   public V get() {
-    return valueCopier.copyForRead(copiedValue);
+    return value;
   }
 }

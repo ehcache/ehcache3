@@ -15,6 +15,7 @@
  */
 package org.ehcache.impl.serialization;
 
+import org.ehcache.core.spi.store.TransientStateHolder;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 import org.junit.Test;

@@ -20,10 +20,12 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.integration.domain.Person;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +47,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assume.assumeThat;
 
 @RunWith(Parameterized.class)
@@ -170,6 +173,41 @@ public class SharedResourcesTest {
       }
 
       assertThat(count(cacheB), greaterThan(countCacheA / 2));
+    }
+  }
+
+  @Test
+  public void customCacheTypeTest() {
+    try (CacheManager manager = managerBuilder.build(true)) {
+      Cache<String, String> base = manager.getCache("cache-a", String.class, String.class);
+      ResourcePools resourcePools = base.getRuntimeConfiguration().getResourcePools();
+
+      Cache<String, Person> cacheA = manager.createCache("person-a", newCacheConfigurationBuilder(String.class, Person.class, resourcePools));
+      Cache<String, Person> cacheB = manager.createCache("person-b", newCacheConfigurationBuilder(String.class, Person.class, resourcePools));
+
+      cacheA.put("alice", new Person("Alice", 35));
+      cacheB.put("bob", new Person("Bob", 32));
+    }
+
+    try (CacheManager manager = managerBuilder.build(true)) {
+      Cache<String, String> base = manager.getCache("cache-a", String.class, String.class);
+      ResourcePools resourcePools = base.getRuntimeConfiguration().getResourcePools();
+
+      Cache<String, Person> cacheA = manager.createCache("person-a", newCacheConfigurationBuilder(String.class, Person.class, resourcePools));
+      Cache<String, Person> cacheB = manager.createCache("person-b", newCacheConfigurationBuilder(String.class, Person.class, resourcePools));
+
+      ResourcePools sharedResources = manager.getRuntimeConfiguration().getSharedResourcePools();
+      ResourcePools resources = cacheA.getRuntimeConfiguration().getResourcePools();
+
+
+      if (sharedResources.getResourceTypeSet().stream().anyMatch(t -> sharedResources.getPoolForResource(t).isPersistent())
+        && resources.getResourceTypeSet().stream().anyMatch(t -> resources.getPoolForResource(t).isPersistent())) {
+        assumeThat(cacheA.get("alice").getName(), is("Alice"));
+        assumeThat(cacheB.get("bob").getName(), is("Bob"));
+      } else {
+        assumeThat(cacheA.get("alice"), nullValue());
+        assumeThat(cacheB.get("bob"), nullValue());
+      }
     }
   }
 

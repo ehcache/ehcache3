@@ -20,6 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -86,7 +87,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentNoStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -106,7 +107,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentHasStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -127,7 +128,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).putIfAbsent(eq("key"), eq("value"), any());
 
@@ -148,7 +149,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentHasStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).putIfAbsent(eq("key"), eq("value"), any());
 

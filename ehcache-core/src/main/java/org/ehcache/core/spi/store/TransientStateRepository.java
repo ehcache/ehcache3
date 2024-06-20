@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.serialization;
+package org.ehcache.core.spi.store;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 

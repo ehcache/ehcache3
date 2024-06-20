@@ -20,7 +20,6 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -71,7 +70,7 @@ public class OnHeapStoreBulkMethodsTest {
   @SuppressWarnings("unchecked")
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE,
         new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
@@ -85,7 +84,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getValueType()).thenReturn(Number.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+    OnHeapStore<Number, Number> store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
         new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     store.put(1, 2);
     store.put(2, 3);
@@ -541,7 +540,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getValueType()).thenReturn(CharSequence.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).build());
 
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(config, SystemTimeSource.INSTANCE,
       new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
 
     OnHeapStore<Number, CharSequence> spyStore = Mockito.spy(store);

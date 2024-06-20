@@ -26,10 +26,9 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
@@ -533,7 +532,7 @@ public class ByteAccountingTest {
   }
 
   static long getSize(String key, String value) {
-    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<>(value, 0L, 0L, true, IdentityCopier.identityCopier());
+    SimpleOnHeapValueHolder<String> valueHolder = new SimpleOnHeapValueHolder<>(value, 0L, 0L, true);
     long size = 0L;
     try {
       size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
@@ -548,7 +547,7 @@ public class ByteAccountingTest {
     @SuppressWarnings("unchecked")
     OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
                         final org.ehcache.core.spi.store.heap.SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
-      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, eventDispatcher, new DefaultStatisticsService());
+      super(config, timeSource, engine, eventDispatcher, new DefaultStatisticsService());
     }
 
     long getCurrentUsageInBytes() {

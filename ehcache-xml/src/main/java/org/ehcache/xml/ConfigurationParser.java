@@ -128,12 +128,12 @@ public class ConfigurationParser {
 
   ConfigurationParser() throws IOException, SAXException, JAXBException, ParserConfigurationException {
     serviceCreationConfigurationParser = ConfigurationParser.<CacheManagerServiceConfigurationParser<?, ?>>stream(
-        namespaceUniqueParsersOfType(CacheManagerServiceConfigurationParser.class))
+      namespaceUniqueParsersOfType(CacheManagerServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheManagerServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceCreationConfigurationParser::new));
 
     serviceConfigurationParser = ConfigurationParser.<CacheServiceConfigurationParser<?, ?>>stream(
-        namespaceUniqueParsersOfType(CacheServiceConfigurationParser.class))
+      namespaceUniqueParsersOfType(CacheServiceConfigurationParser.class))
       .collect(collectingAndThen(toMap(CacheServiceConfigurationParser::getServiceType, identity(),
         (a, b) -> a.getClass().isInstance(b) ? b : a), ServiceConfigurationParser::new));
 

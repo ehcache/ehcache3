@@ -13,72 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.impl.internal.store.heap.bytesized;
+package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.heap.OnHeapStoreByValueTest;
+import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.impl.serialization.JavaSerializer;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.BeforeClass;
 
-import java.io.Serializable;
-
-import static java.lang.Integer.parseInt;
-import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assume.assumeThat;
 
-@Deprecated
-public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
-
-  @BeforeClass
-  public static void preconditions() {
-    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
-  }
-
-  private static final int MAGIC_NUM = 500;
+public class CountSizedOnHeapStoreTest extends OnHeapStoreTest {
 
   @Override
   protected void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
     CacheConfigurationChangeListener listener = store.getConfigurationChangeListeners().get(0);
     listener.cacheConfigurationChange(new CacheConfigurationChangeEvent(CacheConfigurationProperty.UPDATE_SIZE,
-        newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build(),
-        newResourcePoolsBuilder().heap(newCapacity * MAGIC_NUM, MemoryUnit.KB).build()));
+        newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).build(),
+        newResourcePoolsBuilder().heap(newCapacity, EntryUnit.ENTRIES).build()));
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final ExpiryPolicy<? super K, ? super V> expiry,
-      final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final Copier<K> keyCopier,
-      final Copier<V> valueCopier, final int capacity) {
-    StoreEventDispatcher<K, V> eventDispatcher = getStoreEventDispatcher();
-    return new OnHeapStore<>(new Store.Configuration<K, V>() {
+      final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final int capacity) {
 
-      @SuppressWarnings("unchecked")
+    return new OnHeapStore<>(new Store.Configuration<K, V>() {
       @Override
       public Class<K> getKeyType() {
-        return (Class<K>) Serializable.class;
+        return (Class<K>) String.class;
       }
 
-      @SuppressWarnings("unchecked")
       @Override
       public Class<V> getValueType() {
-        return (Class<V>) Serializable.class;
+        return (Class<V>) String.class;
       }
 
       @Override
@@ -98,17 +76,17 @@ public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
 
       @Override
       public ResourcePools getResourcePools() {
-        return newResourcePoolsBuilder().heap(capacity, MemoryUnit.KB).build();
+        return newResourcePoolsBuilder().heap(capacity, EntryUnit.ENTRIES).build();
       }
 
       @Override
       public Serializer<K> getKeySerializer() {
-        return new JavaSerializer<>(getClass().getClassLoader());
+        throw new AssertionError("By-ref heap store using serializers!");
       }
 
       @Override
       public Serializer<V> getValueSerializer() {
-        return new JavaSerializer<>(getClass().getClassLoader());
+        throw new AssertionError("By-ref heap store using serializers!");
       }
 
       @Override
@@ -120,7 +98,7 @@ public class ByteSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, keyCopier, valueCopier, new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher, new DefaultStatisticsService());
+    }, timeSource, new NoopSizeOfEngine(), (StoreEventDispatcher<K, V>) eventDispatcher, new DefaultStatisticsService());
   }
 
 }
