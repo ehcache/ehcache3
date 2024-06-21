@@ -53,6 +53,8 @@ Additional features can then be added by including one or more of:
 * `org.ehcache:ehcache-clustered`
 * `org.ehcache:ehcache-transactions`
 
+In order to defer starting OSGi DS components which leverage `org.ehcache.core.CacheManager` (for example via `CacheManagerBuilder`) or `javax.cache.spi.CachingProvider` (for example via `javax.cache.Caching`) until all relevant services for Ehcache are available one can leverage the https://docs.osgi.org/specification/osgi.core/8.0.0/service.condition.html[OSGi condition] with id `ehcache`.
+
 === Reverting to JDK Service Lookup
 
 If the `org.ehcache.core.osgi` property is set to `"false"` as either a framework or system property then Ehcache will
