@@ -21,8 +21,9 @@
     <bar:bar xmlns:bar="http://www.example.com/bar"/>
   </service>
   <shared-resources>
-    <heap unit="MB">100</heap>
-    <offheap unit="GB">80</offheap>
+    <heap unit="MB">50</heap>
+    <offheap unit="GB">60</offheap>
+    <disk persistent="true" unit="GB">90</disk>
   </shared-resources>
 
   <cache alias="use shared offheap">
@@ -56,6 +57,19 @@
     <resources>
       <sharedHeap/>
       <sharedOffheap/>
+    </resources>
+  </cache>
+
+  <cache alias="use shared heap, offheap and disk">
+    <key-type serializer="com.pany.ehcache.serializer.TestSerializer3" copier="com.pany.ehcache.copier.DescriptionCopier">com.pany.ehcache.copier.Description</key-type>
+    <value-type serializer="com.pany.ehcache.serializer.TestSerializer4" copier="com.pany.ehcache.copier.PersonCopier">com.pany.ehcache.copier.Person</value-type>
+    <expiry>
+      <ttl unit="hours">6</ttl>
+    </expiry>
+    <resources>
+      <sharedHeap/>
+      <sharedOffheap/>
+      <sharedDisk/>
     </resources>
   </cache>
 

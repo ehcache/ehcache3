@@ -333,6 +333,11 @@ public class XmlConfigurationTest {
     tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeapAndOffheap");
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+
+    tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeapOffheapAndDisk");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.DISK)), notNullValue());
   }
 
   @Test

@@ -21,6 +21,8 @@ import org.ehcache.config.ResourceType;
 
 public class SharedResourcePool<T extends ResourceType<?>> extends AbstractResourcePool<ResourcePool, ResourceType.SharedResource<T>> {
 
+  private final T type;
+
   /**
    * Creates a {@code AbstractResourcePool} instance.
    *
@@ -29,5 +31,11 @@ public class SharedResourcePool<T extends ResourceType<?>> extends AbstractResou
    */
   public SharedResourcePool(T type, boolean persistent) {
     super(new ResourceType.SharedResource<>(type), persistent);
+    this.type = type;
+  }
+
+  @Override
+  public String toString() {
+    return "SharedPool {" + type + "}";
   }
 }

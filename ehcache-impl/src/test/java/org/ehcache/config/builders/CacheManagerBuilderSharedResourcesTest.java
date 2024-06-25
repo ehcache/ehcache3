@@ -22,8 +22,6 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.StateTransitionException;
 import org.ehcache.config.CacheConfiguration;
-import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -37,8 +35,10 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.terracotta.utilities.test.matchers.ThrowsMatcher.threw;
 
 import org.terracotta.org.junit.rules.TemporaryFolder;
@@ -809,59 +809,87 @@ public class CacheManagerBuilderSharedResourcesTest {
   }
 
   @Test
-  public void testSupportedSharedResources() throws IOException {
-    // No shared resources, cache sharing heap
-    assertInvalidCacheCreation(newResourcePoolsBuilder(),
-      newResourcePoolsBuilder().sharedHeap(),
-      "No Store.Provider types found to handle configuration");
+  public void testUnsupportedSharedResources() throws IOException {
+//    // No shared resources, cache sharing heap
+    assertThrows(() -> setupCacheManager(
+      newResourcePoolsBuilder(),
+      newResourcePoolsBuilder().sharedHeap()),
+      "No Store.Provider types found to handle configuration", IllegalStateException.class);
 
     // No shared resources, cache sharing offheap
-    assertInvalidCacheCreation(newResourcePoolsBuilder(),
-      newResourcePoolsBuilder().sharedOffheap(),
-      "No Store.Provider types found to handle configuration");
+    assertThrows(() -> setupCacheManager(
+      newResourcePoolsBuilder(),
+      newResourcePoolsBuilder().sharedOffheap()),
+      "No Store.Provider types found to handle configuration", IllegalStateException.class);
 
     // No shared resources, cache sharing disk
-    assertInvalidCacheCreation(newResourcePoolsBuilder(),
-      newResourcePoolsBuilder().sharedDisk(),
-      "No service found for persistable resource: shared(disk)");
-
-    // Shared offheap, cache sharing offheap
-    assertValidCacheCreation(newResourcePoolsBuilder().offheap(OFFHEAP_SIZE, MB),
-      newResourcePoolsBuilder().sharedOffheap());
+    assertThrows(() -> setupCacheManager(
+      newResourcePoolsBuilder(),
+      newResourcePoolsBuilder().sharedDisk()),
+      "No service found for persistable resource: shared(disk)", IllegalStateException.class);
 
     // Shared heap, sharing offHeap
-    assertInvalidCacheCreation(newResourcePoolsBuilder().heap(HEAP_SIZE, MB),
-      newResourcePoolsBuilder().sharedOffheap(),
-      "No Store.Provider types found to handle configuration");
+    assertThrows(() -> setupCacheManager(
+      newResourcePoolsBuilder().heap(HEAP_SIZE, MB),
+      newResourcePoolsBuilder().sharedOffheap()),
+      "No Store.Provider types found to handle configuration", IllegalStateException.class);
 
     // Shared heap/offHeap, cache sharing disk
-    assertInvalidCacheCreation(newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB),
-      newResourcePoolsBuilder().sharedDisk(),
-      "No service found for persistable resource: shared(disk)");
+    assertThrows(() -> setupCacheManager(
+      newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB),
+      newResourcePoolsBuilder().sharedDisk()),
+      "No service found for persistable resource: shared(disk)", IllegalStateException.class);
+
+    // Shared heap/offHeap/disk, two tier cache with missing heap tier excluded
+    assertThrows(() -> setupCacheManager(
+      newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB),
+      newResourcePoolsBuilder().sharedOffheap().sharedDisk()),
+      "No Store.Provider types found to handle configuration", IllegalStateException.class);
+
+    // Shared heap/offHeap/disk, cache trying to add same shared pool twice
+    assertThrows(() -> setupCacheManager(
+        newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB),
+        newResourcePoolsBuilder().sharedOffheap().sharedOffheap()),
+      "Can not add 'SharedPool {offheap}'; configuration already contains 'SharedPool {offheap}'", IllegalArgumentException.class);
+
+    // Shared heap/offHeap/disk, cache trying to add same shared pool twice
+    assertThrows(() -> setupCacheManager(
+        newResourcePoolsBuilder().heap(HEAP_SIZE, MB).offheap(OFFHEAP_SIZE, MB).disk(DISK_SIZE, MB),
+        newResourcePoolsBuilder().sharedHeap().sharedOffheap().sharedDisk().sharedDisk()),
+      "Can not add 'SharedPool {disk}'; configuration already contains 'SharedPool {disk}'", IllegalArgumentException.class);
+
+    // Same underlying resource specified for a single cache (
+    assertThrows(() -> setupCacheManager(
+        newResourcePoolsBuilder().offheap(70, MB),
+        newResourcePoolsBuilder().sharedOffheap().offheap(50, MB)),
+      "No Store.Provider types found to handle configuration", IllegalStateException.class);
+
+    // Incorrectly sized pools
+    assertThrows(() -> setupCacheManager(
+        newResourcePoolsBuilder().heap(100, MB).offheap(90, MB).disk(80, MB),
+        newResourcePoolsBuilder().sharedOffheap().sharedDisk()),
+      "Tiering Inversion: 'Pool {100 MB heap}' is not smaller than 'Pool {90 MB offheap}", IllegalArgumentException.class);
   }
 
-  void assertInvalidCacheCreation(ResourcePoolsBuilder sharedResources, ResourcePoolsBuilder cacheResources, String exception) throws IOException {
+  void setupCacheManager(ResourcePoolsBuilder sharedResources, ResourcePoolsBuilder cacheResources) {
     try (PersistentCacheManager cm = newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(temporaryFolder.newFolder().getAbsolutePath()))
-      .sharedResources(sharedResources)
-      .build(true)) {
-      cm.createCache("c1", cacheConfig(Long.class, Long.class, cacheResources));
-      Assert.fail("Expected IllegalStateException");
-    } catch (IllegalStateException ex) {
-      assertThat(ex.getCause().getMessage(), Matchers.containsString(exception));
-    } catch (StateTransitionException e) {
-      assertThat(e.getMessage(), Matchers.containsString(exception));
+        .with(CacheManagerBuilder.persistence("dummy"))
+        .sharedResources(sharedResources)
+        .build(true)) {
+      cm.createCache("cache", cacheConfig(Long.class, Long.class, cacheResources));
     }
   }
 
-  void assertValidCacheCreation(ResourcePoolsBuilder sharedResources, ResourcePoolsBuilder cacheResources) throws IOException {
-    try (PersistentCacheManager cm = newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(temporaryFolder.newFolder().getAbsolutePath()))
-      .sharedResources(sharedResources)
-      .build(true)) {
-      cm.createCache("c1", cacheConfig(Long.class, Long.class, cacheResources));
+  private static <T extends Exception> void assertThrows(Procedure proc, String error, Class<T> expected) {
+    try {
+      proc.invoke();
+      fail("Expecting " + expected.getSimpleName());
     } catch (Exception ex) {
-      Assert.fail("Unexpected Exception - " + ex.getMessage());
+      if (!expected.isInstance(ex)) {
+        fail("Expected " + expected.getSimpleName() + " but was " + ex.getClass().getSimpleName());
+      }
+      String message = ex.getCause() == null ? ex.getMessage() : ex.getMessage() + ex.getCause().getMessage();
+      assertThat(message, containsString(error));
     }
   }
 
@@ -1009,5 +1037,10 @@ public class CacheManagerBuilderSharedResourcesTest {
     longResults.forEach((k, v) -> assertNull(v));
     longResults = c2.getAll(map.keySet());
     longResults.forEach((k, v) -> assertThat(v, is(k)));
+  }
+
+  @FunctionalInterface
+  private interface Procedure {
+    void invoke();
   }
 }

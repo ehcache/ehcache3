@@ -85,4 +85,14 @@
     </ehcache:resources>
   </ehcache:cache>
 
+  <ehcache:cache alias="sharedHeapOffheapAndDisk">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:sharedHeap/>
+      <ehcache:sharedOffheap/>
+      <ehcache:sharedDisk/>
+    </ehcache:resources>
+  </ehcache:cache>
+
 </ehcache:config>
