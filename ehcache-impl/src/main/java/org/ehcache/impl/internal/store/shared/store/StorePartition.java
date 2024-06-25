@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
@@ -31,7 +32,6 @@ import org.ehcache.impl.internal.store.shared.AbstractPartition;
 import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 
 public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue<K>, CompositeValue<V>>> implements Store<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(StorePartition.class);
+  private final Logger logger = EhcachePrefixLoggerFactory.getLogger(StorePartition.class);
 
   private static final Supplier<Boolean> SUPPLY_TRUE = () -> Boolean.TRUE;
   private final Class<K> keyType;
@@ -239,7 +239,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
       }
     }
     if (!completeRemoval) {
-      LOGGER.error("Iteration failures may have prevented a complete removal");
+      logger.error("Iteration failures may have prevented a complete removal");
     }
   }
 
@@ -266,7 +266,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
           @Override
           public boolean equals(Object obj) {
-            return super.equals(this) || eventListener.equals(obj);
+            return super.equals(obj) || eventListener.equals(obj);
           }
         });
       }

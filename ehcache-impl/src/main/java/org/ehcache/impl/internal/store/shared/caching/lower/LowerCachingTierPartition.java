@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.shared.caching.lower;
 import org.ehcache.Cache;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -28,7 +29,6 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -36,8 +36,8 @@ import java.util.function.Function;
 
 public class LowerCachingTierPartition<K, V> extends AbstractPartition<LowerCachingTier<CompositeValue<K>, CompositeValue<V>>> implements LowerCachingTier<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LowerCachingTierPartition.class);
-    private final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap;
+  private final Logger logger = EhcachePrefixLoggerFactory.getLogger(LowerCachingTierPartition.class);
+  private final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap;
 
   public LowerCachingTierPartition(ResourceType<?> type, int id, LowerCachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap) {
     super(type, id, store);
@@ -102,7 +102,7 @@ public class LowerCachingTierPartition<K, V> extends AbstractPartition<LowerCach
       }
     }
     if (!invalidate) {
-      LOGGER.error("Could not invalidate one or more cache entries");
+      logger.error("Could not invalidate one or more cache entries");
     }
   }
 

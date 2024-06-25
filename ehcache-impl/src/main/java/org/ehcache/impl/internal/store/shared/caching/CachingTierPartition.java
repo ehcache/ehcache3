@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.shared.caching;
 import org.ehcache.Cache;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -27,7 +28,6 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.impl.store.HashUtils;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +38,7 @@ import java.util.function.Function;
 
 public class CachingTierPartition<K, V> extends AbstractPartition<CachingTier<CompositeValue<K>, CompositeValue<V>>> implements CachingTier<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CachingTierPartition.class);
+  private final Logger logger = EhcachePrefixLoggerFactory.getLogger(CachingTierPartition.class);
   private final Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap;
 
   public CachingTierPartition(ResourceType<?> type, int id, CachingTier<CompositeValue<K>, CompositeValue<V>> store, Map<Integer, CachingTier.InvalidationListener<?, ?>> invalidationListenerMap) {
@@ -62,7 +62,7 @@ public class CachingTierPartition<K, V> extends AbstractPartition<CachingTier<Co
       }
     }
     if (!completeRemoval) {
-      LOGGER.error("Iteration failures may have prevented a complete removal");
+      logger.error("Iteration failures may have prevented a complete removal");
     }
   }
 
@@ -102,7 +102,7 @@ public class CachingTierPartition<K, V> extends AbstractPartition<CachingTier<Co
       }
     }
     if (!invalidate) {
-      LOGGER.error("Could not invalidate one or more cache entries");
+      logger.error("Could not invalidate one or more cache entries");
     }
   }
 

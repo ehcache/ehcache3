@@ -22,6 +22,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -45,7 +46,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -59,7 +59,9 @@ import static org.ehcache.core.config.store.StoreEventSourceConfiguration.DEFAUL
 
 public class SharedStorage {
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(SharedStorage.class);
+
+  protected final Logger logger = EhcachePrefixLoggerFactory.getLogger(SharedStorage.class);
+
   private ServiceProvider<Service> serviceProvider;
   private int lastUsedId = 0;
   private final Map<Integer, Serializer<?>> keySerializerMap = new HashMap<>();
