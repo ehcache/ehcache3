@@ -210,8 +210,15 @@ public class ResourceConfigurationParser {
               throw new AssertionError("Parser not found for resource type: " + resourceType);
           }
         } else {
-          //TODO what happens for sharing of "extension items"?
-          throw new AssertionError("Parser not found for resource type: " + resourceType);
+          Map<Class<? extends ResourcePool>, CacheResourceConfigurationParser> parsers = new HashMap<>();
+          extensionParsers.forEach(parser -> parser.getResourceTypes().forEach(rt -> parsers.put(rt, parser)));
+          CacheResourceConfigurationParser parser = parsers.get(resourcePool.getClass());
+          if (parser != null) {
+            resources.add(parser.unparse(target, resourcePool));
+          }
+          else {
+            throw new AssertionError("Parser not found for resource type: " + resourceType);
+          }
         }
       } else {
         Map<Class<? extends ResourcePool>, CacheResourceConfigurationParser> parsers = new HashMap<>();
