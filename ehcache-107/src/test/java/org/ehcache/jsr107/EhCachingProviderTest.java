@@ -68,9 +68,8 @@ public class EhCachingProviderTest {
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     Cache<Object, Object> cache = cacheManager.createCache("test", configuration);
 
-    cache.put(1L, new Customer(1L));
-
     try {
+      cache.put(1L, new Customer(1L));
       cache.get(1L);
       fail("Expected AssertionError");
     } catch (AssertionError e) {

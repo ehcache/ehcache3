@@ -16,9 +16,7 @@
 
 package org.ehcache.impl.internal.sizeof;
 
-import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
-import org.ehcache.spi.copy.Copier;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -48,9 +46,8 @@ public class DefaultSizeOfEngineTest {
   public void testMaxObjectGraphSizeExceededException() {
     org.ehcache.core.spi.store.heap.SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(3, Long.MAX_VALUE);
     try {
-      Copier<MaxDepthGreaterThanThree> valueCopier = IdentityCopier.identityCopier();
       sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(),
-        new CopiedOnHeapValueHolder<>(new MaxDepthGreaterThanThree(), 0L, true, valueCopier));
+        new SimpleOnHeapValueHolder<>(new MaxDepthGreaterThanThree(), 0L, true));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(org.ehcache.core.spi.store.heap.LimitExceededException.class));
@@ -62,8 +59,7 @@ public class DefaultSizeOfEngineTest {
     org.ehcache.core.spi.store.heap.SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(Long.MAX_VALUE, 1000);
     try {
       String overSized = new String(new byte[1000]);
-      Copier<String> valueCopier = IdentityCopier.identityCopier();
-      sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder<>("test", 0L, true, valueCopier));
+      sizeOfEngine.sizeof(overSized, new SimpleOnHeapValueHolder<>("test", 0L, true));
       fail();
     } catch (Exception limitExceededException) {
       assertThat(limitExceededException, instanceOf(org.ehcache.core.spi.store.heap.LimitExceededException.class));

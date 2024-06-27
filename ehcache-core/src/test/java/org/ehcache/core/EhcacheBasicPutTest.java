@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.Test;
 
@@ -86,7 +87,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutNoStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -107,7 +108,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).put(eq("key"), eq("value"));
 
@@ -127,7 +128,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutHasStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -148,7 +149,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutHasStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).put(eq("key"), eq("value"));
 
@@ -169,7 +170,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutThrowsExceptionShouldKeepTheValueInPlace() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new RuntimeException("failed")).when(this.store).put(eq("key"), eq("value"));
 

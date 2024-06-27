@@ -23,7 +23,6 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -83,8 +82,7 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
         StoreEventDispatcher<String, String> eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
         OffHeapStore<String, String> offHeapStore = new OffHeapStore<>(config, SystemTimeSource.INSTANCE, eventDispatcher, 10 * 1024 * 1024, new DefaultStatisticsService());
         OffHeapStoreLifecycleHelper.init(offHeapStore);
-        IdentityCopier<String> copier = new IdentityCopier<>();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, copier, copier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
         CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<>(onHeapStore, offHeapStore);
         map.put(compoundCachingTier, offHeapStore);
         return compoundCachingTier;

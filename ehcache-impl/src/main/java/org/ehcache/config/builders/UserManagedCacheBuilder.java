@@ -34,11 +34,11 @@ import org.ehcache.core.config.ExpiryUtils;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.ServiceLocator;
-import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.core.store.StoreSupport;
@@ -61,6 +61,7 @@ import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -79,8 +80,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.config.ResourceType.Core.DISK;
-import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
@@ -204,28 +203,29 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       List<LifeCycled> lifeCycledList = new ArrayList<>();
 
       Set<ResourceType<?>> resources = resourcePools.getResourceTypeSet();
-      boolean persistent = resources.contains(DISK);
-      if (persistent) {
+      ResourceType<?> persistentResource = resources.stream().filter(ResourceType::isPersistable).reduce((a, b) -> {
+        throw new IllegalArgumentException();
+      }).orElse(null);
+      PersistableResourceService persistableResourceService;
+      PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier;
+      if (persistentResource == null) {
+        persistableResourceService = null;
+        spaceIdentifier = null;
+      } else {
         if (id == null) {
           throw new IllegalStateException("Persistent user managed caches must have an id set");
         }
-        final DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
-        if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
-          try {
-            diskResourceService.destroy(id);
-          } catch (CachePersistenceException cpex) {
-            throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + id, cpex);
-          }
-        }
-        try{
-          final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = diskResourceService.getPersistenceSpaceIdentifier(id, cacheConfig);
+
+        persistableResourceService = serviceLocator.getServicesOfType(PersistableResourceService.class).stream().filter(s -> s.handlesResourceType(persistentResource)).findFirst().orElseThrow(AssertionError::new);
+        try {
+          spaceIdentifier = persistableResourceService.getPersistenceSpaceIdentifier(alias, resourcePools.getPoolForResource(persistentResource));
+          serviceConfigsList.add(spaceIdentifier);
           lifeCycledList.add(new LifeCycledAdapter() {
             @Override
             public void close() throws Exception {
-              diskResourceService.releasePersistenceSpaceIdentifier(identifier);
+              persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
             }
           });
-          serviceConfigsList.add(identifier);
         } catch (CachePersistenceException cpex) {
           throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
         }
@@ -247,6 +247,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         try {
           if (keySerializer == null) {
             final Serializer<K> keySer = serialization.createKeySerializer(keyType, classLoader, serviceConfigs);
+            if (keySer instanceof StatefulSerializer<?>) {
+              if (persistableResourceService == null) {
+                ((StatefulSerializer<?>) keySer).init(new TransientStateRepository());
+              } else {
+                ((StatefulSerializer<?>) keySer).init(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "key-serializer"));
+              }
+            }
             lifeCycledList.add(
               new LifeCycledAdapter() {
                 @Override
@@ -260,6 +267,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
           if (valueSerializer == null) {
             final Serializer<V> valueSer = serialization.createValueSerializer(valueType, classLoader, serviceConfigs);
+            if (valueSer instanceof StatefulSerializer<?>) {
+              if (persistableResourceService == null) {
+                ((StatefulSerializer<?>) valueSer).init(new TransientStateRepository());
+              } else {
+                ((StatefulSerializer<?>) valueSer).init(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "value-serializer"));
+              }
+            }
             lifeCycledList.add(
               new LifeCycledAdapter() {
                 @Override
@@ -270,7 +284,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
             );
             valueSerializer = valueSer;
           }
-        } catch (UnsupportedTypeException e) {
+        } catch (UnsupportedTypeException | CachePersistenceException e) {
           for (ResourceType<?> resource : resources) {
             if (resource.requiresSerialization()) {
               throw new RuntimeException(e);
@@ -284,14 +298,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         serviceConfigsList.add(new DefaultCacheLoaderWriterConfiguration(cacheLoaderWriter));
       }
 
-      Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigsList);
-      if (storeProvider == null) {
-        storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
-      }
+      Store.Provider storeProvider = StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(resources, serviceConfigsList));
 
       Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<>(keyType, valueType, evictionAdvisor, classLoader,
         expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer, cacheLoaderWriter);
-      Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
+      Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigsList.toArray(new ServiceConfiguration<?, ?>[0]));
 
       AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 
@@ -319,14 +330,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         resilienceStrategy = new RobustLoaderWriterResilienceStrategy<>(new DefaultRecoveryStore<>(store), cacheLoaderWriter);
       }
 
-      if (persistent) {
-        DiskResourceService diskResourceService = serviceLocator
-          .getService(DiskResourceService.class);
-        if (diskResourceService == null) {
-          throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
-        }
-
-        PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<>(cacheConfig, store, resilienceStrategy, diskResourceService, cacheLoaderWriter, eventDispatcher, id);
+      if (persistableResourceService != null) {
+        PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<>(cacheConfig, store, resilienceStrategy, persistableResourceService, cacheLoaderWriter, eventDispatcher, id);
         registerListeners(cache, serviceLocator, lifeCycledList);
         for (LifeCycled lifeCycled : lifeCycledList) {
           cache.addHook(lifeCycled);

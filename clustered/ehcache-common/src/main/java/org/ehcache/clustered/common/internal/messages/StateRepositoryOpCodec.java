@@ -60,6 +60,14 @@ public class StateRepositoryOpCodec {
     .string(MAP_ID_FIELD, 35)
     .build();
 
+  private static final Struct REMOVE_MESSAGE_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .string(SERVER_STORE_NAME_FIELD, 30)
+    .string(MAP_ID_FIELD, 35)
+    .byteBuffer(KEY_FIELD, 40)
+    .byteBuffer(VALUE_FIELD, 45)
+    .build();
+
   public byte[] encode(StateRepositoryOpMessage message) {
 
     switch (message.getMessageType()) {
@@ -69,6 +77,8 @@ public class StateRepositoryOpCodec {
         return encodePutIfAbsentMessage((StateRepositoryOpMessage.PutIfAbsentMessage) message);
       case ENTRY_SET:
         return encodeEntrySetMessage((StateRepositoryOpMessage.EntrySetMessage) message);
+      case REMOVE:
+        return encodeRemoveMessage((StateRepositoryOpMessage.RemoveMessage) message);
       default:
         throw new IllegalArgumentException("Unsupported StateRepositoryOpMessage " + message.getClass());
     }
@@ -82,6 +92,16 @@ public class StateRepositoryOpCodec {
   }
 
   private byte[] encodePutIfAbsentMessage(StateRepositoryOpMessage.PutIfAbsentMessage message) {
+    return encodeMandatoryFields(PUT_IF_ABSENT_MESSAGE_STRUCT, message)
+      .string(SERVER_STORE_NAME_FIELD, message.getCacheId())
+      .string(MAP_ID_FIELD, message.getCacheId())
+      // TODO this needs to change - serialization needs to happen in the StateRepo not here, though we need the hashcode for server side comparison.
+      .byteBuffer(KEY_FIELD, wrap(Util.marshall(message.getKey())))
+      .byteBuffer(VALUE_FIELD, wrap(Util.marshall(message.getValue())))
+      .encode().array();
+  }
+
+  private byte[] encodeRemoveMessage(StateRepositoryOpMessage.RemoveMessage message) {
     return encodeMandatoryFields(PUT_IF_ABSENT_MESSAGE_STRUCT, message)
       .string(SERVER_STORE_NAME_FIELD, message.getCacheId())
       .string(MAP_ID_FIELD, message.getCacheId())
@@ -108,6 +128,8 @@ public class StateRepositoryOpCodec {
         return decodePutIfAbsentMessage(messageBuffer);
       case ENTRY_SET:
         return decodeEntrySetMessage(messageBuffer);
+      case REMOVE:
+        return decodeRemoveMessage(messageBuffer);
       default:
         throw new IllegalArgumentException("Unsupported StateRepositoryOpMessage " + messageType);
     }
@@ -135,6 +157,21 @@ public class StateRepositoryOpCodec {
     Object value = Util.unmarshall(valueBuffer, WHITELIST_PREDICATE);
 
     return new StateRepositoryOpMessage.PutIfAbsentMessage(storeName, mapId, key, value);
+  }
+
+  private StateRepositoryOpMessage.RemoveMessage decodeRemoveMessage(ByteBuffer messageBuffer) {
+    StructDecoder<Void> decoder = REMOVE_MESSAGE_STRUCT.decoder(messageBuffer);
+
+    String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
+    String mapId = decoder.string(MAP_ID_FIELD);
+
+    ByteBuffer keyBuffer = decoder.byteBuffer(KEY_FIELD);
+    Object key = Util.unmarshall(keyBuffer, WHITELIST_PREDICATE);
+
+    ByteBuffer valueBuffer = decoder.byteBuffer(VALUE_FIELD);
+    Object value = Util.unmarshall(valueBuffer, WHITELIST_PREDICATE);
+
+    return new StateRepositoryOpMessage.RemoveMessage(storeName, mapId, key, value);
   }
 
   private StateRepositoryOpMessage.GetMessage decodeGetMessage(ByteBuffer messageBuffer) {

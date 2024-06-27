@@ -25,6 +25,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -133,7 +134,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * @param serviceConfigs a collection of service configurations
      * @return the new authoritative tier
      */
-    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases an {@link AuthoritativeTier}.
@@ -157,7 +158,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * <p>
      * A higher rank value indicates a more capable {@code AuthoritativeTier}.
      *
-     * @param authorityResource the {@code ResourceType} for the authority to handle
+     * @param resourceTypes the {@code ResourceType}s for the authority to handle
      * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
      *                       to the ranking
      *
@@ -165,7 +166,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      *      to handle the resource type specified by {@code authorityResource}; a rank of 0 indicates the authority
      *      can not handle the type specified in {@code authorityResource}
      */
-    int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
+    int rankAuthority(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
 }

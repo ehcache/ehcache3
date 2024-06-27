@@ -361,6 +361,11 @@ public class XmlConfiguration implements Configuration {
   }
 
   @Override
+  public ResourcePools getSharedResourcePools() {
+    return configuration.getSharedResourcePools();
+  }
+
+  @Override
   public FluentConfigurationBuilder<?> derive() {
     return newConfigurationBuilder(this);
   }

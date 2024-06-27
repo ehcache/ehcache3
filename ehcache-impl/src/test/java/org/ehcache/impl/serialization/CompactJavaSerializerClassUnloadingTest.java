@@ -23,6 +23,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Before;

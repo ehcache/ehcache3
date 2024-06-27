@@ -113,4 +113,48 @@ public interface ResourceType<T extends ResourcePool> {
 
   }
 
+  class SharedResource<T extends ResourceType<?>> implements ResourceType<ResourcePool> {
+
+    private final ResourceType<?> delegate;
+    public SharedResource(T delegate) {
+      this.delegate = delegate;
+    }
+    @Override
+    public Class<ResourcePool> getResourcePoolClass() {
+      return ResourcePool.class;
+    }
+
+    @Override
+    public boolean isPersistable() {
+      return delegate.isPersistable();
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return delegate.requiresSerialization();
+    }
+
+    @Override
+    public int getTierHeight() {
+      return delegate.getTierHeight();
+    }
+
+    public ResourceType<?> getResourceType() {
+      return delegate;
+    }
+
+    @Override
+    public int hashCode() {
+      return getResourceType().hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return (obj instanceof SharedResource<?>) && getResourceType().equals(((SharedResource<?>) obj).getResourceType());
+    }
+
+    public String toString() {
+      return "shared(" + getResourceType().toString() + ")";
+    }
+  }
 }

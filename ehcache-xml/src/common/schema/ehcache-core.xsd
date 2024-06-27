@@ -86,6 +86,13 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="shared-resources" type="ehcache:resources-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Resources that are available for sharing across multiple caches managed through ARC.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:element name="heap-store" type="ehcache:sizeof-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
@@ -563,6 +570,48 @@
       </xs:appinfo>
       <xs:appinfo>
         <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="sharedHeap" type="xs:string" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          Used to inform the cache manager that a shared heap resource should be used to manage this cache's heap entries.
+        </xs:documentation>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="sharedOffheap" type="xs:string" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          Used to inform the cache manager that a shared offheap resource should be used to manage this cache's offheap entries.
+        </xs:documentation>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="sharedDisk" type="xs:string" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          Used to inform the cache manager that a shared disk resource should be used to manage this cache's offheap entries.
+        </xs:documentation>
       </xs:appinfo>
     </xs:annotation>
   </xs:element>

@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearEmpty() throws Exception {
-    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore realStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
@@ -60,7 +61,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearEmptyStoreAccessException() throws Exception {
-    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore realStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -74,7 +75,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearNonEmpty() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
@@ -91,7 +92,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearNonEmptyStoreAccessException() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();

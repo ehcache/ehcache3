@@ -23,7 +23,7 @@ import org.ehcache.Status;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
@@ -33,6 +33,7 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.resilience.DefaultRecoveryStore;
 import org.ehcache.core.spi.LifeCycled;
@@ -54,6 +55,7 @@ import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.ResilienceStrategyProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
@@ -185,60 +187,35 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if (alias == null) {
       throw new NullPointerException("Alias cannot be null");
     }
-    removeCache(alias, true);
-  }
-
-  /**
-   * Closes and removes a cache, by alias, from this cache manager.
-   *
-   * @param alias the alias of the cache to remove
-   * @param removeFromConfig if {@code true}, the cache configuration is altered to remove the cache
-   */
-  private void removeCache(final String alias, final boolean removeFromConfig) {
     statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
       final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
       if (ehcache != null) {
-        if (removeFromConfig) {
-          configuration.removeCacheConfiguration(alias);
+        configuration.removeCacheConfiguration(alias);
+        for (CacheManagerListener listener : listeners) {
+          listener.cacheRemoved(alias, ehcache);
         }
-
-        if (!statusTransitioner.isTransitioning()) {
-          for (CacheManagerListener listener : listeners) {
-            listener.cacheRemoved(alias, ehcache);
-          }
-        }
-
         ehcache.close();
-        closeEhcache(alias, ehcache);
       }
       LOGGER.info("Cache '{}' removed from {}.", alias, simpleName);
     }
   }
 
   /**
-   * Perform cache closure actions specific to a cache manager implementation.
-   * This method is called <i>after</i> the {@code InternalCache} instance is closed.
+   * Closes and removes a cache, by alias, from this cache manager.
    *
-   * @param alias the cache alias
-   * @param ehcache the {@code InternalCache} instance for the cache to close
+   * @param alias the alias of the cache to remove
    */
-  protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
-    for (ResourceType<?> resourceType : ehcache.getRuntimeConfiguration().getResourcePools().getResourceTypeSet()) {
-      if (resourceType.isPersistable()) {
-        ResourcePool resourcePool = ehcache.getRuntimeConfiguration()
-            .getResourcePools()
-            .getPoolForResource(resourceType);
-        if (!resourcePool.isPersistent()) {
-          PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
-          try {
-            persistableResourceService.destroy(alias);
-          } catch (CachePersistenceException e) {
-            LOGGER.warn("Unable to clear persistence space for cache {}", alias, e);
-          }
-        }
+  protected void internalRemoveCache(final String alias) {
+    statusTransitioner.checkAvailable();
+    final CacheHolder cacheHolder = caches.remove(alias);
+    if(cacheHolder != null) {
+      final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+      if (ehcache != null) {
+        ehcache.close();
       }
+      LOGGER.info("Cache '{}' removed from {}.", alias, simpleName);
     }
   }
 
@@ -422,24 +399,26 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
                                        Collection<ServiceConfiguration<?, ?>> serviceConfigs,
                                        List<LifeCycled> lifeCycledList, CacheLoaderWriter<? super K, V> loaderWriter) {
 
-    final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
-    for (ResourceType<?> resourceType : resourceTypes) {
-      if (resourceType.isPersistable()) {
-        final PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
-
-        try {
-          final PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableResourceService
-              .getPersistenceSpaceIdentifier(alias, config);
-          serviceConfigs.add(spaceIdentifier);
-          lifeCycledList.add(new LifeCycledAdapter() {
-            @Override
-            public void close() throws Exception {
-              persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
-            }
-          });
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException("Unable to handle persistence", e);
-        }
+    Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
+    ResourceType<?> persistentResource = getPersistentResourceType(config.getResourcePools());
+    PersistableResourceService persistableResourceService;
+    PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier;
+    if (persistentResource == null) {
+      persistableResourceService = null;
+      spaceIdentifier = null;
+    } else {
+      persistableResourceService = getPersistableResourceService(persistentResource);
+      try {
+        spaceIdentifier = persistableResourceService.getPersistenceSpaceIdentifier(alias, config.getResourcePools().getPoolForResource(persistentResource));
+        serviceConfigs.add(spaceIdentifier);
+        lifeCycledList.add(new LifeCycledAdapter() {
+          @Override
+          public void close() throws Exception {
+            persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
+          }
+        });
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException("Unable to handle persistence", e);
       }
     }
 
@@ -499,19 +478,33 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<>(config, dispatcherConcurrency,
       operationStatisticsEnabled, keySerializer, valueSerializer, loaderWriter, useLoaderInAtomics);
 
-    Store.Provider storeProvider = StoreSupport.selectWrapperStoreProvider(serviceLocator, serviceConfigs);
-    if (storeProvider == null) {
-      storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resourceTypes, serviceConfigs);
-    }
+    Store.Provider storeProvider = StoreSupport.select(Store.Provider.class, serviceLocator, store -> store.rank(config.getResourcePools().getResourceTypeSet(), serviceConfigs));
 
     Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     AtomicReference<Store.Provider> storeProviderRef = new AtomicReference<>(storeProvider);
 
+    final Serializer<K> kSerializer = keySerializer;
+    final Serializer<V> vSerializer = valueSerializer;
     lifeCycledList.add(new LifeCycled() {
       @Override
-      public void init() {
+      public void init() throws CachePersistenceException {
         storeProviderRef.get().initStore(store);
+        if (kSerializer instanceof StatefulSerializer<?>) {
+          if (persistableResourceService == null) {
+            ((StatefulSerializer<?>) kSerializer).init(new TransientStateRepository());
+          } else {
+            ((StatefulSerializer<?>) kSerializer).init(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "key-serializer"));
+          }
+        }
+        if (vSerializer instanceof StatefulSerializer<?>) {
+          if (persistableResourceService == null) {
+            ((StatefulSerializer<?>) vSerializer).init(new TransientStateRepository());
+          } else {
+            ((StatefulSerializer<?>) vSerializer).init(persistableResourceService.getStateRepositoryWithin(spaceIdentifier, "value-serializer"));
+          }
+        }
+
       }
 
       @Override
@@ -521,6 +514,12 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     });
 
     return store;
+  }
+
+  private ResourceType<?> getPersistentResourceType(ResourcePools resourcePools) {
+    return resourcePools.getResourceTypeSet().stream().filter(ResourceType::isPersistable).reduce((a, b) -> {
+      throw new IllegalArgumentException("Multiple persistent resources in resource pools");
+    }).orElse(null);
   }
 
   private PersistableResourceService getPersistableResourceService(ResourceType<?> resourceType) {
@@ -593,7 +592,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         while (!initiatedCaches.isEmpty()) {
           String toBeClosed = initiatedCaches.pop();
           try {
-            removeCache(toBeClosed, false);
+            internalRemoveCache(toBeClosed);
           } catch (Exception exceptionClosingCache) {
             LOGGER.error("Cache '{}' could not be removed after initialization failure due to ", toBeClosed, exceptionClosingCache);
           }
@@ -626,7 +625,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     try {
       for (String alias : caches.keySet()) {
         try {
-          removeCache(alias, false);
+          internalRemoveCache(alias);
         } catch (Exception e) {
           if(firstException == null) {
             firstException = e;
@@ -685,7 +684,18 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     try {
-      removeCache(alias, true);
+      final CacheHolder cacheHolder = caches.remove(alias);
+      if(cacheHolder != null) {
+        final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+        if (ehcache != null) {
+          configuration.removeCacheConfiguration(alias);
+          for (CacheManagerListener listener : listeners) {
+            listener.cacheRemoved(alias, ehcache);
+          }
+          ehcache.close();
+        }
+        LOGGER.info("Cache '{}' removed from {}.", alias, simpleName);
+      }
       destroyPersistenceSpace(alias);
     } finally {
       // if it was started, stop it
@@ -742,11 +752,19 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return new ServiceProvider<MaintainableService>() {
       @Override
       public <U extends MaintainableService> U getService(Class<U> serviceType) {
-        return serviceLocator.getService(serviceType);
+        if (MaintainableService.class.isAssignableFrom(serviceType)) {
+          return serviceLocator.getService(serviceType);
+        } else {
+          return null;
+        }
       }
       @Override
       public <U extends MaintainableService> Collection<U> getServicesOfType(final Class<U> serviceType) {
-        return serviceLocator.getServicesOfType(serviceType);
+        if (MaintainableService.class.isAssignableFrom(serviceType)) {
+          return serviceLocator.getServicesOfType(serviceType);
+        } else {
+          return Collections.emptyList();
+        }
       }
     };
   }

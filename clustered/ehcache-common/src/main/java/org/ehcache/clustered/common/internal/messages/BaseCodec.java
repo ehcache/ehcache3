@@ -26,6 +26,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.CLIENT_INVALIDATION_ALL_ACK;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.ENABLE_EVENT_LISTENER;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.ENTRY_SET;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.REMOVE;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.GET_AND_APPEND;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.GET_STATE_REPO;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.GET_STORE;
@@ -82,6 +83,7 @@ public class BaseCodec {
     .mapping(GET_STATE_REPO, 41)
     .mapping(PUT_IF_ABSENT, 42)
     .mapping(ENTRY_SET, 43)
+    .mapping(REMOVE, 44)
 
     .mapping(CHAIN_REPLICATION_OP, 61)
     .mapping(CLEAR_INVALIDATION_COMPLETE, 63)

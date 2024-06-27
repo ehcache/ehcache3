@@ -31,6 +31,7 @@ import org.ehcache.xml.model.CacheTemplateType;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.ObjectFactory;
+import org.ehcache.xml.model.ResourcesType;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -241,6 +242,8 @@ public class ConfigurationParser {
 
     FluentConfigurationBuilder<?> managerBuilder = newConfigurationBuilder().withClassLoader(classLoader);
     managerBuilder = serviceCreationConfigurationParser.parse(annotatedDocument, jaxbModel, classLoader, managerBuilder);
+    ResourcePools sharedResourcePools = resourceConfigurationParser.parse(jaxbModel.getSharedResources(), classLoader);
+    managerBuilder = managerBuilder.withSharedResources(sharedResourcePools);
 
     for (CacheDefinition cacheDefinition : getCacheElements(jaxbModel)) {
       String alias = cacheDefinition.id();
@@ -295,15 +298,18 @@ public class ConfigurationParser {
     Document document = documentBuilder.newDocument();
 
     serviceCreationConfigurationParser.unparse(document, configuration, configType);
+    ResourcesType sharedResources = resourceConfigurationParser.unparse(document, configuration.getSharedResourcePools());
+    if (!sharedResources.getResource().isEmpty()) {
+      configType.withSharedResources(sharedResources);
+    }
 
     for (Map.Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : configuration.getCacheConfigurations().entrySet()) {
       CacheConfiguration<?, ?> cacheConfiguration = cacheConfigurationEntry.getValue();
 
       CacheType cacheType = new CacheType().withAlias(cacheConfigurationEntry.getKey())
         .withKeyType(new CacheEntryType().withValue(cacheConfiguration.getKeyType().getName()))
-        .withValueType(new CacheEntryType().withValue(cacheConfiguration.getValueType().getName()));
-
-      cacheType = resourceConfigurationParser.unparse(document, cacheConfiguration.getResourcePools(), cacheType);
+        .withValueType(new CacheEntryType().withValue(cacheConfiguration.getValueType().getName()))
+        .withResources(resourceConfigurationParser.unparse(document, cacheConfiguration.getResourcePools()));
       cacheType = CORE_CACHE_CONFIGURATION_PARSER.unparse(cacheConfiguration, cacheType);
       cacheType = serviceConfigurationParser.unparse(document, cacheConfiguration, cacheType);
       configType = configType.withCacheOrCacheTemplate(cacheType);

@@ -15,11 +15,13 @@
  */
 package org.ehcache.core.config;
 
-import org.ehcache.Cache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.FluentCacheConfigurationBuilder;
 import org.ehcache.config.FluentConfigurationBuilder;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.util.ArrayList;
@@ -27,12 +29,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
@@ -44,6 +47,7 @@ public class CoreConfigurationBuilder<B extends CoreConfigurationBuilder<B>> imp
   private final Map<String, CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceCreationConfiguration<?, ?>> serviceConfigurations;
   private final ClassLoader classLoader;
+  private final ResourcePools resourcePools;
 
   /**
    * Create a configuration builder seeded from the given configuration.
@@ -63,34 +67,70 @@ public class CoreConfigurationBuilder<B extends CoreConfigurationBuilder<B>> imp
     this.caches = emptyMap();
     this.serviceConfigurations = emptyList();
     this.classLoader = null;
+    this.resourcePools = new ResourcePools() {
+      @Override
+      public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
+        return null;
+      }
+
+      @Override
+      public Set<ResourceType<?>> getResourceTypeSet() {
+        return emptySet();
+      }
+
+      @Override
+      public ResourcePools validateAndMerge(ResourcePools toBeUpdated) throws IllegalArgumentException, UnsupportedOperationException {
+        return toBeUpdated;
+      }
+    };
   }
 
   protected CoreConfigurationBuilder(CoreConfigurationBuilder<?> builder, Map<String, CacheConfiguration<?, ?>> caches) {
     this.caches = unmodifiableMap(caches);
     this.serviceConfigurations = builder.serviceConfigurations;
     this.classLoader = builder.classLoader;
+    this.resourcePools = builder.resourcePools;
   }
 
   protected CoreConfigurationBuilder(CoreConfigurationBuilder<?> builder, Collection<ServiceCreationConfiguration<?, ?>> serviceConfigurations) {
     this.caches = builder.caches;
     this.serviceConfigurations = unmodifiableCollection(serviceConfigurations);
     this.classLoader = builder.classLoader;
+    this.resourcePools = builder.resourcePools;
   }
 
   protected CoreConfigurationBuilder(CoreConfigurationBuilder<?> builder, ClassLoader classLoader) {
     this.caches = builder.caches;
     this.serviceConfigurations = builder.serviceConfigurations;
     this.classLoader = classLoader;
+    this.resourcePools = builder.resourcePools;
+  }
+
+  protected CoreConfigurationBuilder(CoreConfigurationBuilder<?> builder, ResourcePools resourcePools) {
+    this.caches = builder.caches;
+    this.serviceConfigurations = builder.serviceConfigurations;
+    this.classLoader = builder.classLoader;
+    this.resourcePools = resourcePools;
   }
 
   @Override
   public Configuration build() {
-    return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceCreationConfiguration<?, ?>[serviceConfigurations.size()]));
+    return new DefaultConfiguration(caches, classLoader, resourcePools, serviceConfigurations.toArray(new ServiceCreationConfiguration<?, ?>[serviceConfigurations.size()]));
   }
 
   @Override
   public CacheConfiguration<?, ?> getCache(String alias) {
     return caches.get(alias);
+  }
+
+  @Override
+  public B withSharedResources(ResourcePools sharedResourcePools) {
+    return newBuilderWith(sharedResourcePools);
+  }
+
+  @Override
+  public B updateSharedResources(UnaryOperator<ResourcePools> update) {
+    return withSharedResources(update.apply(resourcePools));
   }
 
   @Override
@@ -207,4 +247,12 @@ public class CoreConfigurationBuilder<B extends CoreConfigurationBuilder<B>> imp
     }
   }
 
+  @SuppressWarnings("unchecked")
+  protected B newBuilderWith(ResourcePools sharedResourcePools) {
+    if (getClass().equals(CoreConfigurationBuilder.class)) {
+      return (B) new CoreConfigurationBuilder<>(this, sharedResourcePools);
+    } else {
+      throw new AssertionError();
+    }
+  }
 }

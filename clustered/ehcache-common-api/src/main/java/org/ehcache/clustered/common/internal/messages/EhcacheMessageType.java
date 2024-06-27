@@ -50,6 +50,7 @@ public enum EhcacheMessageType {
   GET_STATE_REPO,
   PUT_IF_ABSENT,
   ENTRY_SET,
+  REMOVE,
 
   // Passive replication messages
   CHAIN_REPLICATION_OP,
@@ -68,7 +69,7 @@ public enum EhcacheMessageType {
     return STORE_OPERATION_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> STATE_REPO_OPERATION_MESSAGES = of(GET_STATE_REPO, PUT_IF_ABSENT, ENTRY_SET);
+  public static final EnumSet<EhcacheMessageType> STATE_REPO_OPERATION_MESSAGES = of(GET_STATE_REPO, PUT_IF_ABSENT, ENTRY_SET, REMOVE);
   public static boolean isStateRepoOperationMessage(EhcacheMessageType value) {
     return STATE_REPO_OPERATION_MESSAGES.contains(value);
   }

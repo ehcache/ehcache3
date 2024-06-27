@@ -32,8 +32,6 @@ import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.impl.serialization.TransientStateRepository;
-import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
@@ -125,7 +123,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
-  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, LowerCachingTier.Provider {
+  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, LowerCachingTier.Provider, ElementalProvider {
 
     private final Logger logger = EhcachePrefixLoggerFactory.getLogger(Provider.class);
 
@@ -143,8 +141,13 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      return authorityResource.equals(ResourceType.Core.OFFHEAP) ? 1 : 0;
+    public int rankAuthority(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+      return rank(resourceTypes, serviceConfigs);
+    }
+
+    @Override
+    public int rankLowerCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+      return rank(resourceTypes, serviceConfigs);
     }
 
     @Override
@@ -199,21 +202,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      if (!createdStores.contains(resource)) {
+      if (createdStores.contains(resource)) {
+        init((OffHeapStore<?, ?>) resource);
+      } else {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-
-      OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
-      Serializer<?> keySerializer = offHeapStore.keySerializer;
-      if (keySerializer instanceof StatefulSerializer) {
-        ((StatefulSerializer)keySerializer).init(new TransientStateRepository());
-      }
-      Serializer<?> valueSerializer = offHeapStore.valueSerializer;
-      if (valueSerializer instanceof StatefulSerializer) {
-        ((StatefulSerializer)valueSerializer).init(new TransientStateRepository());
-      }
-
-      init(offHeapStore);
     }
 
     static <K, V> void init(final OffHeapStore<K, V> resource) {
@@ -230,7 +223,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 
@@ -253,7 +246,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public <K, V> LowerCachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> LowerCachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapStore<K, V> lowerCachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.nullStoreEventDispatcher(), serviceConfigs);
 
       tierOperationStatistics.put(lowerCachingTier, new OperationStatistic<?>[] {

@@ -320,6 +320,27 @@ public class XmlConfigurationTest {
   }
 
   @Test
+  public void testSharedResourcesCaches() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-caches.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
+
+    CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeap");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+
+    tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedOffheap");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+
+    tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeapAndOffheap");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+
+    tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeapOffheapAndDisk");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.DISK)), notNullValue());
+  }
+
+  @Test
   public void testResourcesTemplates() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-templates.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
@@ -741,6 +762,14 @@ public class XmlConfigurationTest {
   @Test
   public void testCompleteXmlToString() {
     URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-complete.xml");
+    Configuration config = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(config);
+    assertThat(xmlConfig.toString(), isSameConfigurationAs(resource));
+  }
+
+  @Test
+  public void testSharedResourcesXmlToString() {
+    URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-shared-resources.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
     assertThat(xmlConfig.toString(), isSameConfigurationAs(resource));

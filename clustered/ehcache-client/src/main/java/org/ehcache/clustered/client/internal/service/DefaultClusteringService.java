@@ -35,7 +35,7 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.persistence.StateRepository;
@@ -64,6 +64,8 @@ import java.util.stream.Stream;
 public class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
+
+  static final String CACHE_MANAGER_SHARED_RESOURCES = "CacheManagerSharedResources";
 
   static final String CONNECTION_PREFIX = "Ehcache:";
 
@@ -169,7 +171,16 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
   }
 
   @Override
-  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) {
+  public PersistenceSpaceIdentifier<ClusteringService> getPersistenceSpaceIdentifier(String name, ResourcePool resource) {
+    return getPersistenceSpaceIdentifier(name);
+  }
+
+  @Override
+  public PersistenceSpaceIdentifier<ClusteringService> getSharedPersistenceSpaceIdentifier(ResourcePool resource) {
+    return getPersistenceSpaceIdentifier(CACHE_MANAGER_SHARED_RESOURCES);
+  }
+
+  private PersistenceSpaceIdentifier<ClusteringService> getPersistenceSpaceIdentifier(String name) {
     ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
     if(clusteredSpace != null) {
       return clusteredSpace.identifier;

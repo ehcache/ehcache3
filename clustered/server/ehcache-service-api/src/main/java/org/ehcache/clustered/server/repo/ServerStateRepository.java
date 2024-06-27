@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.server.repo;
 
-import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateRepoSyncMessage;
@@ -52,6 +51,10 @@ class ServerStateRepository {
           .stream()
           .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue()))
           .collect(Collectors.toSet());
+        break;
+      case REMOVE:
+        StateRepositoryOpMessage.RemoveMessage removeMessage = (StateRepositoryOpMessage.RemoveMessage) message;
+        result = map.remove(removeMessage.getKey(), removeMessage.getValue());
         break;
       default:
         throw new AssertionError("Unsupported operation: " + message.getMessageType());

@@ -60,4 +60,39 @@
     <ehcache:heap unit="entries">25</ehcache:heap>
   </ehcache:cache>
 
+  <ehcache:cache alias="sharedHeap">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:sharedHeap/>
+    </ehcache:resources>
+  </ehcache:cache>
+
+  <ehcache:cache alias="sharedOffheap">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:sharedOffheap/>
+    </ehcache:resources>
+  </ehcache:cache>
+
+  <ehcache:cache alias="sharedHeapAndOffheap">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:sharedHeap/>
+      <ehcache:sharedOffheap/>
+    </ehcache:resources>
+  </ehcache:cache>
+
+  <ehcache:cache alias="sharedHeapOffheapAndDisk">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:sharedHeap/>
+      <ehcache:sharedOffheap/>
+      <ehcache:sharedDisk/>
+    </ehcache:resources>
+  </ehcache:cache>
+
 </ehcache:config>

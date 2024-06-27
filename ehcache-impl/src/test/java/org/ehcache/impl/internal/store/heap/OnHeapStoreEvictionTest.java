@@ -25,7 +25,6 @@ import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.event.EventType;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
@@ -115,7 +114,7 @@ public class OnHeapStoreEvictionTest {
       }
     });
     OnHeapStore<String, String> store = new OnHeapStore<>(configuration, timeSource,
-      new IdentityCopier<>(), new IdentityCopier<>(), new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+      new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     timeSource.advanceTime(10000L);
     store.put(firstKey, "daValue");
     timeSource.advanceTime(10000L);
@@ -182,13 +181,13 @@ public class OnHeapStoreEvictionTest {
   public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource) {
-      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),  new NoopSizeOfEngine(),
+      super(config, timeSource, new NoopSizeOfEngine(),
         NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     }
 
     public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
                                @SuppressWarnings("deprecation") final org.ehcache.core.spi.store.heap.SizeOfEngine engine) {
-      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine,
+      super(config, timeSource, engine,
         NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     }
 

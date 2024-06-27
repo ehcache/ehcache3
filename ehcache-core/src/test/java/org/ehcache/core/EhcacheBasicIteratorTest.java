@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
@@ -61,7 +62,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreGet() throws Exception {
-    this.store = new FakeStore(Collections.emptyMap());
+    this.store = new SimpleTestStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     assertThat(ehcache.iterator(), is(notNullValue()));
   }
@@ -71,7 +72,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreHasNext() throws Exception {
-    this.store = new FakeStore(Collections.emptyMap());
+    this.store = new SimpleTestStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.hasNext(), is(false));
@@ -82,7 +83,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreNext() throws Exception {
-    this.store = new FakeStore(Collections.emptyMap());
+    this.store = new SimpleTestStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -98,7 +99,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorEmptyStoreRemoveBeforeNext() throws Exception {
-    this.store = new FakeStore(Collections.emptyMap());
+    this.store = new SimpleTestStore(Collections.emptyMap());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
@@ -114,7 +115,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorNonEmptyStoreGet() throws Exception {
-    this.store = new FakeStore(this.getTestStoreEntries());
+    this.store = new SimpleTestStore(this.getTestStoreEntries());
     final InternalCache<String, String> ehcache = this.getEhcache();
 
     assertThat(ehcache.iterator(), is(notNullValue()));
@@ -125,7 +126,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorNonEmptyStoreHasNext() throws Exception {
-    this.store = new FakeStore(this.getTestStoreEntries());
+    this.store = new SimpleTestStore(this.getTestStoreEntries());
     final InternalCache<String, String> ehcache = this.getEhcache();
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
@@ -137,7 +138,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorNonEmptyStoreNext() throws Exception {
-    this.store = new FakeStore(this.getTestStoreEntries());
+    this.store = new SimpleTestStore(this.getTestStoreEntries());
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.next(), is(notNullValue()));
@@ -149,7 +150,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorNonEmptyAll() throws Exception {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
-    this.store = new FakeStore(testStoreEntries);
+    this.store = new SimpleTestStore(testStoreEntries);
     final InternalCache<String, String> ehcache = this.getEhcache();
     for (Cache.Entry<String, String> cacheEntry : ehcache) {
       final String cacheEntryKey = cacheEntry.getKey();
@@ -165,7 +166,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorNonEmptyHasNextAfterLast() throws Exception {
-    this.store = new FakeStore(this.getTestStoreEntries());
+    this.store = new SimpleTestStore(this.getTestStoreEntries());
     final InternalCache<String, String> ehcache = this.getEhcache();
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
@@ -182,7 +183,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorNonEmptyNextAfterLast() throws Exception {
-    this.store = new FakeStore(this.getTestStoreEntries());
+    this.store = new SimpleTestStore(this.getTestStoreEntries());
     final InternalCache<String, String> ehcache = this.getEhcache();
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();

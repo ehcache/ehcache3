@@ -112,7 +112,7 @@ public class ParsesConfigurationExtensionTest {
         productCache.put(42L, value);
         final List<Product> products = ProductCacheLoaderWriter.written.get(value.getId());
         assertThat(products, notNullValue());
-        assertThat(products.get(0), sameInstance(value));
+        assertThat(products.get(0), equalTo(value));
       }
     }
 

@@ -25,7 +25,6 @@ import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
@@ -33,7 +32,6 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
@@ -533,8 +531,7 @@ public class EhcacheBulkMethodsITest {
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      final Copier defaultCopier = new IdentityCopier();
-      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), new DefaultStatisticsService()) {
+      return new OnHeapStore<K, V>(storeConfig, SystemTimeSource.INSTANCE,  new NoopSizeOfEngine(), NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), new DefaultStatisticsService()) {
         @Override
         public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
           throw new StoreAccessException("Problem trying to bulk compute");

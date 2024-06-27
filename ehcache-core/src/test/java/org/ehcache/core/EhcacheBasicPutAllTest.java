@@ -20,6 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
@@ -86,7 +87,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllNull() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -103,7 +104,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllNullKey() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Map<String, String> entries = new LinkedHashMap<>();
@@ -128,7 +129,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllNullValue() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Map<String, String> entries = new LinkedHashMap<>();
@@ -161,7 +162,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllEmptyRequestNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -187,7 +188,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllStoreSomeOverlapNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -217,7 +218,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllStoreSomeOverlapStoreAccessExceptionBeforeNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
@@ -251,7 +252,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllStoreSomeOverlapStoreAccessExceptionAfterNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -328,7 +329,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   /**
    * Writes a dump of test object details to {@code System.out} if, and only if, {@link #debugResults} is enabled.
    *
-   * @param fakeStore the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeStore FakeStore} instance used in the test
+   * @param fakeStore the {@link SimpleTestStore FakeStore} instance used in the test
    * @param originalStoreContent  the original content provided to {@code fakeStore}
    * @param fakeLoaderWriter the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
    * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
@@ -339,7 +340,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @param bcweFailures the {@code Map} from {@link BulkCacheWritingException#getFailures()}
    */
   private void dumpResults(
-      final FakeStore fakeStore,
+      final SimpleTestStore fakeStore,
       final Map<String, String> originalStoreContent,
       final FakeCacheLoaderWriter fakeLoaderWriter,
       final Map<String, String> originalWriterContent,

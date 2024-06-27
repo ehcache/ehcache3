@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
 
 import org.junit.Assert;

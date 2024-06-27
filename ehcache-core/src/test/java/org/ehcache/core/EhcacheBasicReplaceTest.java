@@ -20,6 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.Test;
 
@@ -85,7 +86,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceNoStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -106,7 +107,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).replace(eq("key"), eq("value"));
 
@@ -126,7 +127,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -147,7 +148,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).replace(eq("key"), eq("value"));
 

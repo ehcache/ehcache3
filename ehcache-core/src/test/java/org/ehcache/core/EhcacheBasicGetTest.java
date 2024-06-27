@@ -20,6 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.junit.Test;
 
@@ -78,7 +79,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).get(eq("key"));
 
@@ -98,7 +99,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetHasStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
 
@@ -120,7 +121,7 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetHasStoreEntryStoreAccessExceptionNoCacheLoaderWriter() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     doThrow(new StoreAccessException("")).when(this.store).get(eq("key"));
