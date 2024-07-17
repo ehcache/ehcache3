@@ -120,7 +120,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
       storeEventSource.setEventOrdering(true);
     }
 
-    registeredEventTypes.addAll(wrapper.getEventTypes()); // add EventType of new wrapper to list or relevant EntryTypes
+    registeredEventTypes.addAll(wrapper.getEventTypes()); // add EventType of new wrapper to list of relevant EntryTypes
 
     switch (wrapper.getFiringMode()) {
       case ASYNCHRONOUS:

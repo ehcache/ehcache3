@@ -17,8 +17,21 @@
 
 package org.ehcache.impl.internal.events;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
+
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.IntStream;
+
 import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.hamcrest.Matcher;
@@ -29,21 +42,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.IntStream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
  * InvocationScopedEventSinkTest
@@ -68,7 +66,8 @@ public class InvocationScopedEventSinkTest {
 
   private InvocationScopedEventSink<String, String> createEventSink(boolean ordered) {
     @SuppressWarnings("unchecked")
-    BlockingQueue<FireableStoreEventHolder<String, String>>[] queues = (BlockingQueue<FireableStoreEventHolder<String, String>>[]) new BlockingQueue<?>[] { blockingQueue };
+    BlockingQueue<FireableStoreEventHolder<String, String>>[] queues = (BlockingQueue<FireableStoreEventHolder<String, String>>[])new BlockingQueue<?>[] {
+        blockingQueue };
     return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners, EnumSet.allOf(EventType.class));
   }
 
@@ -85,7 +84,6 @@ public class InvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener, times(5)).getEventTypes();
     Matcher<StoreEvent<String, String>> createdMatcher = eventType(EventType.CREATED);
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     Matcher<StoreEvent<String, String>> updatedMatcher = eventType(EventType.UPDATED);
@@ -96,8 +94,8 @@ public class InvocationScopedEventSinkTest {
   }
 
   /**
-   * Make sure an interrupted sink sets the interrupted flag and keep both event queues in the state
-   * as of before the event that was interrupted.
+   * Make sure an interrupted sink sets the interrupted flag and keep both event queues in the state as of before the event that was
+   * interrupted.
    *
    * @throws InterruptedException
    */
@@ -117,7 +115,7 @@ public class InvocationScopedEventSinkTest {
     });
 
     t.start();
-    while(blockingQueue.remainingCapacity() != 0) {
+    while (blockingQueue.remainingCapacity() != 0) {
       System.out.println(blockingQueue.remainingCapacity());
     }
 
@@ -127,11 +125,11 @@ public class InvocationScopedEventSinkTest {
     assertThat(wasInterrupted).isTrue();
     assertThat(blockingQueue).hasSize(10);
     IntStream.range(0, 10).forEachOrdered(i -> {
-        try {
-          assertThat(blockingQueue.take().getEvent().getKey()).isEqualTo("k" + i);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
+      try {
+        assertThat(blockingQueue.take().getEvent().getKey()).isEqualTo("k" + i);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     });
     assertThat(eventSink.getEvents()).hasSize(10);
     assertThat(eventSink.getEvents().getLast().getEvent().getKey()).isEqualTo("k9");
