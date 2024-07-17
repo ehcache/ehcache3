@@ -17,13 +17,12 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.event.EventType;
-import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.hamcrest.Matcher;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InOrder;
+import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -31,12 +30,13 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
-import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.event.EventType;
+import org.hamcrest.Matcher;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.InOrder;
 
 /**
  * FudgingInvocationScopedEventSinkTest
@@ -53,9 +53,11 @@ public class FudgingInvocationScopedEventSinkTest {
     Set<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
     listener = uncheckedGenericMock(StoreEventListener.class);
     storeEventListeners.add(listener);
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    BlockingQueue<FireableStoreEventHolder<String, String>>[] blockingQueues = new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) };
-    eventSink = new FudgingInvocationScopedEventSink<>(new HashSet<>(), false, blockingQueues, storeEventListeners, EnumSet.allOf(EventType.class));
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    BlockingQueue<FireableStoreEventHolder<String, String>>[] blockingQueues = new BlockingQueue[] {
+        new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) };
+    eventSink = new FudgingInvocationScopedEventSink<>(new HashSet<>(), false, blockingQueues, storeEventListeners,
+        EnumSet.allOf(EventType.class));
   }
 
   @Test
@@ -65,7 +67,6 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener, times(2)).getEventTypes();
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     inOrder.verify(listener).onEvent(argThat(evictedMatcher));
     verifyNoMoreInteractions(listener);
@@ -78,7 +79,6 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener, times(3)).getEventTypes();
     inOrder.verify(listener).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -92,7 +92,6 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener, times(4)).getEventTypes();
     inOrder.verify(listener).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -107,7 +106,6 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener, times(5)).getEventTypes();
     inOrder.verify(listener, times(3)).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -123,7 +121,6 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener, times(6)).getEventTypes();
     inOrder.verify(listener, times(3)).onEvent(argThat(evictedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
     verifyNoMoreInteractions(listener);
@@ -137,7 +134,6 @@ public class FudgingInvocationScopedEventSinkTest {
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
-    inOrder.verify(listener, times(3)).getEventTypes();
     Matcher<StoreEvent<String, String>> updatedMatcher = eventType(EventType.UPDATED);
     inOrder.verify(listener).onEvent(argThat(updatedMatcher));
     inOrder.verify(listener).onEvent(argThat(createdMatcher));
