@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.internal.Store;
+package org.ehcache.clustered.common.internal.store;
 
 import org.ehcache.clustered.common.internal.store.Util;
 import org.ehcache.clustered.common.internal.store.ValueWrapper;
