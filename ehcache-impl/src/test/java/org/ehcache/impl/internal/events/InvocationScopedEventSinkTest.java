@@ -71,6 +71,13 @@ public class InvocationScopedEventSinkTest {
     return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners, EnumSet.allOf(EventType.class));
   }
 
+  private InvocationScopedEventSink<String, String> createEventSink(boolean ordered, EventType eventTypes) {
+    @SuppressWarnings("unchecked")
+    BlockingQueue<FireableStoreEventHolder<String, String>>[] queues = (BlockingQueue<FireableStoreEventHolder<String, String>>[])new BlockingQueue<?>[] {
+        blockingQueue };
+    return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners, EnumSet.of(eventTypes));
+  }
+
   @Test
   public void testReset() {
     eventSink = createEventSink(false);
@@ -133,5 +140,16 @@ public class InvocationScopedEventSinkTest {
     });
     assertThat(eventSink.getEvents()).hasSize(10);
     assertThat(eventSink.getEvents().getLast().getEvent().getKey()).isEqualTo("k9");
+  }
+
+  @Test
+  public void testAcceptEventFiltersIrrelevantEventTypes() {
+    eventSink = createEventSink(false, EventType.REMOVED);
+    eventSink.created("k", "v");
+
+    assertThat(eventSink.getEvents()).isEmpty();
+
+    eventSink.removed("k", () -> "v");
+    assertThat(eventSink.getEvents()).hasSize(1);
   }
 }
