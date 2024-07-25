@@ -17,22 +17,6 @@
 
 package org.ehcache.impl.internal.store.shared.store;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nonnull;
-
 import org.ehcache.Cache;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
@@ -50,6 +34,21 @@ import org.ehcache.impl.internal.store.shared.composites.CompositeValue;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.slf4j.Logger;
 
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue<K>, CompositeValue<V>>> implements Store<K, V> {
 
   private final Logger logger = EhcachePrefixLoggerFactory.getLogger(StorePartition.class);
@@ -59,14 +58,14 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
   private final Class<V> valueType;
 
   public StorePartition(ResourceType<?> type, int id, Class<K> keyType, Class<V> valueType,
-      Store<CompositeValue<K>, CompositeValue<V>> store) {
+                        Store<CompositeValue<K>, CompositeValue<V>> store) {
     super(type, id, store);
     this.keyType = keyType;
     this.valueType = valueType;
   }
 
   protected K checkKey(K keyObject) {
-    if (keyType.isInstance(Objects.requireNonNull((Object)keyObject))) {
+    if (keyType.isInstance(Objects.requireNonNull((Object) keyObject))) {
       return keyObject;
     } else {
       throw new ClassCastException("Invalid key type, expected : " + keyType.getName() + " but was : " + keyObject.getClass().getName());
@@ -74,11 +73,10 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
   }
 
   protected V checkValue(V valueObject) {
-    if (valueType.isInstance(Objects.requireNonNull((Object)valueObject))) {
+    if (valueType.isInstance(Objects.requireNonNull((Object) valueObject))) {
       return valueObject;
     } else {
-      throw new ClassCastException(
-          "Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
+      throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
     }
   }
 
@@ -152,16 +150,13 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
   @Override
   public ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
     checkKey(key);
-    return decode(
-        shared().getAndCompute(composite(key), (k, v) -> composite(mappingFunction.apply(k.getValue(), v != null ? v.getValue() : null))));
+    return decode(shared().getAndCompute(composite(key), (k, v) -> composite(mappingFunction.apply(k.getValue(), v != null ? v.getValue() : null))));
   }
 
   @Override
-  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual,
-      Supplier<Boolean> invokeWriter) throws StoreAccessException {
+  public ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException {
     checkKey(key);
-    return decode(shared().computeAndGet(composite(key),
-        (k, v) -> composite(mappingFunction.apply(k.getValue(), v == null ? null : v.getValue())), replaceEqual, invokeWriter));
+    return decode(shared().computeAndGet(composite(key), (k, v) -> composite(mappingFunction.apply(k.getValue(), v == null ? null : v.getValue())), replaceEqual, invokeWriter));
   }
 
   @Override
@@ -172,31 +167,30 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys,
-      Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction)
-      throws StoreAccessException {
+                                            Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     return bulkCompute(keys, remappingFunction, SUPPLY_TRUE);
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys,
-      Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction,
-      Supplier<Boolean> replaceEqual) throws StoreAccessException {
+                                            Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction,
+                                            Supplier<Boolean> replaceEqual) throws StoreAccessException {
     Map<CompositeValue<K>, ValueHolder<CompositeValue<V>>> results;
 
     if (remappingFunction instanceof Ehcache.PutAllFunction) {
-      Ehcache.PutAllFunction<K, V> putAllFunction = (Ehcache.PutAllFunction<K, V>)remappingFunction;
+      Ehcache.PutAllFunction<K, V> putAllFunction = (Ehcache.PutAllFunction<K, V>) remappingFunction;
 
       Ehcache.PutAllFunction<CompositeValue<K>, CompositeValue<V>> compositePutAllFunction = new Ehcache.PutAllFunction<CompositeValue<K>, CompositeValue<V>>() {
         @Override
         public Map<CompositeValue<K>, CompositeValue<V>> getEntriesToRemap() {
-          return putAllFunction.getEntriesToRemap().entrySet().stream()
-              .collect(Collectors.toMap(e -> composite(e.getKey()), e -> composite(e.getValue())));
+          return putAllFunction.getEntriesToRemap().entrySet().stream().collect(Collectors.toMap(e -> composite(e.getKey()), e -> composite(e.getValue())));
         }
 
         @Override
         public boolean newValueAlreadyExpired(CompositeValue<K> key, CompositeValue<V> oldValue, CompositeValue<V> newValue) {
-          return putAllFunction.newValueAlreadyExpired(key.getValue(), oldValue == null ? null : oldValue.getValue(),
-              newValue == null ? null : newValue.getValue());
+          return putAllFunction.newValueAlreadyExpired(key.getValue(),
+            oldValue == null ? null : oldValue.getValue(),
+            newValue == null ? null : newValue.getValue());
         }
 
         @Override
@@ -212,7 +206,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
       results = shared().bulkCompute(compositeSet(keys), compositePutAllFunction);
     } else if (remappingFunction instanceof Ehcache.RemoveAllFunction) {
-      Ehcache.RemoveAllFunction<K, V> removeAllFunction = (Ehcache.RemoveAllFunction<K, V>)remappingFunction;
+      Ehcache.RemoveAllFunction<K, V> removeAllFunction = (Ehcache.RemoveAllFunction<K, V>) remappingFunction;
       Ehcache.RemoveAllFunction<CompositeValue<K>, CompositeValue<V>> compositeRemappingFunction = removeAllFunction::getActualRemoveCount;
       results = shared().bulkCompute(compositeSet(keys), compositeRemappingFunction);
     } else {
@@ -226,10 +220,9 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys,
-      Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction)
-      throws StoreAccessException {
-    Map<CompositeValue<K>, ValueHolder<CompositeValue<V>>> results = shared().bulkComputeIfAbsent(compositeSet(keys),
-        new BulkComputeIfAbsentMappingFunction<>(id(), keyType, valueType, mappingFunction));
+                                                    Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+    Map<CompositeValue<K>, ValueHolder<CompositeValue<V>>> results =
+      shared().bulkComputeIfAbsent(compositeSet(keys), new BulkComputeIfAbsentMappingFunction<>(id(), keyType, valueType, mappingFunction));
     Map<K, ValueHolder<V>> decodedResults = new HashMap<>();
     results.forEach((k, v) -> decodedResults.put(k.getValue(), decode(v)));
     return decodedResults;
@@ -262,8 +255,8 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
           public void onEvent(StoreEvent<CompositeValue<K>, CompositeValue<V>> event) {
             if (event.getKey().getStoreId() == id()) {
               eventListener.onEvent(new StoreEventImpl<>(event.getType(), event.getKey().getValue(),
-                  event.getOldValue() == null ? null : event.getOldValue().getValue(),
-                  event.getNewValue() == null ? null : event.getNewValue().getValue()));
+                event.getOldValue() == null ? null : event.getOldValue().getValue(),
+                event.getNewValue() == null ? null : event.getNewValue().getValue()));
             }
           }
 
@@ -282,7 +275,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
       @SuppressWarnings("unchecked")
       @Override
       public void removeEventListener(StoreEventListener<K, V> eventListener) {
-        storeEventSource.removeEventListener((StoreEventListener<CompositeValue<K>, CompositeValue<V>>)eventListener);
+        storeEventSource.removeEventListener((StoreEventListener<CompositeValue<K>, CompositeValue<V>>) eventListener);
       }
 
       @Override
@@ -290,7 +283,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
         storeEventSource.addEventFilter((type, key, oldValue, newValue) -> {
           if (key.getStoreId() == id()) {
             return eventFilter.acceptEvent(type, key.getValue(), oldValue == null ? null : oldValue.getValue(),
-                newValue == null ? null : newValue.getValue());
+              newValue == null ? null : newValue.getValue());
           } else {
             return true;
           }
@@ -325,7 +318,6 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
     Iterator<Cache.Entry<CompositeValue<K>, ValueHolder<CompositeValue<V>>>> iterator = shared().iterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
       private Cache.Entry<K, ValueHolder<V>> prefetched = advance();
-
       @Override
       public boolean hasNext() {
         return prefetched != null;
@@ -352,7 +344,6 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
                 public K getKey() {
                   return next.getKey().getValue();
                 }
-
                 @Override
                 public ValueHolder<V> getValue() {
                   return decode(next.getValue());
@@ -391,7 +382,7 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
     }
   }
 
-  public static abstract class BaseRemappingFunction<K, V> {
+  public static abstract class BaseRemappingFunction<K,V> {
     protected final int storeId;
     protected final Class<K> keyType;
     protected final Class<V> valueType;
@@ -410,25 +401,21 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
 
     protected void valueCheck(Object valueObject) {
       if (!valueType.isInstance(Objects.requireNonNull(valueObject))) {
-        throw new ClassCastException(
-            "Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
+        throw new ClassCastException("Invalid value type, expected : " + valueType.getName() + " but was : " + valueObject.getClass().getName());
       }
     }
   }
 
-  public static class BulkComputeMappingFunction<K, V> extends BaseRemappingFunction<K, V> implements
-      Function<Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>, Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>> {
+  public static class BulkComputeMappingFunction<K, V> extends BaseRemappingFunction<K, V> implements Function<Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>, Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>> {
     private final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function;
 
-    BulkComputeMappingFunction(int storeId, Class<K> keyType, Class<V> valueType,
-        Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function) {
+    BulkComputeMappingFunction(int storeId, Class<K> keyType, Class<V> valueType, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function) {
       super(storeId, keyType, valueType);
       this.function = function;
     }
 
     @Override
-    public Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> apply(
-        Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> entries) {
+    public Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> apply(Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> entries) {
       Map<K, V> decodedEntries = new HashMap<>();
       entries.forEach(entry -> {
         K key = entry.getKey().getValue();
@@ -452,19 +439,16 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
     }
   }
 
-  public static class BulkComputeIfAbsentMappingFunction<K, V> extends BaseRemappingFunction<K, V> implements
-      Function<Iterable<? extends CompositeValue<K>>, Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>> {
+  public static class BulkComputeIfAbsentMappingFunction<K, V> extends BaseRemappingFunction<K, V> implements Function<Iterable<? extends CompositeValue<K>>, Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>>> {
     private final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function;
 
-    BulkComputeIfAbsentMappingFunction(int storeId, Class<K> keyType, Class<V> valueType,
-        Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function) {
+    BulkComputeIfAbsentMappingFunction(int storeId, Class<K> keyType, Class<V> valueType, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> function) {
       super(storeId, keyType, valueType);
       this.function = function;
     }
 
     @Override
-    public Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> apply(
-        Iterable<? extends CompositeValue<K>> compositeValues) {
+    public Iterable<? extends Map.Entry<? extends CompositeValue<K>, ? extends CompositeValue<V>>> apply(Iterable<? extends CompositeValue<K>> compositeValues) {
       List<K> keys = new ArrayList<>();
       compositeValues.forEach(k -> {
         keyCheck(k.getValue());
@@ -486,3 +470,4 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
     }
   }
 }
+
