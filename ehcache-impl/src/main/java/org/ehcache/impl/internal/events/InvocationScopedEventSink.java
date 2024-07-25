@@ -17,11 +17,9 @@
 
 package org.ehcache.impl.internal.events;
 
-import static org.ehcache.impl.internal.events.StoreEvents.createEvent;
-import static org.ehcache.impl.internal.events.StoreEvents.evictEvent;
-import static org.ehcache.impl.internal.events.StoreEvents.expireEvent;
-import static org.ehcache.impl.internal.events.StoreEvents.removeEvent;
-import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;
+import org.ehcache.event.EventType;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -30,9 +28,11 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Supplier;
 
-import org.ehcache.core.spi.store.events.StoreEventFilter;
-import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.event.EventType;
+import static org.ehcache.impl.internal.events.StoreEvents.createEvent;
+import static org.ehcache.impl.internal.events.StoreEvents.evictEvent;
+import static org.ehcache.impl.internal.events.StoreEvents.expireEvent;
+import static org.ehcache.impl.internal.events.StoreEvents.removeEvent;
+import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;
 
 /**
  * InvocationScopedEventSink
@@ -44,12 +44,11 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
   private final Set<StoreEventListener<K, V>> listeners;
   private final Deque<FireableStoreEventHolder<K, V>> events = new ArrayDeque<>(4);
-
   private final Set<EventType> relevantEventTypes;
 
   InvocationScopedEventSink(Set<StoreEventFilter<K, V>> filters, boolean ordered,
-      BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues, Set<StoreEventListener<K, V>> listeners,
-      Set<EventType> relevantEventTypes) {
+                            BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues, Set<StoreEventListener<K, V>> listeners,
+                            Set<EventType> relevantEventTypes) {
     this.filters = filters;
     this.ordered = ordered;
     this.orderedQueues = orderedQueues;
