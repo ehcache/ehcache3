@@ -184,6 +184,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
       if (!syncListeners().findAny().isPresent()) {
         storeEventSource.setSynchronous(false);
       }
+      storeEventSource.listenerModified();
     }
   }
 
