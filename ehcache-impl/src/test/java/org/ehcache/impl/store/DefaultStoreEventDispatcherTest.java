@@ -29,16 +29,21 @@ import org.mockito.ArgumentMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -75,6 +80,92 @@ public class DefaultStoreEventDispatcherTest {
     dispatcher.releaseEventSink(sink);
 
     verify(listener).onEvent(any(StoreEvent.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testListenerNotifiedForRelevantEventsOnly() {
+    DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
+    when(listener.getEventTypes()).thenReturn(EnumSet.of(EventType.REMOVED));
+
+    dispatcher.addEventListener(listener);
+
+    StoreEventSink<String, String> sink = dispatcher.eventSink();
+    sink.created("test", "test");
+    dispatcher.releaseEventSink(sink);
+
+    verify(listener, never()).onEvent(any(StoreEvent.class));
+
+    sink.removed("test", () -> "test");
+    dispatcher.releaseEventSink(sink);
+
+    verify(listener, times(1)).onEvent(any(StoreEvent.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testRelevantEventTypesUpdatedOnAddEventListener() {
+    DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
+    dispatcher.addEventListener(listener);
+
+    verify(listener, times(1)).getEventTypes();
+
+    StoreEventListener<String, String> listener2 = uncheckedGenericMock(StoreEventListener.class);
+
+    dispatcher.addEventListener(listener2);
+
+    verify(listener, times(2)).getEventTypes();
+    verify(listener2, times(1)).getEventTypes();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testRelevantEventTypesUpdatedOnRemoveEventListener() {
+    DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
+    dispatcher.addEventListener(listener);
+    StoreEventListener<String, String> listener2 = uncheckedGenericMock(StoreEventListener.class);
+    dispatcher.addEventListener(listener2);
+    verify(listener2, times(1)).getEventTypes();
+
+    dispatcher.removeEventListener(listener);
+
+    verify(listener2, times(2)).getEventTypes();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testRelevantEventTypesUpdatedOnListenerModifiedSignal() {
+    DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
+    dispatcher.addEventListener(listener);
+    verify(listener, times(1)).getEventTypes();
+
+    dispatcher.listenerModified();
+
+    verify(listener, times(2)).getEventTypes();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testRelevantEventTypesContainAllEventsForMocks() {
+    DefaultStoreEventDispatcherMock<String, String> dispatcher = new DefaultStoreEventDispatcherMock<>(1);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
+    dispatcher.addEventListener(listener);
+
+    assertTrue(dispatcher.spyRelevantEventTypes().containsAll(EventType.allAsSet()));
+  }
+
+  class DefaultStoreEventDispatcherMock<K, V> extends DefaultStoreEventDispatcher<K, V> {
+    public DefaultStoreEventDispatcherMock(int dispatcherConcurrency) {
+      super(dispatcherConcurrency);
+    }
+
+    public Set<EventType> spyRelevantEventTypes() {
+      return super.getRelevantEventTypes();
+    }
   }
 
   @Test
