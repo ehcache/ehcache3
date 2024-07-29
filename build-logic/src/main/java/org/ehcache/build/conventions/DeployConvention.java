@@ -56,7 +56,7 @@ public class DeployConvention implements Plugin<Project> {
       publishing.getPublications().withType(MavenPublication.class).configureEach(mavenPublication -> mavenPublication.pom(pom -> {
         pom.getUrl().set("http://ehcache.org");
         pom.organization(org -> {
-          org.getName().set("Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.");
+          org.getName().set("Super iPaaS Integration LLC, an IBM Company");
           org.getUrl().set("http://terracotta.org");
         });
         pom.issueManagement(issue -> {
@@ -75,8 +75,8 @@ public class DeployConvention implements Plugin<Project> {
         }));
         pom.developers(devs -> devs.developer(dev -> {
           dev.getName().set("Terracotta Engineers");
-          dev.getEmail().set("tc-oss@softwareag.com");
-          dev.getOrganization().set("Terracotta Inc., a wholly-owned subsidiary of Software AG USA, Inc.");
+          dev.getEmail().set("tc-oss-dg@ibm.com");
+          dev.getOrganization().set("Super iPaaS Integration LLC, an IBM Company");
           dev.getOrganizationUrl().set("http://ehcache.org");
         }));
       }));
