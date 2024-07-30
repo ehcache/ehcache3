@@ -21,7 +21,9 @@ import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.event.EventType;
 
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -78,6 +80,7 @@ public abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDi
   private final Set<StoreEventFilter<K, V>> filters = new CopyOnWriteArraySet<>();
   private final Set<StoreEventListener<K, V>> listeners = new CopyOnWriteArraySet<>();
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
+  private final Set<EventType> relevantEventTypes = EnumSet.noneOf(EventType.class);
   private volatile boolean ordered = false;
 
   protected AbstractStoreEventDispatcher(int dispatcherConcurrency) {
@@ -93,6 +96,16 @@ public abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDi
     }
   }
 
+  private void computeRelevantEventTypes() {
+    // collect all EventTypes the listeners are interested in.
+    for (StoreEventListener<K, V> listener : listeners) {
+      relevantEventTypes.addAll(listener.getEventTypes());
+    }
+    if (relevantEventTypes.isEmpty()) { // mocks are empty -> handle all types
+      relevantEventTypes.addAll(EnumSet.allOf(EventType.class));
+    }
+  }
+
   protected Set<StoreEventListener<K, V>> getListeners() {
     return listeners;
   }
@@ -105,14 +118,25 @@ public abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDi
     return orderedQueues;
   }
 
+  protected Set<EventType> getRelevantEventTypes() {
+    return relevantEventTypes;
+  }
+
   @Override
   public void addEventListener(StoreEventListener<K, V> eventListener) {
     listeners.add(eventListener);
+    computeRelevantEventTypes(); // refresh
   }
 
   @Override
   public void removeEventListener(StoreEventListener<K, V> eventListener) {
     listeners.remove(eventListener);
+    computeRelevantEventTypes(); // refresh
+  }
+
+  @Override
+  public void listenerModified() {
+    computeRelevantEventTypes(); // refresh
   }
 
   @Override
@@ -152,6 +176,6 @@ public abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDi
 
   @Override
   public StoreEventSink<K, V> eventSink() {
-    return new InvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
+    return new InvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners(), getRelevantEventTypes());
   }
 }
