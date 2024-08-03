@@ -108,7 +108,7 @@ tasks.named('jar') {
   osgi {
     instruction Constants.BUNDLE_SYMBOLICNAME, 'org.ehcache.clustered'
     instruction Constants.EXPORT_PACKAGE, '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, org.ehcache.clustered.client.*, org.ehcache.clustered.common.*'
-    instruction Constants.IMPORT_PACKAGE, '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, javax.xml.bind*;version="[2.2,3)", *'
+    instruction Constants.IMPORT_PACKAGE, '!sun.misc.*,  jdk.internal.misc;resolution:=optional, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, javax.xml.bind*;version="[2.2,3)", *'
   }
 }
 

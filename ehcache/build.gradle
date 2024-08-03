@@ -103,7 +103,7 @@ tasks.named('jakartaJar') {
     instruction Constants.BUNDLE_DESCRIPTION, 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
     instruction Constants.BUNDLE_ACTIVATOR, 'org.ehcache.core.osgi.EhcacheActivator'
     instruction Constants.EXPORT_PACKAGE, '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*'
-    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, jakarta.xml.bind*;version="[3,4)", *'
+    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, jdk.internal.misc;resolution:=optional, !javax.annotation, !sun.misc, jakarta.xml.bind*;version="[3,4)", *'
   }
 }
 
@@ -114,6 +114,6 @@ tasks.named('jar') {
     instruction Constants.BUNDLE_DESCRIPTION, 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
     instruction Constants.BUNDLE_ACTIVATOR, 'org.ehcache.core.osgi.EhcacheActivator'
     instruction Constants.EXPORT_PACKAGE, '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*'
-    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
+    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, jdk.internal.misc;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
   }
 }

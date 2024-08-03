@@ -28,6 +28,7 @@ public class JavaConvention implements Plugin<Project> {
       config.getResolutionStrategy().dependencySubstitution(subs -> {
         subs.substitute(subs.module("org.hamcrest:hamcrest-core:1.3")).with(subs.module("org.hamcrest:hamcrest-core:" + project.property("hamcrestVersion")));
         subs.substitute(subs.module("org.hamcrest:hamcrest-library:1.3")).with(subs.module("org.hamcrest:hamcrest-library:" + project.property("hamcrestVersion")));
+        subs.substitute(subs.module("junit:junit:4.12")).using(subs.module("junit:junit:4.13.1"));
       });
     });
   }
