@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -940,6 +941,18 @@ public class ClusterTierActiveEntityTest {
     ClientCommunicator clientCommunicator = defaultRegistry.getService(new CommunicatorServiceConfiguration());
 
     verify(clientCommunicator, times(10)).sendNoResponse(ArgumentMatchers.eq(client), ArgumentMatchers.isA(EhcacheEntityResponse.ClientInvalidateHash.class));
+  }
+
+  @Test
+  public void testInvalidationHandlingOnReconnectWindowTimeoutClosure() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
+
+    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
+    invalidationTracker.trackHashInvalidation(1L);
+
+    activeEntity.startReconnect().close();
   }
 
   @Test
