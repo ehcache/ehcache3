@@ -169,14 +169,14 @@ fi
 
 if [ $is_major ]; then
   echo "Adding XSDs since this is a major version"
-  cp xml/src/main/resources/ehcache-core.xsd $site_dir/schema/ehcache-core.xsd
-  cp xml/src/main/resources/ehcache-core.xsd $site_dir/schema/ehcache-core-${major_version}.xsd
-  cp 107/src/main/resources/ehcache-107-ext.xsd $site_dir/schema/ehcache-107-ext.xsd
-  cp 107/src/main/resources/ehcache-107-ext.xsd $site_dir/schema/ehcache-107-ext-${major_version}.xsd
-  cp clustered/client/src/main/resources/ehcache-clustered-ext.xsd $site_dir/schema/ehcache-clustered-ext.xsd
-  cp clustered/client/src/main/resources/ehcache-clustered-ext.xsd $site_dir/schema/ehcache-clustered-ext-${major_version}.xsd
-  cp transactions/src/main/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext.xsd
-  cp transactions/src/main/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext-${major_version}.xsd
+  cp ehcache-xml/src/main/schema/ehcache-core.xsd $site_dir/schema/ehcache-core.xsd
+  cp ehcache-xml/src/main/schema/ehcache-core.xsd $site_dir/schema/ehcache-core-${major_version}.xsd
+  cp ehcache-107/src/main/resources/ehcache-107-ext.xsd $site_dir/schema/ehcache-107-ext.xsd
+  cp ehcache-107/src/main/resources/ehcache-107-ext.xsd $site_dir/schema/ehcache-107-ext-${major_version}.xsd
+  cp clustered/ehcache-client/src/main/resources/ehcache-clustered-ext.xsd $site_dir/schema/ehcache-clustered-ext.xsd
+  cp clustered/ehcache-client/src/main/resources/ehcache-clustered-ext.xsd $site_dir/schema/ehcache-clustered-ext-${major_version}.xsd
+  cp ehcache-transactions/src/main/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext.xsd
+  cp ehcache-transactions/src/main/resources/ehcache-tx-ext.xsd $site_dir/schema/ehcache-tx-ext-${major_version}.xsd
 fi
 
 echo "Copy the javadoc from Maven central"

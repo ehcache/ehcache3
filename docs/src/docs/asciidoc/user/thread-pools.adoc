@@ -88,7 +88,7 @@ Following are examples of describing how to configure the thread pools the diffe
 
 [source%nowrap,java]
 ----
-include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=diskStore]
+include::{sourcedir39}/ehcache-impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=diskStore]
 ----
 
 <1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event listener is configured.
@@ -99,7 +99,7 @@ include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source%nowrap,java]
 ----
-include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=writeBehind]
+include::{sourcedir39}/ehcache-impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=writeBehind]
 ----
 
 <1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event listener is configured.
@@ -110,7 +110,7 @@ include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source%nowrap,java]
 ----
-include::{sourcedir39}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=events]
+include::{sourcedir39}/ehcache-impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=events]
 ----
 
 <1> Configure the thread pools. Note that there is no default one so all thread-using services must be configured with explicit defaults.
@@ -124,7 +124,7 @@ Following is an example describing how to configure the thread pools the differe
 
 [source%nowrap,xml]
 ----
-include::{sourcedir39}/xml/src/test/resources/configs/docs/thread-pools.xml[tags=threadPools]
+include::{sourcedir39}/ehcache-xml/src/test/resources/configs/docs/thread-pools.xml[tags=threadPools]
 ----
 
 <1> Configure the thread pools. Note that there is no default one.
