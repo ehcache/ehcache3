@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class DurationTest {
 
   @Test

@@ -21,7 +21,7 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.HumanReadable;
-import org.ehcache.core.config.SizedResourcePoolImpl;
+import org.ehcache.impl.config.SizedResourcePoolImpl;
 
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 

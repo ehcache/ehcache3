@@ -14,31 +14,39 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+plugins {
+  id 'org.ehcache.build.deploy'
+  id 'org.jayware.osgi-ds'
+}
 
 dependencies {
-  compileOnly project(':api')
+  compileOnly project(':impl')
   compileOnly project(':xml')
-  compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  provided "org.terracotta:entity-client-api:$parent.entityApiVersion"
-  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+  implementation project(':clustered:common')
+  providedImplementation "org.terracotta:entity-client-api:$terracottaApisVersion"
+  providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+  providedImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  providedImplementation "org.terracotta.dynamic-config.entities:dynamic-config-topology-entity-client:$terracottaPlatformVersion"
+  providedImplementation "org.terracotta:connection-api:$terracottaApisVersion"
+  compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
 
-  testCompile project(':api')
-  testCompile project(':xml')
-  testCompile project(':transactions')
-  testCompile(project(':clustered:server')) {
+  testImplementation project(':api')
+  testImplementation project(':impl')
+  testImplementation project(':xml')
+  testImplementation project(':transactions')
+  testImplementation(project(':clustered:server:entity')) {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
-  testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
-}
-
-test {
-  if (testJava.javaVersion.isJava9Compatible()) {
-    jvmArgs += ['--add-modules', 'java.xml.bind']
+  testImplementation project(':clustered:server:service')
+  testImplementation "org.terracotta:client-message-tracker:$terracottaPlatformVersion"
+  testImplementation project(':clustered:test-utils')
+  testImplementation "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
+  testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
+  testImplementation "org.terracotta.internal:common:$terracottaCoreVersion"
+  testImplementation "org.terracotta:passthrough-leased-connection-api:$terracottaPlatformVersion"
+  testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
   }
-}
-
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
+  testImplementation testFixtures(project(':xml'))
+  testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
 }

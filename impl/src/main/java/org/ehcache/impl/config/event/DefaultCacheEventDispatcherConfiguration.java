@@ -25,7 +25,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * Enables configuring the thread pool to be used by a {@link org.ehcache.core.events.CacheEventDispatcher} for
  * a given cache.
  */
-public class DefaultCacheEventDispatcherConfiguration implements ServiceConfiguration<CacheEventDispatcherFactory> {
+public class DefaultCacheEventDispatcherConfiguration implements ServiceConfiguration<CacheEventDispatcherFactory, String> {
 
   private final String threadPoolAlias;
 
@@ -53,5 +53,15 @@ public class DefaultCacheEventDispatcherConfiguration implements ServiceConfigur
    */
   public String getThreadPoolAlias() {
     return threadPoolAlias;
+  }
+
+  @Override
+  public String derive() {
+    return getThreadPoolAlias();
+  }
+
+  @Override
+  public DefaultCacheEventDispatcherConfiguration build(String alias) {
+    return new DefaultCacheEventDispatcherConfiguration(alias);
   }
 }

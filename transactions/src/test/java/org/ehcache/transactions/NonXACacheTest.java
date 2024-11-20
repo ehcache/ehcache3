@@ -23,18 +23,17 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.transactions.xa.internal.XAStore;
-import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.hamcrest.Matchers;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvider;
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static java.util.Spliterators.spliterator;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.StreamSupport.stream;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsCollectionContaining.hasItems;
 
 /**
  * Ensures that a non-XA {@code CacheManager} can be created when XA classes are
@@ -48,17 +47,8 @@ public class NonXACacheTest {
     /*
      * Ensure the XA provider classes are loadable through the ServiceLoader mechanism.
      */
-    Set<Class<?>> targetProviders = new HashSet<>();
-    targetProviders.add(XAStore.Provider.class);
-    targetProviders.add(TransactionManagerProvider.class);
-    for (ServiceFactory factory : ClassLoading.libraryServiceLoaderFor(ServiceFactory.class)) {
-      if (targetProviders.remove(factory.getServiceType())) {
-        if (targetProviders.isEmpty()) {
-          break;
-        }
-      }
-    }
-    assertThat(targetProviders, is(Matchers.empty()));
+    assertThat(stream(spliterator(ClassLoading.servicesOfType(ServiceFactory.class).iterator(), Long.MAX_VALUE, 0), false).map(s -> s.getServiceType()).collect(toList()),
+      hasItems(XAStore.Provider.class, LookupTransactionManagerProvider.class));
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class,

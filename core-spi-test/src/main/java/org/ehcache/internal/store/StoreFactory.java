@@ -17,8 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.Service;
@@ -35,7 +35,7 @@ public interface StoreFactory<K, V> {
 
   Store<K, V> newStoreWithEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor);
 
-  Store<K, V> newStoreWithExpiry(Expiry<? super K, ? super V> expiry, TimeSource timeSource);
+  Store<K, V> newStoreWithExpiry(ExpiryPolicy<? super K, ? super V> expiry, TimeSource timeSource);
 
   Store.ValueHolder<V> newValueHolder(V value);
 
@@ -43,7 +43,7 @@ public interface StoreFactory<K, V> {
 
   Class<V> getValueType();
 
-  ServiceConfiguration<?>[] getServiceConfigurations();
+  ServiceConfiguration<?, ?>[] getServiceConfigurations();
 
   ServiceProvider<Service> getServiceProvider();
 

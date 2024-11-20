@@ -34,7 +34,7 @@
 
   <xs:complexType name="tags-type">
     <xs:sequence>
-      <xs:element name="tag" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="tag" type="eh:propertyOrString" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 

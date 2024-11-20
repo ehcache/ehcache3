@@ -28,9 +28,9 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.event.EventType;
 import javax.cache.spi.CachingProvider;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author rism
@@ -77,7 +77,6 @@ public class UnwrapTest {
     assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.NormalEvent.class)));
   }
 
-  @SuppressWarnings("unchecked")
   private class EhEvent implements CacheEvent<String,String> {
     @Override
     public org.ehcache.event.EventType getType() {
@@ -99,8 +98,9 @@ public class UnwrapTest {
       throw new UnsupportedOperationException("Implement me!");
     }
 
+    @SuppressWarnings("deprecation")
     @Override
-    public org.ehcache.Cache getSource() {
+    public org.ehcache.Cache<String, String> getSource() {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

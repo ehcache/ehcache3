@@ -28,8 +28,8 @@ import org.junit.Test;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -92,7 +92,7 @@ public class CacheEventDispatcherFactoryImplTest {
     cacheEventDispatcherFactory.start(serviceProvider);
 
     Store<Object, Object> store = mock(Store.class);
-    CacheEventDispatcher dispatcher = cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
+    CacheEventDispatcher<Object, Object> dispatcher = cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
     assertThat(dispatcher, instanceOf(CacheEventDispatcherImpl.class));
   }
 }

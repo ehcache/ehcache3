@@ -23,7 +23,11 @@ import java.io.Serializable;
 
 public abstract class LifecycleMessage extends EhcacheOperationMessage implements Serializable {
 
+  private static final long serialVersionUID = -5877907682623164227L;
+
   public static class ValidateStoreManager extends LifecycleMessage {
+
+    private static final long serialVersionUID = -7459333332357106170L;
 
     private final ServerSideConfiguration configuration;
 
@@ -46,10 +50,12 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
    */
   public static class ValidateServerStore extends LifecycleMessage {
 
+    private static final long serialVersionUID = -7271460156539083757L;
+
     private final String name;
     private final ServerStoreConfiguration storeConfiguration;
 
-    ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
+    public ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
       this.name = name;
       this.storeConfiguration = storeConfiguration;
     }
@@ -69,6 +75,9 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
   }
 
   public static class PrepareForDestroy extends LifecycleMessage {
+
+    private static final long serialVersionUID = -680257947889507297L;
+
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.PREPARE_FOR_DESTROY;

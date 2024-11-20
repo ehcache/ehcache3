@@ -26,7 +26,6 @@ import org.ehcache.spi.test.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import static org.ehcache.config.units.MemoryUnit.MB;
@@ -41,9 +40,6 @@ public class CacheManagerListenerTest {
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void before() {

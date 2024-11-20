@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
-
-dependencies {
-  compile "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  provided "org.terracotta:entity-common-api:$parent.entityApiVersion"
-  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+plugins {
+  id 'org.ehcache.build.deploy'
 }
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
+dependencies {
+  api project(':clustered:common-api')
+
+  providedImplementation project(':api')
+  providedImplementation "org.terracotta:entity-common-api:$terracottaApisVersion"
+  providedImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
+
+  testImplementation project(':clustered:test-utils')
 }

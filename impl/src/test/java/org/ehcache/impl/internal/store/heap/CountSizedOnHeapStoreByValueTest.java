@@ -22,12 +22,14 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
+import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.Serializable;
@@ -46,7 +48,7 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
 
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry,
+      final ExpiryPolicy<? super K, ? super V> expiry,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final Copier<K> keyCopier, final Copier<V> valueCopier, final int capacity) {
     StoreEventDispatcher<K, V> eventDispatcher = getStoreEventDispatcher();
     return new OnHeapStore<>(new Store.Configuration<K, V>() {
@@ -74,7 +76,7 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       }
 
       @Override
-      public Expiry<? super K, ? super V> getExpiry() {
+      public ExpiryPolicy<? super K, ? super V> getExpiry() {
         return expiry;
       }
 
@@ -97,7 +99,12 @@ public class CountSizedOnHeapStoreByValueTest extends OnHeapStoreByValueTest {
       public int getDispatcherConcurrency() {
         return 0;
       }
-    }, timeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+
+      @Override
+      public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+        return null;
+      }
+    }, timeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
 
   }
 

@@ -25,6 +25,8 @@ import java.lang.Exception;
  */
 public class CachePersistenceException extends Exception {
 
+  private static final long serialVersionUID = -5858875151420107040L;
+
   /**
    * Creates a {@code CachePersistenceException} with the provided message.
    *

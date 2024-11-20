@@ -21,26 +21,41 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Date;
+import java.util.AbstractMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
-import static org.ehcache.clustered.common.internal.store.Util.getChain;
+import static java.util.Arrays.asList;
+import static org.ehcache.clustered.ChainUtils.chainOf;
+import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.Matchers.hasPayloads;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.failure;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.getResponse;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.hashInvalidationDone;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.mapValue;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.prepareForDestroy;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.success;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 
 public class ResponseCodecTest {
 
-  private static final EhcacheEntityResponseFactory RESPONSE_FACTORY = new EhcacheEntityResponseFactory();
   private static final ResponseCodec RESPONSE_CODEC = new ResponseCodec();
   private static final long KEY = 42L;
   private static final int INVALIDATION_ID = 134;
 
   @Test
   public void testFailureResponseCodec() {
-    EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new IllegalMessageException("Test Exception"));
+    EhcacheEntityResponse failure = failure(new IllegalMessageException("Test Exception"));
 
     EhcacheEntityResponse decoded = RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(failure));
 
@@ -49,20 +64,19 @@ public class ResponseCodecTest {
 
   @Test
   public void testGetResponseCodec() {
-    EhcacheEntityResponse getResponse = RESPONSE_FACTORY.response(getChain(false,
-        createPayload(1L), createPayload(11L), createPayload(111L)));
+    EhcacheEntityResponse getResponse = getResponse(chainOf(createPayload(1L), createPayload(11L), createPayload(111L)));
 
     EhcacheEntityResponse decoded = RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(getResponse));
 
     Chain decodedChain = ((EhcacheEntityResponse.GetResponse) decoded).getChain();
 
-    Util.assertChainHas(decodedChain, 1L, 11L, 111L);
+    assertThat(decodedChain, hasPayloads(1L, 11L, 111L));
   }
 
   @Test
   public void testMapValueCodec() throws Exception {
-    Object subject = new Date();
-    EhcacheEntityResponse mapValue = EhcacheEntityResponse.mapValue(subject);
+    Object subject = new Integer(10);
+    EhcacheEntityResponse mapValue = mapValue(subject);
     EhcacheEntityResponse.MapValue decoded =
         (EhcacheEntityResponse.MapValue) RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(mapValue));
     assertThat(decoded.getValue(), equalTo(subject));
@@ -70,13 +84,13 @@ public class ResponseCodecTest {
 
   @Test
   public void testSuccess() throws Exception {
-    byte[] encoded = RESPONSE_CODEC.encode(EhcacheEntityResponse.Success.INSTANCE);
-    assertThat(RESPONSE_CODEC.decode(encoded), Matchers.<EhcacheEntityResponse>sameInstance(EhcacheEntityResponse.Success.INSTANCE));
+    byte[] encoded = RESPONSE_CODEC.encode(success());
+    assertThat(RESPONSE_CODEC.decode(encoded), Matchers.<EhcacheEntityResponse>sameInstance(success()));
   }
 
   @Test
   public void testHashInvalidationDone() throws Exception {
-    EhcacheEntityResponse.HashInvalidationDone response = new EhcacheEntityResponse.HashInvalidationDone(KEY);
+    EhcacheEntityResponse.HashInvalidationDone response = hashInvalidationDone(KEY);
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.HashInvalidationDone decodedResponse = (EhcacheEntityResponse.HashInvalidationDone) RESPONSE_CODEC.decode(encoded);
 
@@ -86,7 +100,7 @@ public class ResponseCodecTest {
 
   @Test
   public void testAllInvalidationDone() throws Exception {
-    EhcacheEntityResponse.AllInvalidationDone response = new EhcacheEntityResponse.AllInvalidationDone();
+    EhcacheEntityResponse.AllInvalidationDone response = allInvalidationDone();
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.AllInvalidationDone decodedResponse = (EhcacheEntityResponse.AllInvalidationDone) RESPONSE_CODEC.decode(encoded);
@@ -96,7 +110,7 @@ public class ResponseCodecTest {
 
   @Test
   public void testClientInvalidateHash() throws Exception {
-    EhcacheEntityResponse.ClientInvalidateHash response = new EhcacheEntityResponse.ClientInvalidateHash(KEY, INVALIDATION_ID);
+    EhcacheEntityResponse.ClientInvalidateHash response = clientInvalidateHash(KEY, INVALIDATION_ID);
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.ClientInvalidateHash decodedResponse = (EhcacheEntityResponse.ClientInvalidateHash) RESPONSE_CODEC.decode(encoded);
 
@@ -107,7 +121,7 @@ public class ResponseCodecTest {
 
   @Test
   public void testClientInvalidateAll() throws Exception {
-    EhcacheEntityResponse.ClientInvalidateAll response = new EhcacheEntityResponse.ClientInvalidateAll(INVALIDATION_ID);
+    EhcacheEntityResponse.ClientInvalidateAll response = clientInvalidateAll(INVALIDATION_ID);
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.ClientInvalidateAll decodedResponse = (EhcacheEntityResponse.ClientInvalidateAll) RESPONSE_CODEC.decode(encoded);
@@ -117,14 +131,27 @@ public class ResponseCodecTest {
   }
 
   @Test
-  public void testServerInvalidateHash() throws Exception {
-    EhcacheEntityResponse.ServerInvalidateHash response = new EhcacheEntityResponse.ServerInvalidateHash(KEY);
+  public void testServerInvalidateHash_withEvictedChain() {
+    EhcacheEntityResponse.ServerInvalidateHash response = serverInvalidateHash(KEY, chainOf(createPayload(1L), createPayload(11L), createPayload(111L)));
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.ServerInvalidateHash decodedResponse = (EhcacheEntityResponse.ServerInvalidateHash) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.SERVER_INVALIDATE_HASH));
     assertThat(decodedResponse.getKey(), is(KEY));
+    assertThat(decodedResponse.getEvictedChain(), hasPayloads(1L, 11L, 111L));
+  }
+
+  @Test
+  public void testServerInvalidateHash_withoutEvictedChain() {
+    EhcacheEntityResponse.ServerInvalidateHash response = serverInvalidateHash(KEY, null);
+
+    byte[] encoded = RESPONSE_CODEC.encode(response);
+    EhcacheEntityResponse.ServerInvalidateHash decodedResponse = (EhcacheEntityResponse.ServerInvalidateHash) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.SERVER_INVALIDATE_HASH));
+    assertThat(decodedResponse.getKey(), is(KEY));
+    assertThat(decodedResponse.getEvictedChain(), is(nullValue()));
   }
 
   @Test
@@ -132,12 +159,72 @@ public class ResponseCodecTest {
     Set<String> storeIdentifiers = new HashSet<>();
     storeIdentifiers.add("store1");
     storeIdentifiers.add("anotherStore");
-    EhcacheEntityResponse.PrepareForDestroy response = new EhcacheEntityResponse.PrepareForDestroy(storeIdentifiers);
+    EhcacheEntityResponse.PrepareForDestroy response = prepareForDestroy(storeIdentifiers);
 
     byte[] encoded = RESPONSE_CODEC.encode(response);
     EhcacheEntityResponse.PrepareForDestroy decodedResponse = (EhcacheEntityResponse.PrepareForDestroy) RESPONSE_CODEC.decode(encoded);
 
     assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.PREPARE_FOR_DESTROY));
     assertThat(decodedResponse.getStores(), is(storeIdentifiers));
+  }
+
+  @Test
+  public void testResolveRequest() throws Exception {
+    long hash = 42L;
+    EhcacheEntityResponse.ResolveRequest response = new EhcacheEntityResponse.ResolveRequest(hash, chainOf(createPayload(1L), createPayload(11L), createPayload(111L)));
+
+    byte[] encoded = RESPONSE_CODEC.encode(response);
+    EhcacheEntityResponse.ResolveRequest decodedResponse = (EhcacheEntityResponse.ResolveRequest) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(decodedResponse.getResponseType(), is(EhcacheResponseType.RESOLVE_REQUEST));
+    assertThat(decodedResponse.getKey(), is(42L));
+    assertThat(decodedResponse.getChain(), hasPayloads(1L, 11L, 111L));
+  }
+
+  @Test
+  public void testLockResponse() {
+    EhcacheEntityResponse.LockSuccess lockSuccess = new EhcacheEntityResponse.LockSuccess(chainOf(createPayload(1L), createPayload(10L)));
+
+    byte[] sucessEncoded = RESPONSE_CODEC.encode(lockSuccess);
+    EhcacheEntityResponse.LockSuccess successDecoded = (EhcacheEntityResponse.LockSuccess) RESPONSE_CODEC.decode(sucessEncoded);
+
+    assertThat(successDecoded.getResponseType(), is(EhcacheResponseType.LOCK_SUCCESS));
+    assertThat(successDecoded.getChain(), hasPayloads(1L, 10L));
+
+    EhcacheEntityResponse.LockFailure lockFailure = EhcacheEntityResponse.lockFailure();
+    byte[] failureEncoded = RESPONSE_CODEC.encode(lockFailure);
+    EhcacheEntityResponse.LockFailure failureDecoded = (EhcacheEntityResponse.LockFailure) RESPONSE_CODEC.decode(failureEncoded);
+
+    assertThat(failureDecoded.getResponseType(), is(EhcacheResponseType.LOCK_FAILURE));
+  }
+
+  @Test
+  public void testIteratorBatchResponse() {
+    UUID uuid = UUID.randomUUID();
+    List<Map.Entry<Long, Chain>> chains = asList(
+    new AbstractMap.SimpleImmutableEntry<>(1L, chainOf(createPayload(1L), createPayload(10L))),
+    new AbstractMap.SimpleImmutableEntry<>(2L, chainOf(createPayload(2L), createPayload(20L))));
+    EhcacheEntityResponse.IteratorBatch iteratorBatch = EhcacheEntityResponse.iteratorBatchResponse(uuid, chains, true);
+
+    byte[] encoded = RESPONSE_CODEC.encode(iteratorBatch);
+    EhcacheEntityResponse.IteratorBatch batchDecoded = (EhcacheEntityResponse.IteratorBatch) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(batchDecoded.getResponseType(), is(EhcacheResponseType.ITERATOR_BATCH));
+    assertThat(batchDecoded.getIdentity(), is(uuid));
+    assertThat(batchDecoded.getChains().get(0).getValue(), hasPayloads(1L, 10L));
+    assertThat(batchDecoded.getChains().get(1).getValue(), hasPayloads(2L, 20L));
+    assertThat(batchDecoded.isLast(), is(true));
+  }
+
+  @Test
+  public void testServerAppendResponse() {
+    EhcacheEntityResponse.ServerAppend serverAppend = new EhcacheEntityResponse.ServerAppend(createPayload(3L), chainOf(createPayload(1L), createPayload(2L)));
+
+    byte[] encoded = RESPONSE_CODEC.encode(serverAppend);
+    EhcacheEntityResponse.ServerAppend appendDecoded = (EhcacheEntityResponse.ServerAppend) RESPONSE_CODEC.decode(encoded);
+
+    assertThat(appendDecoded.getResponseType(), is(EhcacheResponseType.SERVER_APPEND));
+    assertThat(appendDecoded.getAppended().asLongBuffer().get(), is(3L));
+    assertThat(appendDecoded.getBeforeAppend(), hasPayloads(1L, 2L));
   }
 }

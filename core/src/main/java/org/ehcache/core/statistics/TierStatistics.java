@@ -24,14 +24,7 @@ import java.util.Map;
 public interface TierStatistics {
 
   /**
-   * List of statistics tracked on this cache
-   *
-   * @return a map of statistics per name
-   */
-  Map<String, TypedValueStatistic> getKnownStatistics();
-
-  /**
-   * Reset the values for this tier. However, note that {@code mapping, maxMappings, allocatedMemory, occupiedMemory}
+   * Reset the values for this tier. However, note that {@code mapping, allocatedMemory, occupiedMemory}
    * won't be reset since it doesn't make sense.
    * <p>
    * <b>Implementation note:</b> Calling clear doesn't really clear the data. It freezes the actual values and compensate
@@ -61,13 +54,6 @@ public interface TierStatistics {
   long getPuts();
 
   /**
-   * How many updates occurred on the tier since its creation or the latest {@link #clear()}
-   *
-   * @return update count
-   */
-  long getUpdates();
-
-  /**
    * How many removals occurred on the tier since its creation or the latest {@link #clear()}
    *
    * @return removal count
@@ -94,13 +80,6 @@ public interface TierStatistics {
    * @return number of entries
    */
   long getMappings();
-
-  /**
-   * Maximum number of entries that was contained in this tier
-   *
-   * @return number of entries
-   */
-  long getMaxMappings();
 
   /**
    * How many bytes are currently allocated (occupied or not) for this tier

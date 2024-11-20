@@ -31,7 +31,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
  */
-public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration> {
+public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration<?>> {
 
   protected int concurrency = 1;
   protected int queueSize = Integer.MAX_VALUE;
@@ -197,7 +197,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
      * @return the write behind configuration
      */
     @Override
-    public WriteBehindConfiguration build() {
+    public WriteBehindConfiguration<?> build() {
       return buildWith(new DefaultBatchingConfiguration(maxDelay, maxDelayUnit, batchSize, coalescing));
     }
   }
@@ -220,7 +220,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
      * @return the write behind configuration
      */
     @Override
-    public WriteBehindConfiguration build() {
+    public WriteBehindConfiguration<?> build() {
       return buildWith(null);
     }
 
@@ -261,7 +261,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
     }
   }
 
-  WriteBehindConfiguration buildWith(BatchingConfiguration batching) {
+  WriteBehindConfiguration<?> buildWith(BatchingConfiguration batching) {
     return new DefaultWriteBehindConfiguration(threadPoolAlias, concurrency, queueSize, batching);
   }
 

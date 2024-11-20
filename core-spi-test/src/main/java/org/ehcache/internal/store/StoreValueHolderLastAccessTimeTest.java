@@ -43,6 +43,6 @@ public class StoreValueHolderLastAccessTimeTest<K, V> extends SPIStoreTester<K, 
       throws IllegalAccessException, InstantiationException {
     Store.ValueHolder<V> valueHolder = factory.newValueHolder(factory.createValue(1));
 
-    assertThat(valueHolder.lastAccessTime(TimeUnit.MILLISECONDS), is(notNullValue()));
+    assertThat(valueHolder.lastAccessTime(), is(notNullValue()));
   }
 }

@@ -15,25 +15,27 @@
  */
 package org.ehcache.impl.internal.loaderwriter.writebehind;
 
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
-import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.spi.service.ServiceProvider;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * @author Abhilash
  *
  */
+@Component
 public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindProvider> {
 
   @Override
-  public WriteBehindProvider create(ServiceCreationConfiguration<WriteBehindProvider> configuration) {
+  public WriteBehindProvider create(ServiceCreationConfiguration<WriteBehindProvider, ?> configuration) {
     if (configuration == null) {
       return new Provider();
     } else if (configuration instanceof WriteBehindProviderConfiguration) {
@@ -69,7 +71,7 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
     }
 
     @Override
-    public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration) {
+    public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
       if (cacheLoaderWriter == null) {
         throw new NullPointerException("WriteBehind requires a non null CacheLoaderWriter.");
       }
@@ -85,8 +87,8 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
   }
 
   @Override
-  public Class<WriteBehindProvider> getServiceType() {
-    return WriteBehindProvider.class;
+  public Class<? extends WriteBehindProvider> getServiceType() {
+    return Provider.class;
   }
 
 }

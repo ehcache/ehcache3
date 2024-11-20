@@ -19,16 +19,19 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.decoding.StructDecoder;
-import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.function.Predicate;
 
 import static java.nio.ByteBuffer.wrap;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_INDEX;
+import static org.ehcache.clustered.common.internal.messages.BaseCodec.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.encodeMandatoryFields;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class StateRepositoryOpCodec {
@@ -57,8 +60,6 @@ public class StateRepositoryOpCodec {
     .string(MAP_ID_FIELD, 35)
     .build();
 
-  private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
-
   public byte[] encode(StateRepositoryOpMessage message) {
 
     switch (message.getMessageType()) {
@@ -74,38 +75,29 @@ public class StateRepositoryOpCodec {
   }
 
   private byte[] encodeEntrySetMessage(StateRepositoryOpMessage.EntrySetMessage message) {
-    StructEncoder<Void> encoder = ENTRY_SET_MESSAGE_STRUCT.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encoder.string(SERVER_STORE_NAME_FIELD, message.getCacheId());
-    encoder.string(MAP_ID_FIELD, message.getCacheId());
-
-    return encoder.encode().array();
+    return encodeMandatoryFields(ENTRY_SET_MESSAGE_STRUCT, message)
+      .string(SERVER_STORE_NAME_FIELD, message.getCacheId())
+      .string(MAP_ID_FIELD, message.getCacheId())
+      .encode().array();
   }
 
   private byte[] encodePutIfAbsentMessage(StateRepositoryOpMessage.PutIfAbsentMessage message) {
-    StructEncoder<Void> encoder = PUT_IF_ABSENT_MESSAGE_STRUCT.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encoder.string(SERVER_STORE_NAME_FIELD, message.getCacheId());
-    encoder.string(MAP_ID_FIELD, message.getCacheId());
-    // TODO this needs to change - serialization needs to happen in the StateRepo not here, though we need the hashcode for server side comparison.
-    encoder.byteBuffer(KEY_FIELD, wrap(Util.marshall(message.getKey())));
-    encoder.byteBuffer(VALUE_FIELD, wrap(Util.marshall(message.getValue())));
-
-    return encoder.encode().array();
+    return encodeMandatoryFields(PUT_IF_ABSENT_MESSAGE_STRUCT, message)
+      .string(SERVER_STORE_NAME_FIELD, message.getCacheId())
+      .string(MAP_ID_FIELD, message.getCacheId())
+      // TODO this needs to change - serialization needs to happen in the StateRepo not here, though we need the hashcode for server side comparison.
+      .byteBuffer(KEY_FIELD, wrap(Util.marshall(message.getKey())))
+      .byteBuffer(VALUE_FIELD, wrap(Util.marshall(message.getValue())))
+      .encode().array();
   }
 
   private byte[] encodeGetMessage(StateRepositoryOpMessage.GetMessage message) {
-    StructEncoder<Void> encoder = GET_MESSAGE_STRUCT.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encoder.string(SERVER_STORE_NAME_FIELD, message.getCacheId());
-    encoder.string(MAP_ID_FIELD, message.getCacheId());
-    // TODO this needs to change - serialization needs to happen in the StateRepo not here, though we need the hashcode for server side comparison.
-    encoder.byteBuffer(KEY_FIELD, wrap(Util.marshall(message.getKey())));
-
-    return encoder.encode().array();
+    return encodeMandatoryFields(GET_MESSAGE_STRUCT, message)
+      .string(SERVER_STORE_NAME_FIELD, message.getCacheId())
+      .string(MAP_ID_FIELD, message.getCacheId())
+      // TODO this needs to change - serialization needs to happen in the StateRepo not here, though we need the hashcode for server side comparison.
+      .byteBuffer(KEY_FIELD, wrap(Util.marshall(message.getKey())))
+      .encode().array();
   }
 
   public StateRepositoryOpMessage decode(EhcacheMessageType messageType, ByteBuffer messageBuffer) {
@@ -137,10 +129,10 @@ public class StateRepositoryOpCodec {
     String mapId = decoder.string(MAP_ID_FIELD);
 
     ByteBuffer keyBuffer = decoder.byteBuffer(KEY_FIELD);
-    Object key = Util.unmarshall(keyBuffer);
+    Object key = Util.unmarshall(keyBuffer, WHITELIST_PREDICATE);
 
     ByteBuffer valueBuffer = decoder.byteBuffer(VALUE_FIELD);
-    Object value = Util.unmarshall(valueBuffer);
+    Object value = Util.unmarshall(valueBuffer, WHITELIST_PREDICATE);
 
     return new StateRepositoryOpMessage.PutIfAbsentMessage(storeName, mapId, key, value);
   }
@@ -152,8 +144,25 @@ public class StateRepositoryOpCodec {
     String mapId = decoder.string(MAP_ID_FIELD);
 
     ByteBuffer keyBuffer = decoder.byteBuffer(KEY_FIELD);
-    Object key = Util.unmarshall(keyBuffer);
+    Object key = Util.unmarshall(keyBuffer, WHITELIST_PREDICATE);
 
     return new StateRepositoryOpMessage.GetMessage(storeName, mapId, key);
   }
+
+  public static final Predicate<Class<?>> WHITELIST_PREDICATE = new HashSet<>(Arrays.asList(
+    java.lang.Integer.class,
+    java.lang.Long.class,
+    java.lang.Float.class,
+    java.lang.Double.class,
+    java.lang.Byte.class,
+    java.lang.Character.class,
+    java.lang.String.class,
+    java.lang.Boolean.class,
+    java.lang.Short.class,
+    java.lang.Number.class,
+
+    org.ehcache.clustered.common.internal.store.ValueWrapper.class,
+    byte[].class,
+    java.util.HashSet.class,
+    java.util.AbstractMap.SimpleEntry.class))::contains;
 }

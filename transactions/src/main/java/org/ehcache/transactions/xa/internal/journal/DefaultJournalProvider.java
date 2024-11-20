@@ -19,6 +19,7 @@ package org.ehcache.transactions.xa.internal.journal;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Ludovic Orban
  */
-@ServiceDependencies(DiskResourceService.class)
+@OptionalServiceDependencies("org.ehcache.core.spi.service.DiskResourceService")
 public class DefaultJournalProvider implements JournalProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJournalProvider.class);
@@ -52,14 +53,16 @@ public class DefaultJournalProvider implements JournalProvider {
     if (persistentSpaceId == null) {
       LOGGER.info("Using transient XAStore journal");
       return new TransientJournal<>();
-    }
-
-    try {
-      LOGGER.info("Using persistent XAStore journal");
-      FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(persistentSpaceId, "XAJournal");
-      return new PersistentJournal<>(persistenceContext.getDirectory(), keySerializer);
-    } catch (CachePersistenceException cpe) {
-      throw new RuntimeException(cpe);
+    } else if (diskResourceService == null) {
+      throw new AssertionError("Null diskResourceService with non-null persistentSpaceId [" + persistentSpaceId + "]");
+    } else {
+      try {
+        LOGGER.info("Using persistent XAStore journal");
+        FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(persistentSpaceId, "XAJournal");
+        return new PersistentJournal<>(persistenceContext.getDirectory(), keySerializer);
+      } catch (CachePersistenceException cpe) {
+        throw new RuntimeException(cpe);
+      }
     }
   }
 }

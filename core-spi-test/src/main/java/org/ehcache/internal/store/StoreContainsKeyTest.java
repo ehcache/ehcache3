@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -39,19 +39,12 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   protected Store<K, V> kvStore;
-  protected Store kvStore2;
 
   @After
   public void tearDown() {
     if (kvStore != null) {
       factory.close(kvStore);
       kvStore = null;
-    }
-    if (kvStore2 != null) {
-      @SuppressWarnings("unchecked")
-      Store<K, V> kvStore2 = this.kvStore2;
-      factory.close(kvStore2);
-      this.kvStore2 = null;
     }
   }
 
@@ -93,13 +86,13 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
   @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore2 = factory.newStore();
+    kvStore = factory.newStore();
 
     try {
       if (this.factory.getKeyType() == String.class) {
-        kvStore2.containsKey(1.0f);
+        kvStore.containsKey((K) (Float) 1.0f);
       } else {
-        kvStore2.containsKey("key");
+        kvStore.containsKey((K) "key");
       }
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {

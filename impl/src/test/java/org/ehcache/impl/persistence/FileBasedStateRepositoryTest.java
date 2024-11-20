@@ -25,12 +25,11 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
 /**
  * FileBasedStateRepositoryTest
@@ -47,7 +46,7 @@ public class FileBasedStateRepositoryTest {
     File directory = folder.newFolder("testSave");
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
     String holderName = "myHolder";
-    StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class);
+    StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class, c -> true, null);
 
     myHolder.putIfAbsent(42L, "TheAnswer!");
 
@@ -79,7 +78,7 @@ public class FileBasedStateRepositoryTest {
     }
 
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class);
+    StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class, c -> true, null);
 
     assertThat(myHolder, is(map));
   }
@@ -96,7 +95,7 @@ public class FileBasedStateRepositoryTest {
     }
 
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    stateRepository.getPersistentStateHolder("otherHolder", Long.class, Long.class);
+    stateRepository.getPersistentStateHolder("otherHolder", Long.class, Long.class, c -> true, null);
     stateRepository.close();
 
     File[] files = directory.listFiles((dir, name) -> name.contains("otherHolder") && name.contains("-1-"));

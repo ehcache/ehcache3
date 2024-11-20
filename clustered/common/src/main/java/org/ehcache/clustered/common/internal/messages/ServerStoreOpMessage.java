@@ -19,6 +19,7 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
@@ -45,7 +46,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   public static class GetMessage extends KeyBasedServerStoreOpMessage {
 
-    GetMessage(long key) {
+    public GetMessage(long key) {
       super(key);
     }
 
@@ -59,7 +60,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    GetAndAppendMessage(long key, ByteBuffer payload) {
+    public GetAndAppendMessage(long key, ByteBuffer payload) {
       super(key);
       this.payload = payload;
     }
@@ -79,7 +80,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final ByteBuffer payload;
 
-    AppendMessage(long key, ByteBuffer payload) {
+    public AppendMessage(long key, ByteBuffer payload) {
       super(key);
       this.payload = payload;
     }
@@ -100,7 +101,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     private final Chain expect;
     private final Chain update;
 
-    ReplaceAtHeadMessage(long key, Chain expect, Chain update) {
+    public ReplaceAtHeadMessage(long key, Chain expect, Chain update) {
       super(key);
       this.expect = expect;
       this.update = update;
@@ -124,7 +125,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAck(long key, int invalidationId) {
+    public ClientInvalidationAck(long key, int invalidationId) {
       super(key);
       this.invalidationId = invalidationId;
     }
@@ -143,7 +144,7 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
     private final int invalidationId;
 
-    ClientInvalidationAllAck(int invalidationId) {
+    public ClientInvalidationAllAck(int invalidationId) {
       super();
       this.invalidationId = invalidationId;
     }
@@ -163,6 +164,120 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.CLEAR;
+    }
+  }
+
+  public static class LockMessage extends ServerStoreOpMessage {
+
+    private final long hash;
+
+    public LockMessage(long hash) {
+      this.hash = hash;
+    }
+
+    public long getHash() {
+      return hash;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.LOCK;
+    }
+  }
+
+  public static class UnlockMessage extends ServerStoreOpMessage {
+
+    private final long hash;
+
+    public UnlockMessage(long hash) {
+      this.hash = hash;
+    }
+
+    public long getHash() {
+      return hash;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.UNLOCK;
+    }
+  }
+
+  public static class IteratorOpenMessage extends ServerStoreOpMessage {
+
+    private final int batchSize;
+
+    public IteratorOpenMessage(int batchSize) {
+      this.batchSize = batchSize;
+    }
+
+    public int getBatchSize() {
+      return batchSize;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.ITERATOR_OPEN;
+    }
+  }
+
+  public static class IteratorCloseMessage extends ServerStoreOpMessage {
+
+    private final UUID id;
+
+    public IteratorCloseMessage(UUID id) {
+      this.id = id;
+    }
+
+    public UUID getIdentity() {
+      return id;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.ITERATOR_CLOSE;
+    }
+  }
+
+  public static class IteratorAdvanceMessage extends ServerStoreOpMessage {
+
+    private final UUID id;
+    private final int batchSize;
+
+    public IteratorAdvanceMessage(UUID id, int batchSize) {
+      this.id = id;
+      this.batchSize = batchSize;
+
+    }
+
+    public UUID getIdentity() {
+      return id;
+    }
+
+    public int getBatchSize() {
+      return batchSize;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.ITERATOR_ADVANCE;
+    }
+  }
+
+  public static class EnableEventListenerMessage extends ServerStoreOpMessage {
+    private final boolean enable;
+
+    public EnableEventListenerMessage(boolean enable) {
+      this.enable = enable;
+    }
+
+    public boolean isEnable() {
+      return enable;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.ENABLE_EVENT_LISTENER;
     }
   }
 

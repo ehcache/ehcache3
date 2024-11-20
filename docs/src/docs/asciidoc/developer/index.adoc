@@ -1,0 +1,34 @@
+= Ehcache 3 Developer Documentation
+
+== Code layout
+
+The core code of Ehcache is split in to three modules:
+
+ . the link:module.api{outfilesuffix}[API module], which contains mainly interfaces. They are the core API to Ehcache (e.g. +Cache+, +CacheManager+) that users depend on. It also contains the entry points in terms of SPI (e.g. +Service+, +Store+, +AuthoritativeTier+ & +CachingTier+), that are used by other modules that in turn provide their implementations;
+ . the link:module.core{outfilesuffix}[Core module], that is composed of the plumbery that wires the API used by users with the SPI implementations present in packaged modules; and
+ . the link:module.impl{outfilesuffix}[Implementation module], containing the default implementation of +Cache+ and +CacheManager+, as well as implementations of core SPIs, such as +HeapResource+ that lets you create on-heap +Cache+ and +CachingTier+ instances.
+
+== Fundamental concepts
+
+=== Modular approach
+
+==== Services
+
+A `CacheManager` manages `Cache` instances, but also `Service` instances that can be used by either `Cache` or other `Service` instances. An example of `Service` being the `org.ehcache.spi.cache.Store.Provider`, it's the `Service` the `CacheManager` will use to create the `Store` instance underlying your `Cache`.
+
+`Service` are created by using the Java's https://docs.oracle.com/javase/6/docs/api/java/util/ServiceLoader.html[`java.util.ServiceLoader` service-provider loading facility]. It is used to locate all `org.ehcache.spi.service.ServiceFactory` implementations on the classpath. These are in turn used to create `Service` instances. Each `CacheManager` uses its own `org.ehcache.spi.ServiceLocator` facility to locate `Service` instances, which it then in turn life cycles.
+
+`Service` instances are configured by their own respective `ServiceConfiguration` at `Service.start()` invocation time. `CacheManager` and its `Service` instances can then use these services. In the case of the `org.ehcache.spi.cache.Store.Provider` instance, it is being used by the `CacheManager` to create a `Store` to back a `Cache`. Being a direct dependency of `Ehcache`, that `Service` interface is part of the core SPI. It defines a `createStore()` method that will be invoked by the `CacheManager` at `Cache` creation time. The `Store.Provider` implementation can introspect not only the `Store.Configuration` passed, but also all `ServiceConfiguration` instances associated with the `Cache` being created in order to decide what `Store` should be created (note: currently it only creates `OnHeapStore`, as this is the only topology supported... more to come).
+
+=== Configuration
+
++org.ehcache.config.CacheConfiguration+, +org.ehcache.spi.service.ServiceConfiguration+, +org.ehcache.config.xml.XmlConfigurationParser+
+
+NOTE: For more information on how the configuration is parsed, resolved and services are then bootstrapped, please read the link:design.bootstrapping{outfilesuffix}#configuration[Bootstrapping design doc].
+
+== How to extend?
+
+=== SPIs
++org.ehcache.spi.service+, +org.ehcache.spi.cache+
+
+=== Extension points

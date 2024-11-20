@@ -20,43 +20,46 @@ import bitronix.tm.TransactionManagerServices;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.net.URISyntaxException;
+import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.util.Collections.singletonMap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
  * @author Ludovic Orban
  */
 public class XAGettingStarted {
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder();
 
   @Before
   public void setUp() throws Exception {
@@ -80,12 +83,12 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-            .add(new XAStoreConfiguration("xaCache")) // <5>
+            .withService(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
 
     transactionManager.begin(); // <6>
     {
@@ -108,12 +111,12 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-            .add(new XAStoreConfiguration("xaCache")) // <5>
+            .withService(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
 
     try {
       xaCache.get(1L); // <6>
@@ -140,13 +143,13 @@ public class XAGettingStarted {
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
                                                             ResourcePoolsBuilder.heap(10)) // <4>
-                .add(new XAStoreConfiguration("xaCache")) // <5>
-                .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
+                .withService(new XAStoreConfiguration("xaCache")) // <5>
+                .withService(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
                 .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = cacheManager.getCache("xaCache", Long.class, String.class);
 
     transactionManager.begin(); // <7>
     {
@@ -175,12 +178,12 @@ public class XAGettingStarted {
                         .offheap(10, MemoryUnit.MB)
                         .disk(20, MemoryUnit.MB, true)
                 )
-                .add(new XAStoreConfiguration("xaCache")) // <6>
+                .withService(new XAStoreConfiguration("xaCache")) // <6>
                 .build()
         )
         .build(true);
 
-    final Cache<Long, String> xaCache = persistentCacheManager.getCache("xaCache", Long.class, String.class);
+    Cache<Long, String> xaCache = persistentCacheManager.getCache("xaCache", Long.class, String.class);
 
     transactionManager.begin(); // <7>
     {
@@ -209,10 +212,9 @@ public class XAGettingStarted {
     // end::testXACacheWithXMLConfig[]
   }
 
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  private String getStoragePath() throws IOException {
+    return folder.newFolder().getAbsolutePath();
   }
-
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
@@ -226,7 +228,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public V load(K key) throws Exception {
+    public V load(K key) {
       lock.readLock().lock();
       try {
         V v = data.get(key);
@@ -238,12 +240,12 @@ public class XAGettingStarted {
     }
 
     @Override
-    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    public Map<K, V> loadAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void write(K key, V value) throws Exception {
+    public void write(K key, V value) {
       lock.writeLock().lock();
       try {
         data.put(key, value);
@@ -254,7 +256,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       lock.writeLock().lock();
       try {
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
@@ -267,7 +269,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void delete(K key) throws Exception {
+    public void delete(K key) {
       lock.writeLock().lock();
       try {
         data.remove(key);
@@ -278,7 +280,7 @@ public class XAGettingStarted {
     }
 
     @Override
-    public void deleteAll(Iterable<? extends K> keys) throws BulkCacheWritingException, Exception {
+    public void deleteAll(Iterable<? extends K> keys) {
       lock.writeLock().lock();
       try {
         for (K key : keys) {

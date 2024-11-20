@@ -17,7 +17,7 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -27,10 +27,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * CachingTierInvalidate
@@ -65,7 +64,7 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
       // register invalidation listener
       final AtomicBoolean invalidated = new AtomicBoolean(false);
       tier.setInvalidationListener((key1, valueHolder) -> {
-        assertThat(valueHolder.value(), is(value));
+        assertThat(valueHolder.get(), is(value));
         invalidated.set(true);
       });
 
@@ -133,37 +132,27 @@ public class CachingTierInvalidate<K, V> extends CachingTierTester<K, V> {
   private Store.ValueHolder<V> wrap(final V value) {
     return new Store.ValueHolder<V>() {
       @Override
-      public V value() {
+      public V get() {
         return value;
       }
 
       @Override
-      public long creationTime(TimeUnit unit) {
+      public long creationTime() {
         return 0L;
       }
 
       @Override
-      public long expirationTime(TimeUnit unit) {
+      public long expirationTime() {
         return 0L;
       }
 
       @Override
-      public boolean isExpired(long expirationTime, TimeUnit unit) {
+      public boolean isExpired(long expirationTime) {
         return false;
       }
 
       @Override
-      public long lastAccessTime(TimeUnit unit) {
-        return 0L;
-      }
-
-      @Override
-      public float hitRate(long now, TimeUnit unit) {
-        return 0L;
-      }
-
-      @Override
-      public long hits() {
+      public long lastAccessTime() {
         return 0L;
       }
 

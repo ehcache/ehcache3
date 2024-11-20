@@ -65,12 +65,12 @@ public class TransientJournal<K> implements Journal<K> {
 
   @Override
   public void saveCommitted(TransactionId transactionId, boolean heuristicDecision) {
-    save(transactionId, XAState.COMMITTED, heuristicDecision, Collections.<K>emptySet());
+    save(transactionId, XAState.COMMITTED, heuristicDecision, Collections.emptySet());
   }
 
   @Override
   public void saveRolledBack(TransactionId transactionId, boolean heuristicDecision) {
-    save(transactionId, XAState.ROLLED_BACK, heuristicDecision, Collections.<K>emptySet());
+    save(transactionId, XAState.ROLLED_BACK, heuristicDecision, Collections.emptySet());
   }
 
   @Override
@@ -82,12 +82,12 @@ public class TransientJournal<K> implements Journal<K> {
     if (!heuristicDecision) {
       // check for heuristics
       if (xaState == XAState.IN_DOUBT) {
-        Entry existing = states.putIfAbsent(transactionId, new Entry<>(xaState, false, inDoubtKeys));
+        Entry<K> existing = states.putIfAbsent(transactionId, new Entry<>(xaState, false, inDoubtKeys));
         if (existing != null) {
           throw new IllegalStateException("A transaction cannot go back to in-doubt state");
         }
       } else {
-        Entry entry = states.get(transactionId);
+        Entry<K> entry = states.get(transactionId);
         if (entry != null && entry.heuristic) {
           throw new IllegalStateException("A heuristically terminated transaction cannot be normally terminated, it must be forgotten");
         }
@@ -97,7 +97,7 @@ public class TransientJournal<K> implements Journal<K> {
       if (xaState == XAState.IN_DOUBT) {
         throw new IllegalStateException("A transaction cannot enter in-doubt state heuristically");
       } else {
-        Entry replaced = states.replace(transactionId, new Entry<>(xaState, true, Collections.<K>emptySet()));
+        Entry<K> replaced = states.replace(transactionId, new Entry<>(xaState, true, Collections.emptySet()));
         if (replaced == null) {
           throw new IllegalStateException("Only in-doubt transactions can be heuristically terminated");
         }
@@ -139,7 +139,7 @@ public class TransientJournal<K> implements Journal<K> {
 
   @Override
   public void forget(TransactionId transactionId) {
-    Entry entry = states.get(transactionId);
+    Entry<K> entry = states.get(transactionId);
     if (entry != null) {
       if (entry.heuristic) {
         states.remove(transactionId);

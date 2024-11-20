@@ -17,12 +17,13 @@
 package org.ehcache.core.spi.store;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
@@ -31,10 +32,12 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
 
 /**
  * The {@code Store} interface represents the backing storage of a {@link Cache}. It abstracts the support for multiple
@@ -111,6 +114,22 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   PutStatus put(K key, V value) throws StoreAccessException;
 
   /**
+   * Maps the specified key to the specified value in this store.
+   * Neither the key nor the value can be {@code null}.
+   *
+   * @param key   key with which the specified value is to be associated
+   * @param value value to be associated with the specified key
+   * @return the previously associated value
+   *
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
+   * @throws StoreAccessException if the mapping can't be installed
+   */
+  default ValueHolder<V> getAndPut(K key, V value) throws StoreAccessException {
+    return getAndCompute(key, (k, v) -> value);
+  }
+
+  /**
    * Maps the specified key to the specified value in this store, unless a non-expired mapping
    * already exists.
    * <p>
@@ -131,6 +150,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param key   key with which the specified value is to be associated
    * @param value value to be associated with the specified key
+   * @param put lambda to be consumed if value has been put
    * @return the {@link Store.ValueHolder ValueHolder} to
    * which the specified key was previously mapped, or {@code null} if no such mapping existed or the mapping was expired
    *
@@ -140,7 +160,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @see #replace(Object, Object)
    */
-  ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException;
+  ValueHolder<V> putIfAbsent(K key, V value, Consumer<Boolean> put) throws StoreAccessException;
 
   /**
    * Removes the key (and its corresponding value) from this store.
@@ -156,6 +176,24 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if the mapping can't be removed
    */
   boolean remove(K key) throws StoreAccessException;
+
+
+  /**
+   * Removes the key (and its corresponding value) from this store.
+   * This method does nothing if the key is not mapped.
+   * <p>
+   * The key cannot be {@code null}.
+   *
+   * @param key the key that needs to be removed
+   * @return the previously associated value
+   *
+   * @throws NullPointerException if the specified key is null
+   * @throws NullPointerException if the argument is {@code null}
+   * @throws StoreAccessException if the mapping can't be removed
+   */
+  default ValueHolder<V> getAndRemove(K key) throws StoreAccessException {
+    return getAndCompute(key, (k, v) -> null);
+  }
 
   /**
    * Removes the entry for a key only if currently mapped to the given value
@@ -274,32 +312,28 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * <p>
    * This is equivalent to
    * <pre>
-   *   V newValue = mappingFunction.apply(key, store.get(key));
+   *   V oldValue = store.get(key;
+   *   V newValue = mappingFunction.apply(key, oldValue);
    *   if (newValue != null) {
    *     store.put(key, newValue);
    *   } else {
    *     store.remove(key);
    *   }
-   *   return newValue;
+   *   return oldValue;
    * </pre>
    * except that the action is performed atomically.
-   * <p>
-   * This is equivalent to calling {@link Store#compute(Object, BiFunction, Supplier)}
-   * with a "replaceEquals" function that returns {@link Boolean#TRUE true}.
-   * <p>
    * Neither the key nor the function can be {@code null}
    *
    * @param key the key to update the mapping for
    * @param mappingFunction the function that will produce the new value.
-   * @return the new value associated with the key or {@code null} if none
+   * @return the existing value associated with the key or {@code null} if none
    *
    * @throws ClassCastException if the specified key is not of the correct type {@code K}
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws StoreAccessException if the mapping can't be changed
    *
-   * @see #compute(Object, BiFunction, Supplier)
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException;
+  ValueHolder<V> getAndCompute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException;
 
   /**
    * Compute the value for the given key by invoking the given function to produce the value.
@@ -334,15 +368,15 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @param key the key to operate on
    * @param mappingFunction the function that will produce the new value.
    * @param replaceEqual indicates if an equal value replaces the existing one
+   * @param invokeWriter indicates if the writer should be invoked
    * @return the new value associated with the key or {@code null} if none
    *
    * @throws ClassCastException if the specified key is not of the correct type {@code K}
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws StoreAccessException if the mapping can't be changed
    *
-   * @see #compute(Object, BiFunction)
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual) throws StoreAccessException;
+  ValueHolder<V> computeAndGet(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, Supplier<Boolean> replaceEqual, Supplier<Boolean> invokeWriter) throws StoreAccessException;
 
   /**
    * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
@@ -452,7 +486,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
-   * @throws StoreAccessException
+   * @throws StoreAccessException when a failure occurs when accessing the store
    */
   Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException;
 
@@ -461,7 +495,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param <V> the value type
    */
-  interface ValueHolder<V> extends ValueSupplier<V> {
+  interface ValueHolder<V> extends Supplier<V> {
 
     /**
      * Constant value indicating no expiration - an eternal mapping.
@@ -471,49 +505,31 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * Accessor to the creation time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the creation time in the given unit
+     * @return the creation time in milliseconds
      */
-    long creationTime(TimeUnit unit);
+    long creationTime();
 
     /**
      * Accessor to the expiration time of this ValueHolder
      *
-     * @param unit the timeUnit to return the creation time in
-     * @return the expiration time in the given unit. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
+     * @return the expiration time in milliseconds. A value of {@link #NO_EXPIRE} means that the ValueHolder will never expire.
      */
-    long expirationTime(TimeUnit unit);
+    long expirationTime();
 
     /**
      * Check if the ValueHolder is expired relative to the specified time
      *
-     * @param expirationTime the expiration time relative to which the expiry check must be made
-     * @param unit the unit of the expiration time
+     * @param expirationTime the expiration time (in ms) relative to which the expiry check must be made
      * @return true if the ValueHolder expired relative to the given expiration time
      */
-    boolean isExpired(long expirationTime, TimeUnit unit);
+    boolean isExpired(long expirationTime);
 
     /**
      * Accessor to the last access time of the Value held in this ValueHolder
      *
-     * @param unit the timeUnit to return the last access time in
-     * @return the last access time in the given unit
+     * @return the last access time in milliseconds
      */
-    long lastAccessTime(TimeUnit unit);
-
-    /**
-     * Accessor to the hit rate of the value held in this {@code ValueHolder}.
-     *
-     * @param now the time in {@link TimeUnit#MILLISECONDS} upto which the rate needs to be calculated
-     * @param unit the {@link TimeUnit} in which the rate is to returned
-     * @return the hit rate in the given unit
-     */
-    float hitRate(long now, TimeUnit unit);
-
-    /**
-     * @return hit counter of the Value held in this ValueHolder
-     */
-    long hits();
+    long lastAccessTime();
 
     /**
      * The combination of this identifier and the <code>key</code> that ValueHolder is mapped to should to be
@@ -524,11 +540,19 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      */
     long getId();
 
+    /**
+     * Returns the value held by this value holder. This value can't be {@code null}.
+     *
+     * @return the value held
+     */
+    @Nonnull
+    @Override
+    V get();
   }
 
   /**
    * The Service used to create Stores.
-   * Implementation of {@link Provider} have be thread-safe.
+   * Implementation of {@link Provider} have to be thread-safe.
    */
   @PluralService
   interface Provider extends Service {
@@ -540,7 +564,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * @param serviceConfigs the configurations the Provider may need to configure the Store
      * @return the Store honoring the configurations passed in
      */
-    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Informs this Provider, a Store it created is being disposed (i.e. closed)
@@ -566,7 +590,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the store
      *      can not handle all types specified in {@code resourceTypes}
      */
-    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs);
+    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
   /**
@@ -608,7 +632,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     /**
      * The expiration policy instance for this store
      */
-    Expiry<? super K, ? super V> getExpiry();
+    ExpiryPolicy<? super K, ? super V> getExpiry();
 
     /**
      * The resource pools this store can make use of
@@ -629,6 +653,28 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The concurrency level of the dispatcher that processes events
      */
     int getDispatcherConcurrency();
+
+    /**
+     * If operation statistics (e.g. get/put count) should be enabled. It is
+     * a default method to keep the original behavior which was enabled all the time.
+     */
+    default boolean isOperationStatisticsEnabled() {
+      return true;
+    }
+
+    /**
+     *
+     * Cache Loader-Writer for the store
+     *
+     */
+    CacheLoaderWriter<? super K, V> getCacheLoaderWriter();
+
+    /**
+     * Whether Store should use loader-writer in atomic ops or not
+     */
+    default boolean useLoaderInAtomics() {
+      return false;
+    }
   }
 
   /**
@@ -662,13 +708,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    */
   enum PutStatus {
     /**
-     * New value was put
+     * Value was put
      */
     PUT,
-    /**
-     * New value was put and replace old value
-     */
-    UPDATE,
     /**
      * New value was dropped
      */

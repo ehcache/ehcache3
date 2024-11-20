@@ -19,7 +19,6 @@ package org.ehcache.clustered.management;
 import org.ehcache.CacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
@@ -37,9 +36,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
 
 public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest {
 
@@ -57,7 +56,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
           .offheap(1, MemoryUnit.MB)
           .disk(2, MemoryUnit.MB, true))
         .withLoaderWriter(new SampleLoaderWriter<>())
-        .add(WriteBehindConfigurationBuilder
+        .withService(WriteBehindConfigurationBuilder
           .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
           .queueSize(3)
           .concurrencyLevel(1)
@@ -83,14 +82,13 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
 
   @Test
   public void clusteredToString() throws Exception {
-    URI uri = CLUSTER.getConnectionURI().resolve("/my-server-entity-2");
+    URI uri = CLUSTER.getCluster().getConnectionURI().resolve("/my-server-entity-2");
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       // cluster config
       .with(ClusteringServiceConfigurationBuilder.cluster(uri)
-        .autoCreate()
-        .defaultServerResource("primary-server-resource")
-        .resourcePool("resource-pool-a", 32, MemoryUnit.MB))
+        .autoCreate(server -> server.defaultServerResource("primary-server-resource")
+        .resourcePool("resource-pool-a", 10, MemoryUnit.MB)))
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")
@@ -134,32 +132,32 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 
     @Override
-    public V load(K key) throws Exception {
+    public V load(K key) {
       throw new UnsupportedOperationException("Implement Me");
     }
 
     @Override
-    public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    public Map<K, V> loadAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void write(K key, V value) throws Exception {
+    public void write(K key, V value) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws Exception {
+    public void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void delete(K key) throws Exception {
+    public void delete(K key) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public void deleteAll(Iterable<? extends K> keys) throws Exception {
+    public void deleteAll(Iterable<? extends K> keys) {
       throw new UnsupportedOperationException("Implement me!");
     }
   }

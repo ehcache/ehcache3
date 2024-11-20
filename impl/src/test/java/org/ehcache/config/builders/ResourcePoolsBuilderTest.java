@@ -20,16 +20,17 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.SizedResourcePoolImpl;
+import org.ehcache.impl.config.SizedResourcePoolImpl;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 public class ResourcePoolsBuilderTest {
 

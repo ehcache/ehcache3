@@ -150,7 +150,7 @@ public class PooledExecutionService implements ExecutionService {
   /**
    * {@link #stop} has been called and has managed to finish processing all tasks.
    *
-   * @return
+   * @return if this executor has been stopped
    */
   public boolean isStopped() {
     return scheduledExecutor.isTerminated();

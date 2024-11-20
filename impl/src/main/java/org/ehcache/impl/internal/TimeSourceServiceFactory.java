@@ -16,21 +16,23 @@
 
 package org.ehcache.impl.internal;
 
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.spi.service.ServiceFactory;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * TimeSourceServiceFactory
  */
+@Component
 public class TimeSourceServiceFactory implements ServiceFactory<TimeSourceService> {
   @Override
-  public TimeSourceService create(ServiceCreationConfiguration<TimeSourceService> configuration) {
+  public TimeSourceService create(ServiceCreationConfiguration<TimeSourceService, ?> configuration) {
     return new DefaultTimeSourceService((TimeSourceConfiguration) configuration);
   }
 
   @Override
-  public Class<TimeSourceService> getServiceType() {
-    return TimeSourceService.class;
+  public Class<? extends TimeSourceService> getServiceType() {
+    return DefaultTimeSourceService.class;
   }
 }

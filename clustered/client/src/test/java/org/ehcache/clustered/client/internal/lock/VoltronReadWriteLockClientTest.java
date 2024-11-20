@@ -36,8 +36,8 @@ import org.terracotta.exception.EntityNotFoundException;
 
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.terracotta.exception.EntityNotProvidedException;

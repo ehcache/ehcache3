@@ -15,6 +15,7 @@
  */
 package org.ehcache.management;
 
+import org.ehcache.management.registry.LatencyHistogramConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.terracotta.management.model.context.Context;
 
@@ -23,7 +24,7 @@ import java.util.Collection;
 /**
  * Configuration interface for a  {@link ManagementRegistryService}.
  */
-public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService> {
+public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService, Void> {
 
   /**
    * The context used to identify this cache manager
@@ -42,4 +43,16 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
    */
   Collection<String> getTags();
 
+  /**
+   * @return an identifier used to identify this running instance. It will be the same even if a clustered Ehcache client reconnects (and clientId changes).
+   */
+  String getInstanceId();
+
+  /**
+   * Configuration of the latency histogram derived property. It is used to setup
+   * different resolution parameters of the histogram.
+   *
+   * @return configuration of the latency histogram
+   */
+  LatencyHistogramConfiguration getLatencyHistogramConfiguration();
 }

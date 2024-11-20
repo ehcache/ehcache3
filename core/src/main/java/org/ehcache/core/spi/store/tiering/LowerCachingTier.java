@@ -18,7 +18,7 @@ package org.ehcache.core.spi.store.tiering;
 
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -47,6 +47,16 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if the mapping cannot be accessed, installed or removed
    */
   Store.ValueHolder<V> installMapping(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
+
+  /**
+   * Return the value holder currently in this tier.
+   *
+   * @param key the key
+   * @return the value holder, or {@code null}
+   *
+   * @throws StoreAccessException if the mapping cannot be access
+   */
+  Store.ValueHolder<V> get(K key) throws StoreAccessException;
 
   /**
    * Return the value holder currently in this tier and removes it atomically.
@@ -114,7 +124,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new lower caching tier
      */
-    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
+    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link LowerCachingTier}.

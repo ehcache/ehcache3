@@ -16,40 +16,106 @@
 
 package org.ehcache.impl.internal.statistics;
 
-import java.util.concurrent.TimeUnit;
-
 import org.assertj.core.api.AbstractObjectAssert;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.InternalCache;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
+import org.ehcache.core.config.store.StoreStatisticsConfiguration;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.ChainedOperationObserver;
+import org.ehcache.core.internal.statistics.DefaultCacheStatistics;
+import org.ehcache.event.CacheEvent;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.*;
 
+@RunWith(Parameterized.class)
 public class DefaultCacheStatisticsTest {
+
+  /**
+   * Statistics can be disabled on the stores. However, the cache statistics should still work nicely when it's the case.
+   *
+   * @return if store statistics are enabled or disabled
+   */
+  @Parameterized.Parameters
+  public static Object[] data() {
+    return new Object[] { Boolean.FALSE, Boolean.TRUE };
+  }
+
+  private static final String[][] KNOWN_STATISTICS = {
+    {
+      // Disabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:RemovalCount",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:MappingCount"
+    },
+    {
+      // Enabled
+      "Cache:EvictionCount",
+      "Cache:ExpirationCount",
+      "Cache:HitCount",
+      "Cache:MissCount",
+      "Cache:PutCount",
+      "Cache:RemovalCount",
+      "OnHeap:EvictionCount",
+      "OnHeap:ExpirationCount",
+      "OnHeap:HitCount",
+      "OnHeap:MappingCount",
+      "OnHeap:MissCount",
+      "OnHeap:PutCount",
+      "OnHeap:RemovalCount"
+    }
+  };
 
   private static final int TIME_TO_EXPIRATION = 100;
 
+  private final boolean enableStoreStatistics;
   private DefaultCacheStatistics cacheStatistics;
   private CacheManager cacheManager;
   private InternalCache<Long, String> cache;
-  private TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
+  private final TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
+  private final List<CacheEvent<? extends Long, ? extends String>> expirations = new ArrayList<>();
+
+  public DefaultCacheStatisticsTest(boolean enableStoreStatistics) {
+    this.enableStoreStatistics = enableStoreStatistics;
+  }
 
   @Before
   public void before() {
+    CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
+      .newEventListenerConfiguration((CacheEventListener<Long, String>) expirations::add, EventType.EXPIRED)
+      .unordered()
+      .synchronous();
+
     CacheConfiguration<Long, String> cacheConfiguration =
-      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        newResourcePoolsBuilder().heap(10))
-        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(TIME_TO_EXPIRATION, TimeUnit.MILLISECONDS)))
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(TIME_TO_EXPIRATION)))
+        .withService(cacheEventListenerConfiguration)
+        .withService(new StoreStatisticsConfiguration(enableStoreStatistics))
         .build();
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -64,18 +130,14 @@ public class DefaultCacheStatisticsTest {
 
   @After
   public void after() {
-    if(cacheManager != null) {
+    if (cacheManager != null) {
       cacheManager.close();
     }
   }
 
   @Test
   public void getKnownStatistics() {
-    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys("Cache:HitCount", "Cache:MissCount",
-      "Cache:UpdateCount", "Cache:RemovalCount", "Cache:EvictionCount", "Cache:PutCount",
-      "OnHeap:ExpirationCount", "Cache:ExpirationCount", "OnHeap:HitCount", "OnHeap:MissCount",
-      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:UpdateCount", "OnHeap:EvictionCount",
-      "OnHeap:MappingCount", "OnHeap:OccupiedByteSize");
+    assertThat(cacheStatistics.getKnownStatistics()).containsOnlyKeys(KNOWN_STATISTICS[enableStoreStatistics ? 1 : 0]);
   }
 
   @Test
@@ -139,31 +201,40 @@ public class DefaultCacheStatisticsTest {
   @Test
   public void getExpirations() throws Exception {
     cache.put(1L, "a");
+    assertThat(expirations).isEmpty();
     timeSource.advanceTime(TIME_TO_EXPIRATION);
     assertThat(cache.get(1L)).isNull();
+    assertThat(expirations).hasSize(1);
+    assertThat(expirations.get(0).getKey()).isEqualTo(1L);
     assertThat(cacheStatistics.getCacheExpirations()).isEqualTo(1L);
     assertStat("Cache:ExpirationCount").isEqualTo(1L);
   }
 
   @Test
-  public void getCacheAverageGetTime() throws Exception {
-    cache.get(1L);
-    assertThat(cacheStatistics.getCacheAverageGetTime()).isGreaterThan(0);
-  }
+  public void registerDerivedStatistics() {
+    AtomicBoolean endCalled = new AtomicBoolean();
+    ChainedOperationObserver<CacheOperationOutcomes.PutOutcome> derivedStatistic = new org.ehcache.core.statistics.ChainedOperationObserver<CacheOperationOutcomes.PutOutcome>() {
 
-  @Test
-  public void getCacheAveragePutTime() throws Exception {
+      @Override
+      public void begin(long time) {
+
+      }
+
+      @Override
+      public void end(long time, long latency, CacheOperationOutcomes.PutOutcome result) {
+        endCalled.set(true);
+        assertThat(result).isEqualTo(CacheOperationOutcomes.PutOutcome.PUT);
+      }
+    };
+
+    cacheStatistics.registerDerivedStatistic(CacheOperationOutcomes.PutOutcome.class, "put", derivedStatistic);
+
     cache.put(1L, "a");
-    assertThat(cacheStatistics.getCacheAveragePutTime()).isGreaterThan(0);
-  }
 
-  @Test
-  public void getCacheAverageRemoveTime() throws Exception {
-    cache.remove(1L);
-    assertThat(cacheStatistics.getCacheAverageRemoveTime()).isGreaterThan(0);
+    assertThat(endCalled.get()).isTrue();
   }
 
   private AbstractObjectAssert<?, Number> assertStat(String key) {
-    return assertThat(cacheStatistics.getKnownStatistics().get(key).value());
+    return assertThat((Number) cacheStatistics.getKnownStatistics().get(key).value());
   }
 }

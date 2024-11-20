@@ -174,7 +174,7 @@ class EventListenerAdaptors {
     @SuppressWarnings("unchecked")
     @Override
     public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
-      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<>(source, EventType.CREATED, ehEvent, requestsOld);
+      Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<>(source, EventType.CREATED, ehEvent, false);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
         listener.onCreated((Iterable<CacheEntryEvent<? extends K, ? extends V>>) events);

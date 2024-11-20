@@ -16,7 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
@@ -104,7 +105,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       kvStore.bulkComputeIfAbsent(inputKeys, entries -> emptySet());
 
       for (Map.Entry<K, V> mappedEntry : mappedEntries.entrySet()) {
-        assertThat(kvStore.get(mappedEntry.getKey()).value(), is(mappedEntry.getValue()));
+        assertThat(kvStore.get(mappedEntry.getKey()).get(), is(mappedEntry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -138,7 +139,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       });
 
       for (Map.Entry<K, V> mappedEntry : mappedEntries.entrySet()) {
-        assertThat(kvStore.get(mappedEntry.getKey()).value(), is(mappedEntry.getValue()));
+        assertThat(kvStore.get(mappedEntry.getKey()).get(), is(mappedEntry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -193,7 +194,7 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       });
 
       for (Map.Entry<K, V> entry : computedEntries.entrySet()) {
-        assertThat(kvStore.get(entry.getKey()).value(), is(entry.getValue()));
+        assertThat(kvStore.get(entry.getKey()).get(), is(entry.getValue()));
       }
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
@@ -265,6 +266,33 @@ public class StoreBulkComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       //expected
     } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void exception() throws Exception {
+    Set<K> inputKeys = Collections.singleton(factory.createKey(0));
+
+    RuntimeException exception = new RuntimeException("error");
+
+    try {
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> { throw exception; });
+    } catch (StoreAccessException e) {
+      assertThat(e.getCause(), is(exception));
+    }
+  }
+
+  @SPITest
+  public void passThroughException() throws Exception {
+    Set<K> inputKeys = Collections.singleton(factory.createKey(0));
+
+    RuntimeException exception = new RuntimeException("error");
+    StorePassThroughException ste = new StorePassThroughException(exception);
+
+    try {
+      kvStore.bulkComputeIfAbsent(inputKeys, entries -> { throw ste; });
+    } catch (RuntimeException e) {
+      assertThat(e, is(exception));
     }
   }
 }
