@@ -1,6 +1,6 @@
 <!--
   ~ Copyright Terracotta, Inc.
-  ~ Copyright Super iPaaS Integration LLC, an IBM Company 2024
+  ~ Copyright IBM Corp. 2024, 2025
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@
   </ehcache:heap-store>
 
   <ehcache:cache alias="usesDefaultSizeOfEngine">
-    <ehcache:key-type>      
-    java.lang.String         
+    <ehcache:key-type>
+    java.lang.String
     </ehcache:key-type>
-    <ehcache:value-type>           
-    java.lang.String           
+    <ehcache:value-type>
+    java.lang.String
     </ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="kB">10</ehcache:heap>
@@ -36,10 +36,10 @@
 
   <ehcache:cache alias="usesConfiguredInCache">
     <ehcache:key-type>
-    java.lang.String  
+    java.lang.String
     </ehcache:key-type>
     <ehcache:value-type>
-     java.lang.String        
+     java.lang.String
     </ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="kB">10</ehcache:heap>

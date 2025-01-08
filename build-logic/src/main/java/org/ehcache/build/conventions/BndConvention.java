@@ -70,7 +70,7 @@ public class BndConvention implements Plugin<Project> {
       properties.put(Constants.BUNDLE_SYMBOLICNAME, project.getGroup() + "." + project.getName());
       properties.put(Constants.BUNDLE_DOCURL, "http://ehcache.org");
       properties.put(Constants.BUNDLE_LICENSE, "LICENSE");
-      properties.put(Constants.BUNDLE_VENDOR, "Super iPaaS Integration LLC, an IBM Company");
+      properties.put(Constants.BUNDLE_VENDOR, "IBM Corp.");
       properties.put(Constants.BUNDLE_VERSION, osgiFixedVersion(project.getVersion().toString()));
       properties.put(Constants.SERVICE_COMPONENT, "OSGI-INF/*.xml");
     };
