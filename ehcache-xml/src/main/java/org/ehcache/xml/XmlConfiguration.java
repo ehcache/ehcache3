@@ -29,6 +29,7 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
 
+import javax.xml.transform.dom.DOMSource;
 import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.Collection;
@@ -202,7 +203,11 @@ public class XmlConfiguration implements Configuration {
     try {
       ConfigurationParser parser = new ConfigurationParser();
       this.configuration = configuration;
-      this.templates = emptyMap();
+      if (configuration instanceof XmlConfiguration) {
+        this.templates = ((XmlConfiguration) configuration).templates;
+      } else {
+        this.templates = emptyMap();
+      }
 
       this.document = parser.configToDocument(configuration);
       this.renderedDocument = documentToText(document);

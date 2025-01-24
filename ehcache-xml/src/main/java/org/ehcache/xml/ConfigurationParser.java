@@ -58,6 +58,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 
 import java.io.BufferedReader;
@@ -228,6 +229,10 @@ public class ConfigurationParser {
   }
 
   public XmlConfigurationWrapper documentToConfig(Document document, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws JAXBException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+    Validator validator = schema.newValidator();
+    validator.setErrorHandler(new FatalErrorHandler());
+    validator.validate(new DOMSource(document));
+
     Document annotatedDocument = stampExternalConfigurations(copyAndValidate(document));
     Element root = annotatedDocument.getDocumentElement();
 
