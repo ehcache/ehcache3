@@ -58,7 +58,7 @@ public class FooParser implements CacheServiceConfigurationParser<Service> {
   @Override
   public Element unparseServiceConfiguration(ServiceConfiguration<Service, ?> serviceConfiguration) {
     try {
-      Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
+      Document document = XmlUtil.createAndGetDocumentBuilder().newDocument();
       return document.createElementNS(NAMESPACE.toString(), "foo:foo");
     } catch (SAXException | ParserConfigurationException | IOException e) {
       throw new XmlConfigurationException(e);

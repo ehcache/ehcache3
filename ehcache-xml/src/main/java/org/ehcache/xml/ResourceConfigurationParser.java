@@ -56,8 +56,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 
-import static org.ehcache.xml.ConfigurationParser.newSchema;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
+import static org.ehcache.xml.XmlUtil.newSchema;
 
 public class ResourceConfigurationParser {
 
@@ -174,7 +174,7 @@ public class ResourceConfigurationParser {
         }
 
         try {
-          Document document = DomUtil.createAndGetDocumentBuilder().newDocument();
+          Document document = XmlUtil.createAndGetDocumentBuilder().newDocument();
           Marshaller marshaller = jaxbContext.createMarshaller();
           marshaller.setSchema(CORE_SCHEMA);
           marshaller.marshal(resource, document);

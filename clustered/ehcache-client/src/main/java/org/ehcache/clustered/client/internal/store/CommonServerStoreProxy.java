@@ -73,15 +73,14 @@ class CommonServerStoreProxy implements ServerStoreProxy {
       long key = response.getKey();
       Chain evictedChain = response.getEvictedChain();
       LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated (evicted chain : {})", cacheId, key, evictedChain);
-      invalidation.onInvalidateHash(key, evictedChain);
+      invalidation.onEvictInvalidateHash(key, evictedChain);
     });
     entity.addResponseListener(ClientInvalidateHash.class, response -> {
       long key = response.getKey();
       int invalidationId = response.getInvalidationId();
 
       LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-      // evicted chain is always null: ClientInvalidateHash is fired when another client did an append, not when the server evicted
-      invalidation.onInvalidateHash(key, null);
+      invalidation.onAppendInvalidateHash(key);
 
       try {
         LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);

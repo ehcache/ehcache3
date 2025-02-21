@@ -24,11 +24,9 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.hamcrest.CustomMatcher;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.junit.Test;
 
-import javax.xml.bind.UnmarshalException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.Collection;
@@ -38,11 +36,9 @@ import java.util.Map;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
-import static org.terracotta.utilities.test.matchers.Matchers.causedBy;
 
 public class PropertySubstitutionTest {
 
@@ -50,7 +46,7 @@ public class PropertySubstitutionTest {
   public void testMissingProperties() {
     final URL resource = PropertySubstitutionTest.class.getResource("/configs/ehcache-system-props.xml");
     XmlConfigurationException failure = assertThrows(XmlConfigurationException.class, () -> new XmlConfiguration(resource));
-    assertThat(failure, causedBy(instanceOf(UnmarshalException.class)));
+    assertThat(failure.getCause().getClass().getSimpleName(), is("UnmarshalException"));
   }
 
   @Test

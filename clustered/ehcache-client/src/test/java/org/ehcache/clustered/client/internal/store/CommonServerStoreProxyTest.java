@@ -56,23 +56,27 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testInvalidationsContainChains", Consistency.EVENTUAL, true);
     SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testInvalidationsContainChains", Consistency.EVENTUAL, false);
 
-    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
-    final List<Chain> store1InvalidatedChains = new CopyOnWriteArrayList<>();
+    final List<Long> store1AppendInvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Chain> store1EvictInvalidatedChains = new CopyOnWriteArrayList<>();
     final AtomicBoolean store1InvalidatedAll = new AtomicBoolean();
-    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
-    final List<Chain> store2InvalidatedChains = new CopyOnWriteArrayList<>();
+    final List<Long> store2AppendInvalidatedHashes = new CopyOnWriteArrayList<>();
+    final List<Chain> store2EvictInvalidatedChains = new CopyOnWriteArrayList<>();
     final AtomicBoolean store2InvalidatedAll = new AtomicBoolean();
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testInvalidationsContainChains", clientEntity1, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
-        store1InvalidatedHashes.add(hash);
+      public void onAppendInvalidateHash(long hash) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
         if (evictedChain != null) {
           // make sure the chain's elements' buffers are correctly sized
           for (Element element : evictedChain) {
             assertThat(element.getPayload().limit(), is(512 * 1024));
           }
-          store1InvalidatedChains.add(evictedChain);
+          store1EvictInvalidatedChains.add(evictedChain);
         }
       }
 
@@ -99,14 +103,18 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     serverStoreProxy1.enableEvents(true);
     EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testInvalidationsContainChains", clientEntity2, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
-        store2InvalidatedHashes.add(hash);
+      public void onAppendInvalidateHash(long hash) {
+        store2AppendInvalidatedHashes.add(hash);
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
         if (evictedChain != null) {
           // make sure the chain's elements' buffers are correctly sized
           for (Element element : evictedChain) {
             assertThat(element.getPayload().limit(), is(512 * 1024));
           }
-          store2InvalidatedChains.add(evictedChain);
+          store2EvictInvalidatedChains.add(evictedChain);
         }
       }
 
@@ -138,27 +146,22 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     }
 
     int evictionCount = 0;
-    int entryCount = 0;
     for (int i = 0; i < ITERATIONS; i++) {
       Chain elements1 = serverStoreProxy1.get(i);
       Chain elements2 = serverStoreProxy2.get(i);
       assertThat(elements1, Matchers.matchesChain(elements2));
-      if (!elements1.isEmpty()) {
-        entryCount++;
-      } else {
+      if (elements1.isEmpty()) {
         evictionCount++;
       }
     }
 
     // there has to be server-side evictions, otherwise this test is useless
-    assertThat(store1InvalidatedHashes.size(), greaterThan(0));
-    // test that each time the server evicted, the originating client got notified
-    assertThat(store1InvalidatedHashes.size(), Is.is(ITERATIONS - entryCount));
-    // test that each time the server evicted, the other client got notified on top of normal invalidations
-    assertThat(store2InvalidatedHashes.size(), Is.is(ITERATIONS + evictionCount));
-    // test that we got evicted chains
-    assertThat(store1InvalidatedChains.size(), greaterThan(0));
-    assertThat(store2InvalidatedChains.size(), is(store1InvalidatedChains.size()));
+    assertThat(evictionCount, greaterThan(0));
+    // test that each time the server evicted, all clients got notified with chains
+    assertThat(store1EvictInvalidatedChains.size(), Is.is(evictionCount));
+    assertThat(store2EvictInvalidatedChains.size(), Is.is(evictionCount));
+    // test that each time the client mutated, the other client got notified
+    assertThat(store2AppendInvalidatedHashes.size(), Is.is(ITERATIONS));
 
     assertThatClientsWaitingForInvalidationIsEmpty("testInvalidationsContainChains");
     assertThat(store1InvalidatedAll.get(), is(false));
@@ -179,7 +182,12 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
     EventualServerStoreProxy serverStoreProxy1 = new EventualServerStoreProxy("testAppendFireEvents", clientEntity1, new ServerCallback() {
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
+      public void onAppendInvalidateHash(long hash) {
+        fail("should not be called");
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
         fail("should not be called");
       }
 
@@ -207,10 +215,15 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     });
     serverStoreProxy1.enableEvents(true);
     EventualServerStoreProxy serverStoreProxy2 = new EventualServerStoreProxy("testAppendFireEvents", clientEntity2, new ServerCallback() {
+
       @Override
-      public void onInvalidateHash(long hash, Chain evictedChain) {
-        // make sure those only are cross-client invalidations and not server evictions
-        assertThat(evictedChain, is(nullValue()));
+      public void onAppendInvalidateHash(long hash) {
+        //expected
+      }
+
+      @Override
+      public void onEvictInvalidateHash(long hash, Chain evictedChain) {
+        fail("should not be called");
       }
 
       @Override

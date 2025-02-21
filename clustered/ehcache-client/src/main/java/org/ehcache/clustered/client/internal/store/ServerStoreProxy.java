@@ -52,13 +52,19 @@ public interface ServerStoreProxy extends ServerStore {
    */
   interface ServerCallback {
     /**
-     * Callback for invalidation of hash requests
+     * Callback for invalidation of hash requests due to client appends
      *
      * @param hash the hash of the keys to invalidate
-     * @param evictedChain the evicted chain, or null if it wasn't an eviction that triggered the invalidation but
-     *                     a change on a different client or when events are disabled.
      */
-    void onInvalidateHash(long hash, Chain evictedChain);
+    void onAppendInvalidateHash(long hash);
+
+    /**
+     * Callback for invalidation of hash requests due to server eviction
+     *
+     * @param hash the hash of the keys to invalidate
+     * @param evictedChain the evicted chain, or null when events are disabled.
+     */
+    void onEvictInvalidateHash(long hash, Chain evictedChain);
 
     /**
      * Callback for invalidation of all requests

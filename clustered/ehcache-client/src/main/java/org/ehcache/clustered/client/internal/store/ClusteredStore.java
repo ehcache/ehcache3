@@ -804,7 +804,20 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         }
 
         @Override
-        public void onInvalidateHash(long hash, Chain evictedChain) {
+        public void onAppendInvalidateHash(long hash) {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
+              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here? delegate to resilience strategy?
+              LOGGER.error("Error invalidating hash {}", hash, sae);
+            }
+          }
+        }
+
+        @Override
+        public void onEvictInvalidateHash(long hash, Chain evictedChain) {
           EvictionOutcome result = EvictionOutcome.SUCCESS;
           clusteredStore.evictionObserver.begin();
           if (clusteredStore.invalidationValve != null) {
