@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +18,7 @@
 package org.ehcache.impl.persistence;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -45,7 +46,7 @@ import java.util.concurrent.ConcurrentMap;
 public class DefaultDiskResourceService implements DiskResourceService {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDiskResourceService.class);
   static final String PERSISTENCE_SPACE_OWNER = "file";
-
+  public static final String CACHE_MANAGER_SHARED_RESOURCES = "CacheManagerSharedResources";
   private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<>();
   private volatile LocalPersistenceService persistenceService;
   private volatile boolean isStarted;
@@ -60,6 +61,10 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     innerStart(serviceProvider);
+    if (!persistenceService.isClean()) {
+      destroyAll();
+      LOGGER.info("Probably unclean shutdown was done, so deleted root directory.");
+    }
   }
 
   /**
@@ -89,28 +94,29 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public boolean handlesResourceType(ResourceType<?> resourceType) {
-    return persistenceService != null && ResourceType.Core.DISK.equals(resourceType);
+    return ResourceType.Core.DISK.equals(resourceType);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public PersistenceSpaceIdentifier<DiskResourceService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    if (persistenceService == null) {
-      return null;
-    }
-    boolean persistent = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent();
+  public PersistenceSpaceIdentifier<DiskResourceService> getPersistenceSpaceIdentifier(String name, ResourcePool resource) throws CachePersistenceException {
     while (true) {
       PersistenceSpace persistenceSpace = knownPersistenceSpaces.get(name);
       if (persistenceSpace != null) {
         return persistenceSpace.identifier;
       }
-      PersistenceSpace newSpace = createSpace(name, persistent);
+      PersistenceSpace newSpace = createSpace(name, resource.isPersistent());
       if (newSpace != null) {
         return newSpace.identifier;
       }
     }
+  }
+
+  @Override
+  public PersistenceSpaceIdentifier<DiskResourceService> getSharedPersistenceSpaceIdentifier(ResourcePool resource) throws CachePersistenceException {
+    return getPersistenceSpaceIdentifier(CACHE_MANAGER_SHARED_RESOURCES, resource);
   }
 
   @Override
@@ -134,26 +140,25 @@ public class DefaultDiskResourceService implements DiskResourceService {
           persistenceService.destroySafeSpace(((DefaultPersistenceSpaceIdentifier)identifier).persistentSpaceId, true);
         }
       }
+      if (!persistenceSpace.isPersistent()) {
+        persistenceService.destroySafeSpace(persistenceSpace.identifier.persistentSpaceId, true);
+      }
     }
   }
 
   private PersistenceSpace createSpace(String name, boolean persistent) throws CachePersistenceException {
     DefaultPersistenceSpaceIdentifier persistenceSpaceIdentifier =
         new DefaultPersistenceSpaceIdentifier(persistenceService.createSafeSpaceIdentifier(PERSISTENCE_SPACE_OWNER, name));
-    PersistenceSpace persistenceSpace = new PersistenceSpace(persistenceSpaceIdentifier);
+    PersistenceSpace persistenceSpace = new PersistenceSpace(persistenceSpaceIdentifier, persistent);
+    if (!persistent && persistenceSpaceIdentifier.persistentSpaceId.getRoot().exists()) {
+      throw new CachePersistenceException("Non-persistent persistence space " + persistenceSpaceIdentifier + " already exists, avoiding overwrite of potentially persistent state");
+    }
     if (knownPersistenceSpaces.putIfAbsent(name, persistenceSpace) == null) {
-      boolean created = false;
       try {
-        if (!persistent) {
-          persistenceService.destroySafeSpace(persistenceSpaceIdentifier.persistentSpaceId, true);
-        }
         persistenceService.createSafeSpace(persistenceSpaceIdentifier.persistentSpaceId);
-        created = true;
-      } finally {
-        if (!created) {
-          // this happens only if an exception is thrown..clean up for any throwable..
-          knownPersistenceSpaces.remove(name, persistenceSpace);
-        }
+      } catch (Throwable t) {
+        knownPersistenceSpaces.remove(name, persistenceSpace);
+        throw t;
       }
       return persistenceSpace;
     }
@@ -173,10 +178,6 @@ public class DefaultDiskResourceService implements DiskResourceService {
   public void destroy(String name) {
     checkStarted();
 
-    if(persistenceService == null) {
-      return;
-    }
-
     PersistenceSpace space = knownPersistenceSpaces.remove(name);
     SafeSpaceIdentifier identifier = (space == null) ?
       persistenceService.createSafeSpaceIdentifier(PERSISTENCE_SPACE_OWNER, name) : space.identifier.persistentSpaceId;
@@ -189,10 +190,6 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public void destroyAll() {
     checkStarted();
-
-    if(persistenceService == null) {
-      return;
-    }
 
     persistenceService.destroyAll(PERSISTENCE_SPACE_OWNER);
   }
@@ -246,10 +243,16 @@ public class DefaultDiskResourceService implements DiskResourceService {
 
   private static class PersistenceSpace {
     final DefaultPersistenceSpaceIdentifier identifier;
+    final boolean persistent;
     final ConcurrentMap<String, FileBasedStateRepository> stateRepositories = new ConcurrentHashMap<>();
 
-    private PersistenceSpace(DefaultPersistenceSpaceIdentifier identifier) {
+    private PersistenceSpace(DefaultPersistenceSpaceIdentifier identifier, boolean persistent) {
       this.identifier = identifier;
+      this.persistent = persistent;
+    }
+
+    public boolean isPersistent() {
+      return persistent;
     }
   }
 

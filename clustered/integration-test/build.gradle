@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,8 +42,10 @@ dependencies {
   testImplementation project(':ehcache-management')
   testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
-  testImplementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-  testImplementation "org.terracotta:galvan-platform-support:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
+  testImplementation("org.terracotta:galvan-platform-support:$terracottaPlatformVersion") {
+    exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
+  }
   testImplementation "javax.cache:cache-api:$jcacheVersion"
 }
 

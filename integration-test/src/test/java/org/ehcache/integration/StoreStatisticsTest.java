@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
@@ -102,7 +104,7 @@ public class StoreStatisticsTest {
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 newResourcePoolsBuilder()
-                    .heap(1, MemoryUnit.MB)
+                    .heap(1000, EntryUnit.ENTRIES)
                     .offheap(2, MemoryUnit.MB)
                 )
         ).build(true)) {
@@ -127,7 +129,7 @@ public class StoreStatisticsTest {
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 newResourcePoolsBuilder()
-                    .heap(1, MemoryUnit.MB)
+                    .heap(1000, EntryUnit.ENTRIES)
                     .offheap(2, MemoryUnit.MB)
                     .disk(5, MemoryUnit.MB)
                 )

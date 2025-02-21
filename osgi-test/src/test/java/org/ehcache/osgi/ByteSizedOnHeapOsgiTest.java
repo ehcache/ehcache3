@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -28,16 +30,24 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerMethod;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
+import static org.junit.Assume.assumeTrue;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerMethod.class)
 public class ByteSizedOnHeapOsgiTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeTrue(parseInt(getProperty("java.specification.version").split("\\.")[0]) < 16);
+  }
 
   @Configuration
   public Option[] individualModules() {
@@ -49,6 +59,7 @@ public class ByteSizedOnHeapOsgiTest {
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
       gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:fast-restartable-store"),
       gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("ByteSizedOnHeapOsgiTest", "individualModules")

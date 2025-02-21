@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,12 +35,14 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 
 /**
  * Tiering
@@ -55,8 +58,6 @@ public class Tiering {
     ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES); // <1>
     // or
     ResourcePoolsBuilder.heap(10); // <2>
-    // or
-    ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, MemoryUnit.MB); // <3>
     // end::heap[]
     // tag::offheap[]
     ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB); // <1>
@@ -181,8 +182,11 @@ public class Tiering {
     // end::notShared[]
   }
 
+  @Deprecated
   @Test
   public void byteSizedTieredCache() {
+    Assume.assumeThat(Integer.parseInt(System.getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+
     // tag::byteSizedTieredCache[]
     CacheConfiguration<Long, String> usesConfiguredInCacheConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
       ResourcePoolsBuilder.newResourcePoolsBuilder()

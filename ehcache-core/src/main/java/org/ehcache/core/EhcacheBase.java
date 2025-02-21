@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +58,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.Optional;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
@@ -66,9 +68,9 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  */
 public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
 
-  protected final Logger logger;
+  protected final Logger logger = EhcachePrefixLoggerFactory.getLogger(EhcacheBase.class);
 
-  protected final StatusTransitioner statusTransitioner;
+  protected final StatusTransitioner statusTransitioner = new StatusTransitioner();
 
   protected final Store<K, V> store;
   protected final ResilienceStrategy<K, V> resilienceStrategy;
@@ -91,12 +93,11 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
    * Creates a new {@code EhcacheBase} based on the provided parameters.
    *
    * @param runtimeConfiguration the cache configuration
-   * @param store the store to use
-   * @param eventDispatcher the event dispatcher
-   * @param logger the logger
+   * @param store                the store to use
+   * @param eventDispatcher      the event dispatcher
    */
   EhcacheBase(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy,
-          CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner) {
+              CacheEventDispatcher<K, V> eventDispatcher) {
     this.store = store;
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
     StatisticsManager.associate(store).withParent(this);
@@ -106,8 +107,6 @@ public abstract class EhcacheBase<K, V> implements InternalCache<K, V> {
     this.runtimeConfiguration = runtimeConfiguration;
     runtimeConfiguration.addCacheConfigurationListener(eventDispatcher.getConfigurationChangeListeners());
 
-    this.logger = logger;
-    this.statusTransitioner = statusTransitioner;
     for (BulkOps bulkOp : BulkOps.values()) {
       bulkMethodEntries.put(bulkOp, new LongAdder());
     }

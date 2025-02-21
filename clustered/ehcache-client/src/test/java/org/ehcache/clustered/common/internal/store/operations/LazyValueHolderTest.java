@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +18,10 @@
 package org.ehcache.clustered.common.internal.store.operations;
 
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.nio.ByteBuffer;
 import java.util.Date;
@@ -33,20 +34,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+@RunWith(MockitoJUnitRunner.class)
 public class LazyValueHolderTest {
 
   @Mock
   private Serializer<Date> serializer;
 
-  @Before
-  public void setUp() {
-    MockitoAnnotations.initMocks(this);
-  }
-
   @Test
   public void testGetValueDecodeOnlyOnce() throws Exception {
     Date date = mock(Date.class);
-    ByteBuffer buffer = mock(ByteBuffer.class);
+    ByteBuffer buffer = ByteBuffer.allocate(0);
     doReturn(date).when(serializer).read(buffer);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(buffer, serializer);
@@ -60,7 +57,7 @@ public class LazyValueHolderTest {
   @Test
   public void testEncodeEncodesOnlyOnce() throws Exception {
     Date date = mock(Date.class);
-    ByteBuffer buffer = mock(ByteBuffer.class);
+    ByteBuffer buffer = ByteBuffer.allocate(0);
     doReturn(buffer).when(serializer).serialize(date);
 
     LazyValueHolder<Date> valueHolder = new LazyValueHolder<>(date);

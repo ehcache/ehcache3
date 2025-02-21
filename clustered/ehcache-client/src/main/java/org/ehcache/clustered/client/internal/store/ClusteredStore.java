@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,9 +67,6 @@ import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.store.DefaultStoreEventDispatcher;
 import org.ehcache.impl.store.HashUtils;
-import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -555,6 +553,11 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
   }
 
   @Override
+  public Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> bulkComputeIfAbsentAndFault(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+    return bulkComputeIfAbsent((Set<? extends K>) keys,mappingFunction).entrySet();
+  }
+
+  @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     // TODO: Make appropriate ServerStoreProxy call
     return Collections.emptyList();
@@ -752,17 +755,6 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
           CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
         });
         clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
-
-        Serializer<?> keySerializer = clusteredStore.codec.getKeySerializer();
-        if (keySerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
-          ((StatefulSerializer) keySerializer).init(stateRepository);
-        }
-        Serializer<?> valueSerializer = clusteredStore.codec.getValueSerializer();
-        if (valueSerializer instanceof StatefulSerializer) {
-          StateRepository stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
-          ((StatefulSerializer) valueSerializer).init(stateRepository);
-        }
       } finally {
         connectLock.unlock();
       }
@@ -878,12 +870,8 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      if (clusteringService == null) {
-        return 0;
-      } else {
-        return CLUSTER_RESOURCES.contains(authorityResource) ? 1 : 0;
-      }
+    public int rankAuthority(Set<ResourceType<?>> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+      return rank(authorityResource, serviceConfigs);
     }
 
     @Override
@@ -910,7 +898,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       ClusteredStore<K, V> authoritativeTier = createStoreInternal(storeConfig, serviceConfigs);
 
       tierOperationStatistics.put(authoritativeTier, new OperationStatistic<?>[] {

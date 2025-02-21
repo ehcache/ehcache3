@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,9 +70,9 @@ import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.xml.ConfigurationParser.discoverSchema;
 import static org.ehcache.xml.XmlConfiguration.CORE_SCHEMA_URL;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 @RunWith(PaxExam.class)
@@ -93,6 +94,7 @@ public class ClusteredOsgiTest {
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
       gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:fast-restartable-store"),
       gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("ClusteredOsgiTest", "individualModules"),

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +26,6 @@ import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -34,9 +34,10 @@ import java.util.Map;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThrows;
 
 /**
@@ -61,14 +62,14 @@ public class WriteBehindProviderFactoryTest {
             .build());
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, hasItem(instanceOf(WriteBehindConfiguration.class)));
     cacheManager.close();
   }
 
   @Test
   public void testWriteBehindWithoutCacheLoaderWriter() {
     WriteBehindProviderFactory factory = new WriteBehindProviderFactory();
-    NullPointerException thrown = assertThrows(NullPointerException.class, () -> factory.create(null).createWriteBehindLoaderWriter(null, null));
+    NullPointerException thrown = assertThrows(NullPointerException.class, () -> factory.create(null).createWriteBehindLoaderWriter(null, null, null));
     assertThat(thrown, hasProperty("message", is("WriteBehind requires a non null CacheLoaderWriter.")));
   }
 

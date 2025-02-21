@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,6 +71,7 @@ import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
 
+import static java.util.Collections.synchronizedMap;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 import static org.mockito.Mockito.mock;
@@ -516,7 +518,7 @@ public class UnitTestConnectionService implements ConnectionService {
   private static final class ServerDescriptor {
     private final PassthroughServer server;
     private final Map<Connection, Properties> connections = new IdentityHashMap<>();
-    private final Map<Class<? extends Entity>, Object[]> knownEntities = new LinkedHashMap<>();
+    private final Map<Class<? extends Entity>, Object[]> knownEntities = synchronizedMap(new LinkedHashMap<>());
 
     ServerDescriptor(PassthroughServer server) {
       this.server = server;

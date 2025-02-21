@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +27,6 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
@@ -42,18 +42,31 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.test.MockitoUtil;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.hamcrest.core.IsSame;
 import org.junit.Test;
+import org.mockito.internal.stubbing.answers.Returns;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
-import static org.ehcache.test.MockitoUtil.mock;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 
 public class CacheConfigurationBuilderTest {
 
@@ -73,7 +86,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithLoaderWriter() throws Exception {
-    CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<Object, Object> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withLoaderWriter(loaderWriter)
@@ -81,13 +94,13 @@ public class CacheConfigurationBuilderTest {
 
     CacheLoaderWriterConfiguration<?> cacheLoaderWriterConfiguration = ServiceUtils.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
-    assertThat(instance, Matchers.sameInstance(loaderWriter));
+    assertThat(instance, sameInstance(loaderWriter));
   }
 
   @Test
   public void testWithoutLoaderWriter() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withLoaderWriter(mock(CacheLoaderWriter.class))
+      .withLoaderWriter(uncheckedGenericMock(CacheLoaderWriter.class))
       .withoutLoaderWriter()
       .build();
 
@@ -96,7 +109,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithKeySerializer() throws Exception {
-    Serializer<Object> keySerializer = mock(Serializer.class);
+    Serializer<Object> keySerializer = uncheckedGenericMock(Serializer.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeySerializer(keySerializer)
@@ -106,7 +119,7 @@ public class CacheConfigurationBuilderTest {
     DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.KEY));
     Object instance = serializerConfiguration.getInstance();
-    assertThat(instance, Matchers.sameInstance(keySerializer));
+    assertThat(instance, sameInstance(keySerializer));
   }
 
   @Test
@@ -125,7 +138,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithoutKeySerializer() throws Exception {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withKeySerializer(MockitoUtil.<Serializer<Object>>mock(Serializer.class))
+      .withKeySerializer(MockitoUtil.<Serializer<Object>>uncheckedGenericMock(Serializer.class))
       .withDefaultKeySerializer()
       .build();
 
@@ -134,7 +147,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithValueSerializer() throws Exception {
-    Serializer<Object> valueSerializer = mock(Serializer.class);
+    Serializer<Object> valueSerializer = uncheckedGenericMock(Serializer.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueSerializer(valueSerializer)
@@ -144,7 +157,7 @@ public class CacheConfigurationBuilderTest {
     DefaultSerializerConfiguration<?> serializerConfiguration = ServiceUtils.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.VALUE));
     Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
-    assertThat(instance, Matchers.sameInstance(valueSerializer));
+    assertThat(instance, sameInstance(valueSerializer));
   }
 
   @Test
@@ -163,7 +176,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithoutValueSerializer() throws Exception {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withValueSerializer(MockitoUtil.<Serializer<Object>>mock(Serializer.class))
+      .withValueSerializer(MockitoUtil.<Serializer<Object>>uncheckedGenericMock(Serializer.class))
       .withDefaultValueSerializer()
       .build();
 
@@ -172,7 +185,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithKeyCopier() throws Exception {
-    Copier<Object> keyCopier = mock(Copier.class);
+    Copier<Object> keyCopier = uncheckedGenericMock(Copier.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeyCopier(keyCopier)
@@ -182,7 +195,7 @@ public class CacheConfigurationBuilderTest {
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
     Object instance = copierConfiguration.getInstance();
-    assertThat(instance, Matchers.sameInstance(keyCopier));
+    assertThat(instance, sameInstance(keyCopier));
   }
 
   @Test
@@ -194,13 +207,13 @@ public class CacheConfigurationBuilderTest {
 
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
-    assertThat(copierConfiguration.getClazz(), Matchers.sameInstance(SerializingCopier.class));
+    assertThat(copierConfiguration.getClazz(), sameInstance(SerializingCopier.class));
   }
 
   @Test
   public void testWithoutKeyCopier() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withKeyCopier(MockitoUtil.<Copier<Object>>mock(Copier.class))
+      .withKeyCopier(MockitoUtil.<Copier<Object>>uncheckedGenericMock(Copier.class))
       .withoutKeyCopier()
       .build();
 
@@ -209,7 +222,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testWithValueCopier() throws Exception {
-    Copier<Object> valueCopier = mock(Copier.class);
+    Copier<Object> valueCopier = uncheckedGenericMock(Copier.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueCopier(valueCopier)
@@ -219,7 +232,7 @@ public class CacheConfigurationBuilderTest {
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
     Object instance = copierConfiguration.getInstance();
-    assertThat(instance, Matchers.sameInstance(valueCopier));
+    assertThat(instance, sameInstance(valueCopier));
   }
 
   @Test
@@ -231,13 +244,13 @@ public class CacheConfigurationBuilderTest {
 
     DefaultCopierConfiguration<?> copierConfiguration = ServiceUtils.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
     assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
-    assertThat(copierConfiguration.getClazz(), Matchers.sameInstance(SerializingCopier.class));
+    assertThat(copierConfiguration.getClazz(), sameInstance(SerializingCopier.class));
   }
 
   @Test
   public void testWithoutValueCopier() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withValueCopier(MockitoUtil.<Copier<Object>>mock(Copier.class))
+      .withValueCopier(MockitoUtil.<Copier<Object>>uncheckedGenericMock(Copier.class))
       .withoutValueCopier()
       .build();
 
@@ -272,6 +285,7 @@ public class CacheConfigurationBuilderTest {
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.is(MemoryUnit.MB));
   }
 
+  @Deprecated
   @Test
   public void testSizeOf() {
     CacheConfigurationBuilder<String, String> builder = newCacheConfigurationBuilder(String.class, String.class, heap(10));
@@ -279,7 +293,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
     CacheConfiguration<String, String> configuration = builder.build();
 
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertThat(sizeOfEngineConfiguration, notNullValue());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectSize(), 10);
     assertEquals(sizeOfEngineConfiguration.getUnit(), MemoryUnit.B);
@@ -288,7 +302,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(1000);
     configuration = builder.build();
 
-    sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    sizeOfEngineConfiguration = ServiceUtils.findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
 
   }
@@ -298,10 +312,8 @@ public class CacheConfigurationBuilderTest {
     Class<Integer> keyClass = Integer.class;
     Class<String> valueClass = String.class;
     ClassLoader loader = mock(ClassLoader.class);
-    @SuppressWarnings("unchecked")
-    EvictionAdvisor<Integer, String> eviction = mock(EvictionAdvisor.class);
-    @SuppressWarnings("unchecked")
-    ExpiryPolicy<Integer, String> expiry = mock(ExpiryPolicy.class);
+    EvictionAdvisor<Integer, String> eviction = uncheckedGenericMock(EvictionAdvisor.class);
+    ExpiryPolicy<Integer, String> expiry = uncheckedGenericMock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ServiceConfiguration<?, ?> service = mock(ServiceConfiguration.class);
 
     CacheConfiguration<Integer, String> configuration = newCacheConfigurationBuilder(Integer.class, String.class, heap(10))
@@ -317,14 +329,14 @@ public class CacheConfigurationBuilderTest {
     assertThat(copy.getValueType(), equalTo(valueClass));
     assertThat(copy.getClassLoader(), equalTo(loader));
 
-    assertThat(copy.getEvictionAdvisor(), IsSame.sameInstance(eviction));
-    assertThat(copy.getExpiryPolicy(), IsSame.sameInstance(expiry));
-    assertThat(copy.getServiceConfigurations(), contains(IsSame.sameInstance(service)));
+    assertThat(copy.getEvictionAdvisor(), sameInstance(eviction));
+    assertThat(copy.getExpiryPolicy(), sameInstance(expiry));
+    assertThat(copy.getServiceConfigurations(), contains(sameInstance(service)));
   }
 
   @Test
   public void testWithResilienceStrategyInstance() throws Exception {
-    ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
+    ResilienceStrategy<Object, Object> resilienceStrategy = uncheckedGenericMock(ResilienceStrategy.class);
 
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
       .withResilienceStrategy(resilienceStrategy)
@@ -351,7 +363,7 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testWithDefaultResilienceStrategy() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-      .withResilienceStrategy(mock(ResilienceStrategy.class))
+      .withResilienceStrategy(uncheckedGenericMock(ResilienceStrategy.class))
       .withDefaultResilienceStrategy()
       .build();
 
@@ -487,6 +499,7 @@ public class CacheConfigurationBuilderTest {
     assertThat(cacheConfiguration.getServiceConfigurations(), not(hasItem(instanceOf(OffHeapDiskStoreConfiguration.class))));
   }
 
+  @Deprecated
   @Test
   public void testWithSizeOfConfig() {
     CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder(Object.class, Object.class, heap(10));
@@ -494,7 +507,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(42L);
     {
       CacheConfiguration<Object, Object> cacheConfiguration = builder.build();
-      DefaultSizeOfEngineConfiguration config = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration config = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
       assertThat(config.getMaxObjectGraphSize(), is(42L));
       assertThat(config.getMaxObjectSize(), is(Long.MAX_VALUE));
       assertThat(config.getUnit(), is(MemoryUnit.B));
@@ -503,7 +516,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectSize(1024L, MemoryUnit.KB);
     {
       CacheConfiguration<Object, Object> cacheConfiguration = builder.build();
-      DefaultSizeOfEngineConfiguration config = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration config = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
       assertThat(config.getMaxObjectGraphSize(), is(42L));
       assertThat(config.getMaxObjectSize(), is(1024L));
       assertThat(config.getUnit(), is(MemoryUnit.KB));
@@ -512,13 +525,14 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(43L);
     {
       CacheConfiguration<Object, Object> cacheConfiguration = builder.build();
-      DefaultSizeOfEngineConfiguration config = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration config = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfiguration.getServiceConfigurations());
       assertThat(config.getMaxObjectGraphSize(), is(43L));
       assertThat(config.getMaxObjectSize(), is(1024L));
       assertThat(config.getUnit(), is(MemoryUnit.KB));
     }
   }
 
+  @Deprecated
   @Test
   public void testWithDefaultSizeOfSettings() {
     CacheConfiguration<Object, Object> cacheConfiguration = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
@@ -527,7 +541,7 @@ public class CacheConfigurationBuilderTest {
       .withDefaultSizeOfSettings()
       .build();
 
-    assertThat(cacheConfiguration.getServiceConfigurations(), not(hasItem(instanceOf(DefaultSizeOfEngineConfiguration.class))));
+    assertThat(cacheConfiguration.getServiceConfigurations(), not(hasItem(instanceOf(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class))));
   }
 
   static class CustomResilience<K, V> extends RobustResilienceStrategy<K, V> {

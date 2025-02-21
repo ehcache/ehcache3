@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 
 package org.ehcache.core.exceptions;
 
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.spi.resilience.StoreAccessException;
 
 /**
@@ -25,6 +27,7 @@ import org.ehcache.spi.resilience.StoreAccessException;
  * This wrapper can be used to enable any runtime exceptions that you don't want to be caught at the store level to
  * be propagated.
  */
+@PublicApi
 public class StorePassThroughException extends RuntimeException {
 
   private static final long serialVersionUID = -2018452326214235671L;

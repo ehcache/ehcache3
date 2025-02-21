@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@ package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -30,21 +32,15 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
-import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.MemorySizeParser;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.impl.internal.store.tiering.TieredStore;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
@@ -63,7 +59,6 @@ import org.mockito.Answers;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,6 +86,7 @@ import javax.transaction.xa.XAResource;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpiration;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -115,7 +111,7 @@ public class XAStoreTest {
   @SuppressWarnings("unchecked")
   private final Class<SoftLock<String>> valueClass = (Class) SoftLock.class;
   private final TestTransactionManager testTransactionManager = new TestTransactionManager();
-  private TransactionManagerWrapper transactionManagerWrapper;
+  private TransactionManagerWrapper<TransactionManager> transactionManagerWrapper;
   private OnHeapStore<Long, SoftLock<String>> onHeapStore;
   private Journal<Long> journal;
   private TestTimeSource testTimeSource;
@@ -124,18 +120,13 @@ public class XAStoreTest {
   private Serializer<SoftLock<String>> valueSerializer;
   private StoreEventDispatcher<Long, SoftLock<String>> eventDispatcher;
   private final ExpiryPolicy<Object, Object> expiry = timeToLiveExpiration(ofSeconds(1));
-  private Copier<Long> keyCopier;
-  private Copier<SoftLock<String>> valueCopier;
 
   @Before
   public void setUp() {
-    transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    transactionManagerWrapper = new TransactionManagerWrapper<>(testTransactionManager, new NullXAResourceRegistry());
     classLoader = ClassLoader.getSystemClassLoader();
     keySerializer = new JavaSerializer<>(classLoader);
     valueSerializer = new JavaSerializer<>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    valueCopier = copyProvider.createValueCopier(valueClass, valueSerializer);
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
       null, classLoader, ExpiryPolicyBuilder.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
       .heap(10, EntryUnit.ENTRIES)
@@ -143,26 +134,18 @@ public class XAStoreTest {
       0, keySerializer, valueSerializer);
     testTimeSource = new TestTimeSource();
     eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
-    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     journal = new TransientJournal<>();
   }
 
   @Test
   public void testXAStoreProviderFailsToRankWhenNoTMProviderConfigured() throws Exception {
-    XAStore.Provider provider = new XAStore.Provider();
-      provider.start(new ServiceProvider<Service>() {
-        @Override
-        public <U extends Service> U getService(Class<U> serviceType) {
-          return null;
-        }
+    ServiceLocator serviceLocator = ServiceLocator.dependencySet().with(new OnHeapStore.Provider()).build();
 
-        @Override
-        public <U extends Service> Collection<U> getServicesOfType(Class<U> serviceType) {
-          return emptySet();
-        }
-      });
+    XAStore.Provider provider = new XAStore.Provider();
+    provider.start(serviceLocator);
     try {
-      provider.wrapperStoreRank(Collections.singleton(mock(XAStoreConfiguration.class)));
+      provider.rank(singleton(ResourceType.Core.HEAP), Collections.singleton(mock(XAStoreConfiguration.class)));
       fail("Expected exception");
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("TransactionManagerProvider"));
@@ -1110,7 +1093,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass,
       null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
@@ -1158,7 +1141,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
@@ -1201,7 +1184,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
@@ -1251,7 +1234,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
@@ -1280,7 +1263,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
@@ -1355,7 +1338,7 @@ public class XAStoreTest {
     Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
     Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<>(Long.class, valueClass, null,
       classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
       0, keySerializer, valueSerializer);
@@ -1426,7 +1409,7 @@ public class XAStoreTest {
       .heap(10, EntryUnit.ENTRIES)
       .build(),
       0, keySerializer, valueSerializer);
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<>(onHeapConfig, testTimeSource, new NoopSizeOfEngine(), eventDispatcher, new DefaultStatisticsService());
 
     final XAStore<Long, String> xaStore = getXAStore(onHeapStore);
 
@@ -1459,10 +1442,10 @@ public class XAStoreTest {
     serviceLocator.startAllServices();
 
     Set<ServiceConfiguration<?, ?>> xaStoreConfigs = Collections.singleton(configuration);
-    assertThat(provider.wrapperStoreRank(xaStoreConfigs), is(1));
+    assertThat(provider.rank(singleton(ResourceType.Core.HEAP), xaStoreConfigs), is(2));
 
     Set<ServiceConfiguration<?, ?>> emptyConfigs = emptySet();
-    assertThat(provider.wrapperStoreRank(emptyConfigs), is(0));
+    assertThat(provider.rank(singleton(ResourceType.Core.HEAP), emptyConfigs), is(0));
 
   }
 

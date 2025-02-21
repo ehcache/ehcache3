@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +55,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.fail;
 
 import static org.terracotta.utilities.test.rules.TestRetryer.OutputIs.CLASS_RULE;
@@ -119,7 +120,7 @@ public class IterationFailureBehaviorTest {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(),
+        assertThat(e.getCause().getCause().getCause().getCause(),
           either(instanceOf(ConnectionClosedException.class)) //lost in the space between active and passive
             .or(instanceOf(InvalidOperationException.class))); //picked up by the passive - it doesn't have our iterator
       }
@@ -177,7 +178,7 @@ public class IterationFailureBehaviorTest {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(),
+        assertThat(e.getCause().getCause().getCause().getCause(),
           either(instanceOf(ConnectionClosedException.class)) //lost in the space between the two cluster executions
             .or(instanceOf(InvalidOperationException.class))); //picked up by the new cluster - it doesn't have our iterator
       }

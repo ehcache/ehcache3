@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,16 +23,16 @@ import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.FluentConfigurationBuilder;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.EhcacheManager;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
+import org.ehcache.impl.config.store.shared.SharedStorageConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
@@ -47,9 +48,6 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
-import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
-import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
-import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 
 /**
  * The {@code CacheManagerBuilder} enables building cache managers using a fluent style.
@@ -222,31 +220,33 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
   }
 
   /**
-   * Adds a default {@link SizeOfEngine} configuration, that limits the max object graph to
+   * Adds a default {@link org.ehcache.core.spi.store.heap.SizeOfEngine} configuration, that limits the max object graph to
    * size, to the returned builder.
    *
    * @param size the max object graph size
    * @return a new builder with the added configuration
    */
+  @Deprecated
   public CacheManagerBuilder<T> withDefaultSizeOfMaxObjectGraph(long size) {
     return ensureThenUpdate(
-      () -> new DefaultSizeOfEngineProviderConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, DEFAULT_OBJECT_GRAPH_SIZE),
-      existing -> new DefaultSizeOfEngineProviderConfiguration(existing.getMaxObjectSize(), existing.getUnit(), size)
+      () -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE),
+      existing -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(existing.getMaxObjectSize(), existing.getUnit(), size)
     );
   }
 
   /**
-   * Adds a default {@link SizeOfEngine} configuration, that limits the max object size, to
+   * Adds a default {@link org.ehcache.core.spi.store.heap.SizeOfEngine} configuration, that limits the max object size, to
    * the returned builder.
    *
    * @param size the max object size
    * @param unit the max object size unit
    * @return a new builder with the added configuration
    */
+  @Deprecated
   public CacheManagerBuilder<T> withDefaultSizeOfMaxObjectSize(long size, MemoryUnit unit) {
     return ensureThenUpdate(
-      () -> new DefaultSizeOfEngineProviderConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, DEFAULT_OBJECT_GRAPH_SIZE),
-      existing -> new DefaultSizeOfEngineProviderConfiguration(size, unit, existing.getMaxObjectGraphSize())
+      () -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE),
+      existing -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration(size, unit, existing.getMaxObjectGraphSize())
     );
   }
 
@@ -377,5 +377,16 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    */
   public static CacheManagerConfiguration<PersistentCacheManager> persistence(File rootDirectory) {
     return new CacheManagerPersistenceConfiguration(rootDirectory);
+  }
+
+  /**
+   * Defines a {@link org.ehcache.config.ResourcePools}, containing one or more {@link org.ehcache.config.ResourcePool}s that configured caches
+   * can reference, such that their caching requirements will be managed via the shared pool.
+   * @param sharedResourcePoolsBuilder the resources to share
+   * @return a new builder with the added configuration
+   */
+  public CacheManagerBuilder<T> sharedResources(Builder<? extends ResourcePools> sharedResourcePoolsBuilder) {
+    ResourcePools pools = sharedResourcePoolsBuilder.build();
+    return new CacheManagerBuilder<>(this, configBuilder.withSharedResources(pools).withService(new SharedStorageConfiguration(pools)));
   }
 }

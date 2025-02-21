@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@ package org.ehcache.config.builders;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.core.config.CoreConfigurationBuilder;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
@@ -53,8 +55,9 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
    * @return a new configuration builder
    */
   public static ConfigurationBuilder newConfigurationBuilder(Configuration seed) {
-    return new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(),
-      seed.getCacheConfigurations()), seed.getServiceCreationConfigurations()), seed.getClassLoader());
+    return new ConfigurationBuilder(new ConfigurationBuilder(new ConfigurationBuilder(
+        new ConfigurationBuilder(new ConfigurationBuilder(), seed.getCacheConfigurations()),
+        seed.getServiceCreationConfigurations()), seed.getClassLoader()), seed.getSharedResourcePools());
   }
 
   protected ConfigurationBuilder() {
@@ -71,6 +74,10 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
 
   protected ConfigurationBuilder(ConfigurationBuilder builder, ClassLoader classLoader) {
     super(builder, classLoader);
+  }
+
+  protected ConfigurationBuilder(ConfigurationBuilder builder,  ResourcePools sharedResourcePools) {
+    super(builder, sharedResourcePools);
   }
 
   /**
@@ -165,5 +172,10 @@ public final class ConfigurationBuilder extends CoreConfigurationBuilder<Configu
   @Override
   protected ConfigurationBuilder newBuilderWith(ClassLoader classLoader) {
     return new ConfigurationBuilder(this, classLoader);
+  }
+
+  @Override
+  protected ConfigurationBuilder newBuilderWith(ResourcePools sharedResourcePools) {
+    return new ConfigurationBuilder(this, sharedResourcePools);
   }
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,29 +19,24 @@ package org.ehcache.xml.multi;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.xml.XmlConfigurationMatchers;
 import org.ehcache.xml.XmlConfigurationTest;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
-import org.xmlunit.diff.DefaultNodeMatcher;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.collection.IsEmptyCollection.empty;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
-import static org.hamcrest.collection.IsMapContaining.hasKey;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 import static org.xmlunit.builder.Input.fromURI;
-import static org.xmlunit.diff.ElementSelectors.and;
-import static org.xmlunit.diff.ElementSelectors.byNameAndAllAttributes;
-import static org.xmlunit.diff.ElementSelectors.byNameAndText;
 
 public class XmlMultiConfigurationTest {
 
@@ -276,7 +272,7 @@ public class XmlMultiConfigurationTest {
   }
 
   @Test
-  public void testManagerRemovedFromConfig() throws URISyntaxException {
+  public void testManagerRemovedFromConfig() {
     XmlMultiConfiguration source = XmlMultiConfiguration.fromNothing().withManager("foo", emptyConfiguration()).build();
 
     XmlMultiConfiguration xmlMultiConfiguration = XmlMultiConfiguration.from(source).withoutManager("foo").build();

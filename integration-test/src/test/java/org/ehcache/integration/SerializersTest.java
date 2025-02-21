@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +50,7 @@ public class SerializersTest {
   public void testStatefulSerializer() throws Exception {
     StatefulSerializerImpl<Long> serializer = new StatefulSerializerImpl<>();
     testSerializerWithByRefHeapCache(serializer);
-    assertThat(serializer.initCount, is(0));
+    assertThat(serializer.initCount, is(1));
 
     serializer = new StatefulSerializerImpl<>();
     testSerializerWithByValueHeapCache(serializer);

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,8 +46,7 @@ public class CacheManagerListenerTest {
   public void before() {
     CacheConfigurationBuilder<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .heap(1, MB).disk(2, MB));
+        ResourcePoolsBuilder.heap(100).disk(2, MB));
 
     cacheManagerListener = mock(CacheManagerListener.class);
 
@@ -69,8 +69,7 @@ public class CacheManagerListenerTest {
   public void testCacheAdded() throws Exception {
     CacheConfigurationBuilder<Long, String> otherCacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .heap(1, MB).disk(2, MB));
+        ResourcePoolsBuilder.heap(100).disk(2, MB));
 
     Cache<Long, String> otherCache = cacheManager.createCache("otherCache", otherCacheConfiguration);
     verify(cacheManagerListener).cacheAdded("otherCache", otherCache);

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,8 @@
 
 package org.ehcache.clustered.client.internal.lock;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
@@ -24,9 +27,7 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
-import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
-import org.terracotta.exception.EntityException;
 
 public class VoltronReadWriteLockClient implements Entity {
 
@@ -106,26 +107,22 @@ public class VoltronReadWriteLockClient implements Entity {
   }
 
   private LockTransition invoke(LockOperation operation) {
+    Future<LockTransition> result = endpoint.message(operation).invoke();
+    boolean interrupted = Thread.interrupted();
     try {
-      InvokeFuture<LockTransition> result = endpoint.beginInvoke().message(operation).replicate(false).invoke();
-      boolean interrupted = false;
-      try {
-        while (true) {
-          try {
-            return result.get();
-          } catch (InterruptedException ex) {
-            interrupted = true;
-          } catch (EntityException ex) {
-            throw new IllegalStateException(ex);
-          }
-        }
-      } finally {
-        if (interrupted) {
-          Thread.currentThread().interrupt();
+      while (true) {
+        try {
+          return result.get();
+        } catch (InterruptedException ex) {
+          interrupted = true;
+        } catch (ExecutionException ex) {
+          throw new IllegalStateException(ex.getCause());
         }
       }
-    } catch (MessageCodecException ex) {
-      throw new AssertionError(ex);
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
     }
   }
 }

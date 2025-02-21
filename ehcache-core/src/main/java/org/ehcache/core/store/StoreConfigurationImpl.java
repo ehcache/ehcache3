@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,6 +119,22 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer, CacheLoaderWriter<? super K, V> cacheLoaderWriter) {
     this(keyType, valueType, evictionAdvisor, classLoader, expiry, resourcePools, dispatcherConcurrency,
             true, keySerializer, valueSerializer, cacheLoaderWriter, false);
+  }
+
+  /**
+   * Creates a new {@code StoreConfigurationImpl} based on the provided parameters.
+   *
+   * @param keyType the key type
+   * @param valueType the value type
+   * @param classLoader the class loader
+   * @param dispatcherConcurrency the level of concurrency for ordered events
+   * @param keySerializer the key serializer
+   * @param valueSerializer the value serializer
+   */
+  public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType, ClassLoader classLoader,
+               int dispatcherConcurrency, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    this(keyType, valueType, null, classLoader, null, null, dispatcherConcurrency,
+      true, keySerializer, valueSerializer, null, false);
   }
 
   /**

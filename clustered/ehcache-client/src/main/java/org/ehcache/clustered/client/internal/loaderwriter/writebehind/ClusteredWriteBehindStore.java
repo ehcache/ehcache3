@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +44,8 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -55,6 +58,8 @@ import static org.ehcache.core.exceptions.StorePassThroughException.handleExcept
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
 public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusteredWriteBehindStore.class);
 
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final ClusteredWriteBehind<K, V> clusteredWriteBehind;
@@ -72,6 +77,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
                                                          resolver,
                                                          this.cacheLoaderWriter,
                                                          codec);
+    LOGGER.warn("Write-behind caches using clustered resources have unresolved correctness issues. This can lead to dropped writes due to either client failure or heavy eviction rates.");
   }
 
 
@@ -127,6 +133,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     ByteBuffer payload = codec.encode(operation);
     long extractedKey = extractLongKey(key);
     storeProxy.append(extractedKey, payload);
+    clusteredWriteBehind.scheduleWriteOf(extractedKey);
   }
 
   @Override
@@ -136,6 +143,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       storeProxy.append(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
     } catch (Exception re) {
       throw handleException(re);
     }
@@ -161,6 +169,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
       return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE);
     } catch (Exception re) {
       throw handleException(re);
@@ -174,6 +183,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
       return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE);
     } catch (Exception re) {
       throw handleException(re);
@@ -187,6 +197,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
       return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE);
     } catch (Exception re) {
       throw handleException(re);
@@ -200,6 +211,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
       return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE);
     } catch (Exception re) {
       throw handleException(re);
@@ -213,6 +225,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       ByteBuffer payload = codec.encode(operation);
       long extractedKey = extractLongKey(key);
       ServerStoreProxy.ChainEntry chain = storeProxy.getAndAppend(extractedKey, payload);
+      clusteredWriteBehind.scheduleWriteOf(extractedKey);
       return resolver.resolve(chain, key, timeSource.getTimeMillis(), Integer.MAX_VALUE);
     } catch (Exception re) {
       throw handleException(re);
@@ -247,14 +260,13 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       this.delegate.onAppend(beforeAppend, appended);
     }
 
-    @Override
     public void compact(ServerStoreProxy.ChainEntry chain) {
       this.delegate.compact(chain);
     }
 
     @Override
     public void compact(ServerStoreProxy.ChainEntry chain, long hash) {
-      clusteredWriteBehind.flushWriteBehindQueue(chain, hash);
+      clusteredWriteBehind.scheduleWriteOf(hash);
     }
   }
 
@@ -278,7 +290,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
       if (writeBehindConfiguration != null) {
         ExecutorService executorService =
           executionService.getOrderedExecutor(writeBehindConfiguration.getThreadPoolAlias(),
-                                              new LinkedBlockingQueue<>());
+                                              new LinkedBlockingQueue<>(writeBehindConfiguration.getMaxQueueSize()));
         StoreEventDispatcher<K, V> storeEventDispatcher = new DefaultStoreEventDispatcher<>(storeConfig.getDispatcherConcurrency());
         return new ClusteredWriteBehindStore<>(storeConfig,
                                                codec,
@@ -309,7 +321,7 @@ public class ClusteredWriteBehindStore<K, V> extends ClusteredStore<K, V> implem
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+    public int rankAuthority(Set<ResourceType<?>> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       int parentRank = super.rankAuthority(authorityResource, serviceConfigs);
       if (parentRank == 0 || serviceConfigs.stream().noneMatch(WriteBehindConfiguration.class::isInstance)) {
         return 0;

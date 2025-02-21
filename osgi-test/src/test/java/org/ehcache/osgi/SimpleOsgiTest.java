@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +50,7 @@ import static org.ehcache.osgi.OsgiTestUtils.baseConfiguration;
 import static org.ehcache.osgi.OsgiTestUtils.gradleBundle;
 import static org.ehcache.osgi.OsgiTestUtils.jaxbConfiguration;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
@@ -70,6 +71,7 @@ public class SimpleOsgiTest {
       gradleBundle("org.terracotta:statistics"),
       gradleBundle("org.ehcache:sizeof"),
       gradleBundle("org.terracotta:offheap-store"),
+      gradleBundle("org.terracotta:fast-restartable-store"),
       gradleBundle("org.terracotta:terracotta-utilities-tools"),
 
       baseConfiguration("SimpleOsgiTest", "individualModules")

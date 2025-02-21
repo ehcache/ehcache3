@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,11 +40,11 @@ import java.util.concurrent.locks.Lock;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static java.util.Collections.emptyList;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Test extensibility of chain map storage engine, including binary engine capabilities.

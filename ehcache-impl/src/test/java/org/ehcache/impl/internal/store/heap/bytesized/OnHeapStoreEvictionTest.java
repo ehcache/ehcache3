@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +22,27 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.junit.BeforeClass;
 
 import java.io.Serializable;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assume.assumeThat;
 
+@Deprecated
 public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.heap.OnHeapStoreEvictionTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
       final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
@@ -86,7 +98,7 @@ public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.hea
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
+    }, timeSource, new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));
   }
 
 }

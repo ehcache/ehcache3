@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +26,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -108,6 +110,22 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
   void setInvalidationListener(InvalidationListener<K, V> invalidationListener);
 
   /**
+   * Bulk method which takes {@link Set} of <code>keys</code> as argument and returns a {@link Map} of its mapped value from CachingTier,
+   * For all the missing entries from CachingTier using <code>mappingFunction</code> to compute its value
+   * <p>
+   * The function takes an {@link Iterable} of missing keys, where each entry's mapping is missing from CachingTier.
+   * It is expected that the function should return an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs containing an entry for each key that was passed to it.
+   * <p>
+   * Note: This method guarantees atomicity of computations for each individual key in {@code keys}. Implementations may choose to provide coarser grained atomicity.
+   *
+   * @param keys the keys to compute a new value for, if they're not in the store.
+   * @param mappingFunction the function that generates new values.
+   * @return a {@code Map} of key/value pairs for each key in <code>keys</code>.
+   * @throws StoreAccessException when a failure occurs when accessing the store.
+   */
+    Map<K, Store.ValueHolder<V>> bulkGetOrComputeIfAbsent(Iterable<? extends K> keys, Function<Set<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends Store.ValueHolder<V>>>> mappingFunction) throws StoreAccessException;
+
+  /**
    * Caching tier invalidation listener.
    * <p>
    * Used to notify the {@link AuthoritativeTier} when a mapping is removed so that it can be flushed.
@@ -145,7 +163,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new caching tier
      */
-    <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link CachingTier}.

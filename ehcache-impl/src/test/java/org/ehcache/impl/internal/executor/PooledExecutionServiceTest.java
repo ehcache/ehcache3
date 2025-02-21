@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +68,7 @@ public class PooledExecutionServiceTest {
     pooledExecutionService.start(null);
     try {
       assertThatThrownBy(() -> pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>()))
-        .isInstanceOf(IllegalArgumentException.class).hasMessage("Null pool alias provided and no default pool configured");
+        .isInstanceOf(IllegalArgumentException.class).hasMessage("No default pool configured, and no explicit alias provided. Consider configuring a default pool.");
     } finally {
       pooledExecutionService.stop();
     }

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,9 +36,9 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.collection.IsEmptyCollection.empty;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 

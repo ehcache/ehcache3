@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +17,9 @@
 
 package org.ehcache.jsr107;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -68,9 +69,8 @@ public class EhCachingProviderTest {
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<>();
     Cache<Object, Object> cache = cacheManager.createCache("test", configuration);
 
-    cache.put(1L, new Customer(1L));
-
     try {
+      cache.put(1L, new Customer(1L));
       cache.get(1L);
       fail("Expected AssertionError");
     } catch (AssertionError e) {

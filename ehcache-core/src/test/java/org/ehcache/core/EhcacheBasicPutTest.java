@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +22,13 @@ import java.util.EnumSet;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,7 +36,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -87,14 +88,14 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutNoStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.put("key", "value");
     verify(this.store).put(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }
@@ -108,7 +109,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).put(eq("key"), eq("value"));
 
@@ -128,14 +129,14 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutHasStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.put("key", "value");
     verify(this.store).put(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }
@@ -149,7 +150,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutHasStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).put(eq("key"), eq("value"));
 
@@ -170,7 +171,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutThrowsExceptionShouldKeepTheValueInPlace() throws Exception {
-    FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new RuntimeException("failed")).when(this.store).put(eq("key"), eq("value"));
 
@@ -203,9 +204,9 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
 
   @SuppressWarnings("unchecked")
   private Ehcache<String, String> getEhcache(CacheConfiguration<String, String> config) {
-    final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(config, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
-    assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
+    assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;
   }
 }

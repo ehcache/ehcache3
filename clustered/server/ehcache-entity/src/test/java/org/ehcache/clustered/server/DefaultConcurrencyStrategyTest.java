@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +27,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.terracotta.entity.ConcurrencyStrategy.UNIVERSAL_KEY;
 
@@ -42,7 +43,7 @@ public class DefaultConcurrencyStrategyTest {
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   @Test
-  public void testConcurrencyKey() throws Exception {
+  public void testConcurrencyKey() {
     final int concurrency = 107;
     ConcurrencyStrategy<EhcacheEntityMessage> strategy = ConcurrencyStrategies.clusterTierConcurrency(DEFAULT_MAPPER);
 
@@ -54,14 +55,14 @@ public class DefaultConcurrencyStrategyTest {
   }
 
   @Test
-  public void testConcurrencyKeyForServerStoreGetOperation() throws Exception {
+  public void testConcurrencyKeyForServerStoreGetOperation() {
     ConcurrencyStrategy<EhcacheEntityMessage> strategy = ConcurrencyStrategies.clusterTierConcurrency(DEFAULT_MAPPER);
     ServerStoreOpMessage.GetMessage getMessage = mock(ServerStoreOpMessage.GetMessage.class);
     assertThat(strategy.concurrencyKey(getMessage), is(UNIVERSAL_KEY));
   }
 
   @Test
-  public void testKeysForSynchronization() throws Exception {
+  public void testKeysForSynchronization() {
     final int concurrency = 111;
     ConcurrencyStrategy<EhcacheEntityMessage> strategy = ConcurrencyStrategies.clusterTierConcurrency(DEFAULT_MAPPER);
 

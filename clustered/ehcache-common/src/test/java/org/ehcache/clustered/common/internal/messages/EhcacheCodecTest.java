@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +19,9 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.nio.ByteBuffer;
 
@@ -27,9 +30,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+@RunWith(MockitoJUnitRunner.class)
 public class EhcacheCodecTest {
 
   @Mock
@@ -45,8 +48,6 @@ public class EhcacheCodecTest {
 
   @Before
   public void setUp() {
-    initMocks(this);
-
     codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null);
   }
 
@@ -79,7 +80,7 @@ public class EhcacheCodecTest {
       codec.decodeMessage(encodedBuffer.array());
     }
     verify(lifeCycleMessageCodec, times(EhcacheMessageType.LIFECYCLE_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(serverStoreOpCodec, stateRepositoryOpCodec);
+    verifyNoInteractions(serverStoreOpCodec, stateRepositoryOpCodec);
   }
 
   @Test
@@ -89,7 +90,7 @@ public class EhcacheCodecTest {
       codec.decodeMessage(encodedBuffer.array());
     }
     verify(serverStoreOpCodec, times(EhcacheMessageType.STORE_OPERATION_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(lifeCycleMessageCodec, stateRepositoryOpCodec);
+    verifyNoInteractions(lifeCycleMessageCodec, stateRepositoryOpCodec);
   }
 
   @Test
@@ -99,7 +100,7 @@ public class EhcacheCodecTest {
       codec.decodeMessage(encodedBuffer.array());
     }
     verify(stateRepositoryOpCodec, times(EhcacheMessageType.STATE_REPO_OPERATION_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(lifeCycleMessageCodec, serverStoreOpCodec);
+    verifyNoInteractions(lifeCycleMessageCodec, serverStoreOpCodec);
   }
 
 }

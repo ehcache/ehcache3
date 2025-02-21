@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +31,6 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +49,8 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 
 public class EventNotificationTest {

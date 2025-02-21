@@ -1,5 +1,6 @@
 <!--
   ~ Copyright Terracotta, Inc.
+  ~ Copyright Super iPaaS Integration LLC, an IBM Company 2024
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -38,7 +39,7 @@
   <!-- tag::tieringSample[] -->
   <cache alias="clustered-cache-tiered">
     <resources>
-      <heap unit="MB">10</heap> <!--1-->
+      <heap>200</heap> <!--1-->
       <tc:clustered-dedicated unit="MB">50</tc:clustered-dedicated> <!--2-->
     </resources>
     <tc:clustered-store consistency="strong"/>

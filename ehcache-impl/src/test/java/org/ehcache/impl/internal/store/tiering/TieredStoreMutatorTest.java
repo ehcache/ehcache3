@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +27,6 @@ import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.time.SystemTimeSource;
-import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.basic.NopStore;
@@ -42,10 +42,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tests for {@link TieredStore}. These tests are mainly to validate that
@@ -179,8 +179,7 @@ public class TieredStoreMutatorTest {
 
     // Here again, all parameters are useless, we only care about the beforeCompletingTheFault implementation
     CachingTier<String, String> cachingTier = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
-      StringCopier.copier(), StringCopier.copier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.
-      <String, String>nullStoreEventDispatcher(), new DefaultStatisticsService());
+      new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
 
     tieredStore = new TieredStore<>(cachingTier, authoritativeTier);
   }

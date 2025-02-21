@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,6 +88,27 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.PUT_IF_ABSENT;
+    }
+  }
+
+  public static class RemoveMessage extends KeyBasedMessage {
+
+    private static final long serialVersionUID = 7263513962868446471L;
+
+    private final Object value;
+
+    public RemoveMessage(final String cacheId, final String mapId, final Object key, final Object value) {
+      super(cacheId, mapId, key);
+      this.value = value;
+    }
+
+    public Object getValue() {
+      return value;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.REMOVE;
     }
   }
 

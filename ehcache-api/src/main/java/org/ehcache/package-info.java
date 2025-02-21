@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,4 +19,7 @@
  * Main Ehcache API, including {@link org.ehcache.CacheManager cache managers} and
  * {@link org.ehcache.Cache caches}.
  */
+@PublicApi
 package org.ehcache;
+
+import org.ehcache.javadoc.PublicApi;

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +37,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityResponse;
-import org.terracotta.entity.InvocationBuilder;
-import org.terracotta.entity.InvokeFuture;
-import org.terracotta.entity.MessageCodecException;
-import org.terracotta.exception.EntityException;
+import org.terracotta.entity.InvocationCallback;
 
 import java.time.Duration;
 import java.util.EnumSet;
@@ -48,14 +46,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.function.LongSupplier;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.ehcache.clustered.client.config.Timeouts.nanosStartingFromNow;
+import static org.terracotta.entity.InvocationCallback.Types.COMPLETE;
+import static org.terracotta.entity.InvocationCallback.Types.RECEIVED;
+import static org.terracotta.entity.InvocationCallback.Types.RETIRED;
+import static org.terracotta.entity.InvocationCallback.Types.SENT;
 
 /**
  * ClusterTierClientEntity
@@ -200,7 +202,7 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   @Override
   public void validate(ServerStoreConfiguration clientStoreConfiguration) throws ClusterTierValidationException, TimeoutException {
     try {
-      invokeInternalAndWait(endpoint.beginInvoke(), timeouts.getConnectionTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration), false);
+      invokeInternalAndWaitFor(COMPLETE, timeouts.getConnectionTimeout(), messageFactory.validateServerStore(storeIdentifier , clientStoreConfiguration));
     } catch (ClusterException e) {
       throw new ClusterTierValidationException("Error validating cluster tier '" + storeIdentifier + "'", e);
     }
@@ -212,77 +214,51 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
   }
 
   @Override
-  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws TimeoutException {
-    invokeInternal(endpoint.beginInvoke().ackSent(), getTimeoutDuration(message), message, track);
+  public void invokeAndWaitForSend(EhcacheOperationMessage message, boolean track) throws TimeoutException, ClusterException {
+    invokeInternalAndWaitFor(SENT, getTimeoutDuration(message), message);
   }
 
   @Override
   public void invokeAndWaitForReceive(EhcacheOperationMessage message, boolean track)
           throws ClusterException, TimeoutException  {
-    invokeInternalAndWait(endpoint.beginInvoke().ackReceived(), message, track);
+    invokeInternalAndWaitFor(RECEIVED, message);
   }
 
   @Override
   public EhcacheEntityResponse invokeAndWaitForComplete(EhcacheOperationMessage message, boolean track)
     throws ClusterException, TimeoutException {
-    return invokeInternalAndWait(endpoint.beginInvoke().blockGetOnRetire(false), message, track);
+    return invokeInternalAndWaitFor(COMPLETE, message);
   }
 
   @Override
   public EhcacheEntityResponse invokeAndWaitForRetired(EhcacheOperationMessage message, boolean track)
     throws ClusterException, TimeoutException {
-    return invokeInternalAndWait(endpoint.beginInvoke().blockGetOnRetire(true), message, track);
+    return invokeInternalAndWaitFor(RETIRED, message);
   }
 
-  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, EhcacheOperationMessage message, boolean track)
+  private EhcacheEntityResponse invokeInternalAndWaitFor(InvocationCallback.Types type, EhcacheOperationMessage message)
       throws ClusterException, TimeoutException {
-    return invokeInternalAndWait(invocationBuilder, getTimeoutDuration(message), message, track);
+    return invokeInternalAndWaitFor(type, getTimeoutDuration(message), message);
   }
 
-  private EhcacheEntityResponse invokeInternalAndWait(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeLimit, EhcacheEntityMessage message, boolean track)
+  private EhcacheEntityResponse invokeInternalAndWaitFor(InvocationCallback.Types type, Duration timeLimit, EhcacheEntityMessage message)
       throws ClusterException, TimeoutException {
     try {
-      LongSupplier nanosRemaining = nanosStartingFromNow(timeLimit);
-      InvokeFuture<EhcacheEntityResponse> future = invokeInternal(invocationBuilder, Duration.ofNanos(nanosRemaining.getAsLong()), message, track);
-      EhcacheEntityResponse response = waitFor(nanosRemaining.getAsLong(), future);
-      if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
+      Future<EhcacheEntityResponse> future = endpoint.message(message).invokeAnd(type);
+      EhcacheEntityResponse response = waitFor(timeLimit.toNanos(), future);
+      if (response != null && EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
         return response;
       }
-    } catch (EntityException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
+    } catch (ExecutionException e) {
+      throw new RuntimeException(message + " error: " + e.getCause(), e.getCause());
     } catch (TimeoutException e) {
       String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
       TimeoutException timeoutException = new TimeoutException(msg);
       timeoutException.initCause(e);
       LOGGER.info(msg, timeoutException);
       throw timeoutException;
-    }
-  }
-
-  private InvokeFuture<EhcacheEntityResponse> invokeInternal(InvocationBuilder<EhcacheEntityMessage, EhcacheEntityResponse> invocationBuilder, Duration timeout, EhcacheEntityMessage message, boolean track) throws TimeoutException {
-    boolean interrupted = Thread.interrupted();
-    try {
-      LongSupplier nanosRemaining = nanosStartingFromNow(timeout);
-      while (true) {
-        try {
-          long nanos = nanosRemaining.getAsLong();
-          if (nanos > 0) {
-            return invocationBuilder.message(message).invokeWithTimeout(nanos, NANOSECONDS);
-          } else {
-            throw new TimeoutException("Timed out waiting for server response to message: " + message);
-          }
-        } catch (InterruptedException e) {
-          interrupted = true;
-        }
-      }
-    } catch (MessageCodecException e) {
-      throw new RuntimeException(message + " error: " + e.getMessage(), e);
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
-      }
     }
   }
 
@@ -294,15 +270,18 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
     }
   }
 
-  private static <T extends EntityResponse> T waitFor(long nanos, InvokeFuture<T> future)
-      throws EntityException, TimeoutException {
-    boolean interrupted = false;
+  private static <T extends EntityResponse> T waitFor(long nanos, Future<T> future)
+    throws ExecutionException, TimeoutException {
+    boolean interrupted = Thread.interrupted();
     long deadlineTimeout = System.nanoTime() + nanos;
     try {
       while (true) {
         try {
           long timeRemaining = deadlineTimeout - System.nanoTime();
-          return future.getWithTimeout(timeRemaining, NANOSECONDS);
+          return future.get(timeRemaining, NANOSECONDS);
+        } catch (TimeoutException e) {
+          future.cancel(true);
+          throw e;
         } catch (InterruptedException e) {
           interrupted = true;
         }

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +30,7 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -114,7 +115,7 @@ public class OnHeapStrategyTest {
     assertThat(mapping.expiration).isNull();
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());
 
-    verifyZeroInteractions(store);
+    verifyNoInteractions(store);
   }
 
   @Test
@@ -141,7 +142,7 @@ public class OnHeapStrategyTest {
     assertThat(mapping.expiration).isEqualTo(ExpiryPolicy.INFINITE);
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());
 
-    verifyZeroInteractions(store);
+    verifyNoInteractions(store);
   }
 
   @Test
@@ -156,7 +157,7 @@ public class OnHeapStrategyTest {
     assertThat(mapping.expiration).isEqualTo(Duration.ofMillis(20));
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());
 
-    verifyZeroInteractions(store);
+    verifyNoInteractions(store);
 
     timeSource.advanceTime(30);
 
@@ -165,6 +166,6 @@ public class OnHeapStrategyTest {
     assertThat(mapping.expiration).isEqualTo(Duration.ofMillis(20));
     assertThat(mapping.now).isEqualTo(timeSource.getTimeMillis());
 
-    verifyZeroInteractions(store);
+    verifyNoInteractions(store);
   }
 }

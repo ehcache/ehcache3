@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,4 +91,8 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
     return valueCodec.decode(response);
   }
 
+  @Override
+  public boolean remove(final K key, final V value) {
+    return (Boolean) getResponse(messageFactory.removeMessage(keyCodec.encode(key), valueCodec.encode(value)), true);
+  }
 }

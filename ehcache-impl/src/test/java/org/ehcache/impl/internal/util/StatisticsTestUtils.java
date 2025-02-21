@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +19,6 @@ package org.ehcache.impl.internal.util;
 
 import org.ehcache.core.spi.store.Store;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.terracotta.context.ContextManager;
@@ -154,7 +154,6 @@ public class StatisticsTestUtils {
       }
     }
 
-    @Factory
     public static Matcher<Number> equalTo(final Number expected) {
       return new StatisticMatcher(Number.class, expected);
     }

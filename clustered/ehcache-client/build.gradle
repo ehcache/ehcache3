@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +28,8 @@ publishing.publications.withType(MavenPublication) {
 
 dependencies {
   api project(':ehcache-impl')
-  api project(':ehcache-xml')
+
+  compileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
 
   implementation project(':clustered:ehcache-common')
   implementation "org.terracotta:entity-client-api:$terracottaApisVersion"
@@ -35,6 +37,7 @@ dependencies {
   implementation "org.terracotta:lease-api:$terracottaPlatformVersion"
   implementation "org.terracotta.dynamic-config.entities:dynamic-config-topology-entity-client:$terracottaPlatformVersion"
   implementation "org.terracotta:connection-api:$terracottaApisVersion"
+  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
 
   compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
 
@@ -51,7 +54,7 @@ dependencies {
   testImplementation project(':clustered:test-utils')
   testImplementation "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
   testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
-  testImplementation "org.terracotta.internal:common:$terracottaCoreVersion"
+  testImplementation "org.terracotta.internal:common-spi:$terracottaCoreVersion"
   testImplementation "org.terracotta:passthrough-leased-connection-api:$terracottaPlatformVersion"
   testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'

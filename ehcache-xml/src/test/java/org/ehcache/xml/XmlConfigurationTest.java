@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,8 +36,6 @@ import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -44,11 +43,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
-import org.hamcrest.core.IsCollectionContaining;
-import org.hamcrest.core.IsEqual;
-import org.hamcrest.core.IsNull;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -92,21 +87,22 @@ import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.ehcache.core.util.ClassLoading.getDefaultClassLoader;
 import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
-import static org.hamcrest.CoreMatchers.either;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.isIn;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.hamcrest.core.IsSame.sameInstance;
-import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -165,7 +161,7 @@ public class XmlConfigurationTest {
     URL resource = XmlConfigurationTest.class.getResource("/configs/one-service.xml");
     Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
 
-    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), hasItems(instanceOf(BarConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
   }
 
@@ -176,14 +172,14 @@ public class XmlConfigurationTest {
 
     assertThat(config.getServiceCreationConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
   }
 
   @Test
   public void testAllExtensions() {
     URL resource = XmlConfigurationTest.class.getResource("/configs/all-extensions.xml");
     Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
-    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), hasItem(instanceOf(BarConfiguration.class)));
     CacheConfiguration<?, ?> cacheConfiguration = config.getCacheConfigurations().get("fancy");
     assertThat(cacheConfiguration.getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
     assertThat(cacheConfiguration.getResourcePools().getResourceTypeSet(), hasItem(instanceOf(BazResource.Type.class)));
@@ -196,7 +192,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations(), hasSize(0));
     assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
 
@@ -235,7 +231,7 @@ public class XmlConfigurationTest {
     assertThat(expiry, is(value));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("class").getExpiryPolicy();
-    assertThat(expiry, CoreMatchers.instanceOf(com.pany.ehcache.MyExpiry.class));
+    assertThat(expiry, instanceOf(com.pany.ehcache.MyExpiry.class));
 
     expiry = xmlConfiguration.getCacheConfigurations().get("deprecatedClass").getExpiryPolicy();
     assertThat(expiry.getExpiryForCreation(null, null), is(Duration.ofSeconds(42)));
@@ -322,6 +318,27 @@ public class XmlConfigurationTest {
     CacheConfiguration<?, ?> implicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("directHeapOnly");
     assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(25L));
     assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK), is(nullValue()));
+  }
+
+  @Test
+  public void testSharedResourcesCaches() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-caches.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
+
+    CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeap");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+
+    tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedOffheap");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+
+    tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeapAndOffheap");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+
+    tieredCacheConfig = xmlConfig.getCacheConfigurations().get("sharedHeapOffheapAndDisk");
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.HEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.OFFHEAP)), notNullValue());
+    assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(new ResourceType.SharedResource<>(ResourceType.Core.DISK)), notNullValue());
   }
 
   @Test
@@ -413,10 +430,10 @@ public class XmlConfigurationTest {
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
     assertThat(factoryConfiguration.getDefaultSerializers().size(), is(4));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), Matchers.equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), Matchers.equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), Matchers.equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?, ?>> orderedServiceConfigurations = new ArrayList<>(xmlConfig.getCacheConfigurations()
@@ -427,7 +444,7 @@ public class XmlConfigurationTest {
     Iterator<ServiceConfiguration<?, ?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration<?> keySerializationProviderConfiguration = (DefaultSerializerConfiguration<?>) it.next();
-    assertThat(keySerializationProviderConfiguration.getType(), isIn(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE }));
+    assertThat(keySerializationProviderConfiguration.getType(), is(in(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE })));
   }
 
   @Test
@@ -530,11 +547,11 @@ public class XmlConfigurationTest {
 
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class).build().getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     for (ServiceConfiguration<?, ?> configuration : serviceConfiguration) {
       if(configuration instanceof WriteBehindConfiguration) {
@@ -622,74 +639,77 @@ public class XmlConfigurationTest {
   @Test
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
     NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock()));
-    assertThat(thrown, hasProperty("message", Matchers.is("The url can not be null")));
+    assertThat(thrown, hasProperty("message", is("The url can not be null")));
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
     NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock()));
-    assertThat(thrown, hasProperty("message", Matchers.is("The classLoader can not be null")));
+    assertThat(thrown, hasProperty("message", is("The classLoader can not be null")));
   }
 
   @Test
   public void testNullCacheClassLoaderMapInConstructorThrowsNPE() throws Exception {
     NullPointerException thrown = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null));
-    assertThat(thrown, hasProperty("message", Matchers.is("The cacheClassLoaders map can not be null")));
+    assertThat(thrown, hasProperty("message", is("The cacheClassLoaders map can not be null")));
   }
 
+  @Deprecated
   @Test
   public void testSizeOfEngineLimits() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
-    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), 200);
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectSize(), 100000);
 
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("usesDefaultSizeOfEngine");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig, nullValue());
 
     CacheConfiguration<?, ?> cacheConfig1 = xmlConfig.getCacheConfigurations().get("usesConfiguredInCache");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig1, notNullValue());
     assertEquals(sizeOfEngineConfig1.getMaxObjectGraphSize(), 500);
     assertEquals(sizeOfEngineConfig1.getMaxObjectSize(), 200000);
 
     CacheConfiguration<?, ?> cacheConfig2 = xmlConfig.getCacheConfigurations().get("usesPartialOneConfiguredInCache");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig2 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig2.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig2 = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig2.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig2, notNullValue());
     assertThat(sizeOfEngineConfig2.getMaxObjectGraphSize(), is(500L));
     assertThat(sizeOfEngineConfig2.getMaxObjectSize(), is(Long.MAX_VALUE));
 
     CacheConfiguration<?, ?> cacheConfig3 = xmlConfig.getCacheConfigurations().get("usesPartialTwoConfiguredInCache");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig3 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig3.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig3 = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig3.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig3, notNullValue());
     assertThat(sizeOfEngineConfig3.getMaxObjectGraphSize(), is(1000L));
     assertThat(sizeOfEngineConfig3.getMaxObjectSize(), is(200000L));
   }
 
+  @Deprecated
   @Test
   public void testCacheManagerDefaultObjectGraphSize() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-one.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
-    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
     assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(1000L));
     assertThat(sizeOfEngineProviderConfig.getMaxObjectSize(), is(100000L));
   }
 
+  @Deprecated
   @Test
   public void testCacheManagerDefaultObjectSize() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-two.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(new XmlConfiguration(resource));
-    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
     assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(200L));
@@ -733,7 +753,7 @@ public class XmlConfigurationTest {
     ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     try {
       for (Future<Configuration> c : service.invokeAll(nCopies(10, parserTask))) {
-        assertThat(c.get(), IsNull.notNullValue());
+        assertThat(c.get(), notNullValue());
       }
     } finally {
       service.shutdown();
@@ -743,6 +763,14 @@ public class XmlConfigurationTest {
   @Test
   public void testCompleteXmlToString() {
     URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-complete.xml");
+    Configuration config = new XmlConfiguration(resource);
+    XmlConfiguration xmlConfig = new XmlConfiguration(config);
+    assertThat(xmlConfig.toString(), isSameConfigurationAs(resource));
+  }
+
+  @Test
+  public void testSharedResourcesXmlToString() {
+    URL resource = XmlConfigurationTest.class.getResource("/configs/ehcache-shared-resources.xml");
     Configuration config = new XmlConfiguration(resource);
     XmlConfiguration xmlConfig = new XmlConfiguration(config);
     assertThat(xmlConfig.toString(), isSameConfigurationAs(resource));
@@ -768,57 +796,57 @@ public class XmlConfigurationTest {
 
   @Test
   public void testPrimitiveNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("boolean", getDefaultClassLoader()), IsEqual.equalTo(Boolean.TYPE));
-    assertThat(getClassForName("byte", getDefaultClassLoader()), IsEqual.equalTo(Byte.TYPE));
-    assertThat(getClassForName("short", getDefaultClassLoader()), IsEqual.equalTo(Short.TYPE));
-    assertThat(getClassForName("int", getDefaultClassLoader()), IsEqual.equalTo(Integer.TYPE));
-    assertThat(getClassForName("long", getDefaultClassLoader()), IsEqual.equalTo(Long.TYPE));
-    assertThat(getClassForName("char", getDefaultClassLoader()), IsEqual.equalTo(Character.TYPE));
-    assertThat(getClassForName("float", getDefaultClassLoader()), IsEqual.equalTo(Float.TYPE));
-    assertThat(getClassForName("double", getDefaultClassLoader()), IsEqual.equalTo(Double.TYPE));
+    assertThat(getClassForName("boolean", getDefaultClassLoader()), equalTo(Boolean.TYPE));
+    assertThat(getClassForName("byte", getDefaultClassLoader()), equalTo(Byte.TYPE));
+    assertThat(getClassForName("short", getDefaultClassLoader()), equalTo(Short.TYPE));
+    assertThat(getClassForName("int", getDefaultClassLoader()), equalTo(Integer.TYPE));
+    assertThat(getClassForName("long", getDefaultClassLoader()), equalTo(Long.TYPE));
+    assertThat(getClassForName("char", getDefaultClassLoader()), equalTo(Character.TYPE));
+    assertThat(getClassForName("float", getDefaultClassLoader()), equalTo(Float.TYPE));
+    assertThat(getClassForName("double", getDefaultClassLoader()), equalTo(Double.TYPE));
   }
 
   @Test
   public void testPrimitiveArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("boolean[]", getDefaultClassLoader()), IsEqual.equalTo(boolean[].class));
-    assertThat(getClassForName("byte[]", getDefaultClassLoader()), IsEqual.equalTo(byte[].class));
-    assertThat(getClassForName("short[]", getDefaultClassLoader()), IsEqual.equalTo(short[].class));
-    assertThat(getClassForName("int[]", getDefaultClassLoader()), IsEqual.equalTo(int[].class));
-    assertThat(getClassForName("long[]", getDefaultClassLoader()), IsEqual.equalTo(long[].class));
-    assertThat(getClassForName("char[]", getDefaultClassLoader()), IsEqual.equalTo(char[].class));
-    assertThat(getClassForName("float[]", getDefaultClassLoader()), IsEqual.equalTo(float[].class));
-    assertThat(getClassForName("double[]", getDefaultClassLoader()), IsEqual.equalTo(double[].class));
+    assertThat(getClassForName("boolean[]", getDefaultClassLoader()), equalTo(boolean[].class));
+    assertThat(getClassForName("byte[]", getDefaultClassLoader()), equalTo(byte[].class));
+    assertThat(getClassForName("short[]", getDefaultClassLoader()), equalTo(short[].class));
+    assertThat(getClassForName("int[]", getDefaultClassLoader()), equalTo(int[].class));
+    assertThat(getClassForName("long[]", getDefaultClassLoader()), equalTo(long[].class));
+    assertThat(getClassForName("char[]", getDefaultClassLoader()), equalTo(char[].class));
+    assertThat(getClassForName("float[]", getDefaultClassLoader()), equalTo(float[].class));
+    assertThat(getClassForName("double[]", getDefaultClassLoader()), equalTo(double[].class));
   }
 
   @Test
   public void testMultiDimensionPrimitiveArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("byte[][][][]", getDefaultClassLoader()), IsEqual.equalTo(byte[][][][].class));
-    assertThat(getClassForName("short[][][][]", getDefaultClassLoader()), IsEqual.equalTo(short[][][][].class));
-    assertThat(getClassForName("int[][][][]", getDefaultClassLoader()), IsEqual.equalTo(int[][][][].class));
-    assertThat(getClassForName("long[][][][]", getDefaultClassLoader()), IsEqual.equalTo(long[][][][].class));
-    assertThat(getClassForName("char[][][][]", getDefaultClassLoader()), IsEqual.equalTo(char[][][][].class));
-    assertThat(getClassForName("float[][][][]", getDefaultClassLoader()), IsEqual.equalTo(float[][][][].class));
-    assertThat(getClassForName("double[][][][]", getDefaultClassLoader()), IsEqual.equalTo(double[][][][].class));
+    assertThat(getClassForName("byte[][][][]", getDefaultClassLoader()), equalTo(byte[][][][].class));
+    assertThat(getClassForName("short[][][][]", getDefaultClassLoader()), equalTo(short[][][][].class));
+    assertThat(getClassForName("int[][][][]", getDefaultClassLoader()), equalTo(int[][][][].class));
+    assertThat(getClassForName("long[][][][]", getDefaultClassLoader()), equalTo(long[][][][].class));
+    assertThat(getClassForName("char[][][][]", getDefaultClassLoader()), equalTo(char[][][][].class));
+    assertThat(getClassForName("float[][][][]", getDefaultClassLoader()), equalTo(float[][][][].class));
+    assertThat(getClassForName("double[][][][]", getDefaultClassLoader()), equalTo(double[][][][].class));
   }
 
   @Test
   public void testArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.lang.String[]", getDefaultClassLoader()), IsEqual.equalTo(String[].class));
+    assertThat(getClassForName("java.lang.String[]", getDefaultClassLoader()), equalTo(String[].class));
   }
 
   @Test
   public void testMultiDimensionArrayClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.lang.String[][][][]", getDefaultClassLoader()), IsEqual.equalTo(String[][][][].class));
+    assertThat(getClassForName("java.lang.String[][][][]", getDefaultClassLoader()), equalTo(String[][][][].class));
   }
 
   @Test
   public void testInnerClassNameConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.util.Map.Entry", getDefaultClassLoader()), IsEqual.equalTo(Map.Entry.class));
+    assertThat(getClassForName("java.util.Map.Entry", getDefaultClassLoader()), equalTo(Map.Entry.class));
   }
 
   @Test
   public void testInnerClassNameArrayConversion() throws ClassNotFoundException {
-    assertThat(getClassForName("java.util.Map.Entry[]", getDefaultClassLoader()), IsEqual.equalTo(Map.Entry[].class));
+    assertThat(getClassForName("java.util.Map.Entry[]", getDefaultClassLoader()), equalTo(Map.Entry[].class));
   }
 
   @Test

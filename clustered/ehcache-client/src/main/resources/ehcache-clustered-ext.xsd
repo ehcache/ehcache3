@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!--
   ~ Copyright Terracotta, Inc.
+  ~ Copyright Super iPaaS Integration LLC, an IBM Company 2024
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -36,6 +37,23 @@
     </xs:annotation>
   </xs:element>
 
+  <!--
+    Top level elements open for extension via substitution groups
+  -->
+  <xs:element name="cluster-connection" type="tc:cluster-connection-spec">
+    <xs:annotation>
+      <xs:documentation>
+        Specifies the cluster connection as a sequence of servers and a cluster tier manager identifier.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+  <xs:element name="connection" type="tc:connection-spec">
+    <xs:annotation>
+      <xs:documentation>
+        Specifies the cluster connection as a single embedded URL.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
   <xs:element name="server-side-config" type="tc:server-side-config-spec">
     <xs:annotation>
       <xs:documentation>
@@ -47,8 +65,8 @@
   <xs:complexType name="cluster-spec">
     <xs:sequence minOccurs="1" maxOccurs="1">
       <xs:choice>
-        <xs:element name="cluster-connection" type="tc:cluster-connection-spec"/>
-        <xs:element name="connection" type="tc:connection-spec"/>
+        <xs:element ref="tc:cluster-connection"/>
+        <xs:element ref="tc:connection"/>
       </xs:choice>
 
       <xs:element name="read-timeout" type="eh:time-type-with-prop-subst" minOccurs="0" maxOccurs="1">
@@ -168,9 +186,9 @@
       <xs:annotation>
         <xs:documentation> xml:lang="en">
           The client connection behavior, either:
-           * expecting - expect a matching server configuration (fail otherwise)
-           * auto-create - expect a matching server configuration or create one if none is present
-           * auto-create-on-reconnect - as 'auto-create' but also auto-create on reconnection
+          * expecting - expect a matching server configuration (fail otherwise)
+          * auto-create - expect a matching server configuration or create one if none is present
+          * auto-create-on-reconnect - as 'auto-create' but also auto-create on reconnection
         </xs:documentation>
       </xs:annotation>
     </xs:attribute>

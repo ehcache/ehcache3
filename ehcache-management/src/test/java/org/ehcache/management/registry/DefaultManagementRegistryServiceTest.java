@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -119,7 +120,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 
@@ -149,13 +150,13 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_NO_STATS_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 
   @Test
   public void descriptorOffHeapTest() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder().heap(5, MB).offheap(10, MB))
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(5000).offheap(10, MB))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -179,9 +180,8 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
-      allDescriptors.add(new StatisticDescriptor("OnHeap:OccupiedByteSize" , "GAUGE"));
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 
@@ -215,7 +215,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(DISK_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+      assertThat(descriptors).hasSameElementsAs(allDescriptors);
     }
   }
 

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +18,17 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
-import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.mock;
 import static org.hamcrest.Matchers.instanceOf;
 
@@ -30,14 +36,19 @@ import static org.hamcrest.Matchers.instanceOf;
  * @author Abhilash
  *
  */
-
+@Deprecated
 public class DefaultSizeOfEngineProviderFactoryTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   @Test
   public void testNullConfiguration() {
     DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
-    SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
-    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(MemoryUnit.B, mock(ServiceConfiguration.class));
+    org.ehcache.core.spi.store.heap.SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
+    org.ehcache.core.spi.store.heap.SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(MemoryUnit.B, mock(ServiceConfiguration.class));
     assertThat(sizeOfEngineProvider, notNullValue());
     assertThat(sizeOfEngine, notNullValue());
     assertThat(sizeOfEngine, instanceOf(DefaultSizeOfEngine.class));
@@ -46,8 +57,8 @@ public class DefaultSizeOfEngineProviderFactoryTest {
   @Test
   public void testNoopSizeOfEngineConfig() {
     DefaultSizeOfEngineProviderFactory factory = new DefaultSizeOfEngineProviderFactory();
-    SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
-    SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(null, mock(ServiceConfiguration.class));
+    org.ehcache.core.spi.store.heap.SizeOfEngineProvider sizeOfEngineProvider = factory.create(null);
+    org.ehcache.core.spi.store.heap.SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(null, mock(ServiceConfiguration.class));
     assertThat(sizeOfEngineProvider, notNullValue());
     assertThat(sizeOfEngine, notNullValue());
     assertThat(sizeOfEngine, instanceOf(NoopSizeOfEngine.class));

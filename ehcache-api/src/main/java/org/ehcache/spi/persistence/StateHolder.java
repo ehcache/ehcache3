@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +47,15 @@ public interface StateHolder<K, V> {
    * @return  the value mapped to the key
    */
   V get(K key);
+
+  /**
+   * Removes the entry for a key only if currently mapped to a given value.
+   *
+   * @param key a key with which the specified value is associated
+   * @param value value expected to be associated with the specified key
+   * @return {@code true} if the value was removed
+   */
+  boolean remove(K key, V value);
 
   /**
    * Retrieves all the entries in the {@code StateHolder} as a {@code Set} of {@code Map.Entry} instances.

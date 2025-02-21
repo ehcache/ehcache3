@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,8 +43,7 @@ public class DefaultStatisticsServiceTest {
   public void before() {
     CacheConfigurationBuilder<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .heap(1, MB));
+        ResourcePoolsBuilder.heap(1000));
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .using(service)

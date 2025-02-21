@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!--
   ~ Copyright Terracotta, Inc.
+  ~ Copyright Super iPaaS Integration LLC, an IBM Company 2024
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -86,10 +87,18 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="shared-resources" type="ehcache:resources-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            Resources that are available for sharing across multiple caches managed through ARC.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:element name="heap-store" type="ehcache:sizeof-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             The element defines the sizing limits for the default SizeOfEngine.
+            DEPRECATED: Memory units for heap resources, which are the primary use-case for size-of-engines, are deprecated.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -289,6 +298,7 @@
           <xs:annotation>
             <xs:documentation xml:lang="en">
               Shortcut for configuring a heap Cache.
+              DEPRECATED: The use of memory units (such as 'B', 'kB' or 'MB') for heap resources is deprecated and will be removed in a future version.
             </xs:documentation>
           </xs:annotation>
         </xs:element>
@@ -304,6 +314,7 @@
         <xs:annotation>
           <xs:documentation xml:lang="en">
             The element defines the sizing limits for the Cache's SizeOfEngine.
+            DEPRECATED: Memory units for heap resources, which are the primary use-case for size-of-engines, are deprecated.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -537,6 +548,9 @@
       </xs:appinfo>
       <xs:appinfo>
         <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          DEPRECATED: The use of memory units (such as 'B', 'kB' or 'MB') for heap resources is deprecated and will be removed in a future version.
+        </xs:documentation>
       </xs:appinfo>
     </xs:annotation>
   </xs:element>
@@ -557,6 +571,48 @@
       </xs:appinfo>
       <xs:appinfo>
         <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="sharedHeap" type="xs:string" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          Used to inform the cache manager that a shared heap resource should be used to manage this cache's heap entries.
+        </xs:documentation>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="sharedOffheap" type="xs:string" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          Used to inform the cache manager that a shared offheap resource should be used to manage this cache's offheap entries.
+        </xs:documentation>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="sharedDisk" type="xs:string" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+      <xs:appinfo>
+        <annox:annotate>@java.lang.SuppressWarnings({"unchecked", "serial"})</annox:annotate>
+        <xs:documentation>
+          Used to inform the cache manager that a shared disk resource should be used to manage this cache's offheap entries.
+        </xs:documentation>
       </xs:appinfo>
     </xs:annotation>
   </xs:element>
@@ -636,7 +692,7 @@
   <xs:simpleType name="propertyOrString">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.JaxbParsers.parsePropertyOrString"/>
+        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.ParsingUtil.parsePropertyOrString"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:union memberTypes="ehcache:propertyReference">
@@ -650,7 +706,7 @@
   <xs:simpleType name="propertyOrPositiveInteger">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.JaxbParsers.parsePropertyOrPositiveInteger"/>
+        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.ParsingUtil.parsePropertyOrPositiveInteger"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:union memberTypes="ehcache:propertyReference xs:positiveInteger"/>
@@ -659,7 +715,7 @@
   <xs:simpleType name="propertyOrNonNegativeInteger">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.JaxbParsers.parsePropertyOrNonNegativeInteger"/>
+        <jaxb:javaType name="java.math.BigInteger" parseMethod="org.ehcache.xml.ParsingUtil.parsePropertyOrNonNegativeInteger"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:union memberTypes="ehcache:propertyReference xs:nonNegativeInteger"/>
@@ -668,7 +724,7 @@
   <xs:simpleType name="stringWithProperties">
     <xs:annotation>
       <xs:appinfo>
-        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.JaxbParsers.parseStringWithProperties"/>
+        <jaxb:javaType name="java.lang.String" parseMethod="org.ehcache.xml.ParsingUtil.parseStringWithProperties"/>
       </xs:appinfo>
     </xs:annotation>
     <xs:restriction base="xs:string"/>

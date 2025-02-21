@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 
 plugins {
   id 'org.ehcache.build.internal-module'
+  id 'org.ehcache.build.plugins.unsafe'
 }
 
 publishing.publications.withType(MavenPublication) {
@@ -26,10 +28,9 @@ publishing.publications.withType(MavenPublication) {
 }
 
 sourceSets {
-  unsafe
-}
-
-sourceSets {
+  main {
+    unsafe.srcDir 'src/unsafe/java'
+  }
   slowTest {
     java.srcDir 'src/slow-test/java'
     resources.srcDir 'src/slow-test/resources'
@@ -54,19 +55,14 @@ dependencies {
   implementation group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion
   implementation group: 'org.terracotta', name: 'terracotta-utilities-tools', version: parent.terracottaUtilitiesVersion
   compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+  testImplementation testFixtures(project(':ehcache-core'))
   testImplementation project(':core-spi-test')
   testImplementation 'org.ow2.asm:asm:6.2'
   testImplementation 'org.ow2.asm:asm-commons:6.2'
   testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
-
-  unsafeImplementation project(':ehcache-api')
-  api files(sourceSets.unsafe.output.classesDirs) {
-    builtBy compileUnsafeJava
-  }
 }
 
 jar {
-  from sourceSets.unsafe.output
   from "$rootDir/NOTICE"
   bnd (
     'Export-Package': '!org.ehcache.impl.internal.*, org.ehcache.impl.*, org.ehcache.config.builders, ' +
@@ -75,11 +71,7 @@ jar {
   )
 }
 
-sourcesJar {
-  from sourceSets.unsafe.allSource
-}
-
-compileUnsafeJava {
+compileUnsafe {
   //no -Werror due to unsafe
   options.compilerArgs = ['-Xlint:all']
 }

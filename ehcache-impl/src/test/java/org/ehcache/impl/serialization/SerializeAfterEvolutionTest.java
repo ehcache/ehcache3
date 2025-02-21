@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +21,8 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import static org.ehcache.impl.serialization.SerializerTestUtilities.createClassNameRewritingLoader;
@@ -29,6 +30,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassNam
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class SerializeAfterEvolutionTest {
 
@@ -46,11 +48,11 @@ public class SerializeAfterEvolutionTest {
     pushTccl(loaderB);
     try {
       Serializable outA = s.read(encodedA);
-      assertThat((Integer) outA.getClass().getField("integer").get(outA), Is.is(42));
+      assertThat((Integer) outA.getClass().getField("integer").get(outA), is(42));
 
       Serializable b = (Serializable) loaderB.loadClass(newClassName(A_new.class)).newInstance();
       Serializable outB = s.read(s.serialize(b));
-      assertThat((Integer) outB.getClass().getField("integer").get(outB), Is.is(42));
+      assertThat((Integer) outB.getClass().getField("integer").get(outB), is(42));
     } finally {
       popTccl();
     }

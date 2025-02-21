@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +25,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -75,7 +78,25 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
    */
   void setInvalidationValve(InvalidationValve valve);
 
+
   /**
+   * Bulk method to compute a value for every key passed in the {@link Iterable} <code>keys</code> argument using the <code>mappingFunction</code>
+   * to compute the value.
+   * <p>
+   * The function takes an {@link Iterable} of {@link java.util.Map.Entry} key/value pairs, where each entry's value is its currently stored value
+   * for each key that is not mapped in the store. It is expected that the function should return an {@link Iterable} of {@link java.util.Map.Entry}
+   * key/value pairs containing an entry for each key that was passed to it.
+   * <p>
+   * Note: This method guarantees atomicity of computations for each individual key in {@code keys}. Implementations may choose to provide coarser grained atomicity.
+   *
+   * @param keys the keys to compute a new value for, if they're not in the store.
+   * @param mappingFunction the function that generates new values.
+   * @return a {@code Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
+   * @throws StoreAccessException when a failure occurs when accessing the store
+   */
+  Iterable<? extends Map.Entry<? extends K,? extends ValueHolder<V>>> bulkComputeIfAbsentAndFault(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K,? extends V>>> mappingFunction) throws StoreAccessException;
+
+    /**
    * Invalidation valve, that is the mechanism through which an {@link AuthoritativeTier} can request invalidations
    * from the {@link CachingTier}.
    */
@@ -114,7 +135,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * @param serviceConfigs a collection of service configurations
      * @return the new authoritative tier
      */
-    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases an {@link AuthoritativeTier}.
@@ -138,7 +159,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * <p>
      * A higher rank value indicates a more capable {@code AuthoritativeTier}.
      *
-     * @param authorityResource the {@code ResourceType} for the authority to handle
+     * @param resourceTypes the {@code ResourceType}s for the authority to handle
      * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
      *                       to the ranking
      *
@@ -146,7 +167,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      *      to handle the resource type specified by {@code authorityResource}; a rank of 0 indicates the authority
      *      can not handle the type specified in {@code authorityResource}
      */
-    int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
+    int rankAuthority(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
 }

@@ -8,7 +8,7 @@ caches:
         resourcePools:
             pools:
                 heap:
-                    size: 1 MB
+                    size: 10 entries
                     tierHeight: 10000
                 clustered-shared:
                     size: Pool {sharedResourcePool='resource-pool-a' clustered-shared}

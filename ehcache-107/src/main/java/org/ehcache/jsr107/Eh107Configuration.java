@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +19,7 @@ package org.ehcache.jsr107;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-
-import java.util.Collection;
+import org.ehcache.javadoc.PublicApi;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
@@ -27,18 +27,19 @@ import javax.cache.configuration.Configuration;
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 
 /**
- * Abstract {@link Configuration} implementation that enables building a JSR-107 compatible configuration from
+ * Abstract {@code Configuration} implementation that enables building a JSR-107 compatible configuration from
  * a native Ehcache {@link CacheConfiguration}.
  *
  * @param <K> the key type
  * @param <V> the value type
  */
+@PublicApi
 public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
 
   private static final long serialVersionUID = 7324956960962454439L;
 
   /**
-   * Creates a new JSR-107 {@link Configuration} from the provided {@link CacheConfiguration}.
+   * Creates a new JSR-107 {@code Configuration} from the provided {@link CacheConfiguration}.
    *
    * @param ehcacheConfig the native Ehcache configuration
    * @param <K> the key type
@@ -51,7 +52,7 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
   }
 
   /**
-   * Creates a new JSR-107 {@link Configuration} from the provided {@link CacheConfiguration} obtained through a
+   * Creates a new JSR-107 {@code Configuration} from the provided {@link CacheConfiguration} obtained through a
    * {@link Builder}.
    *
    * @param ehcacheConfigBuilder the native Ehcache configuration through a builder

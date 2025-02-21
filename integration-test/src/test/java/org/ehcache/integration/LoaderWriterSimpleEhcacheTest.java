@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +40,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -104,7 +105,7 @@ public class LoaderWriterSimpleEhcacheTest {
     assertThat(testCache.putIfAbsent(1, "one"), Matchers.<CharSequence>equalTo("un"));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("un"));
 
-    verifyZeroInteractions(cacheLoaderWriter);
+    verifyNoInteractions(cacheLoaderWriter);
   }
 
   @Test
@@ -200,7 +201,7 @@ public class LoaderWriterSimpleEhcacheTest {
     assertThat(testCache.replace(1, "uno", "one"), is(false));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("un"));
 
-    verifyZeroInteractions(cacheLoaderWriter);
+    verifyNoInteractions(cacheLoaderWriter);
   }
 
   @Test
@@ -256,7 +257,7 @@ public class LoaderWriterSimpleEhcacheTest {
 
     assertThat(testCache.remove(1, "one"), is(false));
 
-    verifyZeroInteractions(cacheLoaderWriter);
+    verifyNoInteractions(cacheLoaderWriter);
   }
 
 }

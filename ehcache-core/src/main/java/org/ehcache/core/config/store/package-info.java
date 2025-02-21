@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,4 +18,7 @@
 /**
  * Package holding types related to {@link org.ehcache.core.spi.store.Store} configuration.
  */
+@PublicApi
 package org.ehcache.core.config.store;
+
+import org.ehcache.javadoc.PublicApi;

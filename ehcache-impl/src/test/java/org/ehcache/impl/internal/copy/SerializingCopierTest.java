@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +23,7 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,10 +35,9 @@ public class SerializingCopierTest {
 
   @Test
   public void testCopy() throws Exception {
-    @SuppressWarnings("unchecked")
-    Serializer<String> serializer = mock(Serializer.class);
+    Serializer<String> serializer = uncheckedGenericMock(Serializer.class);
     String in = new String("foo");
-    ByteBuffer buff = mock(ByteBuffer.class);
+    ByteBuffer buff = ByteBuffer.allocate(0);
     when(serializer.serialize(in)).thenReturn(buff);
     when(serializer.read(buff)).thenReturn(new String("foo"));
 

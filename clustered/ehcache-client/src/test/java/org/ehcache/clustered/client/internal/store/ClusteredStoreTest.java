@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,10 +71,10 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
 import static org.ehcache.core.spi.store.Store.ValueHolder.NO_EXPIRE;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.CombinableMatcher.either;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -489,7 +490,7 @@ public class ClusteredStoreTest {
     Map<Long, String> map = new HashMap<>();
     map.put(1L, "one");
     map.put(2L, "two");
-    Ehcache.PutAllFunction<Long, String> putAllFunction = new Ehcache.PutAllFunction<>(null, map, null);
+    Ehcache.PutAllFunction<Long, String> putAllFunction = new Ehcache.SimplePutAllFunction<>(null, map, null);
     Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L)), putAllFunction);
 
     assertThat(valueHolderMap.get(1L).get(), is(map.get(1L)));
@@ -505,7 +506,7 @@ public class ClusteredStoreTest {
     store.put(1L, "one");
     store.put(2L, "two");
     store.put(3L, "three");
-    Ehcache.RemoveAllFunction<Long, String> removeAllFunction = new Ehcache.RemoveAllFunction<>();
+    Ehcache.RemoveAllFunction<Long, String> removeAllFunction = new Ehcache.SimpleRemoveAllFunction<>();
     Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L, 4L)), removeAllFunction);
 
     assertThat(valueHolderMap.get(1L), nullValue());
@@ -529,7 +530,7 @@ public class ClusteredStoreTest {
   public void testBulkComputeIfAbsentGetAll() throws Exception {
     store.put(1L, "one");
     store.put(2L, "two");
-    Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.GetAllFunction<>();
+    Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.SimpleGetAllFunction<>();
     Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkComputeIfAbsent(new HashSet<>(Arrays.asList(1L, 2L)), getAllAllFunction);
 
     assertThat(valueHolderMap.get(1L).get(), is("one"));

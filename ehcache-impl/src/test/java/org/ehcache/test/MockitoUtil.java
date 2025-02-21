@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 
 package org.ehcache.test;
 
+import org.mockito.MockSettings;
 import org.mockito.Mockito;
 
 /**
@@ -32,7 +34,14 @@ public final class MockitoUtil {
   }
 
   @SuppressWarnings("unchecked")
-  public static <T> T mock(Class<?> clazz) {
-    return Mockito.mock((Class<T>) clazz);
+  public static <U> U uncheckedGenericMock(Class<? super U> classToMock) {
+    return (U) Mockito.mock(classToMock);
   }
+
+  @SuppressWarnings("unchecked")
+  public static <U> U uncheckedGenericMock(Class<? super U> classToMock, MockSettings mockSettings) {
+    return (U) Mockito.mock(classToMock, mockSettings);
+  }
+
+
 }

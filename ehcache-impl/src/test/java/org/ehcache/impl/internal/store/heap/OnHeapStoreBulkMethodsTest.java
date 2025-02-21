@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,27 +21,35 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -62,7 +71,7 @@ public class OnHeapStoreBulkMethodsTest {
   @SuppressWarnings("unchecked")
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE,
         new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
@@ -76,7 +85,7 @@ public class OnHeapStoreBulkMethodsTest {
     when(config.getValueType()).thenReturn(Number.class);
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build());
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+    OnHeapStore<Number, Number> store = new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
         new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
     store.put(1, 2);
     store.put(2, 3);
@@ -153,11 +162,7 @@ public class OnHeapStoreBulkMethodsTest {
 
   @Test
   public void testBulkComputeStoreRemovesValueWhenFunctionReturnsNullMappings() throws Exception {
-    Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-
-    @SuppressWarnings("unchecked")
-    OnHeapStore<Number, CharSequence> store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(),
-      IdentityCopier.identityCopier(), new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
+    OnHeapStore<Number, CharSequence> store = newStore();
     store.put(1, "one");
     store.put(2, "two");
     store.put(3, "three");
@@ -327,6 +332,230 @@ public class OnHeapStoreBulkMethodsTest {
     assertThat(store.get(2).get(), Matchers.<CharSequence>equalTo("two"));
     assertThat(store.get(3).get(), Matchers.<CharSequence>equalTo("three"));
     assertThat(store.get(5), is(nullValue()));
+  }
+
+
+  @Test
+  public void testBulkGetOrComputeIfAbsentHappyPath() throws Exception {
+    OnHeapStore<Number, CharSequence> store = newStore();
+    store.put(1, "one");
+    store.put(2, "two");
+
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkGetOrComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), missingKeys -> Collections.emptyList());
+
+    assertThat(result.size(), is(2));
+    assertThat(result.get(1).get(), Matchers.equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.equalTo("two"));
+  }
+
+  @Test
+  public void testBulkGetOrComputeIfAbsent_compute() throws Exception {
+    OnHeapStore<Number, CharSequence> store = newStore();
+    store.put(1, "one");
+
+    Function<Set<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> mappingFunction =
+      missingKeys -> Arrays.asList(newMapEntry(1, "updated-one"), newMapEntry(2, "two"), newMapEntry(3, "three"));
+
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkGetOrComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4)), mappingFunction);
+    assertThat(result.size(), is(3));
+    assertThat(result.get(1).get(), Matchers.equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.equalTo("two"));
+    assertThat(result.get(3).get(), Matchers.equalTo("three"));
+    assertThat(store.get(1).get(), Matchers.equalTo("one"));
+    assertThat(store.get(2).get(), Matchers.equalTo("two"));
+    assertThat(store.get(3).get(), Matchers.equalTo("three"));
+  }
+
+  @Test
+  public void testBulkGetOrComputeIfAbsent_WhenFunctionReturnsNullMappings() throws Exception {
+    OnHeapStore<Number, CharSequence> store = newStore();
+    store.put(1, "one");
+
+    Function<Set<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> mappingFunction =
+      missingKeys -> Arrays.asList(newMapEntry(2, "two"), newMapEntry(3, null), newMapEntry(4, null));
+
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkGetOrComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5)), mappingFunction);
+    assertThat(result.size(), is(4));
+    assertThat(result.get(1).get(), Matchers.equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.equalTo("two"));
+    assertThat(result.get(3), is(nullValue()));
+    assertThat(result.get(4), is(nullValue()));
+    assertThat(store.get(2).get(), Matchers.equalTo("two"));
+    assertThat(store.get(3), is(nullValue()));
+    assertThat(store.get(4), is(nullValue()));
+  }
+
+  @Test
+  public void testBulkGetOrComputeIfAbsent_DoesNotGetPresentKeys() throws Exception {
+
+    OnHeapStore<Number, CharSequence> store = newStore();
+    store.put(1, "one");
+    store.put(2, "two");
+    store.put(3, "three");
+
+
+    Function<Set<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>>> mappingFunction =
+      missingKeys -> {
+        List<Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>> missingMappings = new ArrayList<>();
+        for (Number key : missingKeys) {
+          if (key.equals(1) || key.equals(2) || key.equals(3)) {
+            fail();
+          } else {
+            missingMappings.add(newMapEntry(key, "default"));
+          }
+        }
+        return missingMappings;
+      };
+
+    Map<Number, Store.ValueHolder<CharSequence>> result = store.bulkGetOrComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3, 4, 5, 6)), mappingFunction);
+    assertThat(result.size(), is(6));
+    assertThat(result.get(1).get(), Matchers.equalTo("one"));
+    assertThat(result.get(2).get(), Matchers.equalTo("two"));
+    assertThat(result.get(3).get(), Matchers.equalTo("three"));
+    assertThat(result.get(4).get(), Matchers.equalTo("default"));
+    assertThat(result.get(5).get(), Matchers.equalTo("default"));
+    assertThat(result.get(6).get(), Matchers.equalTo("default"));
+
+    assertThat(store.get(1).get(), Matchers.equalTo("one"));
+    assertThat(store.get(2).get(), Matchers.equalTo("two"));
+    assertThat(store.get(3).get(), Matchers.equalTo("three"));
+    assertThat(store.get(4).get(), Matchers.equalTo("default"));
+    assertThat(store.get(5).get(), Matchers.equalTo("default"));
+    assertThat(store.get(6).get(), Matchers.equalTo("default"));
+  }
+
+  public Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>> newMapEntry(Number key, CharSequence value) {
+    return new AbstractMap.SimpleEntry<>(key, value == null ? null : newValueHolder(value));
+  }
+
+  public Store.ValueHolder<CharSequence> newValueHolder(final CharSequence v) {
+    return new Store.ValueHolder<CharSequence>() {
+
+      @Override
+      public CharSequence get() {
+        return v;
+      }
+
+      @Override
+      public long creationTime() {
+        return 0;
+      }
+
+      @Override
+      public long expirationTime() {
+        return 0;
+      }
+
+      @Override
+      public boolean isExpired(long expirationTime) {
+        return false;
+      }
+
+      @Override
+      public long lastAccessTime() {
+        return 0;
+      }
+
+      @Override
+      public long getId() {
+        return 0;
+      }
+    };
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testCachingTierEviction_fetchHeapTierOnly_NoEviction() throws Exception {
+    OnHeapStore<Number, CharSequence> spyStore = Mockito.spy(newStore());
+    for (int i = 1; i <= 5; i++) {
+      spyStore.put(i, "val" + i);
+    }
+
+    Set<Number> keys = new HashSet<>(Arrays.asList(1, 2, 3, 4, 5));
+    Map<Number, Store.ValueHolder<CharSequence>> getAllResult = spyStore.bulkGetOrComputeIfAbsent(keys,
+      missingKeys -> Collections.emptyList());
+
+    assertThat(getAllResult.size(), Matchers.is(5));
+    verify(spyStore, times(0)).getOrComputeIfAbsent(any(Number.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testCachingTierEviction_fetchHeapTierAndMappingFunction() throws Exception {
+    OnHeapStore<Number, CharSequence> spyStore = Mockito.spy(newStore());
+    for (int i = 1; i <= 5; i++) {
+      spyStore.put(i, "val" + i);
+    }
+
+    Set<Number> keys = new HashSet<>(Arrays.asList(3, 4, 5, 6, 7));
+    Map<Number, Store.ValueHolder<CharSequence>> getAllResult = spyStore.bulkGetOrComputeIfAbsent(keys,
+      missingKeys -> Arrays.asList(newMapEntry(6, "val6"), newMapEntry(7, null)));
+
+    assertThat(getAllResult.size(), Matchers.is(5));
+    verify(spyStore, times(2)).getOrComputeIfAbsent(any(Number.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testCachingTierEviction_fetchMappingFunctionOnly_heapFull() throws Exception {
+    OnHeapStore<Number, CharSequence> spyStore = Mockito.spy(newStore());
+    for (int i = 1; i <= 5; i++) {
+      spyStore.put(i, "val" + i);
+    }
+
+    List<Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>> funMapping = new ArrayList<>();
+    Set<Number> keys = new HashSet<>();
+    for (int i = 6; i <= 10; i++) {
+      keys.add(i);
+      funMapping.add(newMapEntry(i, "val" + i));
+    }
+    Map<Number, Store.ValueHolder<CharSequence>> getAllResult = spyStore.bulkGetOrComputeIfAbsent(keys, missingKeys -> funMapping);
+
+    assertThat(getAllResult.size(), Matchers.is(5));
+    verify(spyStore, times(5)).getOrComputeIfAbsent(any(Number.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testCachingTierEviction_fetchMappingFunctionOnly_heapEmpty() throws Exception {
+    OnHeapStore<Number, CharSequence> spyStore = Mockito.spy(newStore());
+    List<Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>> funMapping = new ArrayList<>();
+    Set<Number> keys = new HashSet<>();
+    for (int i = 1; i <= 5; i++) {
+      keys.add(i);
+      funMapping.add(newMapEntry(i, "val" + i));
+    }
+    Map<Number, Store.ValueHolder<CharSequence>> getAllResult = spyStore.bulkGetOrComputeIfAbsent(keys, missingKeys -> funMapping);
+    assertThat(getAllResult.size(), Matchers.is(5));
+
+    verify(spyStore, times(5)).getOrComputeIfAbsent(any(Number.class), any(Function.class));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testCachingTierEviction_fetchMappingFunctionOnly_heapEmpty_exceedingHeapSize() throws Exception {
+    @SuppressWarnings("rawtypes")
+    Store.Configuration config = mock(Store.Configuration.class);
+    when(config.getExpiry()).thenReturn(ExpiryPolicyBuilder.noExpiration());
+    when(config.getKeyType()).thenReturn(Number.class);
+    when(config.getValueType()).thenReturn(CharSequence.class);
+    when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).build());
+
+    OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(config, SystemTimeSource.INSTANCE,
+      new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
+
+    OnHeapStore<Number, CharSequence> spyStore = Mockito.spy(store);
+
+    List<Map.Entry<? extends Number, ? extends Store.ValueHolder<CharSequence>>> funMapping = new ArrayList<>();
+    Set<Number> keys = new HashSet<>();
+    for (int i = 1; i <= 10; i++) {
+      keys.add(i);
+      funMapping.add(newMapEntry(i, "val" + i));
+    }
+    Map<Number, Store.ValueHolder<CharSequence>> getAllResult = spyStore.bulkGetOrComputeIfAbsent(keys, missingKeys -> funMapping);
+    assertThat(getAllResult.size(), Matchers.is(10));
+
+    verify(spyStore, times(5)).getOrComputeIfAbsent(any(Number.class), any(Function.class));
   }
 
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +17,8 @@
 
 pluginManagement {
   plugins {
-    id 'io.codearte.nexus-staging' version '0.30.0'
-    id 'org.owasp.dependencycheck' version '6.2.2'
+    id 'io.github.gradle-nexus.publish-plugin' version '1.3.0'
+    id 'org.owasp.dependencycheck' version '7.1.0.1'
     id 'org.gretty' version '3.0.6'
     id 'org.asciidoctor.jvm.base' version '3.3.2'
     id 'org.unbroken-dome.xjc' version '2.0.0'
@@ -26,7 +27,7 @@ pluginManagement {
   includeBuild 'build-logic'
 }
 
-include "ehcache-api", "ehcache-core", "ehcache-impl", "ehcache-107", "ehcache-xml",
+include "ehcache-api", "ehcache-core", "ehcache-impl", "ehcache-107", "ehcache-xml", "ehcache-xml:ehcache-xml-spi",
   "ehcache-management", "ehcache-transactions", "ehcache",
   "spi-tester", "core-spi-test",
   "clustered:ehcache-common-api", "clustered:ehcache-common",

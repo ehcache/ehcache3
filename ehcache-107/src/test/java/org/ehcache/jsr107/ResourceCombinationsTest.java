@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +43,7 @@ import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.jsr107.Eh107Configuration.fromEhcacheCacheConfiguration;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
 public class ResourceCombinationsTest {

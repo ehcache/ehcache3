@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,7 +72,7 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     CLUSTER.getClusterControl().terminateActive();
 
     assertValue(cache, "9");
-    checkValueFromLoaderWriter(cache, String.valueOf(9));
+    checkValueFromLoaderWriter(String.valueOf(9));
   }
 
   @Test
@@ -99,6 +100,6 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     CLUSTER.getClusterControl().terminateActive();
 
     assertValue(cache, "new value");
-    checkValueFromLoaderWriter(cache,"new value");
+    checkValueFromLoaderWriter("new value");
   }
 }

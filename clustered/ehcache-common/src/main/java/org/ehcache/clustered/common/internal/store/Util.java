@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +18,13 @@
 package org.ehcache.clustered.common.internal.store;
 
 import org.ehcache.clustered.common.internal.util.ByteBufferInputStream;
+import org.terracotta.utilities.classloading.FilteredObjectInputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.function.Predicate;
 
 public class Util {

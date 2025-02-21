@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,19 +24,21 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.nio.ByteBuffer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * EhcacheServerCodecTest
  */
+@RunWith(MockitoJUnitRunner.class)
 public class EhcacheServerCodecTest {
 
   @Mock
@@ -48,7 +51,6 @@ public class EhcacheServerCodecTest {
 
   @Before
   public void setUp() {
-    initMocks(this);
     serverCodec = new EhcacheServerCodec(clientCodec, replicationCodec);
   }
 
@@ -66,7 +68,7 @@ public class EhcacheServerCodecTest {
     serverCodec.encodeMessage(lifecycleMessage);
 
     verify(clientCodec).encodeMessage(any(EhcacheEntityMessage.class));
-    verifyZeroInteractions(replicationCodec);
+    verifyNoInteractions(replicationCodec);
   }
 
   @Test
@@ -75,7 +77,7 @@ public class EhcacheServerCodecTest {
     serverCodec.encodeMessage(message);
 
     verify(replicationCodec).encode(message);
-    verifyZeroInteractions(clientCodec);
+    verifyNoInteractions(clientCodec);
   }
 
   @Test
@@ -85,7 +87,7 @@ public class EhcacheServerCodecTest {
       serverCodec.decodeMessage(encodedBuffer.array());
     }
     verify(clientCodec, times(EhcacheMessageType.LIFECYCLE_MESSAGES.size())).decodeMessage(any(ByteBuffer.class), any(EhcacheMessageType.class));
-    verifyZeroInteractions(replicationCodec);
+    verifyNoInteractions(replicationCodec);
   }
 
   @Test
@@ -95,7 +97,7 @@ public class EhcacheServerCodecTest {
       serverCodec.decodeMessage(encodedBuffer.array());
     }
     verify(clientCodec, times(EhcacheMessageType.STORE_OPERATION_MESSAGES.size())).decodeMessage(any(ByteBuffer.class), any(EhcacheMessageType.class));
-    verifyZeroInteractions(replicationCodec);
+    verifyNoInteractions(replicationCodec);
   }
 
   @Test
@@ -105,7 +107,7 @@ public class EhcacheServerCodecTest {
       serverCodec.decodeMessage(encodedBuffer.array());
     }
     verify(clientCodec, times(EhcacheMessageType.STATE_REPO_OPERATION_MESSAGES.size())).decodeMessage(any(ByteBuffer.class), any(EhcacheMessageType.class));
-    verifyZeroInteractions(replicationCodec);
+    verifyNoInteractions(replicationCodec);
   }
 
   @Test
@@ -115,6 +117,6 @@ public class EhcacheServerCodecTest {
       serverCodec.decodeMessage(encodedBuffer.array());
     }
     verify(replicationCodec, times(EhcacheMessageType.PASSIVE_REPLICATION_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(clientCodec);
+    verifyNoInteractions(clientCodec);
   }
 }

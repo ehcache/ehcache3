@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,12 +33,12 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -66,8 +67,7 @@ public class DefaultStoreEventDispatcherTest {
   @SuppressWarnings("unchecked")
   public void testListenerNotifiedUnordered() {
     DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
-    @SuppressWarnings("unchecked")
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
 
     StoreEventSink<String, String> sink = dispatcher.eventSink();
@@ -81,8 +81,7 @@ public class DefaultStoreEventDispatcherTest {
   @SuppressWarnings("unchecked")
   public void testListenerNotifiedOrdered() {
     DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
-    @SuppressWarnings("unchecked")
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
     dispatcher.addEventListener(listener);
     dispatcher.setEventOrdering(true);
 
@@ -96,12 +95,10 @@ public class DefaultStoreEventDispatcherTest {
   @Test
   public void testEventFiltering() {
     DefaultStoreEventDispatcher<String, String> dispatcher = new DefaultStoreEventDispatcher<>(1);
-    @SuppressWarnings("unchecked")
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class, withSettings().verboseLogging());
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class, withSettings().verboseLogging());
     dispatcher.addEventListener(listener);
 
-    @SuppressWarnings("unchecked")
-    StoreEventFilter<String, String> filter = mock(StoreEventFilter.class);
+    StoreEventFilter<String, String> filter = uncheckedGenericMock(StoreEventFilter.class);
     when(filter.acceptEvent(eq(EventType.CREATED), anyString(), ArgumentMatchers.<String>isNull(), anyString())).thenReturn(true);
     when(filter.acceptEvent(eq(EventType.REMOVED), anyString(), anyString(), anyString())).thenReturn(false);
     dispatcher.addEventFilter(filter);

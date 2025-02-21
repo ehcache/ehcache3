@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.MatcherAssert;
 import org.junit.FixMethodOrder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.terracotta.management.model.capabilities.Capability;
@@ -134,14 +134,6 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   );
 
   @Test
-  @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
-  public void test_A_topology() throws Exception {
-    Cluster cluster = CLUSTER.getNmsService().readTopology();
-    String json = mapper.writeValueAsString(cluster.toMap());
-    //System.out.println(json);
-  }
-
-  @Test
   public void test_A_client_tags_exposed() throws Exception {
     MatcherAssert.assertThat(() -> {
       try {
@@ -181,7 +173,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
     allDescriptors.addAll(CLUSTERED_DESCRIPTORS);
 
-    assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
+    assertThat(descriptors).hasSameElementsAs(allDescriptors);
   }
 
   @Test
@@ -211,9 +203,9 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // stats
 
-    assertThat(tierCapabilities[3].getDescriptors()).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS);
-    assertThat(managerCapabilities[2].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
-    assertThat(tierCapabilities[1].getDescriptors()).containsOnlyElementsOf(POOL_DESCRIPTORS);
+    assertThat(tierCapabilities[3].getDescriptors()).hasSameElementsAs(SERVER_STORE_DESCRIPTORS);
+    assertThat(managerCapabilities[2].getDescriptors()).hasSameElementsAs(POOL_DESCRIPTORS);
+    assertThat(tierCapabilities[1].getDescriptors()).hasSameElementsAs(POOL_DESCRIPTORS);
 
     // ClusterTierManagerSettings
 
@@ -279,7 +271,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     assertThat(managerCapabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
 
-    assertThat(managerCapabilities[1].getDescriptors()).containsOnlyElementsOf(OFFHEAP_RES_DESCRIPTORS);
+    assertThat(managerCapabilities[1].getDescriptors()).hasSameElementsAs(OFFHEAP_RES_DESCRIPTORS);
   }
 
   @Test
@@ -409,13 +401,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       .filter(statistics -> statistics.getCapability().equals("PoolStatistics"))
       .flatMap(statistics -> statistics.getStatistics().keySet().stream())
       .collect(Collectors.toSet());
-    assertThat(poolDescriptors).containsOnlyElementsOf(POOL_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
+    assertThat(poolDescriptors).hasSameElementsAs(POOL_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
 
     Set<String> serverStoreDescriptors = serverStats.stream()
       .filter(statistics -> statistics.getCapability().equals("ServerStoreStatistics"))
       .flatMap(statistics -> statistics.getStatistics().keySet().stream())
       .collect(Collectors.toSet());
-    assertThat(serverStoreDescriptors).containsOnlyElementsOf(SERVER_STORE_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
+    assertThat(serverStoreDescriptors).hasSameElementsAs(SERVER_STORE_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet()));
 
     Set<String> offHeapResourceDescriptors = serverStats.stream()
       .filter(statistics -> statistics.getCapability().equals("OffHeapResourceStatistics"))

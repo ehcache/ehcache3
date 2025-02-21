@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
 class ClusteredWriteBehind<K, V> {
@@ -51,10 +53,17 @@ class ClusteredWriteBehind<K, V> {
     this.codec = codec;
   }
 
-  void flushWriteBehindQueue(Chain ignored, long hash) {
-    executorService.submit(() -> {
-      try {
-        Chain chain = clusteredWriteBehindStore.lock(hash);
+  void scheduleWriteOf(long hash) {
+    try {
+      executorService.submit(() -> process(hash));
+    } catch (RejectedExecutionException e) {
+      process(hash);
+    }
+  }
+
+  private void process(long hash) {
+    try {
+      Chain chain = clusteredWriteBehindStore.lock(hash);
         try {
           if (!chain.isEmpty()) {
             Map<K, PutOperation<K, V>> currentState = new HashMap<>();
@@ -63,8 +72,8 @@ class ClusteredWriteBehind<K, V> {
               Operation<K, V> operation = codec.decode(payload);
               K key = operation.getKey();
               PutOperation<K, V> result = resolver.applyOperation(key,
-                                                                  currentState.get(key),
-                                                                  operation);
+                currentState.get(key),
+                operation);
               try {
                 if (result != null) {
                   if (result != currentState.get(key) && !(operation instanceof PutOperation)) {
@@ -73,7 +82,7 @@ class ClusteredWriteBehind<K, V> {
                   currentState.put(key, result.asOperationExpiringAt(result.expirationTime()));
                 } else {
                   if (currentState.get(key) != null && (operation instanceof RemoveOperation
-                                                        || operation instanceof ConditionalRemoveOperation)) {
+                    || operation instanceof ConditionalRemoveOperation)) {
                     cacheLoaderWriter.delete(key);
                   }
                   currentState.remove(key);
@@ -92,10 +101,9 @@ class ClusteredWriteBehind<K, V> {
           }
         } finally {
           clusteredWriteBehindStore.unlock(hash, false);
-        }
-      } catch (TimeoutException e) {
-        throw new RuntimeException(e);
       }
-    });
+    } catch (TimeoutException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

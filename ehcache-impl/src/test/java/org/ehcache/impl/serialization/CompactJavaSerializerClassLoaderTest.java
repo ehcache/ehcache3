@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +22,7 @@ import java.nio.ByteBuffer;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
 
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Test;

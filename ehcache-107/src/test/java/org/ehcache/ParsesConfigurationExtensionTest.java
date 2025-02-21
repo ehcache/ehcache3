@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,13 +39,13 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 /**
  * @author Alex Snaps
@@ -112,7 +113,7 @@ public class ParsesConfigurationExtensionTest {
         productCache.put(42L, value);
         final List<Product> products = ProductCacheLoaderWriter.written.get(value.getId());
         assertThat(products, notNullValue());
-        assertThat(products.get(0), sameInstance(value));
+        assertThat(products.get(0), equalTo(value));
       }
     }
 

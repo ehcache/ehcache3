@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,27 +23,21 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
-import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
-import org.hamcrest.core.Is;
-import org.hamcrest.core.IsCollectionContaining;
-import org.hamcrest.core.IsInstanceOf;
-import org.hamcrest.core.IsNot;
 import org.junit.Test;
 
 import java.net.URI;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 public class ConfigurationDerivation {
 
@@ -72,8 +67,8 @@ public class ConfigurationDerivation {
       .build();
     //end::removeService[]
 
-    assertThat(withoutClustering.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(
-      IsInstanceOf.instanceOf(ClusteringServiceConfiguration.class))));
+    assertThat(withoutClustering.getServiceCreationConfigurations(), not(hasItem(
+      instanceOf(ClusteringServiceConfiguration.class))));
   }
 
   @Test
@@ -93,10 +88,10 @@ public class ConfigurationDerivation {
     //end::updateService[]
 
     assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
-      configuration.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), Is.is(Consistency.STRONG));
+      configuration.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), is(Consistency.STRONG));
 
     assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
-      changedConsistency.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), Is.is(Consistency.EVENTUAL));
+      changedConsistency.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), is(Consistency.EVENTUAL));
   }
 
 }

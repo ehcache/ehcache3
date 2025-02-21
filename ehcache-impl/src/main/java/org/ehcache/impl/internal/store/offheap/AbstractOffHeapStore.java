@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -846,6 +847,25 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     return mappedValue;
   }
 
+  public Iterable<? extends Map.Entry<? extends K, ? extends ValueHolder<V>>> bulkComputeIfAbsentAndFault(Iterable<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
+    Map<K, ValueHolder<V>> result = new HashMap<>();
+    for (K key : keys) {
+      checkKey(key);
+      Function<K, V> function = k -> {
+        java.util.Iterator<? extends Map.Entry<? extends K, ? extends V>> iterator = mappingFunction.apply(Collections.singleton(k)).iterator();
+        Map.Entry<? extends K, ? extends V> result1 = iterator.next();
+        if (result1 != null) {
+          checkKey(result1.getKey());
+          return result1.getValue();
+        } else {
+          return null;
+        }
+      };
+      result.put(key, computeIfAbsentAndFault(key, function));
+    }
+    return result.entrySet();
+  }
+
   @Override
   public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
     return internalComputeIfAbsent(key, mappingFunction, true, true);
@@ -1156,7 +1176,7 @@ public abstract class AbstractOffHeapStore<K, V> extends BaseStore<K, V> impleme
     return new OffHeapValueHolderPortability<>(serializer);
   }
 
-  protected static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
+  public static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
     return new OffHeapEvictionAdvisorWrapper<>(delegate);
   }
 

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,7 @@ import org.ehcache.core.osgi.SafeOsgi;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
 public class OsgiSafetyTest {

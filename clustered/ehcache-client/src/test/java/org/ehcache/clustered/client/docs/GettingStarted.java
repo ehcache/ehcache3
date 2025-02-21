@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -156,8 +157,7 @@ public class GettingStarted {
     try {
       // tag::clusteredCacheTieredExample[]
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .heap(2, MemoryUnit.MB) // <1>
+          ResourcePoolsBuilder.heap(200) // <1>
               .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))) // <2>
           .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
           .build();

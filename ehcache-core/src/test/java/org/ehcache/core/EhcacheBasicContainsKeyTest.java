@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +22,10 @@ import java.util.Map;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -35,7 +36,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -48,7 +49,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyNull() throws Exception {
-    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore realStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
@@ -58,7 +59,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
     } catch (NullPointerException e) {
       // Expected
     }
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -66,12 +67,12 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyEmpty() throws Exception {
-    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore realStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("key"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -81,7 +82,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyEmptyStoreAccessException() throws Exception {
-    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore realStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).containsKey("key");
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -96,12 +97,12 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyContains() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertTrue(ehcache.containsKey("keyA"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -111,7 +112,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyContainsStoreAccessException() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).containsKey("keyA");
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -126,12 +127,12 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyMissing() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertFalse(ehcache.containsKey("missingKey"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
   }
 
   /**
@@ -141,7 +142,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testContainsKeyMissingStoreAccessException() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).containsKey("missingKey");
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -167,7 +168,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-      new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicContainsKeyTest"));
+      new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     return ehcache;

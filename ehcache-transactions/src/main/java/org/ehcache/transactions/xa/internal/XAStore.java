@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,41 +18,40 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.spi.store.WrapperStore;
+import org.ehcache.core.spi.store.AbstractWrapperStoreProvider;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.store.StoreConfigurationImpl;
-import org.ehcache.core.store.StoreSupport;
-import org.ehcache.impl.store.BaseStore;
-import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.OptionalServiceDependencies;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.impl.store.BaseStore;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.XACacheException;
+import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.internal.commands.StoreEvictCommand;
 import org.ehcache.transactions.xa.internal.commands.StorePutCommand;
 import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
-import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.transactions.xa.internal.journal.JournalProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +79,7 @@ import javax.transaction.RollbackException;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
+import javax.transaction.TransactionManager;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findAmongst;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
@@ -88,14 +89,14 @@ import static org.ehcache.transactions.xa.internal.TypeUtil.uncheckedCast;
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
  * {@link javax.transaction.TransactionManager} using the XA 2-phase commit protocol.
  */
-public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V> {
+public class XAStore<K, V> extends BaseStore<K, V> implements Store<K, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(XAStore.class);
 
   private static final Supplier<Boolean> REPLACE_EQUALS_TRUE = () -> Boolean.TRUE;
 
   private final Store<K, SoftLock<V>> underlyingStore;
-  private final TransactionManagerWrapper transactionManagerWrapper;
+  private final TransactionManagerWrapper<TransactionManager> transactionManagerWrapper;
   private final Map<Transaction, EhcacheXAResource<K, V>> xaResources = new ConcurrentHashMap<>();
   private final TimeSource timeSource;
   private final Journal<K> journal;
@@ -104,7 +105,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
   private final EhcacheXAResource<K, V> recoveryXaResource;
   private final StoreEventSourceWrapper<K, V> eventSourceWrapper;
 
-  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper transactionManagerWrapper,
+  public XAStore(Class<K> keyType, Class<V> valueType, Store<K, SoftLock<V>> underlyingStore, TransactionManagerWrapper<TransactionManager> transactionManagerWrapper,
                  TimeSource timeSource, Journal<K> journal, String uniqueXAResourceId, StatisticsService statisticsService) {
     super(keyType, valueType, true, statisticsService);
     this.underlyingStore = underlyingStore;
@@ -762,15 +763,14 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, TransactionManagerProvider.class})
   @OptionalServiceDependencies("org.ehcache.core.spi.service.StatisticsService")
-  public static class Provider implements WrapperStore.Provider {
+  public static class Provider extends AbstractWrapperStoreProvider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private volatile TransactionManagerProvider transactionManagerProvider;
+    private volatile TransactionManagerProvider<TransactionManager> transactionManagerProvider;
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<>();
 
-    @Override
-    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      throw new UnsupportedOperationException("Its a Wrapper store provider, does not support regular ranking");
+    public Provider() {
+      super(XAStoreConfiguration.class);
     }
 
     @Override
@@ -792,8 +792,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
       List<ServiceConfiguration<?, ?>> serviceConfigList = Arrays.asList(serviceConfigs);
 
-      Store.Provider underlyingStoreProvider = StoreSupport.selectStoreProvider(serviceProvider,
-              storeConfig.getResourcePools().getResourceTypeSet(), serviceConfigList);
+      Store.Provider underlyingStoreProvider = getUnderlyingStoreProvider(configuredTypes, serviceConfigList);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
       List<ServiceConfiguration<?, ?>> underlyingServiceConfigs = new ArrayList<>(serviceConfigList.size() + 5); // pad a bit because we add stuff
@@ -868,7 +867,7 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
             } else {
               // there is an old value -> it's an UPDATE, update -> some time
               V value = oldSoftLock.getNewValueHolder() == null ? null : oldSoftLock
-                  .getNewValueHolder().get();
+                .getNewValueHolder().get();
               Duration duration;
               try {
                 duration = configuredExpiry.getExpiryForUpdate(key, oldSoftLock::getOldValue, value);
@@ -923,23 +922,23 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
       AtomicReference<SoftLockSerializer<V>> softLockSerializerRef = new AtomicReference<>();
       SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer;
       if (storeConfig.getValueSerializer() instanceof StatefulSerializer) {
-        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig
+        softLockValueCombinedSerializer = new StatefulSoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
           .getValueSerializer());
       } else {
-        softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig
-        .getValueSerializer());
+        softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<>(softLockSerializerRef, storeConfig
+          .getValueSerializer());
       }
 
       // create the underlying store
       Class<SoftLock<V>> softLockClass = uncheckedCast(SoftLock.class);
-      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<>(storeConfig.getKeyType(), softLockClass, evictionAdvisor,
+      Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<>(storeConfig.getKeyType(), softLockClass, evictionAdvisor,
         storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig
         .getKeySerializer(), softLockValueCombinedSerializer);
       Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig, underlyingServiceConfigs.toArray(new ServiceConfiguration<?, ?>[0]));
 
       // create the XA store
       StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
-      TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
+      TransactionManagerWrapper<TransactionManager> transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
       Store<K, V> store = new XAStore<>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore,
         transactionManagerWrapper, timeSource, journal, uniqueXAResourceId, statisticsService);
 
@@ -949,10 +948,20 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
       // create the softLockSerializer lifecycle helper
       SoftLockValueCombinedSerializerLifecycleHelper<V> helper =
-        new SoftLockValueCombinedSerializerLifecycleHelper<V>(softLockSerializerRef, storeConfig.getClassLoader());
+        new SoftLockValueCombinedSerializerLifecycleHelper<>(softLockSerializerRef, storeConfig.getClassLoader());
 
       createdStores.put(store, new CreatedStoreRef(underlyingStoreProvider, helper));
       return store;
+    }
+
+    @Override
+    protected int wrapperRank() {
+      return 1;
+    }
+
+    @Override
+    protected <K, V> Store<K, V> wrap(Store<K, V> store, Configuration<K, V> configuration, ServiceConfiguration<?, ?>... serviceConfigurations) {
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -1008,28 +1017,32 @@ public class XAStore<K, V> extends BaseStore<K, V> implements WrapperStore<K, V>
 
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
+      super.start(serviceProvider);
       this.serviceProvider = serviceProvider;
-      this.transactionManagerProvider = serviceProvider.getService(TransactionManagerProvider.class);
+      this.transactionManagerProvider = uncheckedCast(serviceProvider.getService(TransactionManagerProvider.class));
     }
 
     @Override
     public void stop() {
-      this.transactionManagerProvider = null;
-      this.serviceProvider = null;
+      try {
+        this.transactionManagerProvider = null;
+        this.serviceProvider = null;
+      } finally {
+        super.stop();
+      }
     }
 
     @Override
-    public int wrapperStoreRank(Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
-      if (xaServiceConfiguration == null) {
-        // An XAStore must be configured for use
+    public int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+      int rank = super.rank(resourceTypes, serviceConfigs);
+      if (rank == 0) {
         return 0;
       } else {
         if (this.transactionManagerProvider == null) {
           throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
         }
+        return rank;
       }
-      return 1;
     }
   }
 

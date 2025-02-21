@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +22,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,8 +34,10 @@ import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+
 
 /**
  * @author Ludovic Orban
@@ -98,9 +100,9 @@ public abstract class ExpiryEhcacheTestBase {
     assertThat(cacheSize(testCache), is(2));
     manualTimeSource.setTimeMillis(1001);
     assertThat(testCache.putIfAbsent(1, "one#2"), is(nullValue()));
-    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one#2"));
+    assertThat(testCache.get(1), equalTo("one#2"));
     assertThat(testCache.putIfAbsent(2, "two#2"), is(nullValue()));
-    assertThat(testCache.get(2), Matchers.<CharSequence>equalTo("two#2"));
+    assertThat(testCache.get(2), equalTo("two#2"));
   }
 
   @Test

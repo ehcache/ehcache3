@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdown;
 
@@ -43,8 +45,9 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<>();
   private final BlockingQueue<Runnable> executorQueue;
   private final ExecutorService executor;
+  private final Consumer<K> keyCleanUpMethod;
 
-  public NonBatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public NonBatchingLocalHeapWriteBehindQueue(Consumer<K> keyCleanUpMethod, ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.executorQueue = new LinkedBlockingQueue<>(config.getMaxQueueSize());
@@ -53,25 +56,29 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
     } else {
       this.executor = executionService.getOrderedExecutor(config.getThreadPoolAlias(), executorQueue);
     }
+    this.keyCleanUpMethod = keyCleanUpMethod;
   }
 
   @Override
   protected SingleOperation<K, V> getOperation(K key) {
-
     return latest.get(key);
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   protected void addOperation(final SingleOperation<K, V> operation) {
     latest.put(operation.getKey(), operation);
 
     submit(() -> {
       try {
-        operation.performOperation(cacheLoaderWriter);
+        try {
+          operation.performOperation(cacheLoaderWriter);
+        } finally {
+          latest.remove(operation.getKey(), operation);
+        }
       } catch (Exception e) {
+        keyCleanUpMethod.accept(operation.getKey());
         LOGGER.warn("Exception while processing key '{}' write behind queue : {}", operation.getKey(), e);
-      } finally {
-        latest.remove(operation.getKey(), operation);
       }
     });
   }

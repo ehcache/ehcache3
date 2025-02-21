@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +20,26 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.common.Consistency;
 import org.junit.Test;
 import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+
+import static org.ehcache.xml.DomUtil.createDocumentRoot;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ClusteringCacheServiceConfigurationParserTest {
 
   @Test
-  public void testTranslateServiceStoreConfiguration() {
+  public void testTranslateServiceStoreConfiguration() throws IOException, ParserConfigurationException, SAXException {
 
     ClusteringCacheServiceConfigurationParser configurationTranslator = new ClusteringCacheServiceConfigurationParser();
-    Node retNode = configurationTranslator.unparseServiceConfiguration(
+    Node retNode = configurationTranslator.unparse(createDocumentRoot(configurationTranslator.getSchema().values()),
       ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG).build());
 
     String inputString = "<tc:clustered-store consistency = \"strong\" " +
-                         "xmlns:tc = \"http://www.ehcache.org/v3/clustered\"></tc:clustered-store>";
+      "xmlns:tc = \"http://www.ehcache.org/v3/clustered\"></tc:clustered-store>";
     assertThat(retNode, isSameConfigurationAs(inputString));
   }
 }

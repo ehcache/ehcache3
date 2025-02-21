@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +19,6 @@ package org.ehcache.xml.service;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.SizeofType;
@@ -29,32 +29,33 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 
+@Deprecated
 public class DefaultSizeOfEngineConfigurationParserTest {
 
   @Test
   public void parseServiceConfiguration() throws Exception {
     XmlConfiguration configuration = new XmlConfiguration(getClass().getResource("/configs/sizeof-engine.xml"));
     CacheConfiguration<?, ?> cacheConfig = configuration.getCacheConfigurations().get("usesDefaultSizeOfEngine");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig).isNull();
 
     CacheConfiguration<?, ?> cacheConfig1 = configuration.getCacheConfigurations().get("usesConfiguredInCache");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig1).isNotNull();
     assertThat(sizeOfEngineConfig1.getMaxObjectGraphSize()).isEqualTo(500);
     assertThat(sizeOfEngineConfig1.getMaxObjectSize()).isEqualTo(200000);
 
     CacheConfiguration<?, ?> cacheConfig2 = configuration.getCacheConfigurations().get("usesPartialOneConfiguredInCache");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig2 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig2.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig2 = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig2.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig2).isNotNull();
     assertThat(sizeOfEngineConfig2.getMaxObjectGraphSize()).isEqualTo(500L);
     assertThat(sizeOfEngineConfig2.getMaxObjectSize()).isEqualTo(Long.MAX_VALUE);
 
     CacheConfiguration<?, ?> cacheConfig3 = configuration.getCacheConfigurations().get("usesPartialTwoConfiguredInCache");
-    DefaultSizeOfEngineConfiguration sizeOfEngineConfig3 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig3.getServiceConfigurations());
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration sizeOfEngineConfig3 = findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, cacheConfig3.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig3).isNotNull();
     assertThat(sizeOfEngineConfig3.getMaxObjectGraphSize()).isEqualTo(1000L);
@@ -64,7 +65,7 @@ public class DefaultSizeOfEngineConfigurationParserTest {
   @Test
   public void unparseServiceConfiguration() {
     CacheConfiguration<?, ?> cacheConfig =
-      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new DefaultSizeOfEngineConfiguration(123, MemoryUnit.MB, 987)).build();
+      newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration(123, MemoryUnit.MB, 987)).build();
     CacheType cacheType = new CacheType();
     cacheType = new DefaultSizeOfEngineConfigurationParser().unparseServiceConfiguration(cacheConfig, cacheType);
 

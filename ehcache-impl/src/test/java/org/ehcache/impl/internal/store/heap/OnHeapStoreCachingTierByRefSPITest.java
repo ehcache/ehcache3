@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +22,9 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
@@ -53,7 +53,6 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
   }
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 
@@ -71,13 +70,13 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
           ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, null, null);
 
-        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
+        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
           new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new CopiedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, IdentityCopier.identityCopier());
+        return new SimpleOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false);
       }
 
       @Override

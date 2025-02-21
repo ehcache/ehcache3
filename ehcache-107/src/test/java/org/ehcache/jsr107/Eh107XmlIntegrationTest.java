@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,6 @@
  */
 package org.ehcache.jsr107;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,28 +37,25 @@ import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableCacheEntryListenerConfiguration;
 import javax.cache.configuration.MutableConfiguration;
-import javax.cache.event.CacheEntryListener;
 import javax.cache.expiry.CreatedExpiryPolicy;
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.EternalExpiryPolicy;
-import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CompletionListenerFuture;
 import javax.cache.spi.CachingProvider;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class Eh107XmlIntegrationTest {
 
@@ -116,8 +113,8 @@ public class Eh107XmlIntegrationTest {
     Cache<String, String> cache = cacheManager.createCache("foos", configuration);
     cache.put("Hello", "Bonjour");
 
-    assertThat(Test107CacheEntryListener.seen.size(), Matchers.is(1));
-    assertThat(TestCacheEventListener.seen.size(), Matchers.is(1));
+    assertThat(Test107CacheEntryListener.seen.size(), is(1));
+    assertThat(TestCacheEventListener.seen.size(), is(1));
   }
 
   @Test

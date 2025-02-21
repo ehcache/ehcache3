@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +24,16 @@ import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -44,8 +45,8 @@ public class StatusTransitionerTest {
 
   @Test
   public void testTransitionsToLowestStateOnFailure() {
-    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
-    assertThat(transitioner.currentStatus(), CoreMatchers.is(Status.UNINITIALIZED));
+    StatusTransitioner transitioner = new StatusTransitioner();
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     transitioner.init().failed(new Throwable());
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     transitioner.init().succeeded();
@@ -56,7 +57,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testFiresListeners() {
-    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    StatusTransitioner transitioner = new StatusTransitioner();
     final StateChangeListener listener = mock(StateChangeListener.class);
     transitioner.registerListener(listener);
     transitioner.init().succeeded();
@@ -69,7 +70,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testFinishesTransitionOnListenerThrowing() {
-    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    StatusTransitioner transitioner = new StatusTransitioner();
     final StateChangeListener listener = mock(StateChangeListener.class);
     final RuntimeException runtimeException = new RuntimeException();
     doThrow(runtimeException).when(listener).stateTransition(Status.UNINITIALIZED, Status.AVAILABLE);
@@ -85,7 +86,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testMaintenanceOnlyLetsTheOwningThreadInteract() throws InterruptedException {
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
     transitioner.maintenance().succeeded();
     transitioner.checkMaintenance();
     Thread thread = new Thread() {
@@ -106,7 +107,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testMaintenanceOnlyOwningThreadCanClose() throws InterruptedException {
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
     transitioner.maintenance().succeeded();
     Thread thread = new Thread() {
       @Override
@@ -127,7 +128,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testCheckAvailableAccountsForThreadLease() throws InterruptedException {
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
     transitioner.maintenance().succeeded();
     transitioner.checkAvailable();
     Thread thread = new Thread() {
@@ -149,7 +150,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testHookThrowingVetosTransition() throws Exception {
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
     final LifeCycled mock = mock(LifeCycled.class);
     transitioner.addHook(mock);
     final Exception toBeThrown = new Exception();
@@ -158,7 +159,7 @@ public class StatusTransitionerTest {
       transitioner.init().succeeded();
       fail();
     } catch (StateTransitionException e) {
-      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(toBeThrown));
+      assertThat(e.getCause(), sameInstance(toBeThrown));
     }
     assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
     reset(mock);
@@ -168,7 +169,7 @@ public class StatusTransitionerTest {
       transitioner.close().succeeded();
       fail();
     } catch (StateTransitionException e) {
-      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(toBeThrown));
+      assertThat(e.getCause(), sameInstance(toBeThrown));
     }
   }
 
@@ -177,7 +178,7 @@ public class StatusTransitionerTest {
 
     final List<LifeCycled> order = new ArrayList<>();
 
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
 
     final Recorder first = new Recorder(order, "first");
     final Recorder second = new Recorder(order, "second");
@@ -185,17 +186,17 @@ public class StatusTransitionerTest {
     transitioner.addHook(first);
     transitioner.addHook(second);
     transitioner.init().succeeded();
-    assertThat(order.get(0), CoreMatchers.<LifeCycled>sameInstance(first));
-    assertThat(order.get(1), CoreMatchers.<LifeCycled>sameInstance(second));
+    assertThat(order.get(0), sameInstance(first));
+    assertThat(order.get(1), sameInstance(second));
     order.clear();
     transitioner.close().succeeded();
-    assertThat(order.get(0), CoreMatchers.<LifeCycled>sameInstance(second));
-    assertThat(order.get(1), CoreMatchers.<LifeCycled>sameInstance(first));
+    assertThat(order.get(0), sameInstance(second));
+    assertThat(order.get(1), sameInstance(first));
   }
 
   @Test
   public void testStopsInitedHooksOnFailure() throws Exception {
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
     final LifeCycled first = mock(LifeCycled.class);
     final LifeCycled second = mock(LifeCycled.class);
     transitioner.addHook(first);
@@ -214,7 +215,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testDoesNoReInitsClosedHooksOnFailure() throws Exception {
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
     final LifeCycled first = mock(LifeCycled.class);
     final LifeCycled second = mock(LifeCycled.class);
     transitioner.addHook(first);
@@ -236,7 +237,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testClosesAllHooksOnFailure() throws Exception {
-    final StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    final StatusTransitioner transitioner = new StatusTransitioner();
     final LifeCycled first = mock(LifeCycled.class);
     final LifeCycled second = mock(LifeCycled.class);
     transitioner.addHook(first);
@@ -257,7 +258,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testLifeCycledAdapterCanBeUsedInsteadOfLifeCycled() {
-    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    StatusTransitioner transitioner = new StatusTransitioner();
     final List<String> calls = new LinkedList<>();
 
     LifeCycledAdapter adapter1 = new LifeCycledAdapter() {
@@ -300,7 +301,7 @@ public class StatusTransitionerTest {
 
   @Test
   public void testTransitionDuringFailures() {
-    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    StatusTransitioner transitioner = new StatusTransitioner();
     assertThat(transitioner.currentStatus(), CoreMatchers.is(Status.UNINITIALIZED));
     StatusTransitioner.Transition st = transitioner.init();
     st.failed(new Throwable());

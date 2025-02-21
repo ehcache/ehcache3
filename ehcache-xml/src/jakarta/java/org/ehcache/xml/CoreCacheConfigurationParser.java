@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,8 +43,8 @@ import static org.ehcache.xml.XmlModel.convertToXmlTimeUnit;
 
 public class CoreCacheConfigurationParser {
 
-  public <K, V> CacheConfigurationBuilder<K, V> parseConfiguration(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
-                                                                   CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+  public <K, V> CacheConfigurationBuilder<K, V> parse(CacheTemplate cacheDefinition, ClassLoader cacheClassLoader,
+                                                      CacheConfigurationBuilder<K, V> cacheBuilder) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     final Expiry parsedExpiry = cacheDefinition.expiry();
     if (parsedExpiry != null) {
       cacheBuilder = cacheBuilder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
@@ -82,7 +83,7 @@ public class CoreCacheConfigurationParser {
     return klazz.asSubclass(type).newInstance();
   }
 
-  public CacheType unparseConfiguration(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
+  public CacheType unparse(CacheConfiguration<?, ?> cacheConfiguration, CacheType cacheType) {
     ExpiryPolicy<?, ?> expiryPolicy = cacheConfiguration.getExpiryPolicy();
     if (expiryPolicy != null) {
       Duration expiry = expiryPolicy.getExpiryForCreation(null, null);

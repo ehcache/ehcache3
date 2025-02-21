@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +17,10 @@
 
 package org.ehcache.spi.persistence;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -46,14 +47,26 @@ public interface PersistableResourceService extends MaintainableService {
    * with the persistence space.
    *
    * @param name the name of the persistence context
-   * @param config the configuration for the associated cache
+   * @param resource the associated persistable resource pool
    * @throws CachePersistenceException if the persistence space cannot be created
    *
    * @return an identifier for the persistence space
    *
    * @see #getStateRepositoryWithin(PersistenceSpaceIdentifier, String)
    */
-  PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+  PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, ResourcePool resource) throws CachePersistenceException;
+
+  /**
+   * Returns a {@link PersistenceSpaceIdentifier} for a space shared across all caches.
+   * <p>
+   * This method may create a new persistence space or load one. The returned identifier is the only way to interact
+   * with the persistence space.
+   *
+   * @param resource the associated shared persistable resource pool
+   * @return an identifier for the shared resources persistence space
+   * @throws CachePersistenceException if the persistence space cannot be created
+   */
+  PersistenceSpaceIdentifier<?> getSharedPersistenceSpaceIdentifier(ResourcePool resource) throws CachePersistenceException;
 
   /**
    * Releases a previously obtained {@link PersistenceSpaceIdentifier}.

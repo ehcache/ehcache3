@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,8 +38,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.testing.StandardCluster.clusterPath;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResources;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 
 

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +26,12 @@ import org.assertj.core.data.MapEntry;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
@@ -304,6 +307,8 @@ public class TierCalculationTest extends AbstractTierCalculationTest {
 
   @Test
   public void testOccupiedByteSize() {
+    assumeFalse(tierName.equals("OnHeap") && resources.getPoolForResource(ResourceType.Core.HEAP).getUnit() instanceof EntryUnit);
+
     assertThat(tierStatistics.getOccupiedByteSize()).isEqualTo(0);
     cache.put(1, "a");
     assertThat(tierStatistics.getOccupiedByteSize()).isGreaterThan(0);

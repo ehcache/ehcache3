@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -345,7 +346,7 @@ public class ClusteredLoaderWriterStore<K, V> extends ClusteredStore<K, V> imple
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+    public int rankAuthority(Set<ResourceType<?>> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       int parentRank = super.rankAuthority(authorityResource, serviceConfigs);
       if (parentRank == 0 || serviceConfigs.stream().noneMatch(CacheLoaderWriterConfiguration.class::isInstance)) {
         return 0;

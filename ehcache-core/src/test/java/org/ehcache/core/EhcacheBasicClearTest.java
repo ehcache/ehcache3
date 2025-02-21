@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +22,10 @@ import java.util.Map;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -32,7 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -45,12 +46,12 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearEmpty() throws Exception {
-    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore realStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
@@ -61,7 +62,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearEmptyStoreAccessException() throws Exception {
-    final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore realStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -75,13 +76,13 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearNonEmpty() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     final Ehcache<String, String> ehcache = this.getEhcache();
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(realStore.getEntryMap().isEmpty(), is(true));
   }
 
@@ -92,7 +93,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testClearNonEmptyStoreAccessException() throws Exception {
-    final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
+    final SimpleTestStore realStore = new SimpleTestStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -120,7 +121,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   private Ehcache<String, String> getEhcache()
       throws Exception {
     final Ehcache<String, String> ehcache =
-      new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
+      new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     return ehcache;

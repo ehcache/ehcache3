@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,16 +36,20 @@ import org.slf4j.LoggerFactory;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-import static java.util.Collections.unmodifiableSet;
-import static org.ehcache.config.ResourceType.Core.HEAP;
-import static org.ehcache.config.ResourceType.Core.OFFHEAP;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
+import static java.util.Comparator.comparingInt;
+import static org.ehcache.core.store.StoreSupport.select;
+import static org.ehcache.core.store.StoreSupport.trySelect;
 
 /**
  * A {@link CachingTier} implementation supporting a cache hierarchy.
@@ -201,6 +206,38 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   @Override
+  public Map<K, Store.ValueHolder<V>> bulkGetOrComputeIfAbsent(Iterable<? extends K> keys, Function<Set<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends Store.ValueHolder<V>>>> mappingFunction) throws StoreAccessException {
+    try {
+      return higher.bulkGetOrComputeIfAbsent(keys, keyParam -> {
+        try {
+          Map<K, Store.ValueHolder<V>> result = new HashMap<>();
+          Set<K> missingKeys = new HashSet<>();
+
+          for (K key : keys) {
+            Store.ValueHolder<V> cachingFetch = lower.getAndRemove(key);
+            if (null == cachingFetch) {
+              missingKeys.add(key);
+            } else {
+              result.put(key, cachingFetch);
+            }
+          }
+
+          Iterable<? extends Map.Entry<? extends K, ? extends Store.ValueHolder<V>>> fetchedEntries = mappingFunction.apply(missingKeys);
+          for (Map.Entry<? extends K, ? extends Store.ValueHolder<V>> entry : fetchedEntries) {
+            result.put(entry.getKey(), entry.getValue());
+          }
+          return result.entrySet();
+
+        } catch (StoreAccessException cae) {
+          throw new ComputationException(cae);
+        }
+      });
+    } catch (ComputationException ce) {
+      throw ce.getStoreAccessException();
+    }
+  }
+
+  @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> listeners = new ArrayList<>();
     listeners.addAll(higher.getConfigurationChangeListeners());
@@ -216,24 +253,19 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<>();
 
     @Override
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       if (serviceProvider == null) {
         throw new RuntimeException("ServiceProvider is null.");
       }
 
-      Collection<HigherCachingTier.Provider> higherProviders = serviceProvider.getServicesOfType(HigherCachingTier.Provider.class);
-      if (higherProviders.size() != 1) {
-        throw new IllegalStateException("Cannot handle multiple higher tier providers");
-      }
-      HigherCachingTier.Provider higherProvider = higherProviders.iterator().next();
-      HigherCachingTier<K, V> higherCachingTier = higherProvider.createHigherCachingTier(storeConfig, serviceConfigs);
+      Set<ResourceType<?>> upperResources = singleton(Collections.max(resourceTypes, comparingInt(ResourceType::getTierHeight)));
+      Set<ResourceType<?>> lowerResources = singleton(Collections.min(resourceTypes, comparingInt(ResourceType::getTierHeight)));
 
-      Collection<LowerCachingTier.Provider> lowerProviders = serviceProvider.getServicesOfType(LowerCachingTier.Provider.class);
-      if (lowerProviders.size() != 1) {
-        throw new IllegalStateException("Cannot handle multiple lower tier providers");
-      }
-      LowerCachingTier.Provider lowerProvider = lowerProviders.iterator().next();
-      LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
+      HigherCachingTier.Provider higherProvider = select(HigherCachingTier.Provider.class, serviceProvider, tier -> tier.rankHigherCachingTier(upperResources, asList(serviceConfigs)));
+      HigherCachingTier<K, V> higherCachingTier = higherProvider.createHigherCachingTier(upperResources, storeConfig, serviceConfigs);
+
+      LowerCachingTier.Provider lowerProvider = select(LowerCachingTier.Provider.class, serviceProvider, tier -> tier.rankLowerCachingTier(lowerResources, asList(serviceConfigs)));
+      LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(lowerResources, storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<>(higherCachingTier, lowerCachingTier);
       StatisticsService statisticsService = serviceProvider.getService(StatisticsService.class);
@@ -271,8 +303,16 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 
     @Override
     public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      return resourceTypes.equals(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP))) ? 2 : 0;
+      if (resourceTypes.size() != 2) {
+        return 0;
+      } else {
+        Set<ResourceType<?>> upperResources = singleton(Collections.max(resourceTypes, comparingInt(ResourceType::getTierHeight)));
+        Set<ResourceType<?>> lowerResources = singleton(Collections.min(resourceTypes, comparingInt(ResourceType::getTierHeight)));
 
+        return trySelect(HigherCachingTier.Provider.class, serviceProvider, tier -> tier.rankHigherCachingTier(upperResources, serviceConfigs)).map(a -> a.rankHigherCachingTier(upperResources, serviceConfigs))
+          .flatMap(ar -> trySelect(LowerCachingTier.Provider.class, serviceProvider, tier -> tier.rankLowerCachingTier(lowerResources, serviceConfigs)).map(a -> a.rankLowerCachingTier(lowerResources, serviceConfigs)).map(cr -> ar + cr))
+          .orElse(0);
+      }
     }
 
     @Override

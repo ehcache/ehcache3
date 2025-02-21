@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,39 +24,49 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.heap.bytesized.ByteAccountingTest.OnHeapStoreForTests;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assume.assumeThat;
 
 /**
  * @author Abhilash
  *
  */
+@Deprecated
 public class OversizeMappingTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   private static final String KEY = "key";
   private static final String VALUE = "value";
   private static final String OVER_SIZED_VALUE = new String(new byte[1000]);
 
-  <K, V> OnHeapStoreForTests<K, V> newStore() {
+  <K, V> org.ehcache.impl.internal.store.heap.bytesized.ByteAccountingTest.OnHeapStoreForTests<K, V> newStore() {
     return newStore(SystemTimeSource.INSTANCE, ExpiryPolicyBuilder.noExpiration(), Eviction.noAdvice(), 100);
   }
 
-  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final ExpiryPolicy<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
+  private <K, V> org.ehcache.impl.internal.store.heap.bytesized.ByteAccountingTest.OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final ExpiryPolicy<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
                                                     final int capacity) {
 
-    return new OnHeapStoreForTests<>(new Store.Configuration<K, V>() {
+    return new org.ehcache.impl.internal.store.heap.bytesized.ByteAccountingTest.OnHeapStoreForTests<>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
       public Class<K> getKeyType() {
@@ -107,7 +118,7 @@ public class OversizeMappingTest {
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, 1000), new TestStoreEventDispatcher<>());
+    }, timeSource, new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, 1000), new TestStoreEventDispatcher<>());
   }
 
   private static void assertNullMapping(OnHeapStore<String, String> store) throws Exception {

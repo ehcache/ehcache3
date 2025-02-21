@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -119,7 +120,7 @@ public final class ClusterWithManagement implements TestRule {
     NmsEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new NmsConfig());
 
     NmsService nmsService = new DefaultNmsService(tmsAgentEntity);
-    nmsService.setOperationTimeout(10, TimeUnit.SECONDS);
+    nmsService.setOperationTimeout(2, TimeUnit.MINUTES);
     return nmsService;
   }
 

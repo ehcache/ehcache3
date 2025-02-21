@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,39 +103,11 @@ public class ClusterTierManagerClientEntityExceptionTest {
     } catch (RuntimeException e) {
       assertThat(e.getCause(), is(instanceOf(ClusterTierManagerValidationException.class)));
 
-      /*
-       * Find the last ClusterTierManagerClientEntity involved exception in the causal chain.  This
-       * is where the server-side exception should have entered the client.
-       */
-      Throwable clientSideException = null;
-      for (Throwable t = e; t.getCause() != null && t.getCause() != t; t = t.getCause()) {
-        for (StackTraceElement element : t.getStackTrace()) {
-          if (element.getClassName().endsWith("ClusterTierManagerClientEntity")) {
-            clientSideException = t;
-          }
-        }
-      }
-      assert clientSideException != null;
+      Throwable clientSide = e.getCause().getCause();
+      assertThat(clientSide, is(instanceOf(InvalidServerSideConfigurationException.class)));
 
-      /*
-       * In this specific failure case, the exception is expected to be an InvalidStoreException from
-       * the server and re-thrown in the client.
-       */
-      Throwable clientSideCause = clientSideException.getCause();
-      assertThat(clientSideCause, is(instanceOf(InvalidServerSideConfigurationException.class)));
-
-      serverCheckLoop:
-      {
-        for (StackTraceElement element : clientSideCause.getStackTrace()) {
-          if (element.getClassName().endsWith("ClusterTierManagerActiveEntity")) {
-            break serverCheckLoop;
-          }
-        }
-        fail(clientSideException + " lacks server-based cause");
-      }
-
-      assertThat(clientSideException, is(instanceOf(InvalidServerSideConfigurationException.class)));
-
+      Throwable serverSide = clientSide.getCause();
+      assertThat(serverSide, is(instanceOf(InvalidServerSideConfigurationException.class)));
     } finally {
       accessService.stop();
     }

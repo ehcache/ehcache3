@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +16,7 @@
  */
 package org.ehcache.impl.serialization;
 
+import org.ehcache.core.spi.store.TransientStateHolder;
 import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 import org.junit.Test;
@@ -26,8 +28,8 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;

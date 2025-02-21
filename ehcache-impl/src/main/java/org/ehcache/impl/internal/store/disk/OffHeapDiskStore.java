@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +22,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.EhcachePrefixLoggerFactory;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.statistics.OperationStatistic;
@@ -38,9 +40,6 @@ import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
-import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.OptionalServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -54,7 +53,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.Persistent;
 import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
@@ -90,7 +88,7 @@ import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
  */
 public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
+  private final Logger logger = EhcachePrefixLoggerFactory.getLogger(OffHeapDiskStore.class);
 
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
@@ -202,14 +200,14 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       long dataTimestampFromFile = dataFile.lastModified();
       long delta = dataTimestampFromFile - dataTimestampFromIndex;
       if (delta < 0) {
-        LOGGER.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
+        logger.info("The index for data file {} is more recent than the data file itself by {}ms : this is harmless.",
           dataFile.getName(), -delta);
       } else if (delta > TimeUnit.SECONDS.toMillis(1)) {
-        LOGGER.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
+        logger.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
           dataFile.getName(), delta);
         return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } else if (delta > 0) {
-        LOGGER.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
+        logger.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
           dataFile.getName(), delta);
       }
 
@@ -237,8 +235,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw e;
       }
     } catch (Exception e) {
-      LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
-      LOGGER.debug("Exception during recovery", e);
+      logger.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
+      logger.debug("Exception during recovery", e);
       return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
     }
   }
@@ -293,7 +291,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
-  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider {
+  public static class Provider extends BaseStoreProvider implements AuthoritativeTier.Provider, ElementalProvider {
 
     private final Map<OffHeapDiskStore<?, ?>, OperationStatistic<?>[]> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<>();
     private final Map<Store<?, ?>, PersistenceSpaceIdentifier<?>> createdStores = new ConcurrentWeakIdentityHashMap<>();
@@ -319,8 +317,8 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
-      return authorityResource.equals(getResourceType()) ? 1 : 0;
+    public int rankAuthority(Set<ResourceType<?>> authorityResources, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+      return rank(authorityResources, serviceConfigs);
     }
 
     @Override
@@ -412,30 +410,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (identifier == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      OffHeapDiskStore<?, ?> diskStore = (OffHeapDiskStore) resource;
-
-      Serializer<?> keySerializer = diskStore.keySerializer;
-      if (keySerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository;
-        try {
-          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException(e);
-        }
-        ((StatefulSerializer)keySerializer).init(stateRepository);
-      }
-      Serializer<?> valueSerializer = diskStore.valueSerializer;
-      if (valueSerializer instanceof StatefulSerializer) {
-        StateRepository stateRepository;
-        try {
-          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
-        } catch (CachePersistenceException e) {
-          throw new RuntimeException(e);
-        }
-        ((StatefulSerializer)valueSerializer).init(stateRepository);
-      }
-
-      init(diskStore);
+      init((OffHeapDiskStore<?, ?>) resource);
     }
 
     static <K, V> void init(final OffHeapDiskStore<K, V> resource) {
@@ -462,7 +437,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<>(storeConfig
         .getDispatcherConcurrency()), serviceConfigs);
 

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +23,6 @@ import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.util.TestCacheConfig;
 import org.ehcache.spi.resilience.ResilienceStrategy;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Abhilash
@@ -37,7 +37,7 @@ public class EhcacheTest extends CacheTest {
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     @SuppressWarnings("unchecked")
     ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
-    return new Ehcache<>(config, store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheTest"));
+    return new Ehcache<>(config, store, resilienceStrategy, cacheEventDispatcher);
   }
 
 }

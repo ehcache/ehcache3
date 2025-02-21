@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +90,8 @@ dependencies {
   serverLibs project(':clustered:server:ehcache-entity')
   serverLibs project(':clustered:server:ehcache-service')
 
-  kit "org.terracotta:platform-kit:$terracottaPlatformVersion@tar.gz"
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
+  kit "org.terracotta:platform-layout:$terracottaPlatformVersion@tar.gz"
 }
 
 task copyDocs(type: Sync) {
@@ -106,7 +108,7 @@ tasks.named('jar') {
   osgi {
     instruction Constants.BUNDLE_SYMBOLICNAME, 'org.ehcache.clustered'
     instruction Constants.EXPORT_PACKAGE, '!com.tc.*, !com.terracotta.*, !org.terracotta.*, !org.ehcache.*.internal.*, !sun.misc, org.ehcache.clustered.client.*, org.ehcache.clustered.common.*'
-    instruction Constants.IMPORT_PACKAGE, '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, !com.fasterxml.jackson.*, !org.terracotta.json, javax.xml.bind*;version="[2.2,3)", *'
+    instruction Constants.IMPORT_PACKAGE, '!sun.misc.*, org.ehcache.xml.*;resolution:=optional, jdk.jfr.*;resolution:=optional, javax.xml.bind*;version="[2.2,3)", *'
   }
 }
 
@@ -120,12 +122,11 @@ distributions {
       }
       //tc kit
       into ('') {
-        from configurations.kit.elements.map {
+        from(configurations.kit.elements.map {
           files -> files.collect { tarTree(it) }
-        }
-        eachFile { f ->
-          // remove top level directory from the kit
-          f.path = f.path.replace("platform-kit-$terracottaPlatformVersion/", "")
+        }) {
+          // remove top level directories from the kits
+          eachFile(dropTopLevelDirectories(1))
         }
         exclude { f ->
           // Exclude tc's README.txt - Issue 1273
@@ -158,6 +159,7 @@ distributions {
       }
       into ('') {
         from 'src/assemble'
+        filter(org.apache.tools.ant.filters.ReplaceTokens, tokens: [version: project.version])
       }
     }
   }
@@ -172,9 +174,39 @@ distZip {
   archiveClassifier = 'kit'
 }
 
+tasks.register('distDir', Sync) {
+  description = 'Creates an expanded kit'
+  into("${project.buildDir}/kit")
+  with(distributions.main.contents)
+}
+
+artifacts {
+  add(configurations.kit.name, tasks.named('distDir', Sync).map {
+    copy -> copy.destinationDir
+  })
+}
+
 publishing.publications.withType(MavenPublication) {
   artifact distZip
   artifact distTar
 }
 
-[distTar, distZip, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar
+[distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar
+
+static Action<FileCopyDetails> dropTopLevelDirectories(int count) {
+  { fcd ->
+    RelativePath original = fcd.getRelativeSourcePath()
+    def originalSegments = original.segments
+    if (count >= originalSegments.length) {
+      if (original.isFile()) {
+        throw new IllegalStateException("Cannot drop ${count} ${(count > 1 ? 'directories' : 'directory')} from ${original}")
+      } else {
+        fcd.exclude()
+      }
+    } else {
+      def head = fcd.relativePath.segments.dropRight(originalSegments.length)
+      def tail = originalSegments.drop(count)
+      fcd.setRelativePath(new RelativePath(original.isFile(), (head + tail) as String[]))
+    }
+  }
+}

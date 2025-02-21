@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +32,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
+import static org.hamcrest.Matchers.oneOf;
 import static org.junit.Assert.fail;
 
 /**
@@ -119,20 +122,20 @@ public class ServiceLocatorPluralTest {
     dependencySet.with(alphaServiceProvider);
 
     assertThat(dependencySet.providersOf(AlphaServiceProviderImpl.class),
-        everyItem(isOneOf(alphaServiceProvider)));
+        everyItem(is(oneOf(alphaServiceProvider))));
     assertThat(dependencySet.providersOf(AlphaServiceProvider.class),
-        everyItem(Matchers.<AlphaServiceProvider>isOneOf(alphaServiceProvider)));
+        everyItem(is(oneOf(alphaServiceProvider))));
     assertThat(dependencySet.providersOf(PluralServiceProvider.class),
-        everyItem(Matchers.<PluralServiceProvider>isOneOf(alphaServiceProvider)));
+        everyItem(is(oneOf(alphaServiceProvider))));
 
     dependencySet.with(betaServiceProvider);
 
     assertThat(dependencySet.providersOf(BetaServiceProviderImpl.class),
-        everyItem(isOneOf(betaServiceProvider)));
+        everyItem(is(oneOf(betaServiceProvider))));
     assertThat(dependencySet.providersOf(BetaServiceProvider.class),
-        everyItem(Matchers.<BetaServiceProvider>isOneOf(betaServiceProvider)));
+        everyItem(is(oneOf(betaServiceProvider))));
     assertThat(dependencySet.providersOf(PluralServiceProvider.class),
-        everyItem(Matchers.<PluralServiceProvider>isOneOf(alphaServiceProvider, betaServiceProvider)));
+        everyItem(is(oneOf(alphaServiceProvider, betaServiceProvider))));
   }
 }
 

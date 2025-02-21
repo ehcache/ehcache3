@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +42,7 @@ import java.util.Collections;
 import java.util.HashSet;
 
 import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.singleton;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -100,8 +102,8 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   public void testRankAuthority() throws Exception {
     OffHeapStore.Provider provider = new OffHeapStore.Provider();
 
-    assertThat(provider.rankAuthority(ResourceType.Core.OFFHEAP, EMPTY_LIST), is(1));
-    assertThat(provider.rankAuthority(new UnmatchedResourceType(), EMPTY_LIST), is(0));
+    assertThat(provider.rankAuthority(singleton(ResourceType.Core.OFFHEAP), EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(singleton(new UnmatchedResourceType()), EMPTY_LIST), is(0));
   }
 
   @Test

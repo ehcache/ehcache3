@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,14 +26,16 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -44,13 +47,17 @@ import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assume.assumeThat;
 
 @RunWith(Parameterized.class)
 public class StandardEhCacheStatisticsQueryTest {
@@ -73,12 +80,15 @@ public class StandardEhCacheStatisticsQueryTest {
     return asList(new Object[][] {
     //1 tier
     { newResourcePoolsBuilder().heap(1, MB), singletonList("OnHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
+    { newResourcePoolsBuilder().heap(100, ENTRIES), singletonList("OnHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
     { newResourcePoolsBuilder().offheap(1, MB), singletonList("OffHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
     { newResourcePoolsBuilder().disk(1, MB), singletonList("Disk:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
 
     //2 tiers
     { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL},
+    { newResourcePoolsBuilder().heap(1, ENTRIES).offheap(2, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount"), Arrays.asList(1L,3L), CACHE_HIT_TOTAL},
     { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), Arrays.asList("OnHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL},
+    { newResourcePoolsBuilder().heap(1, ENTRIES).disk(2, MB), Arrays.asList("OnHeap:HitCount","Disk:HitCount"), Arrays.asList(1L,3L), CACHE_HIT_TOTAL},
 
     //3 tiers
     { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,0L,2L), CACHE_HIT_TOTAL},
@@ -88,6 +98,10 @@ public class StandardEhCacheStatisticsQueryTest {
 
   public StandardEhCacheStatisticsQueryTest(Builder<? extends ResourcePools> resources, List<String> statNames, List<Long> tierExpectedValues, Long cacheExpectedValue) {
     this.resources = resources.build();
+    SizedResourcePool heapResource = this.resources.getPoolForResource(ResourceType.Core.HEAP);
+    if (heapResource != null && heapResource.getUnit() instanceof MemoryUnit) {
+      assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+    }
     this.statNames = statNames;
     this.tierExpectedValues = tierExpectedValues;
     this.cacheExpectedValue = cacheExpectedValue;
@@ -152,11 +166,11 @@ public class StandardEhCacheStatisticsQueryTest {
 
     ContextualStatistics statisticsContext = counters.getResult(context);
 
-    assertThat(statName + " for " + resources.getResourceTypeSet(), counters.size(), Matchers.is(1));
+    assertThat(statName + " for " + resources.getResourceTypeSet(), counters.size(), is(1));
 
     Long counter = statisticsContext.<Long>getLatestSampleValue(statName).get();
 
-    assertThat(statName + " for " + resources.getResourceTypeSet(), counter, Matchers.is(expectedResult));
+    assertThat(statName + " for " + resources.getResourceTypeSet(), counter, is(expectedResult));
 
     return counter;
   }

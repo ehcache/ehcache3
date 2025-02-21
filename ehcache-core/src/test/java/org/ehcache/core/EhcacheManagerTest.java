@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +47,6 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
-import org.hamcrest.CoreMatchers;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
@@ -63,13 +63,16 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -412,7 +415,7 @@ public class EhcacheManagerTest {
     verify(cacheLoaderWriterProvider).createCacheLoaderWriter("foo", fooConfig);
 
     manager.removeCache("bar");
-    verify(cacheLoaderWriterProvider, never()).releaseCacheLoaderWriter(anyString(), (CacheLoaderWriter<?, ?>)Mockito.any());
+    verify(cacheLoaderWriterProvider, never()).releaseCacheLoaderWriter(anyString(), Mockito.any());
     manager.removeCache("foo");
     verify(cacheLoaderWriterProvider).releaseCacheLoaderWriter(anyString(), fooLoaderWriter);
   }
@@ -471,7 +474,7 @@ public class EhcacheManagerTest {
 
   @Test
   public void testClosesStartedCachesDownWhenInitThrows() {
-    final Set<Cache<?,?>> caches = new HashSet<>();
+    final Set<String> caches = new HashSet<>();
     final CacheConfiguration<Object, Object> cacheConfiguration = new TestCacheConfig<>(Object.class, Object.class);
     final Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
@@ -489,7 +492,7 @@ public class EhcacheManagerTest {
       <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                             final Class<K> keyType, final Class<V> valueType) {
         final InternalCache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
-        caches.add(ehcache);
+        caches.add(alias);
         if(caches.size() == 1) {
           when(storeProvider.createStore(
                   ArgumentMatchers.<Store.Configuration<K,V>>any(), ArgumentMatchers.<ServiceConfiguration<?, ?>>any()))
@@ -499,9 +502,9 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
-        super.closeEhcache(alias, ehcache);
-        caches.remove(ehcache);
+      protected void internalRemoveCache(final String alias) {
+        super.internalRemoveCache(alias);
+        caches.remove(alias);
       }
     };
 
@@ -511,9 +514,9 @@ public class EhcacheManagerTest {
     } catch (StateTransitionException e) {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
       final String message = e.getCause().getMessage();
-      assertThat(message, CoreMatchers.startsWith("Cache '"));
+      assertThat(message, startsWith("Cache '"));
       assertThat(message, containsString("' creation in "));
-      assertThat(message, CoreMatchers.endsWith(" failed."));
+      assertThat(message, endsWith(" failed."));
     }
     assertThat(caches.isEmpty(), is(true));
   }
@@ -548,8 +551,8 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
-        super.closeEhcache(alias, ehcache);
+      protected void internalRemoveCache(final String alias) {
+        super.internalRemoveCache(alias);
         if(alias.equals("foobar")) {
           throw thrown;
         }
@@ -563,7 +566,7 @@ public class EhcacheManagerTest {
       fail();
     } catch (StateTransitionException e) {
       assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
-      assertThat(e.getCause(), CoreMatchers.<Throwable>sameInstance(thrown));
+      assertThat(e.getCause(), sameInstance(thrown));
     }
     assertThat(caches.contains("foobar"), is(true));
   }

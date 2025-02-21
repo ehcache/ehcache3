@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,14 +21,13 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -87,14 +87,14 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceNoStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertNull(ehcache.replace("key", "value"));
     verify(this.store).replace(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().containsKey("key"), is(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
   }
@@ -108,7 +108,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).replace(eq("key"), eq("value"));
 
@@ -128,14 +128,14 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertThat(ehcache.replace("key", "value"), is(equalTo("oldValue")));
     verify(this.store).replace(eq("key"), eq("value"));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), is(equalTo("value")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT));
   }
@@ -149,7 +149,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testReplaceHasStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).replace(eq("key"), eq("value"));
 
@@ -168,9 +168,9 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache
-        = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
+        = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
-    assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
+    assertThat("cache not initialized", ehcache.getStatus(), is(Status.AVAILABLE));
     return ehcache;
   }
 }

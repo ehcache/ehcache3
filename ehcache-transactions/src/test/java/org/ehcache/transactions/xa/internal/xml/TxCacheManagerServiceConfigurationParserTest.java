@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
 
+import static org.ehcache.xml.DomUtil.createDocumentRoot;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.sameInstance;
@@ -51,8 +53,7 @@ public class TxCacheManagerServiceConfigurationParserTest {
 
     System.setProperty(property, BitronixTransactionManagerLookup.class.getName());
     try {
-      LookupTransactionManagerProviderConfiguration configuration =
-        (LookupTransactionManagerProviderConfiguration) configParser.parseServiceCreationConfiguration(node, null);
+      LookupTransactionManagerProviderConfiguration configuration = configParser.parse(node, null);
 
       assertThat(configuration.getTransactionManagerLookup(), sameInstance(BitronixTransactionManagerLookup.class));
     } finally {
@@ -61,15 +62,15 @@ public class TxCacheManagerServiceConfigurationParserTest {
   }
 
   @Test
-  public void testTranslateServiceCreationConfiguration() {
+  public void testTranslateServiceCreationConfiguration() throws ParserConfigurationException, IOException, SAXException {
     TxCacheManagerServiceConfigurationParser configTranslator = new TxCacheManagerServiceConfigurationParser();
     LookupTransactionManagerProviderConfiguration lookupTransactionManagerProviderConfiguration =
       new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class);
 
-    Node retElement = configTranslator.unparseServiceCreationConfiguration(lookupTransactionManagerProviderConfiguration);
+    Node retElement = configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), lookupTransactionManagerProviderConfiguration);
     String inputString = "<tx:jta-tm " +
-                         "transaction-manager-lookup-class = \"org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup\" " +
-                         "xmlns:tx = \"http://www.ehcache.org/v3/tx\" />";
+      "transaction-manager-lookup-class = \"org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup\" " +
+      "xmlns:tx = \"http://www.ehcache.org/v3/tx\" />";
     assertThat(retElement, isSameConfigurationAs(inputString));
   }
 

@@ -1,9 +1,9 @@
 ---
 ---
 = Performance Tuning
-ifndef::sourcedir39[]
+ifndef::sourcedir310[]
 include::{includedir}/common.adoc[]
-endif::sourcedir39[]
+endif::sourcedir310[]
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
@@ -52,6 +52,8 @@ tier), the more interesting having two or more tiers will be. As a general rule 
 hit ratio of 50% or less is going to slow down the cache. Either enlarge such tier or completely get rid of it.
 
 == Byte Sizing
+
+WARNING: Byte based heap resources are deprecated and will be removed in a future version.
 
 A on-heap tier can be limited to a number of entries or a number of bytes.
 When using bytes, we need to calculate the size of every object added to the cache.
@@ -120,7 +122,7 @@ For instance, let's say you define an expiry policy like this.
 
 [source,java,indent=0]
 ----
-include::{sourcedir39}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
+include::{sourcedir310}/integration-test/src/test/java/org/ehcache/docs/Performance.java[tag=expiryAllocation]
 ----
 
 <1> Will instantiate a `Duration` every time an entry is accessed

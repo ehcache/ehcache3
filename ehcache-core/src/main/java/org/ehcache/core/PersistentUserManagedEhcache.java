@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +21,7 @@ import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.ResourceType;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
@@ -31,9 +30,9 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -48,10 +47,9 @@ import java.util.Set;
  */
 public class PersistentUserManagedEhcache<K, V> implements PersistentUserManagedCache<K, V> {
 
-  private final StatusTransitioner statusTransitioner;
   private final Logger logger;
-  private final InternalCache<K,V> cache;
-  private final DiskResourceService diskPersistenceService;
+  private final Ehcache<K,V> cache;
+  private final PersistableResourceService persistableResourceService;
   private final String id;
 
   /**
@@ -59,16 +57,15 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    *
    * @param configuration the cache configuration
    * @param store the underlying store
-   * @param diskPersistenceService the persistence service
+   * @param persistableResourceService the persistence service
    * @param cacheLoaderWriter the optional loader writer
    * @param eventDispatcher the event dispatcher
    * @param id an id for this cache
    */
-  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy, DiskResourceService diskPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
-    this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
-    this.statusTransitioner = new StatusTransitioner(logger);
-    this.cache = new Ehcache<>(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, logger, statusTransitioner, cacheLoaderWriter);
-    this.diskPersistenceService = diskPersistenceService;
+  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, ResilienceStrategy<K, V> resilienceStrategy, PersistableResourceService persistableResourceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
+    this.logger = EhcachePrefixLoggerFactory.getLogger(PersistentUserManagedEhcache.class);
+    this.cache = new Ehcache<>(new EhcacheRuntimeConfiguration<>(configuration), store, resilienceStrategy, eventDispatcher, cacheLoaderWriter);
+    this.persistableResourceService = persistableResourceService;
     this.id = id;
   }
 
@@ -77,7 +74,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    */
   @Override
   public void destroy() throws CachePersistenceException {
-    StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    StatusTransitioner.Transition st = cache.statusTransitioner.maintenance();
     try {
       st.succeeded();
     } catch (Throwable t) {
@@ -88,21 +85,9 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 //    statusTransitioner.exitMaintenance().succeeded();
   }
 
-  void create() {
-    statusTransitioner.checkMaintenance();
-    try {
-      if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
-        destroy();
-      }
-      diskPersistenceService.getPersistenceSpaceIdentifier(id, cache.getRuntimeConfiguration());
-    } catch (CachePersistenceException e) {
-      throw new RuntimeException("Unable to create persistence space for user managed cache " + id, e);
-    }
-  }
-
   void destroyInternal() throws CachePersistenceException {
-    statusTransitioner.checkMaintenance();
-    diskPersistenceService.destroy(id);
+    cache.statusTransitioner.checkMaintenance();
+    persistableResourceService.destroy(id);
   }
 
   /**
@@ -119,13 +104,6 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   @Override
   public void close() {
     cache.close();
-    if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
-      try {
-        diskPersistenceService.destroy(id);
-      } catch (CachePersistenceException e) {
-        logger.debug("Unable to clear persistence space for user managed cache {}", id, e);
-      }
-    }
   }
 
   /**
@@ -133,7 +111,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    */
   @Override
   public Status getStatus() {
-    return statusTransitioner.currentStatus();
+    return cache.statusTransitioner.currentStatus();
   }
 
   /**
@@ -252,6 +230,6 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * Adds a hook to lifecycle transitions.
    */
   public void addHook(LifeCycled lifeCycled) {
-    statusTransitioner.addHook(lifeCycled);
+    cache.statusTransitioner.addHook(lifeCycled);
   }
 }

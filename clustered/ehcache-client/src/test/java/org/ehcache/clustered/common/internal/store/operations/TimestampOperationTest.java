@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +28,8 @@ import java.nio.ByteBuffer;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.BYTE_SIZE_BYTES;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.LONG_SIZE_BYTES;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 

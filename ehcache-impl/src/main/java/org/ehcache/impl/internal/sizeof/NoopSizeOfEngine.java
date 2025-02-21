@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +18,13 @@
 package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
 
 /**
  * @author Abhilash
  *
  */
-public class NoopSizeOfEngine implements SizeOfEngine {
+@SuppressWarnings("deprecation")
+public class NoopSizeOfEngine implements org.ehcache.core.spi.store.heap.SizeOfEngine {
 
   @Override
   public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) {

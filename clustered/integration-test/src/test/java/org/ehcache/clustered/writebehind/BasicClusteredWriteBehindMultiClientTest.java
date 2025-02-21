@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,6 +83,6 @@ public class BasicClusteredWriteBehindMultiClientTest extends WriteBehindTestBas
     client2.put(KEY, "The one from client2");
     client2.put(KEY, "The one one from client2");
 
-    checkValueFromLoaderWriter(client1, "The one one from client2");
+    checkValueFromLoaderWriter("The one one from client2");
   }
 }

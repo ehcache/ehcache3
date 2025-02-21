@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +20,13 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.events.NullStoreEventDispatcher;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.hamcrest.Matchers;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -35,14 +35,24 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@Deprecated
 public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.heap.OnHeapStoreBulkMethodsTest {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   @SuppressWarnings("unchecked")
   protected <K, V> Store.Configuration<K, V> mockStoreConfig() {
@@ -58,8 +68,8 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
   @SuppressWarnings("unchecked")
   protected OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
-    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
+    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE,
+        new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
   @SuppressWarnings("unchecked")
@@ -73,8 +83,8 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     when(config.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(100, MemoryUnit.KB).build());
     Store.Configuration<Number, Number> configuration = config;
 
-    OnHeapStore<Number, Number> store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-        new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher(), new DefaultStatisticsService());
+    OnHeapStore<Number, Number> store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE,
+        new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.<Number, Number>nullStoreEventDispatcher(), new DefaultStatisticsService());
     store.put(1, 2);
     store.put(2, 3);
     store.put(3, 4);

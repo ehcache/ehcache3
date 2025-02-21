@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,5 +76,6 @@ public abstract class AbstractResourcePool<P extends ResourcePool, T extends Res
       throw new IllegalArgumentException("ResourcePool for " + newPool.getType() + " with isPersistent="
           + newPool.isPersistent() + " can not replace isPersistent=" + this.isPersistent());
     }
+    // TODO - revisit to determine the rules when updating a shared resource with a non-shared resource and vice versa
   }
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package com.pany.domain;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * @author Alex Snaps
@@ -41,5 +43,20 @@ public class Product implements Serializable {
 
   public void setMutable(final String mutable) {
     this.mutable = mutable;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, mutable);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof Product) {
+      Product other = (Product) obj;
+      return other.id == id && Objects.equals(mutable, other.mutable);
+    } else {
+      return false;
+    }
   }
 }

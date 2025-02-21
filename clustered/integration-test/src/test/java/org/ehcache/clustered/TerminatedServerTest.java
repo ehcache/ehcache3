@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,8 +88,6 @@ import static org.terracotta.utilities.test.rules.TestRetryer.tryValues;
 @RunWith(Parallel.class)
 public class TerminatedServerTest {
 
-  private static final int CLIENT_MAX_PENDING_REQUESTS = 5;
-
   private static Map<String, String> OLD_PROPERTIES;
 
   @BeforeClass
@@ -106,9 +105,6 @@ public class TerminatedServerTest {
      */
     overrideProperty(oldProperties, TCPropertiesConsts.L1_SHUTDOWN_THREADGROUP_GRACETIME, "1000");
     overrideProperty(oldProperties, TCPropertiesConsts.TC_TRANSPORT_HANDSHAKE_TIMEOUT, "1000");
-
-    // Used only by testTerminationFreezesTheClient to be able to fill the inflight queue
-    overrideProperty(oldProperties, TCPropertiesConsts.CLIENT_MAX_PENDING_REQUESTS, Integer.toString(CLIENT_MAX_PENDING_REQUESTS));
 
     OLD_PROPERTIES = oldProperties;
   }
@@ -539,10 +535,7 @@ public class TerminatedServerTest {
 
       CLUSTER.get().getClusterControl().terminateAllServers();
 
-      // Fill the inflight queue and check that we wait no longer than the read timeout
-      for (int i = 0; i < CLIENT_MAX_PENDING_REQUESTS; i++) {
-        cache.get(1L);
-      }
+      cache.get(1L);
 
       // The resilience strategy will pick it up and not exception is thrown
       new TimeLimitedTask<Void>(readOperationTimeout.multipliedBy(2)) { // I multiply by 2 to let some room after the expected timeout

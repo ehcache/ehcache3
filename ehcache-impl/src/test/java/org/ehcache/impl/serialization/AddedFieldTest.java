@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +17,8 @@
 
 package org.ehcache.impl.serialization;
 
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.io.Externalizable;
@@ -32,6 +33,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassNam
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 /**
  *
@@ -51,7 +53,7 @@ public class AddedFieldTest {
     pushTccl(createClassNameRewritingLoader(A_read.class, IncompatibleSerializable_read.class));
     try {
       Serializable out = serializer.read(encodedA);
-      assertThat(out.getClass().getField("bar").getInt(out), Is.is(4));
+      assertThat(out.getClass().getField("bar").getInt(out), is(4));
     } finally {
       popTccl();
     }
@@ -69,7 +71,7 @@ public class AddedFieldTest {
     pushTccl(createClassNameRewritingLoader(B_read.class));
     try {
       Serializable out = serializer.read(encodedA);
-      assertThat(out.getClass().getField("bar").getInt(out), Is.is(4));
+      assertThat(out.getClass().getField("bar").getInt(out), is(4));
     } finally {
       popTccl();
     }

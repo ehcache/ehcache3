@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.hamcrest.Matchers.hasItem;
 
 /**
  * @author Clifford W. Johnson

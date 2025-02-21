@@ -1,7 +1,7 @@
 ---
 ---
-ifndef::sourcedir39[]
-:version: 3.9
+ifndef::sourcedir310[]
+:version: 3.10
 :notBuildingForSite: true
 ifdef::basebackend-html[:outfilesuffix: .html]
 :source-highlighter: coderay
@@ -11,9 +11,9 @@ ifdef::basebackend-html[:outfilesuffix: .html]
 :icons: font
 :iconfont-remote!:
 :iconfont-name: font-awesome.min
-:sourcedir39: {gradle-rootdir}
+:sourcedir310: {gradle-rootdir}
 :imagesdir: images
 :sectanchors:
 :idprefix:
 :idseparator: -
-endif::sourcedir39[]
+endif::sourcedir310[]

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +24,7 @@ import org.ehcache.config.Builder;
 import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.util.ClassLoading;
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
@@ -49,9 +51,10 @@ import static org.ehcache.xml.XmlConfiguration.PrettyClassFormat.when;
  * <p>
  * Instances of this class are not thread-safe.
  */
+@PublicApi
 public class XmlConfiguration implements Configuration {
 
-  public static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+  public static final URL CORE_SCHEMA_URL = requireNonNull(XmlConfiguration.class.getResource("/ehcache-core.xsd"));
 
   private final URL source;
   private final Document document;
@@ -265,7 +268,6 @@ public class XmlConfiguration implements Configuration {
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  @SuppressWarnings("unchecked")
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
@@ -299,7 +301,6 @@ public class XmlConfiguration implements Configuration {
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  @SuppressWarnings("unchecked")
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
@@ -334,7 +335,6 @@ public class XmlConfiguration implements Configuration {
    * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
    * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
    */
-  @SuppressWarnings("unchecked")
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
@@ -356,6 +356,11 @@ public class XmlConfiguration implements Configuration {
   @Override
   public ClassLoader getClassLoader() {
     return configuration.getClassLoader();
+  }
+
+  @Override
+  public ResourcePools getSharedResourcePools() {
+    return configuration.getSharedResourcePools();
   }
 
   @Override
@@ -395,11 +400,11 @@ public class XmlConfiguration implements Configuration {
       try {
         return forName(n, false, l);
       } catch (ClassNotFoundException e) {
-        int innerSeperator = n.lastIndexOf(".");
-        if (innerSeperator == -1) {
+        int innerSeparator = n.lastIndexOf(".");
+        if (innerSeparator == -1) {
           throw e;
         } else {
-          return forName(n.substring(0, innerSeperator) + "$" + n.substring(innerSeperator + 1), false, l);
+          return forName(n.substring(0, innerSeparator) + "$" + n.substring(innerSeparator + 1), false, l);
         }
       }
     }),

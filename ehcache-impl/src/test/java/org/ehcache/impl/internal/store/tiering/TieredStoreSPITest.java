@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +17,6 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -30,7 +30,6 @@ import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
@@ -39,9 +38,9 @@ import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStoreSPITest;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.heap.OnHeapStoreByValueSPITest;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.internal.store.heap.OnHeapStoreSPITest;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
@@ -50,7 +49,6 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
-import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.Service;
@@ -72,8 +70,7 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
-import static org.ehcache.test.MockitoUtil.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 /**
  * Test the {@link TieredStore} compliance to the
@@ -129,14 +126,12 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
           evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
 
-        Copier<String> defaultCopier = IdentityCopier.identityCopier();
-        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource, defaultCopier, defaultCopier,
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<>(config, timeSource,
           new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
         try {
-          CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
-          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
+          ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MB, false).build();
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          DiskResourceService.PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, resourcePools.getPoolForResource(ResourceType.Core.DISK));
           FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
@@ -152,13 +147,13 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           TieredStore<String, String> tieredStore = new TieredStore<>(onHeapStore, diskStore);
           provider.registerStore(tieredStore, new CachingTier.Provider() {
             @Override
-            public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
+            public <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
             @Override
             public void releaseCachingTier(final CachingTier<?, ?> resource) {
-              OnHeapStoreByValueSPITest.closeStore((OnHeapStore)resource);
+              OnHeapStoreSPITest.closeStore((OnHeapStore)resource);
             }
 
             @Override
@@ -182,7 +177,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             }
           }, new AuthoritativeTier.Provider() {
             @Override
-            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
+            public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?, ?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -197,7 +192,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+            public int rankAuthority(Set<ResourceType<?>> authorityResources, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -324,7 +319,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
   public static class FakeCachingTierProvider implements CachingTier.Provider {
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> CachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       return mock(CachingTier.class);
     }
 
@@ -357,7 +352,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
   public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs) {
       return mock(AuthoritativeTier.class);
     }
 
@@ -372,7 +367,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
+    public int rankAuthority(Set<ResourceType<?>> authorityResource, Collection<ServiceConfiguration<?, ?>> serviceConfigs) {
       throw new UnsupportedOperationException();
     }
 

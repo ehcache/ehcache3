@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +18,7 @@
 package org.ehcache.impl.internal.persistence;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -35,7 +36,7 @@ import org.mockito.Mockito;
 
 import java.io.File;
 
-import static org.mockito.Mockito.mock;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 
 /**
  *
@@ -62,8 +63,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
     fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
     fileService.start(null);
     diskResourceService = new DefaultDiskResourceService();
-    @SuppressWarnings("unchecked")
-    ServiceProvider<Service> sp = mock(ServiceProvider.class);
+    ServiceProvider<Service> sp = uncheckedGenericMock(ServiceProvider.class);
     Mockito.when(sp.getService(LocalPersistenceService.class)).thenReturn(fileService);
     diskResourceService.start(sp);
   }
@@ -89,8 +89,13 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    return diskResourceService.getPersistenceSpaceIdentifier(name, config);
+  public PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, ResourcePool resourcePool) throws CachePersistenceException {
+    return diskResourceService.getPersistenceSpaceIdentifier(name, resourcePool);
+  }
+
+  @Override
+  public PersistenceSpaceIdentifier<?> getSharedPersistenceSpaceIdentifier(ResourcePool resource) throws CachePersistenceException {
+    return diskResourceService.getSharedPersistenceSpaceIdentifier(resource);
   }
 
   @Override

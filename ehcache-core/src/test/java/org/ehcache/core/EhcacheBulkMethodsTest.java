@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,23 +24,23 @@ import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
+import org.mockito.internal.stubbing.answers.Returns;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
+import static org.hamcrest.Matchers.hasItems;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 /**
@@ -105,10 +106,10 @@ public class EhcacheBulkMethodsTest {
 
   protected InternalCache<Number, CharSequence> getCache(Store<Number, CharSequence> store) {
     CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
-    when(cacheConfig.getExpiryPolicy()).thenReturn(mock(ExpiryPolicy.class));
+    when(cacheConfig.getExpiryPolicy()).thenReturn(mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null))));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     ResilienceStrategy<Number, CharSequence> resilienceStrategy = mock(ResilienceStrategy.class);
-    return new Ehcache<>(cacheConfig, store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
+    return new Ehcache<>(cacheConfig, store, resilienceStrategy, cacheEventDispatcher);
   }
 
   static <K, V> Map.Entry<K, V> entry(final K key, final V value) {

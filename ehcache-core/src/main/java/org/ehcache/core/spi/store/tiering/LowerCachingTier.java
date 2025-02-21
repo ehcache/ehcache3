@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 
 package org.ehcache.core.spi.store.tiering;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.resilience.StoreAccessException;
@@ -23,6 +25,8 @@ import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.Collection;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -124,7 +128,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
      *
      * @return the new lower caching tier
      */
-    <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
+    <K, V> LowerCachingTier<K, V> createCachingTier(Set<ResourceType<?>> resourceTypes, Store.Configuration<K, V> storeConfig, ServiceConfiguration<?, ?>... serviceConfigs);
 
     /**
      * Releases a {@link LowerCachingTier}.
@@ -141,6 +145,22 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
      * @param resource the lower caching tier to initialise
      */
     void initCachingTier(LowerCachingTier<?, ?> resource);
+
+    /**
+     * Gets the internal ranking for the {@link LowerCachingTier} instances provided by this {@code Provider} of the
+     * caching tier's ability to handle the specified resources.
+     * <p>
+     * A higher rank value indicates a more capable {@code CachingTier}.
+     *
+     * @param resourceTypes the set of {@code ResourceType}s for the store to handle
+     * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
+     *                       to the ranking
+     *
+     * @return a non-negative rank indicating the ability of a {@code CachingTier} created by this {@code Provider}
+     *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the caching tier
+     *      can not handle the type specified in {@code resourceTypes}
+     */
+    int rankLowerCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?, ?>> serviceConfigs);
   }
 
 }

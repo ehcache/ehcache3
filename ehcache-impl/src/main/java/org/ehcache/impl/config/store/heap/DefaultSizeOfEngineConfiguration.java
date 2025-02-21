@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +18,13 @@
 package org.ehcache.impl.config.store.heap;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * {@link ServiceConfiguration} for the default {@link SizeOfEngineProvider}.
+ * {@link ServiceConfiguration} for the default {@link org.ehcache.core.spi.store.heap.SizeOfEngineProvider}.
  */
-public class DefaultSizeOfEngineConfiguration implements ServiceConfiguration<SizeOfEngineProvider, DefaultSizeOfEngineConfiguration> {
+@Deprecated
+public class DefaultSizeOfEngineConfiguration implements ServiceConfiguration<org.ehcache.core.spi.store.heap.SizeOfEngineProvider, DefaultSizeOfEngineConfiguration> {
 
   /**
    * Default maximum object graph count after which sizing stops
@@ -64,8 +65,8 @@ public class DefaultSizeOfEngineConfiguration implements ServiceConfiguration<Si
    * {@inheritDoc}
    */
   @Override
-  public Class<SizeOfEngineProvider> getServiceType() {
-    return SizeOfEngineProvider.class;
+  public Class<org.ehcache.core.spi.store.heap.SizeOfEngineProvider> getServiceType() {
+    return org.ehcache.core.spi.store.heap.SizeOfEngineProvider.class;
   }
 
   /**

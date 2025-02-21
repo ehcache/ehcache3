@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +24,8 @@ import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvid
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.osgi.service.component.annotations.Component;
 
+import javax.transaction.TransactionManager;
+
 /**
  * {@link ServiceFactory} for the default {@link TransactionManagerProvider}
  *
@@ -30,13 +33,13 @@ import org.osgi.service.component.annotations.Component;
  */
 @Component
 @ServiceFactory.RequiresConfiguration
-public class DefaultTransactionManagerProviderFactory implements ServiceFactory<TransactionManagerProvider> {
+public class DefaultTransactionManagerProviderFactory implements ServiceFactory<TransactionManagerProvider<TransactionManager>> {
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public TransactionManagerProvider create(ServiceCreationConfiguration<TransactionManagerProvider, ?> configuration) {
+  public TransactionManagerProvider<TransactionManager> create(ServiceCreationConfiguration<TransactionManagerProvider<TransactionManager>, ?> configuration) {
     return new LookupTransactionManagerProvider((LookupTransactionManagerProviderConfiguration) configuration);
   }
 
@@ -44,7 +47,7 @@ public class DefaultTransactionManagerProviderFactory implements ServiceFactory<
    * {@inheritDoc}
    */
   @Override
-  public Class<? extends TransactionManagerProvider> getServiceType() {
+  public Class<? extends TransactionManagerProvider<TransactionManager>> getServiceType() {
     return LookupTransactionManagerProvider.class;
   }
 }

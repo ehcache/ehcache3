@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +37,7 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -43,20 +45,24 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
 
 /**
  * @author Alex Snaps
@@ -262,6 +268,8 @@ public class IntegrationConfigurationTest {
 
   @Test
   public void testCacheWithSizeOfEngine() throws Exception {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+
     Configuration configuration = new XmlConfiguration(this.getClass().getResource("/configs/sizeof-engine.xml"));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     cacheManager.init();

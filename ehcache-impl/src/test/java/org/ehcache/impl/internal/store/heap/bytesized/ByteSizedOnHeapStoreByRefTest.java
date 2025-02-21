@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,20 +26,30 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.heap.OnHeapStoreByRefTest;
+import org.ehcache.impl.internal.store.heap.OnHeapStoreTest;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
+import org.junit.BeforeClass;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assume.assumeThat;
 
-public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
+@Deprecated
+public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreTest {
 
   private static final int MAGIC_NUM = 500;
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   @Override
   protected void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity) {
@@ -104,8 +115,8 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-      new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), (StoreEventDispatcher<K, V>) eventDispatcher, new DefaultStatisticsService());
+    }, timeSource,
+      new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), (StoreEventDispatcher<K, V>) eventDispatcher, new DefaultStatisticsService());
   }
 
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,8 +39,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collector;
 
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
@@ -50,7 +49,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class RobustLoaderWriterResilienceStrategyTest {
@@ -109,7 +108,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
     assertThat(strategy.containsKeyFailure(1, accessException)).isFalse();
 
     verify(store).obliterate(1);
-    verifyZeroInteractions(loaderWriter);
+    verifyNoInteractions(loaderWriter);
   }
 
   @Test

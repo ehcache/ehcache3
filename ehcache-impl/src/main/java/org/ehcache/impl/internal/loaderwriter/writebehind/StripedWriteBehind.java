@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@ package org.ehcache.impl.internal.loaderwriter.writebehind;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -35,13 +37,13 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
 
   private final List<WriteBehind<K, V>> stripes = new ArrayList<>();
 
-  public StripedWriteBehind(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
+  public StripedWriteBehind(Consumer<K> keyCleanUpMethod, ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration<?> config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     int writeBehindConcurrency = config.getConcurrency();
     for (int i = 0; i < writeBehindConcurrency; i++) {
       if (config.getBatchingConfiguration() == null) {
-        this.stripes.add(new NonBatchingLocalHeapWriteBehindQueue<>(executionService, defaultThreadPool, config, cacheLoaderWriter));
+        this.stripes.add(new NonBatchingLocalHeapWriteBehindQueue<>(keyCleanUpMethod, executionService, defaultThreadPool, config, cacheLoaderWriter));
       } else {
-        this.stripes.add(new BatchingLocalHeapWriteBehindQueue<>(executionService, defaultThreadPool, config, cacheLoaderWriter));
+        this.stripes.add(new BatchingLocalHeapWriteBehindQueue<>(keyCleanUpMethod, executionService, defaultThreadPool, config, cacheLoaderWriter));
       }
     }
   }

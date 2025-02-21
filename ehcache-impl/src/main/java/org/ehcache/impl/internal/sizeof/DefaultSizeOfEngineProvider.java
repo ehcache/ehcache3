@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,18 +19,16 @@ package org.ehcache.impl.internal.sizeof;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
-import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 
 /**
  * @author Abhilash
  *
  */
-public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
+@Deprecated
+public class DefaultSizeOfEngineProvider implements org.ehcache.core.spi.store.heap.SizeOfEngineProvider {
 
   private final long maxObjectGraphSize;
   private final long maxObjectSize;
@@ -50,12 +49,12 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
   }
 
   @Override
-  public SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?, ?>... serviceConfigs) {
+  public org.ehcache.core.spi.store.heap.SizeOfEngine createSizeOfEngine(ResourceUnit resourceUnit, ServiceConfiguration<?, ?>... serviceConfigs) {
     boolean isByteSized = resourceUnit instanceof MemoryUnit;
     if(!isByteSized) {
       return new NoopSizeOfEngine(); // Noop Size of Engine
     }
-    DefaultSizeOfEngineConfiguration config = ServiceUtils.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, (Object[]) serviceConfigs);
+    org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration config = ServiceUtils.findSingletonAmongst(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class, (Object[]) serviceConfigs);
     if(config != null) {
       long maxSize = config.getUnit().toBytes(config.getMaxObjectSize());
       return new DefaultSizeOfEngine(config.getMaxObjectGraphSize(), maxSize);

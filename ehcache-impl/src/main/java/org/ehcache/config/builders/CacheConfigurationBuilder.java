@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +25,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.BaseCacheConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
@@ -35,7 +35,6 @@ import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.ResilienceStrategy;
@@ -54,9 +53,6 @@ import java.util.function.UnaryOperator;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static org.ehcache.core.config.ExpiryUtils.convertToExpiryPolicy;
-import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
-import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
-import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 
 
 /**
@@ -528,10 +524,10 @@ public class CacheConfigurationBuilder<K, V> implements FluentCacheConfiguration
   }
 
   /**
-   * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified object graph maximum size to the configured
+   * Adds or updates the {@link org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration} with the specified object graph maximum size to the configured
    * builder.
    * <p>
-   * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
+   * {@link org.ehcache.core.spi.store.heap.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum graph size
    * @return a new builder with the added / updated configuration
@@ -539,18 +535,19 @@ public class CacheConfigurationBuilder<K, V> implements FluentCacheConfiguration
    * @see #withSizeOfMaxObjectSize(long, MemoryUnit)
    * @see #withDefaultSizeOfSettings()
    */
+  @Deprecated
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectGraph(long size) {
     return installOrUpdate(
-      () -> new DefaultSizeOfEngineConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size),
-      existing -> new DefaultSizeOfEngineConfiguration(existing.getMaxObjectSize(), existing.getUnit(), size)
+      () -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT, size),
+      existing -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration(existing.getMaxObjectSize(), existing.getUnit(), size)
     );
   }
 
   /**
-   * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified maximum mapping size to the configured
+   * Adds or updates the {@link org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration} with the specified maximum mapping size to the configured
    * builder.
    * <p>
-   * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
+   * {@link org.ehcache.core.spi.store.heap.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum mapping size
    * @param unit the memory unit
@@ -559,10 +556,11 @@ public class CacheConfigurationBuilder<K, V> implements FluentCacheConfiguration
    * @see #withSizeOfMaxObjectGraph(long)
    * @see #withDefaultSizeOfSettings()
    */
+  @Deprecated
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
     return installOrUpdate(
-      () -> new DefaultSizeOfEngineConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE),
-      existing -> new DefaultSizeOfEngineConfiguration(size, unit, existing.getMaxObjectGraphSize())
+      () -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration(size, unit, org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE),
+      existing -> new org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration(size, unit, existing.getMaxObjectGraphSize())
     );
   }
 
@@ -574,8 +572,9 @@ public class CacheConfigurationBuilder<K, V> implements FluentCacheConfiguration
    * @see #withSizeOfMaxObjectGraph(long)
    * @see #withSizeOfMaxObjectSize(long, MemoryUnit)
    */
+  @Deprecated
   public CacheConfigurationBuilder<K, V> withDefaultSizeOfSettings() {
-    return withoutServices(DefaultSizeOfEngineConfiguration.class);
+    return withoutServices(org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.class);
   }
 
   @Override

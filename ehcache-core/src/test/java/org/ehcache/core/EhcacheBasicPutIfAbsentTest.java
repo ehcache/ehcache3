@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +21,10 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -35,7 +36,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Abhilash
@@ -87,14 +88,14 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentNoStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));
     verify(this.store).putIfAbsent(eq("key"), eq("value"), any());
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT));
   }
@@ -107,14 +108,14 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentHasStoreEntry() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(equalTo("oldValue")));
     verify(this.store).putIfAbsent(eq("key"), eq("value"), any());
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("oldValue"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
@@ -128,7 +129,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentNoStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).putIfAbsent(eq("key"), eq("value"), any());
 
@@ -149,7 +150,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testPutIfAbsentHasStoreEntryStoreAccessException() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).putIfAbsent(eq("key"), eq("value"), any());
 
@@ -167,7 +168,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutIfAbsentTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     return ehcache;

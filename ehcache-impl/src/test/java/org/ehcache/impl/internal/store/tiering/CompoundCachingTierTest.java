@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +17,13 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -33,8 +37,8 @@ import java.util.function.Function;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -290,11 +294,21 @@ public class CompoundCachingTierTest {
   @SuppressWarnings("unchecked")
   public void testRankCachingTier() throws Exception {
     CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
-    HashSet<ResourceType<?>> resourceTypes = new HashSet<>(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
-    assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(2));
 
-    resourceTypes.clear();
-    resourceTypes.add(new UnmatchedResourceType());
-    assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(0));
+    ServiceLocator serviceLocator = ServiceLocator.dependencySet()
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(provider).build();
+    serviceLocator.startAllServices();
+    try {
+      HashSet<ResourceType<?>> resourceTypes = new HashSet<>(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
+      assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(2));
+
+      resourceTypes.clear();
+      resourceTypes.add(new UnmatchedResourceType());
+      assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(0));
+    } finally {
+      serviceLocator.stopAllServices();
+    }
   }
 }

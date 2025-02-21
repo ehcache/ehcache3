@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,8 +38,6 @@ interface Backend<K, V> {
   OnHeapValueHolder<V> computeIfPresent(K key, BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> biFunction);
 
   OnHeapValueHolder<V> compute(K key, BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> biFunction);
-
-  void clear();
 
   Collection<Map.Entry<K, OnHeapValueHolder<V>>> removeAllWithHash(int hash);
 

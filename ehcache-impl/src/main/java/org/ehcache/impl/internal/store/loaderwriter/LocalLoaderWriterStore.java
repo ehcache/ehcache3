@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +22,6 @@ import org.ehcache.core.Ehcache;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.util.CollectionUtil;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.WrapperStore;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
@@ -48,7 +48,7 @@ import java.util.function.Supplier;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
 
-public class LocalLoaderWriterStore<K, V> implements WrapperStore<K, V> {
+public class LocalLoaderWriterStore<K, V> implements Store<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalLoaderWriterStore.class);
   private static final Supplier<Boolean> SUPPLY_FALSE = () -> Boolean.FALSE;

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +17,6 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
@@ -60,8 +60,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
-import static org.ehcache.test.MockitoUtil.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * OffHeapStoreSPITest
@@ -109,14 +107,12 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         Serializer<String> valueSerializer = new JavaSerializer<>(getClass().getClassLoader());
 
         try {
-          CacheConfiguration<String, String> cacheConfiguration = mock(CacheConfiguration.class);
-          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
-          String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           ResourcePools resourcePools = getDiskResourcePool(capacity);
           SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
+          String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
+          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, diskPool);
           Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(),
             evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
           OffHeapDiskStore<String, String> store = new OffHeapDiskStore<>(
@@ -158,10 +154,9 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       @Override
       public ServiceConfiguration<?, ?>[] getServiceConfigurations() {
         try {
-          CacheConfiguration<?, ?> cacheConfiguration = mock(CacheConfiguration.class);
-          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
+          ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build();
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          PersistenceSpaceIdentifier<?> space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, resourcePools.getPoolForResource(DISK));
           return new ServiceConfiguration<?, ?>[] {space};
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);

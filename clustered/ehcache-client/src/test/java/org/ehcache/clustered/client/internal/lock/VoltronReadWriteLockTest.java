@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +17,25 @@
 
 package org.ehcache.clustered.client.internal.lock;
 
-import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.hamcrest.core.IsNull.nullValue;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.terracotta.exception.EntityAlreadyExistsException;
 
+@RunWith(MockitoJUnitRunner.class)
 public class VoltronReadWriteLockTest {
 
   @Mock
@@ -46,11 +46,6 @@ public class VoltronReadWriteLockTest {
 
   @Mock
   private Connection connection;
-
-  @Before
-  public void setUp() {
-    MockitoAnnotations.initMocks(this);
-  }
 
   @Test
   public void testCreateLockEntityWhenNotExisting() throws Exception {
@@ -66,13 +61,14 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testFetchExistingLockEntityWhenExists() throws Exception {
-    doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any(Void.class));
     when(entityRef.fetchEntity(null)).thenReturn(client);
 
     when(connection.<VoltronReadWriteLockClient, Void, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     lock.readLock();
+
+    verify(entityRef, never()).create(any(Void.class));
   }
 
   @Test

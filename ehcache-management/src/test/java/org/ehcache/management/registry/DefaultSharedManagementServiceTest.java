@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +22,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.SharedManagementService;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,14 +46,14 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.isIn;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -127,8 +127,8 @@ public class DefaultSharedManagementServiceTest {
     assertThat(contextContainer2.getSubContexts().iterator().next().getName(), equalTo("cacheName"));
     assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getName(), equalTo("cacheName"));
 
-    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(0).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
-    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
+    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(0).getValue(), is(in(Arrays.asList("aCache2", "aCache3"))));
+    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getValue(), is(in(Arrays.asList("aCache2", "aCache3"))));
   }
 
   @Test
@@ -230,7 +230,7 @@ public class DefaultSharedManagementServiceTest {
         .build()
         .execute();
 
-    assertThat(results.size(), Matchers.equalTo(4));
+    assertThat(results.size(), equalTo(4));
 
     assertThat(results.getResult(contextList.get(0)).hasExecuted(), is(true));
     assertThat(results.getResult(contextList.get(1)).hasExecuted(), is(true));
@@ -248,9 +248,9 @@ public class DefaultSharedManagementServiceTest {
       assertThat(e, instanceOf(NoSuchElementException.class));
     }
 
-    assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), is(Matchers.nullValue()));
-    assertThat(cacheManager2.getCache("aCache2", Long.class, String.class).get(2L), is(Matchers.nullValue()));
-    assertThat(cacheManager1.getCache("aCache4", Long.class, String.class).get(4L), is(Matchers.nullValue()));
+    assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), is(nullValue()));
+    assertThat(cacheManager2.getCache("aCache2", Long.class, String.class).get(2L), is(nullValue()));
+    assertThat(cacheManager1.getCache("aCache4", Long.class, String.class).get(4L), is(nullValue()));
   }
 
 }

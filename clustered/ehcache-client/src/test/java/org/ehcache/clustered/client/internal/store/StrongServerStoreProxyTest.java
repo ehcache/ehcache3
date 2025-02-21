@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +37,8 @@ import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.matchesChain;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -477,7 +478,7 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   public void testAppendThrowsConnectionClosedExceptionDuringHashInvalidation() throws Exception {
     SimpleClusterTierClientEntity clientEntity1 = mock(SimpleClusterTierClientEntity.class);
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendThrowsConnectionClosedExceptionDuringHashInvalidation", clientEntity1, mock(ServerCallback.class));
-    doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForReceive(any(), anyBoolean());
+    doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForComplete(any(), anyBoolean());
     when(clientEntity1.getTimeouts()).thenReturn(Timeouts.DEFAULT);
     when(clientEntity1.isConnected()).thenReturn(true);
     try {

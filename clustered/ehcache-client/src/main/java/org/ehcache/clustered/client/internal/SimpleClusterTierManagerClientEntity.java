@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +31,11 @@ import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityResponse;
-import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
-import org.terracotta.exception.EntityException;
 
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -76,13 +77,13 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
 
   @Override
   public void validate(ServerSideConfiguration config) throws ClusterException {
-    invokeInternal(messageFactory.validateStoreManager(config), false);
+    invokeInternal(messageFactory.validateStoreManager(config));
   }
 
   @Override
   public Set<String> prepareForDestroy() {
     try {
-      PrepareForDestroy response = (PrepareForDestroy) invokeInternal(messageFactory.prepareForDestroy(), true);
+      PrepareForDestroy response = (PrepareForDestroy) invokeInternal(messageFactory.prepareForDestroy());
       return response.getStores();
     } catch (ClusterException e) {
       // TODO handle this
@@ -90,24 +91,24 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
     return null;
   }
 
-  private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message, boolean replicate)
+  private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message)
       throws ClusterException {
 
     try {
-      EhcacheEntityResponse response = waitFor(invokeAsync(message, replicate));
+      EhcacheEntityResponse response = waitFor(invokeAsync(message));
       if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
         return response;
       }
-    } catch (EntityException | MessageCodecException e) {
-      throw new RuntimeException(message + " error: " + e.toString(), e);
+    } catch (ExecutionException | MessageCodecException e) {
+      throw new RuntimeException(message + " error: " + e, e);
     }
   }
 
-  private InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
+  private Future<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message)
       throws MessageCodecException {
-    return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
+    return endpoint.message(message).invoke();
   }
 
   /**
@@ -117,10 +118,9 @@ public class SimpleClusterTierManagerClientEntity implements ClusterTierManagerC
    * @param future Future we want to get
    * @param <T> type of the response
    * @return the result of the get
-   * @throws EntityException exception that might be thrown by the future in case of error
    */
-  private static <T extends EntityResponse> T waitFor(InvokeFuture<T> future)
-      throws EntityException {
+  private static <T extends EntityResponse> T waitFor(Future<T> future)
+    throws ExecutionException {
     boolean interrupted = Thread.interrupted();
     try {
       while (true) {

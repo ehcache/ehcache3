@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +25,7 @@ import java.net.URI;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 
 public class ClusteredConfigurationDerivationTest {
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";

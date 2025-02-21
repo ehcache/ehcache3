@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +59,7 @@ public class ManagementTest {
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration); // <2>
 
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, MemoryUnit.MB).offheap(2, MemoryUnit.MB))
+        ResourcePoolsBuilder.heap(100).offheap(2, MemoryUnit.MB))
         .build();
 
       cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

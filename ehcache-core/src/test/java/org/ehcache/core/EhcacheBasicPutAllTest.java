@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,28 +21,22 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.InOrder;
-import org.slf4j.LoggerFactory;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -61,21 +56,18 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.union;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Provides testing of basic PUT_ALL operations on an {@code Ehcache}.
@@ -96,7 +88,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllNull() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -113,7 +105,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllNullKey() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Map<String, String> entries = new LinkedHashMap<>();
@@ -138,7 +130,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllNullValue() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Map<String, String> entries = new LinkedHashMap<>();
@@ -171,7 +163,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllEmptyRequestNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -197,7 +189,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllStoreSomeOverlapNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -208,7 +200,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
     assertThat(this.getBulkComputeArgs(), equalTo(contentUpdates.keySet()));
     assertThat(fakeStore.getEntryMap(), equalTo(union(originalStoreContent, contentUpdates)));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
@@ -227,7 +219,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllStoreSomeOverlapStoreAccessExceptionBeforeNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent);
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent);
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
@@ -239,7 +231,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
-    assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
+    assertThat(this.getBulkComputeArgs(), everyItem(is(in(contentUpdates.keySet()))));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.resilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(StoreAccessException.class));
@@ -261,7 +253,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   @Test
   public void testPutAllStoreSomeOverlapStoreAccessExceptionAfterNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
-    final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
+    final SimpleTestStore fakeStore = new SimpleTestStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -271,7 +263,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     final InOrder ordered = inOrder(this.store, this.resilienceStrategy);
     ordered.verify(this.store, atLeast(1)).bulkCompute(this.bulkComputeSetCaptor.capture(), getAnyEntryIterableFunction());
-    assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
+    assertThat(this.getBulkComputeArgs(), everyItem(is(in(contentUpdates.keySet()))));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.resilienceStrategy)
         .putAllFailure(eq(contentUpdates), any(StoreAccessException.class));
@@ -288,8 +280,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @return a new {@code Ehcache} instance
    */
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
-      .getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     return ehcache;
@@ -339,7 +330,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   /**
    * Writes a dump of test object details to {@code System.out} if, and only if, {@link #debugResults} is enabled.
    *
-   * @param fakeStore the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeStore FakeStore} instance used in the test
+   * @param fakeStore the {@link SimpleTestStore FakeStore} instance used in the test
    * @param originalStoreContent  the original content provided to {@code fakeStore}
    * @param fakeLoaderWriter the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
    * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
@@ -350,7 +341,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @param bcweFailures the {@code Map} from {@link BulkCacheWritingException#getFailures()}
    */
   private void dumpResults(
-      final FakeStore fakeStore,
+      final SimpleTestStore fakeStore,
       final Map<String, String> originalStoreContent,
       final FakeCacheLoaderWriter fakeLoaderWriter,
       final Map<String, String> originalWriterContent,

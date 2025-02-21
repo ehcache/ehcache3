@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,7 +106,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
       .withCache("cache-shared", CacheConfigurationBuilder.newCacheConfigurationBuilder(
         String.class, String.class,
         newResourcePoolsBuilder()
-          .heap(1, MemoryUnit.MB)
+          .heap(10, EntryUnit.ENTRIES)
           .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a")))
         .build())
       .build(true)) {

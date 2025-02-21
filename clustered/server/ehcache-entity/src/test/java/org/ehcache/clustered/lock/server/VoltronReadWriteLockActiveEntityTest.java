@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +18,6 @@ package org.ehcache.clustered.lock.server;
 
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
-import org.hamcrest.beans.HasPropertyWithValue;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -27,13 +27,13 @@ import org.mockito.junit.MockitoRule;
 import org.terracotta.entity.ActiveInvokeContext;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
-import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.MessageCodecException;
 
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -140,8 +140,7 @@ public class VoltronReadWriteLockActiveEntityTest {
     entity.invokeActive(waiter, LockMessaging.lock(WRITE));
     entity.invokeActive(locker, LockMessaging.unlock(WRITE));
 
-    verify(communicator).sendNoResponse(same(waiterDescriptor), argThat(
-            HasPropertyWithValue.<EntityResponse>hasProperty("released", is(true))));
+    verify(communicator).sendNoResponse(same(waiterDescriptor), argThat(hasProperty("released", is(true))));
   }
 
   @Test
@@ -156,8 +155,7 @@ public class VoltronReadWriteLockActiveEntityTest {
     entity.invokeActive(waiter, LockMessaging.lock(WRITE));
     entity.invokeActive(locker, LockMessaging.unlock(READ));
 
-    verify(communicator).sendNoResponse(same(waiterDescriptor), argThat(
-            HasPropertyWithValue.<EntityResponse>hasProperty("released", is(true))));
+    verify(communicator).sendNoResponse(same(waiterDescriptor), argThat(hasProperty("released", is(true))));
   }
 
 

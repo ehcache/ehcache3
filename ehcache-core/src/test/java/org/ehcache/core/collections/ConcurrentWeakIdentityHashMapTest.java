@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +17,6 @@
 
 package org.ehcache.core.collections;
 
-import org.ehcache.core.collections.ConcurrentWeakIdentityHashMap;
 import org.junit.Test;
 
 import java.util.AbstractMap;
@@ -26,11 +26,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.Is.is;
 
 /**
  * @author Alex Snaps

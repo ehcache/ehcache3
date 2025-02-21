@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +20,12 @@ import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.junit.Test;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+
+import static org.ehcache.xml.DomUtil.createDocumentRoot;
 
 /**
  * Jsr107CacheConfigurationParserTest
@@ -26,11 +33,11 @@ import org.junit.Test;
 public class Jsr107CacheConfigurationParserTest {
 
   @Test(expected = XmlConfigurationException.class)
-  public void testTranslateServiceCreationConfigurationWithStatisticsManagementEnabled() {
+  public void testTranslateServiceCreationConfigurationWithStatisticsManagementEnabled() throws IOException, ParserConfigurationException, SAXException {
     Jsr107CacheConfigurationParser configTranslator = new Jsr107CacheConfigurationParser();
     Jsr107CacheConfiguration cacheConfiguration =
       new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.DISABLED);
-    configTranslator.unparseServiceConfiguration(cacheConfiguration);
+    configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), cacheConfiguration);
   }
 
 }

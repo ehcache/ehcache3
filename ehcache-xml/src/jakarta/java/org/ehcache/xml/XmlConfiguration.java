@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +24,7 @@ import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.util.ClassLoading;
+import org.ehcache.javadoc.PublicApi;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Document;
@@ -49,6 +51,7 @@ import static org.ehcache.xml.XmlConfiguration.PrettyClassFormat.when;
  * <p>
  * Instances of this class are not thread-safe.
  */
+@PublicApi
 public class XmlConfiguration implements Configuration {
 
   public static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
@@ -356,6 +359,11 @@ public class XmlConfiguration implements Configuration {
   @Override
   public ClassLoader getClassLoader() {
     return configuration.getClassLoader();
+  }
+
+  @Override
+  public ResourcePools getSharedResourcePools() {
+    return configuration.getSharedResourcePools();
   }
 
   @Override

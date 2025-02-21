@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,4 +19,7 @@
  * Package holding the different SPI interfaces that enable a {@link org.ehcache.Cache} to be backed by multiple
  * {@link org.ehcache.core.spi.store.Store} stacked on each other.
  */
+@PublicApi
 package org.ehcache.core.spi.store.tiering;
+
+import org.ehcache.javadoc.PublicApi;

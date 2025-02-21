@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,5 +33,11 @@ public interface BatchOperation<K, V> {
    *
    */
   void performOperation(CacheLoaderWriter<K, V> cacheLoaderWriter) throws BulkCacheWritingException, Exception;
+
+  /**
+   * Return set of keys from batch entries
+   *
+   */
+  Iterable<? extends K> getKeys();
 
 }

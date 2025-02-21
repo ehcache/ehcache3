@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +39,7 @@ public class XmlConfigurationMatchers {
   private static final String EHCACHE_NAMESPACE = "http://www.ehcache.org/v3";
   private static final QName CACHE_QNAME = new QName(EHCACHE_NAMESPACE, "cache");
   private static final QName RESOURCES_QNAME = new QName(EHCACHE_NAMESPACE, "resources");
+  private static final QName SHARED_RESOURCES_QNAME = new QName(EHCACHE_NAMESPACE, "shared-resources");
   private static final QName EVENTS_TO_FIRE_ON_QNAME = new QName(EHCACHE_NAMESPACE, "events-to-fire-on");
 
   private static final String MULTI_NAMESPACE = "http://www.ehcache.org/v3/multi";
@@ -49,6 +51,7 @@ public class XmlConfigurationMatchers {
     elementSelectors.add(selectorForElementNamed(EVENTS_TO_FIRE_ON_QNAME, byNameAndText));
     elementSelectors.add(selectorForElementNamed(CACHE_QNAME, byNameAndAttributes("alias")));
     elementSelectors.add(conditionalSelector(element -> Nodes.getQName(element.getParentNode()).equals(RESOURCES_QNAME), byName));
+    elementSelectors.add(conditionalSelector(element -> Nodes.getQName(element.getParentNode()).equals(SHARED_RESOURCES_QNAME), byName));
     elementSelectors.add(Default);
 
     return CompareMatcher.isSimilarTo(input).ignoreComments().ignoreWhitespace()

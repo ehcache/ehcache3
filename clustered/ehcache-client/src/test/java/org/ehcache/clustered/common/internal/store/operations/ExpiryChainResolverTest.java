@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +28,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.junit.Test;
 import org.mockito.InOrder;
+import org.mockito.internal.stubbing.answers.Returns;
 
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -38,7 +40,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsNull.nullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -49,6 +51,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class ExpiryChainResolverTest extends AbstractChainResolverTest {
 
@@ -99,7 +102,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testGetExpiryForAccessIsIgnored() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
@@ -123,7 +126,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsInvokedOnlyOnce() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
@@ -149,7 +152,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsNotInvokedForReplacedChains() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
@@ -173,7 +176,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testGetExpiryForCreationIsInvokedAfterRemoveOperations() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(ExpiryPolicy.INFINITE);
@@ -225,7 +228,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testNullGetExpiryForCreation() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(null);
@@ -242,7 +245,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testNullGetExpiryForUpdate() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenReturn(null);
@@ -263,7 +266,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testGetExpiryForUpdateUpdatesExpirationTimeStamp() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenReturn(ofMillis(2L));
@@ -283,7 +286,7 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
   @SuppressWarnings("unchecked")
   public void testExpiryThrowsException() {
     TimeSource timeSource = new TestTimeSource();
-    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class);
+    ExpiryPolicy<Long, String> expiry = mock(ExpiryPolicy.class, withSettings().defaultAnswer(new Returns(null)));
     ChainResolver<Long, String> chainResolver = createChainResolver(expiry);
 
     when(expiry.getExpiryForUpdate(anyLong(), any(), anyString())).thenThrow(new RuntimeException("Test Update Expiry"));

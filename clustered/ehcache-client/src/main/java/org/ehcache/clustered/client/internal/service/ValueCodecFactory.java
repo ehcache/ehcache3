@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +17,8 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.common.internal.store.FilteredObjectInputStream;
 import org.ehcache.clustered.common.internal.store.ValueWrapper;
+import org.terracotta.utilities.classloading.FilteredObjectInputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

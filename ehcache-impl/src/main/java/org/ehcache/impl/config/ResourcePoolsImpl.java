@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,11 +39,16 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
   private final Map<ResourceType<?>, ResourcePool> pools;
 
   public ResourcePoolsImpl(Map<ResourceType<?>, ResourcePool> pools) {
-    if (pools.isEmpty()) {
-      throw new IllegalArgumentException("No resource pools defined");
-    }
     validateResourcePools(pools.values());
     this.pools = pools;
+  }
+
+  public ResourcePoolsImpl(ResourcePool pool) {
+    if (pool == null) {
+      throw new IllegalArgumentException("Resource pool not defined");
+    }
+    this.pools = new HashMap<>();
+    this.pools.put(pool.getType(), pool);
   }
 
   /**
@@ -67,6 +73,8 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
   @Override
   public ResourcePools validateAndMerge(ResourcePools toBeUpdated) {
     Set<ResourceType<?>> resourceTypeSet = toBeUpdated.getResourceTypeSet();
+
+    // TODO: determine which of these conditions need reconsideration in the context of shared resources
 
     // Ensure update pool types already exist in existing pools
     if(!getResourceTypeSet().containsAll(resourceTypeSet)) {
@@ -102,7 +110,7 @@ public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
     List<SizedResourcePool> ordered = new ArrayList<>(pools.size());
     for(ResourcePool pool : pools) {
-      if (pool instanceof SizedResourcePool) {
+      if (pool instanceof SizedResourcePool && ((SizedResourcePool) pool).getSize() != 0) {
         ordered.add((SizedResourcePool)pool);
       }
     }

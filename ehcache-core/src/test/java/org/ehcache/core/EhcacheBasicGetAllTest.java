@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +21,10 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.store.SimpleTestStore;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -51,7 +52,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Provides testing of basic GET_ALL operations on an {@code Ehcache}.
@@ -99,7 +100,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllEmptyRequestNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
+    final SimpleTestStore fakeStore = new SimpleTestStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -125,7 +126,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreNoMatchNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -135,7 +136,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(KEY_SET_A), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_B)));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -153,7 +154,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreAllMatchStoreAccessExceptionBeforeNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
@@ -182,7 +183,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreAllMatchNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -194,7 +195,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -212,7 +213,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreNoMatchStoreAccessExceptionBeforeNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
@@ -241,7 +242,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreSomeMatchNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -253,7 +254,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store).bulkComputeIfAbsent(eq(fetchKeys), getAnyIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(getEntryMap(KEY_SET_A, KEY_SET_B)));
-    verifyZeroInteractions(this.resilienceStrategy);
+    verifyNoInteractions(this.resilienceStrategy);
 
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -271,7 +272,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testGetAllStoreSomeMatchStoreAccessExceptionBeforeNoLoader() throws Exception {
-    final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
+    final SimpleTestStore fakeStore = new SimpleTestStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
@@ -301,8 +302,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
    */
   @SuppressWarnings("unchecked")
   private Ehcache<String, String> getEhcache() {
-    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher, LoggerFactory
-      .getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
+    final Ehcache<String, String> ehcache = new Ehcache<>(CACHE_CONFIGURATION, this.store, resilienceStrategy, cacheEventDispatcher);
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     return ehcache;

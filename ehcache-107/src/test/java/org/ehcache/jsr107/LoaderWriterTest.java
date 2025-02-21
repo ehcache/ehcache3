@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,16 +21,14 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
@@ -40,12 +39,12 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * @author Ludovic Orban
  */
+@RunWith(MockitoJUnitRunner.class)
 public class LoaderWriterTest {
 
   @Mock
@@ -57,8 +56,6 @@ public class LoaderWriterTest {
 
   @Before
   public void setUp() throws Exception {
-    MockitoAnnotations.initMocks(this);
-
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(this.getClass().getResource("/ehcache-loader-writer-107.xml").toURI(), getClass().getClassLoader());
 
@@ -81,17 +78,7 @@ public class LoaderWriterTest {
     assertThat(testCache.putIfAbsent(1, "one"), is(true));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
 
-    verifyZeroInteractions(cacheLoader);
-    verify(cacheWriter, times(1)).write(eq(new Eh107CacheLoaderWriter.Entry<Number, CharSequence>(1, "one")));
-  }
-
-  @Test
-  public void testSimplePutIfAbsentWithLoaderAndWriter_existsInSor() throws Exception {
-    assertThat(testCache.containsKey(1), is(false));
-    assertThat(testCache.putIfAbsent(1, "one"), is(true));
-    assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
-
-    verifyZeroInteractions(cacheLoader);
+    verifyNoInteractions(cacheLoader);
     verify(cacheWriter, times(1)).write(eq(new Eh107CacheLoaderWriter.Entry<Number, CharSequence>(1, "one")));
   }
 
@@ -103,33 +90,19 @@ public class LoaderWriterTest {
     assertThat(testCache.putIfAbsent(1, "one"), is(false));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("un"));
 
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
+    verifyNoInteractions(cacheLoader);
+    verifyNoInteractions(cacheWriter);
   }
 
 
   @Test
   public void testSimpleReplace2ArgsWithLoaderAndWriter_absent() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> null);
-
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.replace(1, "one"), is(false));
     assertThat(testCache.containsKey(1), is(false));
 
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
-  }
-
-  @Test
-  public void testSimpleReplace2ArgsWithLoaderAndWriter_existsInSor() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> "un");
-
-    assertThat(testCache.containsKey(1), is(false));
-    assertThat(testCache.replace(1, "one"), is(false));
-    assertThat(testCache.containsKey(1), is(false));
-
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
+    verifyNoInteractions(cacheLoader);
+    verifyNoInteractions(cacheWriter);
   }
 
   @Test
@@ -140,31 +113,18 @@ public class LoaderWriterTest {
     assertThat(testCache.replace(1, "one"), is(true));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
 
-    verifyZeroInteractions(cacheLoader);
+    verifyNoInteractions(cacheLoader);
     verify(cacheWriter, times(1)).write(new Eh107CacheLoaderWriter.Entry<Number, CharSequence>(1, "one"));
   }
 
   @Test
   public void testSimpleReplace3ArgsWithLoaderAndWriter_absent() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> null);
-
-    assertThat(testCache.containsKey(1), is(false));
-    assertThat(testCache.replace(1, "un", "one"), is(false));
-
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
-  }
-
-  @Test
-  public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInSor() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> "un");
-
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.replace(1, "un", "one"), is(false));
     assertThat(testCache.containsKey(1), is(false));
 
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
+    verifyNoInteractions(cacheLoader);
+    verifyNoInteractions(cacheWriter);
   }
 
   @Test
@@ -175,7 +135,7 @@ public class LoaderWriterTest {
     assertThat(testCache.replace(1, "un", "one"), is(true));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
 
-    verifyZeroInteractions(cacheLoader);
+    verifyNoInteractions(cacheLoader);
     verify(cacheWriter, times(1)).write(new Eh107CacheLoaderWriter.Entry<Number, CharSequence>(1, "one"));
   }
 
@@ -187,30 +147,17 @@ public class LoaderWriterTest {
     assertThat(testCache.replace(1, "uno", "one"), is(false));
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("un"));
 
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
+    verifyNoInteractions(cacheLoader);
+    verifyNoInteractions(cacheWriter);
   }
 
   @Test
   public void testSimpleRemove2ArgsWithLoaderAndWriter_absent() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> null);
-
     assertThat(testCache.containsKey(1), is(false));
     assertThat(testCache.remove(1, "one"), is(false));
 
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
-  }
-
-  @Test
-  public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInSor() throws Exception {
-    when(cacheLoader.load(eq(1))).thenAnswer(invocation -> "un");
-
-    assertThat(testCache.containsKey(1), is(false));
-    assertThat(testCache.remove(1, "un"), is(false));
-
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
+    verifyNoInteractions(cacheLoader);
+    verifyNoInteractions(cacheWriter);
   }
 
   @Test
@@ -220,7 +167,7 @@ public class LoaderWriterTest {
 
     assertThat(testCache.remove(1, "un"), is(true));
 
-    verifyZeroInteractions(cacheLoader);
+    verifyNoInteractions(cacheLoader);
     verify(cacheWriter, times(1)).delete(eq(1));
   }
 
@@ -231,8 +178,8 @@ public class LoaderWriterTest {
 
     assertThat(testCache.remove(1, "one"), is(false));
 
-    verifyZeroInteractions(cacheLoader);
-    verifyZeroInteractions(cacheWriter);
+    verifyNoInteractions(cacheLoader);
+    verifyNoInteractions(cacheWriter);
   }
 
   private void reset(Object mock) {

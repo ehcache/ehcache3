@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +21,10 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -40,7 +41,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +48,7 @@ import static org.mockito.Mockito.when;
 /**
  * @author Ludovic Orban
  */
+@RunWith(MockitoJUnitRunner.class)
 public class EhcacheXAResourceTest {
 
   @Mock
@@ -58,11 +59,6 @@ public class EhcacheXAResourceTest {
   private XATransactionContextFactory<Long, String> xaTransactionContextFactory;
   @Mock
   private XATransactionContext<Long, String> xaTransactionContext;
-
-  @Before
-  public void setUp() {
-    MockitoAnnotations.initMocks(this);
-  }
 
   @Test
   public void testStartEndWorks() throws Exception {
@@ -88,7 +84,6 @@ public class EhcacheXAResourceTest {
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     xaResource.start(new TestXid(0, 0), XAResource.TMNOFLAGS);
 
-    when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(1, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
     try {
       xaResource.start(new TestXid(1, 0), XAResource.TMNOFLAGS);
       fail("expected XAException");
@@ -202,7 +197,6 @@ public class EhcacheXAResourceTest {
   public void testCannotCommitUnknownXidInFlight() throws Exception {
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
-    when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
     doThrow(IllegalArgumentException.class).when(xaTransactionContext).commit(eq(false));
 
@@ -496,7 +490,6 @@ public class EhcacheXAResourceTest {
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
-    when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L, 3L));
 
     Xid[] recoveredXids = xaResource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
     assertThat(recoveredXids.length, is(1));

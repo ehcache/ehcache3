@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
  */
 package com.pany.ehcache.serializer;
 
-import org.ehcache.impl.serialization.TransientStateRepository;
+import org.ehcache.core.spi.store.TransientStateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;

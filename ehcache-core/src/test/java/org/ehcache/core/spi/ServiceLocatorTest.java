@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,16 +41,19 @@ import org.ehcache.core.spi.services.DefaultTestService;
 import org.ehcache.core.spi.services.FancyCacheProvider;
 import org.ehcache.core.spi.services.TestProvidedService;
 import org.ehcache.core.spi.services.TestService;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -125,7 +129,7 @@ public class ServiceLocatorTest {
       locator.stopAllServices();
       fail();
     } catch (Exception e) {
-      assertThat(e, CoreMatchers.<Exception>sameInstance(thrown));
+      assertThat(e, sameInstance(thrown));
     }
     verify(s1).stop();
     verify(s2).stop();
@@ -336,13 +340,13 @@ public class ServiceLocatorTest {
     serviceLocator.stopAllServices();
 
     assertThat(consumer1.startStopCounter.startCounter.get(), is(1));
-    assertThat(consumer1.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(consumer1.startStopCounter.startServiceProvider.get(), is(serviceLocator));
     assertThat(consumer2.startStopCounter.startCounter.get(), is(1));
-    assertThat(consumer2.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(consumer2.startStopCounter.startServiceProvider.get(), is(serviceLocator));
     assertThat(myTestProvidedService.startStopCounter.startCounter.get(), is(1));
-    assertThat(myTestProvidedService.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(myTestProvidedService.startStopCounter.startServiceProvider.get(), is(serviceLocator));
     assertThat(dependsOnMe.startStopCounter.startCounter.get(), is(1));
-    assertThat(dependsOnMe.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(dependsOnMe.startStopCounter.startServiceProvider.get(), is(serviceLocator));
 
     assertThat(consumer1.startStopCounter.stopCounter.get(), is(1));
     assertThat(consumer2.startStopCounter.stopCounter.get(), is(1));

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -43,10 +45,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -241,8 +244,7 @@ public abstract class AbstractWriteBehindTestBase {
 
   @Test
   public void testBatchedDeletedKeyReturnsNull() throws Exception {
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -264,8 +266,7 @@ public abstract class AbstractWriteBehindTestBase {
   public void testUnBatchedDeletedKeyReturnsNull() throws Exception {
     Semaphore semaphore = new Semaphore(0);
 
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     doAnswer(invocation -> {
       semaphore.acquire();
@@ -293,8 +294,7 @@ public abstract class AbstractWriteBehindTestBase {
 
   @Test
   public void testBatchedOverwrittenKeyReturnsNewValue() throws Exception {
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -316,8 +316,7 @@ public abstract class AbstractWriteBehindTestBase {
   public void testUnBatchedOverwrittenKeyReturnsNewValue() throws Exception {
     final Semaphore semaphore = new Semaphore(0);
 
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     when(loaderWriter.load("key")).thenReturn("value");
     doAnswer(invocation -> {
       semaphore.acquire();
@@ -403,8 +402,7 @@ public abstract class AbstractWriteBehindTestBase {
   @Test
   public void testUnBatchedWriteBehindBlocksWhenFull() throws Exception {
     final Semaphore gate = new Semaphore(0);
-    @SuppressWarnings("unchecked")
-    CacheLoaderWriter<String, String> loaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> loaderWriter = uncheckedGenericMock(CacheLoaderWriter.class);
     doAnswer(invocation -> {
       gate.acquire();
       return null;
@@ -539,8 +537,8 @@ public abstract class AbstractWriteBehindTestBase {
 
       @Override
       @SuppressWarnings("unchecked")
-      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
-        this.writeBehind = super.createWriteBehindLoaderWriter(cacheLoaderWriter, configuration);
+      public <K, V> WriteBehind<K, V> createWriteBehindLoaderWriter(Consumer<K> keyCleanUpMethod, CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration<?> configuration) {
+        this.writeBehind = super.createWriteBehindLoaderWriter(keyCleanUpMethod, cacheLoaderWriter, configuration);
         return (WriteBehind<K, V>) writeBehind;
       }
 

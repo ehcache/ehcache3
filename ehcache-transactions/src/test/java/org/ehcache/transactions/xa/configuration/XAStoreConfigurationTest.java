@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +17,12 @@
 
 package org.ehcache.transactions.xa.configuration;
 
-import org.hamcrest.core.IsNot;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class XAStoreConfigurationTest {
 
@@ -30,7 +31,7 @@ public class XAStoreConfigurationTest {
     XAStoreConfiguration configuration = new XAStoreConfiguration("foobar");
     XAStoreConfiguration derived = configuration.build(configuration.derive());
 
-    assertThat(derived, is(IsNot.not(sameInstance(configuration))));
+    assertThat(derived, is(not(sameInstance(configuration))));
     assertThat(derived.getUniqueXAResourceId(), is(configuration.getUniqueXAResourceId()));
   }
 }

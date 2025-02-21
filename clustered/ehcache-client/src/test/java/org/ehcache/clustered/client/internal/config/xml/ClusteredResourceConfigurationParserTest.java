@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +33,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
 
+import static org.ehcache.xml.DomUtil.createDocumentRoot;
 import static org.ehcache.xml.XmlConfigurationMatchers.isSameConfigurationAs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -55,7 +57,7 @@ public class ClusteredResourceConfigurationParserTest {
 
     System.setProperty(property, "foobar");
     try {
-      SharedClusteredResourcePool configuration = (SharedClusteredResourcePool) parser.parseResourceConfig(node);
+      SharedClusteredResourcePool configuration = (SharedClusteredResourcePool) parser.parse(node, null);
 
       assertThat(configuration.getSharedResourcePool(), is("foobar"));
     } finally {
@@ -80,7 +82,7 @@ public class ClusteredResourceConfigurationParserTest {
     System.setProperty(fromProperty, "foobar");
     System.setProperty(sizeProperty, "1024");
     try {
-      DedicatedClusteredResourcePool configuration = (DedicatedClusteredResourcePool) parser.parseResourceConfig(node);
+      DedicatedClusteredResourcePool configuration = (DedicatedClusteredResourcePool) parser.parse(node, null);
 
       assertThat(configuration.getFromResource(), is("foobar"));
       assertThat(configuration.getSize(), is(1024L));
@@ -91,31 +93,31 @@ public class ClusteredResourceConfigurationParserTest {
   }
 
   @Test
-  public void testTranslateClusteredResourcePoolConfiguration() {
+  public void testTranslateClusteredResourcePoolConfiguration() throws IOException, ParserConfigurationException, SAXException {
     ClusteredResourceConfigurationParser configTranslator = new ClusteredResourceConfigurationParser();
     ClusteredResourcePoolImpl clusteredResourcePool = new ClusteredResourcePoolImpl();
-    Node retElement = configTranslator.unparseResourcePool(clusteredResourcePool);
+    Node retElement = configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), clusteredResourcePool);
     String inputString = "<tc:clustered xmlns:tc = \"http://www.ehcache.org/v3/clustered\" />";
     assertThat(retElement, isSameConfigurationAs(inputString));
   }
 
   @Test
-  public void testTranslateDedicatedResourcePoolConfiguration() {
+  public void testTranslateDedicatedResourcePoolConfiguration() throws IOException, ParserConfigurationException, SAXException {
     ClusteredResourceConfigurationParser configTranslator = new ClusteredResourceConfigurationParser();
     DedicatedClusteredResourcePoolImpl dedicatedClusteredResourcePool = new DedicatedClusteredResourcePoolImpl("my-from", 12, MemoryUnit.GB);
-    Node retElement = configTranslator.unparseResourcePool(dedicatedClusteredResourcePool);
+    Node retElement = configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), dedicatedClusteredResourcePool);
     String inputString = "<tc:clustered-dedicated from = \"my-from\" unit = \"GB\" " +
-                         "xmlns:tc = \"http://www.ehcache.org/v3/clustered\">12</tc:clustered-dedicated>";
+      "xmlns:tc = \"http://www.ehcache.org/v3/clustered\">12</tc:clustered-dedicated>";
     assertThat(retElement, isSameConfigurationAs(inputString));
   }
 
   @Test
-  public void testTranslateSharedResourcePoolConfiguration() {
+  public void testTranslateSharedResourcePoolConfiguration() throws IOException, ParserConfigurationException, SAXException {
     ClusteredResourceConfigurationParser configTranslator = new ClusteredResourceConfigurationParser();
     SharedClusteredResourcePoolImpl sharedResourcePool = new SharedClusteredResourcePoolImpl("shared-pool");
-    Node retElement = configTranslator.unparseResourcePool(sharedResourcePool);
+    Node retElement = configTranslator.unparse(createDocumentRoot(configTranslator.getSchema().values()), sharedResourcePool);
     String inputString = "<tc:clustered-shared sharing = \"shared-pool\" " +
-                         "xmlns:tc = \"http://www.ehcache.org/v3/clustered\"></tc:clustered-shared>";
+      "xmlns:tc = \"http://www.ehcache.org/v3/clustered\"></tc:clustered-shared>";
     assertThat(retElement, isSameConfigurationAs(inputString));
   }
 

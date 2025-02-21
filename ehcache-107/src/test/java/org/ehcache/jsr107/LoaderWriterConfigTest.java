@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +20,14 @@ package org.ehcache.jsr107;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Set;
 
 import javax.cache.Cache;
 import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
@@ -34,14 +35,14 @@ import javax.cache.spi.CachingProvider;
 
 import static java.util.Collections.singleton;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * LoaderWriterConfigTest
  */
+@RunWith(MockitoJUnitRunner.class)
 public class LoaderWriterConfigTest {
 
   @Mock
@@ -52,7 +53,6 @@ public class LoaderWriterConfigTest {
 
   @Before
   public void setUp() {
-    MockitoAnnotations.initMocks(this);
     cachingProvider = Caching.getCachingProvider();
   }
 
@@ -87,13 +87,14 @@ public class LoaderWriterConfigTest {
 
     cache.get(100L);
 
-    verifyZeroInteractions(cacheWriter);
+    verifyNoInteractions(cacheWriter);
     verify(cacheLoader).load(100L);
   }
 
   private MutableConfiguration<Long, String> getConfiguration(final boolean readThrough, final CacheLoader<Long, String> cacheLoader,
                                                               final boolean writeThrough, final CacheWriter<Long, String> cacheWriter) {
     MutableConfiguration<Long, String> config = new MutableConfiguration<>();
+    config.setStoreByValue(false);
     config.setTypes(Long.class, String.class);
     config.setReadThrough(readThrough);
     config.setCacheLoaderFactory(() -> cacheLoader);

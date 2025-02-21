@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +22,9 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
@@ -35,13 +34,25 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.util.Arrays;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assume.assumeThat;
 
+@Deprecated
 public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<String, String> {
+
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
 
   private CachingTierFactory<String, String> cachingTierFactory;
 
@@ -69,13 +80,13 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
         Store.Configuration<String, String> config = new StoreConfigurationImpl<>(getKeyType(), getValueType(), null,
           ClassLoader.getSystemClassLoader(), ExpiryPolicyBuilder.noExpiration(), buildResourcePools(capacity), 0, null, null);
 
-        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(),
-            new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
+        return new OnHeapStore<>(config, SystemTimeSource.INSTANCE,
+            new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
       }
 
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
-        return new CopiedOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, IdentityCopier.identityCopier());
+        return new SimpleOnHeapValueHolder<>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false);
       }
 
       @Override

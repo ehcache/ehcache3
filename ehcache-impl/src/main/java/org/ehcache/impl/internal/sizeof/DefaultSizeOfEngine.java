@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,6 @@
  */
 package org.ehcache.impl.internal.sizeof;
 
-import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.listeners.EhcacheVisitorListener;
@@ -24,13 +24,13 @@ import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.sizeof.SizeOf;
 import org.ehcache.sizeof.SizeOfFilterSource;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
 
 /**
  * @author Abhilash
  *
  */
-public class DefaultSizeOfEngine implements SizeOfEngine {
+@Deprecated
+public class DefaultSizeOfEngine implements org.ehcache.core.spi.store.heap.SizeOfEngine {
 
   private final long maxObjectGraphSize;
   private final long maxObjectSize;
@@ -47,11 +47,11 @@ public class DefaultSizeOfEngine implements SizeOfEngine {
   }
 
   @Override
-  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) throws LimitExceededException {
+  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) throws org.ehcache.core.spi.store.heap.LimitExceededException {
     try {
       return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxObjectGraphSize, maxObjectSize), key, holder) + this.chmTreeBinOffset + this.onHeapKeyOffset;
     } catch (VisitorListenerException e) {
-      throw new LimitExceededException(e.getMessage());
+      throw new org.ehcache.core.spi.store.heap.LimitExceededException(e.getMessage());
     }
   }
 

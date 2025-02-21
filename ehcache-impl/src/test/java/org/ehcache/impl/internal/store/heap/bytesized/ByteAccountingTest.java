@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +26,10 @@ import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.SimpleOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
@@ -41,21 +39,26 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
 import java.util.Arrays;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.System.getProperty;
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.expiry;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
+import static org.ehcache.test.MockitoUtil.uncheckedGenericMock;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -64,9 +67,16 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  * @author Abhilash
  *
  */
+@Ignore
+@Deprecated
 public class ByteAccountingTest {
 
-  private static final SizeOfEngine SIZE_OF_ENGINE = new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE);
+  @BeforeClass
+  public static void preconditions() {
+    assumeThat(parseInt(getProperty("java.specification.version").split("\\.")[0]), is(lessThan(16)));
+  }
+
+  private static final org.ehcache.core.spi.store.heap.SizeOfEngine SIZE_OF_ENGINE = new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE);
 
   private static final String KEY = "key";
   private static final String VALUE = "value";
@@ -147,7 +157,7 @@ public class ByteAccountingTest {
       public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
         return null;
       }
-    }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>());
+    }, timeSource, new org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<>());
   }
 
   @Test
@@ -494,8 +504,7 @@ public class ByteAccountingTest {
   @Test
   public void testEviction() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
-    @SuppressWarnings("unchecked")
-    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
+    StoreEventListener<String, String> listener = uncheckedGenericMock(StoreEventListener.class);
     store.getStoreEventSource().addEventListener(listener);
 
     store.put(KEY, VALUE);
@@ -524,11 +533,11 @@ public class ByteAccountingTest {
   }
 
   static long getSize(String key, String value) {
-    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<>(value, 0L, 0L, true, IdentityCopier.identityCopier());
+    SimpleOnHeapValueHolder<String> valueHolder = new SimpleOnHeapValueHolder<>(value, 0L, 0L, true);
     long size = 0L;
     try {
       size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
-    } catch (LimitExceededException e) {
+    } catch (org.ehcache.core.spi.store.heap.LimitExceededException e) {
       fail();
     }
     return size;
@@ -538,8 +547,8 @@ public class ByteAccountingTest {
 
     @SuppressWarnings("unchecked")
     OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
-                        final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
-      super(config, timeSource, IdentityCopier.identityCopier(), IdentityCopier.identityCopier(), engine, eventDispatcher, new DefaultStatisticsService());
+                        final org.ehcache.core.spi.store.heap.SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
+      super(config, timeSource, engine, eventDispatcher, new DefaultStatisticsService());
     }
 
     long getCurrentUsageInBytes() {

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 
 package org.ehcache.clustered.client.internal.service;
 
+import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
@@ -29,6 +31,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.impl.config.BaseCacheConfiguration;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
@@ -91,10 +94,11 @@ public class StateRepositoryWhitelistingTest {
 
     service.start(null);
 
+    ResourcePools resourcePools = newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB)).build();
     BaseCacheConfiguration<Long, String> config = new BaseCacheConfiguration<>(Long.class, String.class, noAdvice(), null, noExpiration(),
-      newResourcePoolsBuilder().with(clusteredDedicated("test", 2, org.ehcache.config.units.MemoryUnit.MB)).build());
+      resourcePools);
     ClusteringService.ClusteredCacheIdentifier spaceIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("test",
-      config);
+      resourcePools.getPoolForResource(ClusteredResourceType.Types.DEDICATED));
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(spaceIdentifier,
       new StoreConfigurationImpl<>(config, 1, null, null),

@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,7 +86,7 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
 
     assertValue(cache, "9");
 
-    checkValueFromLoaderWriter(cache, "9");
+    checkValueFromLoaderWriter("9");
 
     doThreadDump = false;
   }
@@ -112,7 +113,7 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
     assertValue(cache, "new value");
     cache.remove(KEY);
 
-    checkValueFromLoaderWriter(cache, null);
+    checkValueFromLoaderWriter(null);
 
     doThreadDump = false;
   }
@@ -120,7 +121,7 @@ public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
   @Test
   public void testClusteredWriteBehindLoading() throws Exception {
     cache.put(KEY, "Some value");
-    checkValueFromLoaderWriter(cache, "Some value");
+    checkValueFromLoaderWriter("Some value");
     cache.clear();
 
     assertThat(cache.get(KEY), notNullValue());

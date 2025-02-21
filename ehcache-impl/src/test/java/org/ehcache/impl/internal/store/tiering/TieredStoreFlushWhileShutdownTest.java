@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +17,9 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.DiskResourceService;
@@ -40,16 +41,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
-import org.mockito.Mockito;
 
 import java.io.File;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class TieredStoreFlushWhileShutdownTest {
 
@@ -119,11 +118,10 @@ public class TieredStoreFlushWhileShutdownTest {
 
     tieredStoreProvider.start(serviceLocator);
 
-    CacheConfiguration<Number, String> cacheConfiguration = mock(CacheConfiguration.class);
-    when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, true).build());
+    ResourcePools resourcePools = newResourcePoolsBuilder().disk(1, MemoryUnit.MB, true).build();
 
     DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
-    PersistenceSpaceIdentifier<?> persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", resourcePools.getPoolForResource(ResourceType.Core.DISK));
     Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace);
     tieredStoreProvider.initStore(tieredStore);
     for (int i = 0; i < 100; i++) {
@@ -152,7 +150,7 @@ public class TieredStoreFlushWhileShutdownTest {
     tieredStoreProvider.start(serviceLocator1);
 
     DiskResourceService diskResourceService1 = serviceLocator1.getService(DiskResourceService.class);
-    PersistenceSpaceIdentifier<?> persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    PersistenceSpaceIdentifier<?> persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", resourcePools.getPoolForResource(ResourceType.Core.DISK));
     tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace1);
     tieredStoreProvider.initStore(tieredStore);
 
@@ -170,7 +168,7 @@ public class TieredStoreFlushWhileShutdownTest {
     dependencySet.with(diskResourceService);
     dependencySet.with(new OnHeapStore.Provider());
     dependencySet.with(new OffHeapDiskStore.Provider());
-    dependencySet.with(Mockito.mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS));
+    dependencySet.with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS));
     return dependencySet.build();
   }
 }

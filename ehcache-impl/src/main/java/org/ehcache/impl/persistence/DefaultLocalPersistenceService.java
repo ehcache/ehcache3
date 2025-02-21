@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +38,7 @@ import static org.ehcache.impl.persistence.FileUtils.createLocationIfRequiredAnd
 import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 import static org.ehcache.impl.persistence.FileUtils.tryRecursiveDelete;
 import static org.ehcache.impl.persistence.FileUtils.validateName;
+import static org.ehcache.impl.persistence.FileUtils.isDirectoryEmpty;
 
 /**
  * Implements the local persistence service that provides individual sub-spaces for different
@@ -48,10 +50,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private final File rootDirectory;
   private final File lockFile;
+  private final File cleanFile;
 
   private FileLock lock;
   private RandomAccessFile rw;
   private boolean started;
+  private boolean clean;
 
   /**
    * Creates a new service instance using the provided configuration.
@@ -65,6 +69,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
     lockFile = new File(rootDirectory, ".lock");
+    cleanFile = new File(rootDirectory, ".clean");
   }
 
   /**
@@ -82,7 +87,15 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private void internalStart() {
     if (!started) {
+      clean = false;
       createLocationIfRequiredAndVerify(rootDirectory);
+      try {
+        if (isDirectoryEmpty(rootDirectory.toPath())) {
+          clean = true;
+        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       try {
         rw = new RandomAccessFile(lockFile, "rw");
       } catch (FileNotFoundException e) {
@@ -104,6 +117,19 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       if (lock == null) {
         throw new RuntimeException("Persistence directory already locked by another process: " + rootDirectory.getAbsolutePath());
       }
+
+      if (cleanFile.exists()) {
+        try {
+          LOGGER.debug("Clean file exists, trying to delete the file.");
+          Files.delete(cleanFile.toPath());
+          clean = true;
+          LOGGER.debug("Clean file is deleted.");
+        } catch (IOException e) {
+          LOGGER.debug("Clean file is not deleted {}.", cleanFile.getPath());
+          throw new RuntimeException(e);
+        }
+      }
+
       started = true;
       LOGGER.debug("RootDirectory Locked");
     }
@@ -115,6 +141,15 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public synchronized void stop() {
     if (started) {
+      try {
+        if (cleanFile.createNewFile()) {
+          LOGGER.debug("Clean file is created.");
+        } else {
+          LOGGER.warn("Clean file still exists on shutdown. This may be due to a filesystem consistency issue, or concurrent modification of the filesystem by another thread and/or process. Be aware for the potential of undetected storage corruption causing cache failures and/or data consistency issues.");
+        }
+      } catch (IOException e) {
+        LOGGER.warn("Clean file could not be created on shutdown. This will cause the persisted state to be considered unclean on the next service start, which may result in unplanned data loss. Reason: " + e.toString());
+      }
       try {
         lock.release();
         // Closing RandomAccessFile so that files gets deleted on windows and
@@ -129,6 +164,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       } catch (IOException e) {
         throw new RuntimeException("Couldn't unlock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
+
       started = false;
       LOGGER.debug("RootDirectory Unlocked");
     }
@@ -198,6 +234,15 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  @Override
+  public final synchronized boolean isClean() {
+    if (started) {
+      return clean;
+    } else {
+      throw new IllegalStateException("Service is not running");
+    }
+  }
+
   private void destroy(SafeSpace ss, boolean verbose) {
     if (verbose) {
       LOGGER.debug("Destroying file based persistence context for {}", ss.identifier);
@@ -208,7 +253,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       }
     }
   }
-
 
   private SafeSpace createSafeSpaceLogical(String owner, String identifier) {
     File ownerDirectory = new File(rootDirectory, owner);

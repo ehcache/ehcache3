@@ -1,5 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
+ * Copyright Super iPaaS Integration LLC, an IBM Company 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -354,10 +355,22 @@ public class OffHeapChainMap<K> implements MapInternals, Iterable<Map.Entry<K, C
   protected void storageEngineFailure(Object failure) {
   }
 
-  static class HeadMap<K> extends EvictionListeningReadWriteLockedOffHeapClockCache<K, InternalChain> {
+  public static class HeadMap<K> extends EvictionListeningReadWriteLockedOffHeapClockCache<K, InternalChain> {
 
     public HeadMap(EvictionListener<K, InternalChain> listener, PageSource source, ChainStorageEngine<K> chainStorage) {
       super(listener, source, chainStorage);
+    }
+
+    public void removeAtSlot(int slot, boolean shrink) {
+      Lock l = writeLock();
+      l.lock();
+      try {
+        if ((hashtable.get(slot + STATUS) & STATUS_USED) == STATUS_USED) {
+          removeAtTableOffset(slot, shrink);
+        }
+      } finally {
+        l.unlock();
+      }
     }
 
     public Iterator<Entry<K, InternalChain>> detachedEntryIterator() {
