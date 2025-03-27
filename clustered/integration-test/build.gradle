@@ -30,8 +30,8 @@ dependencies {
   testImplementation project(':ehcache-xml')
   testImplementation project(':ehcache-107')
   testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
-  testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-runnel:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-lease-client:$terracottaPlatformVersion"
   testImplementation("javax.cache:cache-tests:$jcacheTckVersion") {
     exclude group:'junit', module:'junit'
   }
@@ -40,10 +40,10 @@ dependencies {
   }
 
   testImplementation project(':ehcache-management')
-  testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
-  testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-management-entities-nms-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-management-entities-nms-agent-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
-  testImplementation("org.terracotta:galvan-platform-support:$terracottaPlatformVersion") {
+  testImplementation("org.terracotta:terracotta-dynamic-config-testing-galvan:$terracottaPlatformVersion") {
     exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
   }
   testImplementation "javax.cache:cache-api:$jcacheVersion"

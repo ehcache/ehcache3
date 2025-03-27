@@ -21,16 +21,15 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
+import org.ehcache.config.ResourceType;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.PlatformConfiguration;
 import org.terracotta.entity.ServiceProviderCleanupException;
 import org.terracotta.entity.ServiceProviderConfiguration;
+import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
-import org.terracotta.offheapresource.config.MemoryUnit;
-import org.terracotta.offheapresource.config.OffheapResourcesType;
-import org.terracotta.offheapresource.config.ResourceType;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -57,14 +56,8 @@ public class EhcacheStateServiceProviderTest {
 
   @Before
   public void setUp() {
-    ResourceType resource = new ResourceType();
-    resource.setName("primary");
-    resource.setUnit(MemoryUnit.MB);
-    resource.setValue(BigInteger.valueOf(4L));
-    OffheapResourcesType configuration = new OffheapResourcesType();
-    configuration.getResource().add(resource);
-    OffHeapResources offheapResources = new OffHeapResourcesProvider(configuration);
-
+    OffHeapResourcesProvider offheapResources = new OffHeapResourcesProvider(emptyMap());
+    offheapResources.addOffHeapResource(OffHeapResourceIdentifier.identifier("primary"), 4 * 1024 * 1024);
     platformConfiguration = mock(PlatformConfiguration.class);
     when(platformConfiguration.getExtendedConfiguration(OffHeapResources.class)).thenReturn(Collections.singletonList(offheapResources));
     serviceProviderConfiguration = mock(ServiceProviderConfiguration.class);
