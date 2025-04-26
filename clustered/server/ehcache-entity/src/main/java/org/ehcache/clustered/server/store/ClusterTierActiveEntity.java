@@ -34,6 +34,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateS
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.InsertFullChainMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAck;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAllAck;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.EnableEventListenerMessage;
@@ -411,6 +412,15 @@ public class ClusterTierActiveEntity implements ActiveServerEntity<EhcacheEntity
         }
         if (!configuration.isWriteBehindConfigured()) {
           lockManager.unlock(key);
+        }
+        return success();
+      }
+      case INSERT_FULL_CHAIN: {
+        InsertFullChainMessage insertFullChainMessage = (InsertFullChainMessage) message;
+        try {
+          cacheStore.insertChain(insertFullChainMessage.getKey(), insertFullChainMessage.getChain());
+        } catch (TimeoutException e) {
+          throw new AssertionError("Server side store is not expected to throw timeout exception", e);
         }
         return success();
       }

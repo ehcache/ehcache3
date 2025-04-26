@@ -92,6 +92,11 @@ public class LockingServerStoreProxyImpl implements LockingServerStoreProxy {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    throw new UnsupportedOperationException("not supported");
+  }
+
+  @Override
   public ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     return storeProxy.getAndAppend(key, payLoad);
   }

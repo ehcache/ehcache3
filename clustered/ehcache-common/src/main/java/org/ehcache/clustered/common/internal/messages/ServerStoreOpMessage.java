@@ -97,6 +97,24 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
 
   }
 
+  public static class InsertFullChainMessage extends KeyBasedServerStoreOpMessage {
+    private final Chain chain;
+
+    public InsertFullChainMessage(long key, Chain chain) {
+      super(key);
+      this.chain = chain;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.INSERT_FULL_CHAIN;
+    }
+
+    public Chain getChain() {
+      return chain;
+    }
+  }
+
   public static class ReplaceAtHeadMessage extends KeyBasedServerStoreOpMessage {
 
     private final Chain expect;

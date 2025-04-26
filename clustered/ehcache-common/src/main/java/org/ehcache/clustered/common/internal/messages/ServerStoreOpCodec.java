@@ -18,6 +18,7 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.InsertFullChainMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAck;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAllAck;
@@ -51,6 +52,12 @@ public class ServerStoreOpCodec {
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(KEY_FIELD, 30)
     .byteBuffer("payload", 40)
+    .build();
+
+  private static final Struct INSERT_CHAIN_MESSAGE_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int64(KEY_FIELD, 30)
+    .struct("chain", 40, CHAIN_STRUCT)
     .build();
 
   private static final Struct REPLACE_MESSAGE_STRUCT = newStructBuilder()
@@ -118,6 +125,12 @@ public class ServerStoreOpCodec {
         return encodeMandatoryFields(APPEND_MESSAGE_STRUCT, message)
           .int64(KEY_FIELD, appendMessage.getKey())
           .byteBuffer("payload", appendMessage.getPayload())
+          .encode().array();
+      case INSERT_FULL_CHAIN:
+        InsertFullChainMessage insertFullChainMessage = (InsertFullChainMessage) message;
+        return encodeMandatoryFields(INSERT_CHAIN_MESSAGE_STRUCT, message)
+          .int64(KEY_FIELD, insertFullChainMessage.getKey())
+          .struct("chain", insertFullChainMessage.getChain(), ChainCodec::encodeChain)
           .encode().array();
       case GET_AND_APPEND:
         GetAndAppendMessage getAndAppendMessage = (GetAndAppendMessage) message;
@@ -196,6 +209,12 @@ public class ServerStoreOpCodec {
         Long key = decoder.int64(KEY_FIELD);
         ByteBuffer payload = decoder.byteBuffer("payload");
         return new AppendMessage(key, payload);
+      }
+      case INSERT_FULL_CHAIN: {
+        StructDecoder<Void> decoder = INSERT_CHAIN_MESSAGE_STRUCT.decoder(messageBuffer);
+        Long key = decoder.int64(KEY_FIELD);
+        Chain chain = ChainCodec.decodeChain(decoder.struct("chain"));
+        return new InsertFullChainMessage(key, chain);
       }
       case REPLACE: {
         StructDecoder<Void> decoder = REPLACE_MESSAGE_STRUCT.decoder(messageBuffer);
