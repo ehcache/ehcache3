@@ -32,7 +32,9 @@ import org.terracotta.entity.ExecutionStrategy;
 public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage> {
   @Override
   public Location getExecutionLocation(EhcacheEntityMessage message) {
-    if (message instanceof ServerStoreOpMessage.ReplaceAtHeadMessage || message instanceof ServerStoreOpMessage.ClearMessage) {
+    if (message instanceof ServerStoreOpMessage.ReplaceAtHeadMessage ||
+      message instanceof ServerStoreOpMessage.ClearMessage ||
+      message instanceof ServerStoreOpMessage.InsertFullChainMessage) {
       // Server store operation needing replication
       return Location.BOTH;
     } else if (message instanceof ServerStoreOpMessage) {

@@ -49,6 +49,20 @@ public class ServerStoreOpCodecTest {
   }
 
   @Test
+  public void testInsertFullChainMessageCodec() {
+    ServerStoreOpMessage.InsertFullChainMessage insertFullChainMessage = new ServerStoreOpMessage.InsertFullChainMessage(1L,
+      sequencedChainOf(createPayload(10L), createPayload(100L), createPayload(1000L)));
+
+    byte[] encoded = STORE_OP_CODEC.encode(insertFullChainMessage);
+    EhcacheEntityMessage decodeMsg = STORE_OP_CODEC.decode(insertFullChainMessage.getMessageType(), wrap(encoded));
+    ServerStoreOpMessage.InsertFullChainMessage decodedInsertFullChainMessage = (ServerStoreOpMessage.InsertFullChainMessage) decodeMsg;
+
+    assertThat(decodedInsertFullChainMessage.getMessageType(), is(EhcacheMessageType.INSERT_FULL_CHAIN));
+    assertThat(decodedInsertFullChainMessage.getKey(), is(1L));
+    assertThat(decodedInsertFullChainMessage.getChain(), hasPayloads(10L, 100L, 1000L));
+  }
+
+  @Test
   public void testGetMessageCodec() {
     ServerStoreOpMessage getMessage = new ServerStoreOpMessage.GetMessage(2L);
 
