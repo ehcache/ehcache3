@@ -191,12 +191,13 @@ public class SimpleClusterTierClientEntity implements InternalClusterTierClientE
 
   @Override
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
-    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
-    if (responseListeners == null) {
-      responseListeners = new CopyOnWriteArrayList<>();
-      this.responseListeners.put(responseType, responseListeners);
-    }
-    responseListeners.add(responseListener);
+    responseListeners.compute(responseType, (k, v) -> {
+      if (v == null) {
+        v = new CopyOnWriteArrayList<>();
+      }
+      v.add(responseListener);
+      return v;
+    });
   }
 
   @Override

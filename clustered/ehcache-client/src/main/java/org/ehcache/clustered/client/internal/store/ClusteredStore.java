@@ -20,7 +20,6 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
-import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
@@ -84,8 +83,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -730,31 +727,7 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
         ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
         ServerStoreProxy storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency(),
                                                                             getServerCallback(clusteredStore));
-        ReconnectingServerStoreProxy reconnectingServerStoreProxy = new ReconnectingServerStoreProxy(storeProxy, () -> {
-          Runnable reconnectTask = () -> {
-            String cacheId = cacheIdentifier.getId();
-            connectLock.lock();
-            try {
-              try {
-                //TODO: handle race between disconnect event and connection closed exception being thrown
-                // this guy should wait till disconnect event processing is complete.
-                LOGGER.info("Cache {} got disconnected from cluster, reconnecting", cacheId);
-                clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy, true);
-                initStoreInternal(clusteredStore);
-                LOGGER.info("Cache {} got reconnected to cluster", cacheId);
-              } catch (PerpetualCachePersistenceException t) {
-                LOGGER.error("Cache {} failed reconnecting to cluster (failure is perpetual)", cacheId, t);
-                clusteredStore.setStoreProxy(new FailedReconnectStoreProxy(cacheId, t));
-              }
-            } catch (CachePersistenceException e) {
-              throw new RuntimeException(e);
-            } finally {
-              connectLock.unlock();
-            }
-          };
-          CompletableFuture.runAsync(reconnectTask, executionService.getUnorderedExecutor(null, new LinkedBlockingQueue<>()));
-        });
-        clusteredStore.setStoreProxy(reconnectingServerStoreProxy);
+        clusteredStore.setStoreProxy(storeProxy);
       } finally {
         connectLock.unlock();
       }

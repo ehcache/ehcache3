@@ -14,22 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.client.internal.reconnect;
 
-package org.ehcache.clustered.client.internal.service;
+public class FailedClusterTierException extends RuntimeException {
+  private static final long serialVersionUID = 4659324574239228097L;
 
-/**
- * Thrown to indicate an validation error while connecting to a clustered cache.
- */
-public class ClusterTierValidationException extends ClusterTierException {
-
-  private static final long serialVersionUID = 7363986054006535780L;
-
-  public ClusterTierValidationException(String message, Throwable cause) {
+  public FailedClusterTierException(String message, Throwable cause) {
     super(message, cause);
   }
-
-  public ClusterTierValidationException(Throwable cause) {
-    super(cause);
-  }
-
 }
