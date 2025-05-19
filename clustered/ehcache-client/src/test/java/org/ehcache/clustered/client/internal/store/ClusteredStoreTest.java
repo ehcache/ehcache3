@@ -17,7 +17,6 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import com.google.common.base.Objects;
 import org.assertj.core.api.ThrowableAssert;
 import org.ehcache.Cache;
 import org.ehcache.clustered.client.TestTimeSource;
@@ -63,6 +62,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -726,7 +726,7 @@ public class ClusteredStoreTest {
 
       @Override
       protected boolean matchesSafely(Cache.Entry<K, Store.ValueHolder<V>> item) {
-        return Objects.equal(key, item.getKey()) && Objects.equal(value, item.getValue().get());
+        return Objects.equals(key, item.getKey()) && Objects.equals(value, item.getValue().get());
       }
     };
   }

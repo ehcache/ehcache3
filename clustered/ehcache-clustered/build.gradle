@@ -57,7 +57,7 @@ configurations {
 
 dependencies {
   contents project(':clustered:ehcache-client')
-  contents "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  contents "org.terracotta.internal:client-runtime:$terracottaRuntimeVersion"
 
   implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
   implementation project(':ehcache')
@@ -81,16 +81,17 @@ def kitProvides = { Configuration c ->
 
 configurations {
   kit
+  serverRuntime
   serverApis(kitProvides)
   serverLibs(kitProvides)
 }
 
 dependencies {
+  serverRuntime "org.terracotta.internal:server-runtime:$terracottaRuntimeVersion"
   serverApis project(':clustered:server:ehcache-service-api')
   serverLibs project(':clustered:server:ehcache-entity')
   serverLibs project(':clustered:server:ehcache-service')
 
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
   kit "org.terracotta:platform-layout:$terracottaPlatformVersion@tar.gz"
 }
 
@@ -133,6 +134,9 @@ distributions {
           f.path.contains('README.txt') || f.path.contains('server/conf')
         }
         includeEmptyDirs = false
+      }
+      into ("server/lib") {
+        from layout.buildDirectory.dir("server-libs").get()
       }
       into ("server/plugins/api") {
         from configurations.serverApis
@@ -180,6 +184,31 @@ tasks.register('distDir', Sync) {
   with(distributions.main.contents)
 }
 
+var copyServer = tasks.register("copyServer") {
+    var working = layout.buildDirectory.dir("server-libs").get()
+    doLast {
+        project.sync {
+            from(configurations.serverRuntime)
+            into(working)
+        }
+    }
+    outputs.dir(working)
+}
+
+var unzipServer = tasks.register("unzipServer") {
+    dependsOn(copyServer)
+    doLast {
+        var working = layout.buildDirectory.dir("server-libs").get()
+        var runtime = working.file("server-runtime-${terracottaRuntimeVersion}.zip")
+        if (runtime.getAsFile().exists()) {
+            project.sync {
+                from(zipTree(runtime))
+                into(working)
+            }
+        }
+    }
+}
+
 artifacts {
   add(configurations.kit.name, tasks.named('distDir', Sync).map {
     copy -> copy.destinationDir
@@ -191,7 +220,7 @@ publishing.publications.withType(MavenPublication) {
   artifact distTar
 }
 
-[distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar
+[distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar, unzipServer
 
 static Action<FileCopyDetails> dropTopLevelDirectories(int count) {
   { fcd ->

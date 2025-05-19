@@ -35,6 +35,7 @@ import org.terracotta.management.model.stats.ContextualStatistics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -173,7 +174,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
     allDescriptors.addAll(CLUSTERED_DESCRIPTORS);
 
-    assertThat(descriptors).hasSameElementsAs(allDescriptors);
+    assertThat(allDescriptors).hasSameElementsAs(descriptors);
   }
 
   @Test
@@ -203,9 +204,9 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // stats
 
-    assertThat(tierCapabilities[3].getDescriptors()).hasSameElementsAs(SERVER_STORE_DESCRIPTORS);
-    assertThat(managerCapabilities[2].getDescriptors()).hasSameElementsAs(POOL_DESCRIPTORS);
-    assertThat(tierCapabilities[1].getDescriptors()).hasSameElementsAs(POOL_DESCRIPTORS);
+    assertThat(new ArrayList<Descriptor>(SERVER_STORE_DESCRIPTORS)).hasSameElementsAs(tierCapabilities[3].getDescriptors());
+    assertThat(new ArrayList<Descriptor>(POOL_DESCRIPTORS)).hasSameElementsAs(managerCapabilities[2].getDescriptors());
+    assertThat(new ArrayList<Descriptor>(POOL_DESCRIPTORS)).hasSameElementsAs(tierCapabilities[1].getDescriptors());
 
     // ClusterTierManagerSettings
 
@@ -271,7 +272,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     assertThat(managerCapabilities[0].getDescriptors()).hasSize(3); // time + 2 resources
 
-    assertThat(managerCapabilities[1].getDescriptors()).hasSameElementsAs(OFFHEAP_RES_DESCRIPTORS);
+    assertThat(new ArrayList<Descriptor>(OFFHEAP_RES_DESCRIPTORS)).hasSameElementsAs(managerCapabilities[1].getDescriptors());
   }
 
   @Test

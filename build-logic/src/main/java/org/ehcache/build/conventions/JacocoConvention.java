@@ -27,6 +27,7 @@ public class JacocoConvention implements Plugin<Project> {
     project.getTasks().withType(Test.class).configureEach(test -> {
       test.getExtensions().configure(JacocoTaskExtension.class, jacoco -> {
         jacoco.getExcludes().add("org.terracotta.tripwire.*");
+        jacoco.getExcludes().add("org.terracotta.management.*");
       });
     });
   }

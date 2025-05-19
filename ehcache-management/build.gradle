@@ -36,7 +36,7 @@ dependencies {
 
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:ehcache-client')
-  compileOnly "org.terracotta:entity-client-api:$terracottaApisVersion"
+  compileOnly "org.terracotta:client-api:$terracottaApisVersion"
   compileOnlyApi ("org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion") {
     // This is to avoid stats lib being directly used.
     exclude group:'org.terracotta', module:'statistics'
