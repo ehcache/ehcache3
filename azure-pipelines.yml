@@ -27,42 +27,23 @@ resources:
 jobs:
 - template: build-templates/gradle-common.yml@templates
   parameters:
-    jdkVersion: '1.8'
-    jobName: 'LinuxJava8'
-    gradleTasks: 'check -x dependencyCheckAggregate'
-
-- template: build-templates/gradle-common.yml@templates
-  parameters:
-    jdkVersion: '1.8'
-    options: '-PtestVM=java11Home'
-    jobName: 'LinuxJava11'
-    gradleTasks: 'check -x dependencyCheckAggregate'
-
-- template: build-templates/gradle-common.yml@templates
-  parameters:
-    jdkVersion: '1.8'
+    jdkVersion: '17'
     options: '-PtestVM=java17Home'
     jobName: 'LinuxJava17'
     gradleTasks: 'check -x dependencyCheckAggregate'
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
-    jdkVersion: '1.8'
+    jdkVersion: '17'
     options: '-PtestVM=java21Home'
     jobName: 'LinuxJava21'
     gradleTasks: 'check -x dependencyCheckAggregate'
 
-- template: build-templates/gradle-common.yml@templates
-  parameters:
-    vmImage: 'windows-latest'
-    jdkVersion: '1.8'
-    jobName: 'WindowsJava8'
-    gradleTasks: 'check -x dependencyCheckAggregate'
 
 - template: build-templates/gradle-common.yml@templates
   parameters:
     vmImage: 'windows-latest'
-    jdkVersion: '1.8'
+    jdkVersion: '17'
     options: '-PtestVM=java21Home'
     jobName: 'WindowsJava21'
     gradleTasks: 'check -x dependencyCheckAggregate'

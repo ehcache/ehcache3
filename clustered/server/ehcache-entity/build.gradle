@@ -38,4 +38,11 @@ dependencies {
 
   testImplementation project(':clustered:server:ehcache-service')
   testImplementation project(':clustered:test-utils')
+  testImplementation ("org.terracotta:passthrough-server:$terracottaRuntimeVersion") {
+    exclude group:'org.slf4j'
+  }
+
+  testImplementation project(':clustered:server:ehcache-service-api')
+  testImplementation "org.terracotta:offheap-resource:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:statistics:$statisticVersion"
 }

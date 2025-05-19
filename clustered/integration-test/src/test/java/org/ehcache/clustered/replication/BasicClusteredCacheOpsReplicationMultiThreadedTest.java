@@ -99,7 +99,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   public Consistency cacheConsistency;
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).inline(true)
     .withServiceFragment(offheapResource("primary-server-resource", 24)).build());
 
   @Rule
