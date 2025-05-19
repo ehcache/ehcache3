@@ -79,6 +79,11 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    throw new UnsupportedOperationException("not supported");
+  }
+
+  @Override
   public ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     return onStoreProxy(serverStoreProxy -> serverStoreProxy.getAndAppend(key, payLoad));
   }
@@ -183,6 +188,11 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
     }
 
     @Override
+    public void insertChain(long key, Chain chain) throws TimeoutException {
+      throw new ReconnectInProgressException();
+    }
+
+    @Override
     public ChainEntry getAndAppend(long key, ByteBuffer payLoad) {
       throw new ReconnectInProgressException();
     }
@@ -258,6 +268,11 @@ public class ReconnectingServerStoreProxy implements LockingServerStoreProxy {
       @Override
       public void append(long key, ByteBuffer payLoad) throws TimeoutException {
         serverStoreProxy.append(key, payLoad);
+      }
+
+      @Override
+      public void insertChain(long key, Chain chain) throws TimeoutException {
+        serverStoreProxy.insertChain(key, chain);
       }
 
       @Override

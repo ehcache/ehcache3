@@ -128,6 +128,11 @@ public class OffHeapServerStore implements ServerStore, MapInternals {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    put(key, chain);
+  }
+
+  @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     LongFunction<Chain> lambda;
     if (listener != null && fireEvents) {

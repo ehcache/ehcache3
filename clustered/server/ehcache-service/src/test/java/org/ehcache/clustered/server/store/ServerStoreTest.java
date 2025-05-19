@@ -32,6 +32,7 @@ import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.ChainUtils.readPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static java.util.stream.LongStream.range;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -76,6 +77,15 @@ public abstract class ServerStoreTest {
     Chain chain = store.get(1L);
     assertThat(chain.isEmpty(), is(false));
     assertThat(chain, hasPayloads(1L));
+  }
+
+  @Test
+  public void testInsertFullChain() throws Exception {
+    ServerStore store = newStore();
+    store.insertChain(1L, sequencedChainOf(createPayload(1L), createPayload(2L)));
+    Chain chain = store.get(1L);
+    assertThat(chain.isEmpty(), is(false));
+    assertThat(chain, hasPayloads(1L, 2L));
   }
 
   @Test

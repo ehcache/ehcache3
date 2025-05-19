@@ -219,6 +219,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    throw new UnsupportedOperationException("not supported");
+  }
+
+  @Override
   public ChainEntry getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return performWaitingForHashInvalidation(key, () -> delegate.getAndAppend(key, payLoad), entity.getTimeouts().getWriteOperationTimeout());
   }

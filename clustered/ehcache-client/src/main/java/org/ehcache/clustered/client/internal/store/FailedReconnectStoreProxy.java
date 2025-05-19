@@ -44,6 +44,11 @@ public class FailedReconnectStoreProxy implements LockingServerStoreProxy {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    throw new UnsupportedOperationException("not supported");
+  }
+
+  @Override
   public ChainEntry getAndAppend(long key, ByteBuffer payLoad) {
     throw new RuntimeException("Cache " + getCacheId() + " failed reconnecting to cluster", failure);
   }
