@@ -24,6 +24,9 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.loaderwriter.writebehind.ClusteredWriteBehindStore;
+import org.ehcache.clustered.client.internal.reconnect.FailedReconnectClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.reconnect.ReconnectInProgressClusterTierClientEntity;
+import org.ehcache.clustered.client.internal.reconnect.ReconnectableClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
@@ -282,13 +285,43 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
 
     ClusterTierClientEntity storeClientEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, reconnectSet.remove(cacheId));
 
+    Runnable reconnectTask = () -> {
+      try {
+        //TODO: handle race between disconnect event and connection closed exception being thrown
+        // this guy should wait till disconnect event processing is complete.
+        ReconnectableClusterTierClientEntity reconnectableEntity = (ReconnectableClusterTierClientEntity) connectionState.getClusterTierClientEntity(cacheId);
+        if (reconnectableEntity != null) {
+          LOGGER.info("Cache {} got disconnected from cluster, reconnecting", cacheId);
+          ReconnectInProgressClusterTierClientEntity reconnectInProgressEntity = (ReconnectInProgressClusterTierClientEntity) reconnectableEntity.delegate();
+
+          if (!reconnectInProgressEntity.checkIfClosed()) {
+            try {
+              ClusterTierClientEntity newEntity = connectionState.createClusterTierClientEntity(cacheId, clientStoreConfiguration, true);
+              reconnectableEntity.setUpReconnect(newEntity, clientStoreConfiguration, connectionState.getConnection());
+            } catch (Throwable e) {
+              throw new CachePersistenceException("Reconnect did not succeed", e);
+            }
+            LOGGER.info("Cache {} got reconnected to cluster", cacheId);
+          }
+        }
+      } catch (CachePersistenceException t) {
+        LOGGER.error("Cache {} failed reconnecting to cluster (failure is perpetual)", cacheId, t);
+        if (connectionState.getClusterTierClientEntity(cacheId) != null) {
+          ((ReconnectableClusterTierClientEntity) connectionState.getClusterTierClientEntity(cacheId)).setDelegateRef(new FailedReconnectClusterTierClientEntity(cacheId, t));
+        }
+      }
+    };
+
+    ReconnectableClusterTierClientEntity reconnectableEntity = new ReconnectableClusterTierClientEntity(storeClientEntity, reconnectTask, asyncExecutor);
+    connectionState.insertClusterTierClientEntity(cacheId, reconnectableEntity);
+
     ServerStoreProxy serverStoreProxy;
     switch (configuredConsistency) {
       case STRONG:
-        serverStoreProxy =  new StrongServerStoreProxy(cacheId, storeClientEntity, invalidation);
+        serverStoreProxy = new StrongServerStoreProxy(cacheId, reconnectableEntity, invalidation);
         break;
       case EVENTUAL:
-        serverStoreProxy = new EventualServerStoreProxy(cacheId, storeClientEntity, invalidation);
+        serverStoreProxy = new EventualServerStoreProxy(cacheId, reconnectableEntity, invalidation);
         break;
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);
@@ -317,7 +350,7 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
     }
 
     if (storeConfig.getCacheLoaderWriter() != null) {
-      LockManager lockManager = new LockManager(storeClientEntity);
+      LockManager lockManager = new LockManager(reconnectableEntity);
       serverStoreProxy = new LockingServerStoreProxyImpl(serverStoreProxy, lockManager);
     }
 
@@ -375,6 +408,11 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
   // for test purposes
   public ConnectionState getConnectionState() {
     return connectionState;
+  }
+
+  // for test purposes
+  protected ExecutorService getExecutor() {
+    return asyncExecutor;
   }
 
   private static ExecutorService createAsyncWorker() {

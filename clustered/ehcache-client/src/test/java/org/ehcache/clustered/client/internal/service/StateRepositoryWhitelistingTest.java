@@ -23,9 +23,9 @@ import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurati
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.client.internal.store.SimpleClusterTierClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
@@ -105,7 +105,7 @@ public class StateRepositoryWhitelistingTest {
       Consistency.STRONG,
       mock(ServerStoreProxy.ServerCallback.class));
 
-    SimpleClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
+    ClusterTierClientEntity clientEntity = getEntity(serverStoreProxy);
 
     stateRepository = new ClusterStateRepository(new ClusteringService.ClusteredCacheIdentifier() {
       @Override
@@ -127,10 +127,10 @@ public class StateRepositoryWhitelistingTest {
     clusterControl.tearDown();
   }
 
-  private static SimpleClusterTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
+  private static ClusterTierClientEntity getEntity(ServerStoreProxy clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
-    return (SimpleClusterTierClientEntity)entity.get(clusteringService);
+    return (ClusterTierClientEntity) entity.get(clusteringService);
   }
 
   @Test

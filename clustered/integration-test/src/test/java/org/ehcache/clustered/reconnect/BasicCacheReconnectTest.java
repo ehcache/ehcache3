@@ -22,12 +22,17 @@ import org.ehcache.StateTransitionException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxyException;
 import org.ehcache.clustered.util.TCPProxyManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.spi.resilience.StoreAccessException;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -48,8 +53,10 @@ import static org.ehcache.testing.StandardCluster.clusterPath;
 import static org.ehcache.testing.StandardCluster.leaseLength;
 import static org.ehcache.testing.StandardCluster.newCluster;
 import static org.ehcache.testing.StandardCluster.offheapResource;
+import static org.ehcache.testing.StandardTimeouts.eventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
@@ -111,7 +118,8 @@ public class BasicCacheReconnectTest {
         future.get(5000, TimeUnit.MILLISECONDS);
         fail();
       } catch (ExecutionException e) {
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
+        assertThat(e.getCause().getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
+        assertThat(e, hasCauseChain(RuntimeException.class, StoreAccessException.class, ServerStoreProxyException.class, ReconnectInProgressException.class));
       }
 
       CompletableFuture<Void> getSucceededFuture = CompletableFuture.runAsync(() -> {
@@ -125,11 +133,40 @@ public class BasicCacheReconnectTest {
         }
       });
 
-      getSucceededFuture.get(20000, TimeUnit.MILLISECONDS);
+      assertThat(getSucceededFuture::isDone, eventually().is(true));
+      assertThat(getSucceededFuture.isCompletedExceptionally(), is(false));
     } finally {
       cacheManager.destroyCache("clustered-cache");
     }
 
+  }
+
+  @SafeVarargs
+  private final Matcher<Throwable> hasCauseChain(Class<? extends Throwable>... causes) {
+    return new TypeSafeMatcher<Throwable>() {
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("Exception caused by: ");
+        for(Class<? extends Throwable> causeClass : causes) {
+          description.appendValue(causeClass).appendValue(": ");
+        }
+      }
+
+      @Override
+      protected boolean matchesSafely(Throwable exception) {
+        Throwable check = exception;
+        boolean res=false;
+        for (Class<? extends Throwable> causeClass : causes) {
+          res = causeClass.isInstance(check.getCause());
+          if(!res) {
+            return false;
+          }
+          check = check.getCause();
+        }
+        return res;
+      }
+    };
   }
 
   @Test
@@ -157,6 +194,33 @@ public class BasicCacheReconnectTest {
     cacheManager.destroyCache("clustered-cache");
     assertThat(cacheManager.getCache("clustered-cache", Long.class, String.class), nullValue());
 
+  }
+
+  @Test
+  public void cacheClosedDuringReconnect() throws Exception {
+    try {
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      assertThat(cache, notNullValue());
+
+      cache.put(0L, "firstValue");
+      expireLease();
+      try {
+        cache.get(0L);
+        fail();
+      } catch (RuntimeException e) {
+        assertThat(e.getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
+      }
+
+      cacheManager.removeCache("clustered-cache");
+      try {
+        cache.get(0L);
+        fail();
+      } catch (RuntimeException e) {
+        assertThat(e, instanceOf(IllegalStateException.class));
+      }
+    } finally {
+      cacheManager.close();
+    }
   }
 
   private void expireLease() throws InterruptedException {
