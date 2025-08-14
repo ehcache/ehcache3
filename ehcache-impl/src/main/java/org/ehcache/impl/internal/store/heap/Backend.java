@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 import java.util.function.BiFunction;
 
 /**
@@ -76,5 +75,5 @@ interface Backend<K, V> {
 
   void updateUsageInBytesIfRequired(long delta);
 
-  Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, ? super OnHeapValueHolder<?>> evictionAdvisor);
+  Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, ? super OnHeapValueHolder<?>> evictionAdvisor);
 }

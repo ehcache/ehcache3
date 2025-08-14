@@ -29,13 +29,12 @@ public interface EvictingConcurrentMap<K, V> extends ConcurrentMap<K, V>{
   /**
    * Return the preferred entry to evict based on a sample of entries taken from the map.
    *
-   * @param rndm Random implementation used to determine the sample randomly
    * @param size Number of sampled entries
    * @param prioritizer Prioritizer used to determine the best entry to evict in the sample
    * @param evictionAdvisor Can veto against the eviction of an entry
    * @return Entry to evict or null is none was found
    */
-  Entry<K, V> getEvictionCandidate(Random rndm, int size, Comparator<? super V> prioritizer, EvictionAdvisor<? super K, ? super V> evictionAdvisor);
+  Entry<K, V> getEvictionCandidate(int size, Comparator<? super V> prioritizer, EvictionAdvisor<? super K, ? super V> evictionAdvisor);
 
   /**
    * Returns the number of mappings. This method should be used
