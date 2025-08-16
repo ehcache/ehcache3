@@ -13,6 +13,8 @@ public class BaseConvention implements Plugin<Project> {
   public void apply(Project project) {
     project.getPlugins().apply(BasePlugin.class);
 
+    //TODO temporary for local testing - rollback before merging
+    project.getRepositories().mavenLocal();
     project.getRepositories().mavenCentral();
     project.getRepositories().maven(repo -> repo.setUrl(URI.create("https://repo.terracotta.org/maven2")));
 

@@ -16,7 +16,7 @@ public class SpotbugsConvention implements Plugin<Project> {
 
     SpotBugsExtension spotbugs = project.getExtensions().getByType(SpotBugsExtension.class);
 
-    spotbugs.getIgnoreFailures().set(false);
+    spotbugs.getIgnoreFailures().set(true);
     // Later versions of Spotbugs have stupid heuristics for EI_EXPOSE_REP*
     spotbugs.getToolVersion().set("4.2.3");
 

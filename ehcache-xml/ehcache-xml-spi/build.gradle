@@ -20,4 +20,3 @@ jar {
     'Import-Package': "*"
   )
 }
-
