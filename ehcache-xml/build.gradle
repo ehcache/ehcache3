@@ -115,6 +115,7 @@ dependencies {
 
   xjcToolJakarta 'com.sun.xml.bind:jaxb-xjc:3.0.0-M4'
   xjcToolJakarta 'com.sun.xml.bind:jaxb-impl:3.0.0-M4'
+  xjcToolJakarta 'javax.xml.bind:jaxb-api:[2.2,3)'
 
   lowerBoundTestRuntimeClasspath 'com.sun.activation:javax.activation:1.2.0'
 }
