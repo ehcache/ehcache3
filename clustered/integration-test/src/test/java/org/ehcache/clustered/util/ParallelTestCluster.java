@@ -21,8 +21,8 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
-import org.terracotta.passthrough.IClusterControl;
 import org.terracotta.testing.rules.Cluster;
+import org.terracotta.testing.rules.ClusterControl;
 
 import java.net.URI;
 import java.util.concurrent.Phaser;
@@ -32,7 +32,7 @@ import java.util.function.Consumer;
 public class ParallelTestCluster implements TestRule {
 
   private final Cluster cluster;
-  private final IClusterControl control;
+  private final ClusterControl control;
   private final AtomicReference<ClusterTask> nextTask = new AtomicReference<>();
 
   private final Phaser membership = new Phaser() {
@@ -52,8 +52,8 @@ public class ParallelTestCluster implements TestRule {
   public ParallelTestCluster(Cluster cluster) {
     this.cluster = cluster;
 
-    IClusterControl underlyingControl = cluster.getClusterControl();
-    this.control = new IClusterControl() {
+    ClusterControl underlyingControl = cluster.getClusterControl();
+    this.control = new ClusterControl() {
       @Override
       public void waitForActive() throws Exception {
         underlyingControl.waitForActive();
@@ -123,7 +123,7 @@ public class ParallelTestCluster implements TestRule {
     return cluster.newConnection();
   }
 
-  public IClusterControl getClusterControl() {
+  public ClusterControl getClusterControl() {
     return control;
   }
 
@@ -155,12 +155,12 @@ public class ParallelTestCluster implements TestRule {
     }
   }
 
-  enum ClusterTask implements Consumer<IClusterControl> {
-    START_ONE_SERVER(IClusterControl::startOneServer),
-    START_ALL_SERVERS(IClusterControl::startAllServers),
-    TERMINATE_ACTIVE(IClusterControl::terminateActive),
-    TERMINATE_ONE_PASSIVE(IClusterControl::terminateOnePassive),
-    TERMINATE_ALL_SERVERS(IClusterControl::terminateAllServers);
+  enum ClusterTask implements Consumer<ClusterControl> {
+    START_ONE_SERVER(ClusterControl::startOneServer),
+    START_ALL_SERVERS(ClusterControl::startAllServers),
+    TERMINATE_ACTIVE(ClusterControl::terminateActive),
+    TERMINATE_ONE_PASSIVE(ClusterControl::terminateOnePassive),
+    TERMINATE_ALL_SERVERS(ClusterControl::terminateAllServers);
 
     private final Task task;
 
@@ -168,7 +168,7 @@ public class ParallelTestCluster implements TestRule {
       this.task = task;
     }
 
-    public void accept(IClusterControl control) {
+    public void accept(ClusterControl control) {
       try {
         task.run(control);
       } catch (Exception e) {
@@ -177,7 +177,7 @@ public class ParallelTestCluster implements TestRule {
     }
 
     interface Task {
-      void run(IClusterControl control) throws Exception;
+      void run(ClusterControl control) throws Exception;
     }
   }
 }

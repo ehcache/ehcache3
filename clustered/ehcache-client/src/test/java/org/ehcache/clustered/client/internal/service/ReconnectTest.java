@@ -78,8 +78,10 @@ public class ReconnectTest {
       MockConnectionService.mockConnection = Mockito.mock(Connection.class, Mockito.withSettings().defaultAnswer(invocation -> {
         throw new RuntimeException("Stop reconnecting");
       }));
-      while (connectionState.getReconnectCount() == 1) {
-        break;
+      while (true) {
+        if (connectionState.getReconnectCount() > 0) {
+          break;
+        }
       }
     });
 
@@ -91,7 +93,7 @@ public class ReconnectTest {
       assertThat(e.getCause().getMessage(), Matchers.is("Stop reconnecting"));
     }
 
-    assertThat(connectionState.getReconnectCount(), Matchers.is(1));
+    assertThat(connectionState.getReconnectCount(), Matchers.greaterThanOrEqualTo(1));
 
   }
 

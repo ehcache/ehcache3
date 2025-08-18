@@ -11,7 +11,6 @@ org.ehcache.impl.internal.store.shared.authoritative.SharedAuthoritativeTierProv
 org.ehcache.impl.internal.store.shared.caching.SharedCachingTierProviderFactory
 org.ehcache.impl.internal.store.shared.caching.lower.SharedLowerCachingTierProviderFactory
 org.ehcache.impl.internal.store.shared.caching.higher.SharedHigherCachingTierProviderFactory
-
 org.ehcache.impl.internal.TimeSourceServiceFactory
 org.ehcache.impl.internal.spi.serialization.DefaultSerializationProviderFactory
 org.ehcache.impl.internal.spi.loaderwriter.DefaultCacheLoaderWriterProviderFactory
