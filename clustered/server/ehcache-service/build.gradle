@@ -28,13 +28,14 @@ publishing.publications.withType(MavenPublication) {
 
 dependencies {
   service project(':clustered:server:ehcache-service-api')
-  service "org.terracotta:offheap-resource:$terracottaPlatformVersion"
+  service "org.terracotta:terracotta-resources-offheap:$terracottaPlatformVersion"
   service "org.terracotta:statistics:$statisticVersion"
 
   implementation project(':clustered:ehcache-common')
   implementation "org.terracotta:offheap-store:$offheapVersion"
 
   testImplementation project(':clustered:test-utils')
-  testImplementation "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-management-server-api:$terracottaPlatformVersion"
   testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
+  testImplementation "org.terracotta:terracotta-resources-offheap:$terracottaPlatformVersion"
 }
