@@ -144,7 +144,7 @@ public class EventsReconnectTest {
         future.get(5000, TimeUnit.MILLISECONDS);
         fail();
       } catch (ExecutionException e) {
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
+        assertThat(e.getCause().getCause().getCause().getCause(), instanceOf(ReconnectInProgressException.class));
       }
       int beforeDisconnectionEventCounter = cacheEventListener.events.get(EventType.CREATED).size();
 

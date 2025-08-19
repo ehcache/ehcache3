@@ -39,7 +39,7 @@ public class ThrowingResiliencyStrategy<K, V> implements ResilienceStrategy<K, V
   // sometimes puts might even timeout in build systems
   @Override
   public void putFailure(K key, V value, StoreAccessException e) {
-    if (e.getCause() instanceof ReconnectInProgressException) {
+    if (e.getCause().getCause() instanceof ReconnectInProgressException || e.getCause() instanceof ReconnectInProgressException) {
       throw new RuntimeException(e);
     }
   }

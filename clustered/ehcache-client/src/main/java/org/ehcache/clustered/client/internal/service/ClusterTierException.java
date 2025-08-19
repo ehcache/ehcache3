@@ -28,4 +28,8 @@ public abstract class ClusterTierException extends Exception {
     super(message, cause);
   }
 
+  public ClusterTierException(Throwable cause) {
+    super(cause);
+  }
+
 }

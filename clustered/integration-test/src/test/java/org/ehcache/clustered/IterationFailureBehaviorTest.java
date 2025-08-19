@@ -21,6 +21,7 @@ import org.ehcache.CacheIterationException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxyException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.config.CacheConfiguration;
@@ -33,7 +34,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.terracotta.exception.ConnectionClosedException;
 import org.terracotta.testing.rules.Cluster;
 import org.terracotta.utilities.test.rules.TestRetryer;
 
@@ -120,8 +120,8 @@ public class IterationFailureBehaviorTest {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause().getCause(),
-          either(instanceOf(ConnectionClosedException.class)) //lost in the space between active and passive
+        assertThat(e.getCause().getCause().getCause(),
+          either(instanceOf(ReconnectInProgressException.class)) //lost in the space between active and passive
             .or(instanceOf(InvalidOperationException.class))); //picked up by the passive - it doesn't have our iterator
       }
 
@@ -137,7 +137,7 @@ public class IterationFailureBehaviorTest {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.get().getConnectionURI().resolve("/iterator-cm"))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+        .autoCreateOnReconnect(server -> server.defaultServerResource("primary-server-resource")));
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> smallConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -178,8 +178,8 @@ public class IterationFailureBehaviorTest {
       } catch (CacheIterationException e) {
         assertThat(e.getCause(), instanceOf(StoreAccessException.class));
         assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause().getCause(),
-          either(instanceOf(ConnectionClosedException.class)) //lost in the space between the two cluster executions
+        assertThat(e.getCause().getCause().getCause(),
+          either(instanceOf(ReconnectInProgressException.class)) //lost in the space between the two cluster executions
             .or(instanceOf(InvalidOperationException.class))); //picked up by the new cluster - it doesn't have our iterator
       }
 

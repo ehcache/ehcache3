@@ -69,7 +69,7 @@ test {
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
-  // testLogging.showStandardStreams = true
+   testLogging.showStandardStreams = true
 }
 
 configurations.all {
