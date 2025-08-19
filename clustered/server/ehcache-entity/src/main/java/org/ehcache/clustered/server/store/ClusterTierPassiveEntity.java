@@ -331,6 +331,15 @@ public class ClusterTierPassiveEntity implements PassiveServerEntity<EhcacheEnti
         cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
         break;
       }
+      case INSERT_FULL_CHAIN: {
+        ServerStoreOpMessage.InsertFullChainMessage insertFullChainMessage = (ServerStoreOpMessage.InsertFullChainMessage) message;
+        try {
+          cacheStore.insertChain(insertFullChainMessage.getKey(), insertFullChainMessage.getChain());
+        } catch (TimeoutException e) {
+          throw new AssertionError("Server side store is not expected to throw timeout exception", e);
+        }
+        break;
+      }
       case CLEAR: {
         LOGGER.info("Clearing cluster tier {}", storeIdentifier);
         try {

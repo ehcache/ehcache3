@@ -48,6 +48,11 @@ public class ReferenceStoreImpl implements ServerStore  {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    map.put(key, chain);
+  }
+
+  @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     while (true) {
       Chain existing = map.get(key);

@@ -35,6 +35,7 @@ import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ClusterTierEntityConfiguration;
+import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.CommunicatorServiceConfiguration;
 import org.ehcache.clustered.server.ConcurrencyStrategies;
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
@@ -84,6 +85,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -97,6 +99,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.readPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
 import static org.ehcache.clustered.Matchers.entry;
 import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -556,6 +560,27 @@ public class ClusterTierActiveEntityTest {
     assertThat(response, instanceOf(EhcacheEntityResponse.GetResponse.class));
     EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse) response;
     assertThat(getResponse.getChain().isEmpty(), is(false));
+  }
+
+  @Test
+  public void testInsertFullChain() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
+    activeEntity.createNew();
+
+    TestClientDescriptor client = TestClientDescriptor.newClient();
+    activeEntity.connected(client);
+
+    assertThat(activeEntity.invokeActive(client.invokeContext(), new ServerStoreOpMessage.InsertFullChainMessage(1L, sequencedChainOf(createPayload(1L), createPayload(2L)))), succeeds());
+
+    EhcacheEntityResponse response = activeEntity.invokeActive(client.invokeContext(), new ServerStoreOpMessage.GetMessage(1L));
+    assertThat(response, instanceOf(EhcacheEntityResponse.GetResponse.class));
+    EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse) response;
+    assertThat(getResponse.getChain().length(), is(2));
+    Chain chain = getResponse.getChain();
+    Iterator<Element> iterator = chain.iterator();
+    assertThat(readPayload(iterator.next().getPayload()), is(1L));
+    assertThat(readPayload(iterator.next().getPayload()), is(2L));
+    assertThat(iterator.hasNext(), is(false));
   }
 
   @Test

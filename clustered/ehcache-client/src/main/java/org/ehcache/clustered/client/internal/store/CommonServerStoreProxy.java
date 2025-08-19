@@ -151,6 +151,11 @@ class CommonServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    throw new UnsupportedOperationException("not supported");
+  }
+
+  @Override
   public ChainEntry getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException {
     EhcacheEntityResponse response;
     try {

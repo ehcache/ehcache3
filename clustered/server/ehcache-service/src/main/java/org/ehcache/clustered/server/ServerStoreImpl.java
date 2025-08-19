@@ -87,6 +87,11 @@ public class ServerStoreImpl implements ServerSideServerStore, MapInternals {
   }
 
   @Override
+  public void insertChain(long key, Chain chain) {
+    store.put(key, chain);
+  }
+
+  @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     checkPayLoadSize(payLoad);
     return store.getAndAppend(key, payLoad);

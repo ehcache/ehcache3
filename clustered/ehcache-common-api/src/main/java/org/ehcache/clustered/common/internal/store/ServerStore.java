@@ -65,6 +65,14 @@ public interface ServerStore {
   void append(long key, ByteBuffer payLoad) throws TimeoutException;
 
   /**
+   * Inserts the whole chain for the provided key.
+   * @param key to which the {@link Chain} is to be written.
+   * @param chain to be inserted.
+   *
+   * @throws TimeoutException if the chain insertion exceeds the timeout configured for write operations.
+   */
+  void insertChain(long key, Chain chain) throws TimeoutException;
+  /**
    * The Chain associated with key, previous to append is returned.
    * An empty Chain if no mapping existed previously.
    * The operation atomically appends payLoad and returns the previously associated Chain

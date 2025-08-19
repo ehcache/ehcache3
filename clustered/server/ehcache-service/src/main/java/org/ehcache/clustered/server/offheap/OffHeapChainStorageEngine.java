@@ -55,9 +55,9 @@ public class OffHeapChainStorageEngine<K> implements ChainStorageEngine<K>, Bina
    * (byte 0 in the heads chain structure, not byte 0 in the element)
    */
   private static final int ELEMENT_HEADER_SEQUENCE_OFFSET = 0;
-  private static final int ELEMENT_HEADER_LENGTH_OFFSET = 8;
+  public static final int ELEMENT_HEADER_LENGTH_OFFSET = 8;
   private static final int ELEMENT_HEADER_NEXT_OFFSET = 12;
-  private static final int ELEMENT_HEADER_SIZE = 20;
+  public static final int ELEMENT_HEADER_SIZE = 20;
 
   /*
    *           CHAIN
