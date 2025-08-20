@@ -28,9 +28,13 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.event.EventType;
 import javax.cache.spi.CachingProvider;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * @author rism
@@ -75,6 +79,22 @@ public class UnwrapTest {
     Eh107CacheEntryEvent<String, String> cacheEntryEvent = new Eh107CacheEntryEvent.NormalEvent<>(cache, EventType.CREATED, ehEvent, false);
     assertThat(cacheEntryEvent.unwrap(org.ehcache.event.CacheEvent.class), is(instanceOf(CacheEvent.class)));
     assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.NormalEvent.class)));
+  }
+
+  @Test
+  public void testCacheMutationViaUnwrap() {
+    org.ehcache.CacheManager ehcacheManager = cacheManager.unwrap(org.ehcache.CacheManager.class);
+    org.ehcache.Cache<Integer, String> cache = ehcacheManager.createCache("jcache", newCacheConfigurationBuilder(Integer.class, String.class, heap(5)));
+
+    Cache<Integer, String> javaxCache = cacheManager.getCache("jcache", Integer.class, String.class);
+    assertThat(javaxCache, is(notNullValue()));
+
+    cache.put(1, "one");
+
+    assertThat(javaxCache.get(1), is("one"));
+
+    ehcacheManager.removeCache("jcache");
+    assertThat(cacheManager.getCache("jcache", Integer.class, String.class), is(nullValue()));
   }
 
   private class EhEvent implements CacheEvent<String,String> {

@@ -57,6 +57,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 
@@ -70,6 +71,11 @@ public class Eh107XmlIntegrationTest {
     cachingProvider = Caching.getCachingProvider();
     cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-107-integration.xml")
         .toURI(), cachingProvider.getDefaultClassLoader());
+  }
+
+  @Test
+  public void testImmediateCacheNames() {
+    assertThat(cacheManager.getCacheNames(), containsInAnyOrder("customerCache", "productCache"));
   }
 
   @Test
