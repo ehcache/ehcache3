@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -61,8 +60,8 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, ? super OnHeapValueHolder<?>> evictionAdvisor) {
-    Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> candidate = keyCopyMap.getEvictionCandidate(random, size, prioritizer, evictionAdvisor);
+  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, ? super OnHeapValueHolder<?>> evictionAdvisor) {
+    Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> candidate = keyCopyMap.getEvictionCandidate(size, prioritizer, evictionAdvisor);
 
     if (candidate == null) {
       return null;
