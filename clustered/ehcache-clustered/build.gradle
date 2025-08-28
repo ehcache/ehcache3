@@ -92,7 +92,7 @@ dependencies {
   serverLibs project(':clustered:server:ehcache-entity')
   serverLibs project(':clustered:server:ehcache-service')
 
-  kit "org.terracotta:platform-layout:$terracottaPlatformVersion@tar.gz"
+  kit "org.terracotta:terracotta-platform-layout:$terracottaPlatformVersion@tar.gz"
 }
 
 task copyDocs(type: Sync) {

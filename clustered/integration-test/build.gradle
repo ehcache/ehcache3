@@ -39,7 +39,7 @@ dependencies {
   testImplementation "org.terracotta:terracotta-management-entities-nms-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta:terracotta-management-entities-nms-agent-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
-  testImplementation("org.terracotta:terracotta-dynamic-config-testing-galvan:$terracottaRuntimeVersion") {
+  testImplementation("org.terracotta:terracotta-dynamic-config-testing-galvan:$terracottaPlatformVersion") {
     exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
     exclude group: 'org.slf4j'
   }
