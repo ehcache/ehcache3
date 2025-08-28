@@ -64,4 +64,7 @@ dependencies {
   }
   testImplementation testFixtures(project(':ehcache-xml'))
   testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
+  testImplementation ("org.terracotta:terracotta-structures:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
 }

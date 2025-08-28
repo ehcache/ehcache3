@@ -43,12 +43,16 @@ dependencies {
     exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
     exclude group: 'org.slf4j'
   }
-  testImplementation("org.terracotta:terracotta-dynamic-config-cli-upgrade-tool:$terracottaPlatformVersion")
+  testImplementation("org.terracotta:terracotta-dynamic-config-cli-upgrade-tool:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
   testImplementation "javax.cache:cache-api:$jcacheVersion"
   testImplementation ("ch.qos.logback:logback-classic:1.2.13") {
     exclude group: 'org.slf4j'
   }
-  testImplementation("org.terracotta:terracotta-dynamic-config-cli-upgrade-tool-oss:$terracottaPlatformVersion")
+  testImplementation("org.terracotta:terracotta-dynamic-config-cli-upgrade-tool-oss:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
 }
 
 task unzipKit(type: Sync) {

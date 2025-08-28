@@ -23,30 +23,32 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import static java.util.Collections.synchronizedMap;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
+import static java.util.stream.Collectors.toList;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
-
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import static org.mockito.Mockito.mock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.common.struct.Measure;
+import org.terracotta.common.struct.MemoryUnit;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionPropertyNames;
@@ -63,18 +65,10 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.PermanentEntityException;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
-import org.terracotta.offheapresource.config.MemoryUnit;
-import org.terracotta.offheapresource.config.OffheapResourcesType;
-import org.terracotta.offheapresource.config.ResourceType;
 import org.terracotta.passthrough.IAsynchronousServerCrasher;
 import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
-
-import static java.util.Collections.synchronizedMap;
-import static java.util.stream.Collectors.toCollection;
-import static java.util.stream.Collectors.toList;
-import static org.mockito.Mockito.mock;
 
 
 /**
@@ -176,21 +170,6 @@ public class UnitTestConnectionService implements ConnectionService {
     }
     stripeDescriptor.removeConnections();
   }
-
-  public static OffheapResourcesType getOffheapResourcesType(String resourceName, int size, MemoryUnit unit) {
-    OffheapResourcesType resources = new OffheapResourcesType();
-    resources.getResource().add(getResource(resourceName, size, unit));
-    return resources;
-  }
-
-  private static ResourceType getResource(String resourceName, int size, MemoryUnit unit) {
-    final ResourceType resource = new ResourceType();
-    resource.setName(resourceName);
-    resource.setUnit(unit);
-    resource.setValue(BigInteger.valueOf((long)size));
-    return resource;
-  }
-
   /**
    * Adds a {@link PassthroughServer} if, and only if, a mapping for the URI supplied does not
    * already exist.  The server is started as it is added.
@@ -288,7 +267,7 @@ public class UnitTestConnectionService implements ConnectionService {
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
       new IdentityHashMap<>();
 
-    private final OffheapResourcesType resources = new OffheapResourcesType();
+    private final Map<String, Measure<MemoryUnit>> resources = new HashMap<>();
 
     public PassthroughServerBuilder resource(String resourceName, int size, org.ehcache.config.units.MemoryUnit unit) {
       return this.resource(resourceName, size, convert(unit));
@@ -301,7 +280,7 @@ public class UnitTestConnectionService implements ConnectionService {
           convertedUnit = MemoryUnit.B;
           break;
         case KB:
-          convertedUnit = MemoryUnit.K_B;
+          convertedUnit = MemoryUnit.KB;
           break;
         case MB:
           convertedUnit = MemoryUnit.MB;
@@ -322,7 +301,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     private PassthroughServerBuilder resource(String resourceName, int size, MemoryUnit unit) {
-      this.resources.getResource().add(getResource(resourceName, size, unit));
+      this.resources.put(resourceName, Measure.of(size, unit));
       return this;
     }
 
