@@ -1,9 +1,9 @@
 ---
 ---
 = Ehcache XSDs
-ifndef::sourcedir310[]
+ifndef::sourcedir311[]
 include::{includedir}/common.adoc[]
-endif::sourcedir310[]
+endif::sourcedir311[]
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
@@ -23,6 +23,7 @@ endif::notBuildingForSite[]
 ** Location for 3.8: `http://www.ehcache.org/schema/ehcache-core-3.8.xsd`
 ** Location for 3.9: `http://www.ehcache.org/schema/ehcache-core-3.9.xsd`
 ** Location for 3.10: `http://www.ehcache.org/schema/ehcache-core-3.10.xsd`
+** Location for 3.11: `http://www.ehcache.org/schema/ehcache-core-3.11.xsd`
 // needle_for_core_xsd
 * JSR-107 namespace: `http://www.ehcache.org/v3/jsr107`
 ** Location for 3.0: `http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd`
@@ -36,6 +37,7 @@ endif::notBuildingForSite[]
 ** Location for 3.8: `http://www.ehcache.org/schema/ehcache-107-ext-3.8.xsd`
 ** Location for 3.9: `http://www.ehcache.org/schema/ehcache-107-ext-3.9.xsd`
 ** Location for 3.10: `http://www.ehcache.org/schema/ehcache-107-ext-3.10.xsd`
+** Location for 3.11: `http://www.ehcache.org/schema/ehcache-107-ext-3.11.xsd`
 // needle_for_107_xsd
 * Transactions namespace: `http://www.ehcache.org/v3/tx`
 ** Location for 3.0: `http://www.ehcache.org/schema/ehcache-tx-ext-3.0.xsd`
@@ -49,6 +51,7 @@ endif::notBuildingForSite[]
 ** Location for 3.8: `http://www.ehcache.org/schema/ehcache-tx-ext-3.8.xsd`
 ** Location for 3.9: `http://www.ehcache.org/schema/ehcache-tx-ext-3.9.xsd`
 ** Location for 3.10: `http://www.ehcache.org/schema/ehcache-tx-ext-3.10.xsd`
+** Location for 3.11: `http://www.ehcache.org/schema/ehcache-tx-ext-3.11.xsd`
 // needle_for_transactions_xsd
 * Clustering namespace: `http://www.ehcache.org/v3/clustered`
 ** Location for 3.1: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.1.xsd`
@@ -61,13 +64,14 @@ endif::notBuildingForSite[]
 ** Location for 3.8: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.8.xsd`
 ** Location for 3.9: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.9.xsd`
 ** Location for 3.10: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.10.xsd`
+** Location for 3.11: `http://www.ehcache.org/schema/ehcache-clustered-ext-3.11.xsd`
 // needle_for_clustered_xsd
 
 === Usage example
 
 [source,xml,indent=0]
 ----
-include::{sourcedir310}/ehcache-107/src/test/resources/org/ehcache/docs/public-xsds-location.xml[tag=xsdLocations]
+include::{sourcedir311}/ehcache-107/src/test/resources/org/ehcache/docs/public-xsds-location.xml[tag=xsdLocations]
 ----
 
 [[core]]
@@ -75,7 +79,7 @@ include::{sourcedir310}/ehcache-107/src/test/resources/org/ehcache/docs/public-x
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir310}/ehcache-xml/src/common/schema/ehcache-core.xsd[lines=18..-1]
+include::{sourcedir311}/ehcache-xml/src/common/schema/ehcache-core.xsd[lines=18..-1]
 ----
 
 [[jsr-107-extension]]
@@ -83,12 +87,12 @@ include::{sourcedir310}/ehcache-xml/src/common/schema/ehcache-core.xsd[lines=18.
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir310}/ehcache-107/src/main/resources/ehcache-107-ext.xsd[lines=18..-1]
+include::{sourcedir311}/ehcache-107/src/main/resources/ehcache-107-ext.xsd[lines=18..-1]
 ----
 
 == XA transactions extension
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir310}/ehcache-transactions/src/common/resources/ehcache-tx-ext.xsd[lines=18..-1]
+include::{sourcedir311}/ehcache-transactions/src/common/resources/ehcache-tx-ext.xsd[lines=18..-1]
 ----

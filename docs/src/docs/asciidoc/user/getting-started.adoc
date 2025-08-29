@@ -1,7 +1,7 @@
-= Ehcache 3.10 Documentation
-ifndef::sourcedir310[]
+= Ehcache 3.11 Documentation
+ifndef::sourcedir311[]
 include::{includedir}/common.adoc[]
-endif::sourcedir310[]
+endif::sourcedir311[]
 We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
@@ -10,7 +10,7 @@ endif::notBuildingForSite[]
 
 == Getting Ehcache
 
-The latest version of Ehcache 3.10.0 has been released to maven central under the following coordinates:
+The latest version of Ehcache 3.11 has been released to maven central under the following coordinates:
 
 === From Gradle
 
@@ -19,7 +19,7 @@ Add the following to the dependencies section of your `build.gradle`:
 [source,groovy]
 ----
 dependencies {
-  implementation 'org.ehcache:ehcache:3.10.0'
+  implementation 'org.ehcache:ehcache:3.11.1'
 }
 ----
 
@@ -32,7 +32,7 @@ Add the following to the `<dependencies>` section in your `pom.xml`:
 <dependency>
   <groupId>org.ehcache</groupId>
   <artifactId>ehcache</artifactId>
-  <version>3.10.0</version>
+  <version>3.11.1</version>
 </dependency>
 ----
 
@@ -48,7 +48,7 @@ dependency in favor of the implementation provided by the JRE.
 
 === Jakarta Variants
 
-Ehcache 3.10 adds support for the Jakarta EE namespaced versions of the JAXB APIs.
+Ehcache 3.10 added support for the Jakarta EE namespaced versions of the JAXB APIs.
 If you have moved to the new Jakarta EE namespaced APIs then you may want to choose to use the matching Ehcache variants.
 
 ==== From Gradle
@@ -57,7 +57,7 @@ Add the following to the dependencies section of your `build.gradle`:
 
 [source,groovy]
 ----
-implementation('org.ehcache:ehcache:3.10.0') {
+implementation('org.ehcache:ehcache:3.11.1') {
   capabilities {
     requireCapability('org.ehcache:ehcache-jakarta')
   }
@@ -76,7 +76,7 @@ Add the following to the `<dependencies>` section in your `pom.xml`:
 <dependency>
   <groupId>org.ehcache</groupId>
   <artifactId>ehcache</artifactId>
-  <version>3.10.0</version>
+  <version>3.11.1</version>
   <classifier>jakarta</classifier>
 
   <exclusions>
@@ -111,7 +111,7 @@ As with the previous versions of Ehcache, the canonical way of dealing with `Cac
 
 [source,java,indent=0]
 ----
-include::{sourcedir310}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
+include::{sourcedir311}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
 ----
 
 <1> The static method `org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder` returns a new `org.ehcache.config.builders.CacheManagerBuilder` instance.
@@ -146,7 +146,7 @@ Here is a shorter version featuring 3 important things:
 
 [source,java,indent=0]
 ----
-include::{sourcedir310}/integration-test/src/test/java/org/ehcache/docs/GettingStartedWithStaticImports.java[tag=java7Example]
+include::{sourcedir311}/integration-test/src/test/java/org/ehcache/docs/GettingStartedWithStaticImports.java[tag=java7Example]
 ----
 <1> A `CacheManager` implements `Closeable` so can be closed automatically by a try-with-resources.
 A `CacheManager` must be closed cleanly. In a `finally` block, with a `try-with-resources` or (more frequent for normal applications) in some shutdown hook.
@@ -160,7 +160,7 @@ You can create an XML file to configure a `CacheManager`.
 
 [source,xml,indent=0]
 ----
-include::{sourcedir310}/ehcache-xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
+include::{sourcedir311}/ehcache-xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declares a `Cache` aliased to `foo`.
@@ -194,7 +194,7 @@ In addition, for creating the cache manager with clustering support, you will ne
 
 [source,java,indent=0]
 ----
-include::{sourcedir310}/clustered/ehcache-client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+include::{sourcedir311}/clustered/ehcache-client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
 ----
 
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
@@ -223,7 +223,7 @@ A classical example would be using 3 tiers with a persistent disk storage.
 
 [source,java,indent=0]
 ----
-include::{sourcedir310}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
+include::{sourcedir311}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
@@ -242,7 +242,7 @@ The following illustrates how to configure a _time-to-live_ expiry.
 
 [source,java,indent=0]
 ----
-include::{sourcedir310}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
+include::{sourcedir311}/ehcache-impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
 ----
 
 <1> Expiry is configured at the cache level, so start by defining a cache configuration,

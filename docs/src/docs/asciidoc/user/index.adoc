@@ -1,7 +1,7 @@
-= Ehcache 3.10 Documentation Overview
-ifndef::sourcedir310[]
+= Ehcache 3.11 Documentation Overview
+ifndef::sourcedir311[]
 include::{includedir}/common.adoc[]
-endif::sourcedir310[]
+endif::sourcedir311[]
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
@@ -9,7 +9,7 @@ endif::notBuildingForSite[]
 
 == Table of Contents
 
-The Table of Contents provides an overview of the Ehcache 3.10 documentation on this site.
+The Table of Contents provides an overview of the Ehcache 3.11 documentation on this site.
 Each topic below corresponds to a menu item at the left.
 
 === Basic Topics
