@@ -48,6 +48,7 @@ class ThreadLocalRandomUtil {
     }
   }
 
+  @SuppressWarnings("removal")
   static Unsafe getSMU() {
     try {
       return sun.misc.Unsafe.getUnsafe();
