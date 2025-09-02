@@ -75,3 +75,11 @@ compileUnsafe {
   //no -Werror due to unsafe
   options.compilerArgs = ['-Xlint:all']
 }
+
+afterEvaluate {
+    tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+        classes = classes.filter { 
+            !it.path.contains('org/ehcache/impl/internal/classes/commonslang/') 
+        }
+    }
+}
