@@ -144,7 +144,7 @@ public class ChainMapExtensionTest {
     while (buffer.hasRemaining()) {
       buffer.put((byte) i);
     }
-    return (ByteBuffer) buffer.flip();
+    return buffer.flip();
   }
 
   private static Matcher<Element> element(int i) {

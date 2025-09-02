@@ -108,12 +108,14 @@ public class JavaSerializer<T> implements Serializer<T> {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
       Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
       }
 
+      // WARNING: Proxy classes generated in a named module with deprecated getProxyClass() are encapsulated and not accessible to code outside its module. Constructor.newInstance will throw IllegalAccessException when it is called on an inaccessible proxy class.
       return Proxy.getProxyClass(classLoader, interfaceClasses);
     }
 

@@ -49,7 +49,7 @@ public class CompactJavaSerializerClassUnloadingTest {
     Class<? extends Serializable> special = (Class<? extends Serializable>) duplicate.loadClass(SpecialClass.class.getName());
     classRef = new WeakReference<>(special);
 
-    specialObject = special.newInstance();
+    specialObject = special.getDeclaredConstructor().newInstance();
   }
 
   @Test

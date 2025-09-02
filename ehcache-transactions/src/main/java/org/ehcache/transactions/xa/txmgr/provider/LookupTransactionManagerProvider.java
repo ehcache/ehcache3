@@ -20,7 +20,7 @@ package org.ehcache.transactions.xa.txmgr.provider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
-
+import java.lang.reflect.InvocationTargetException;
 import javax.transaction.TransactionManager;
 
 /**
@@ -56,8 +56,8 @@ public class LookupTransactionManagerProvider implements TransactionManagerProvi
       throw new NullPointerException("LookupTransactionManagerProviderConfiguration cannot be null");
     }
     try {
-      lookup = config.getTransactionManagerLookup().newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      lookup = config.getTransactionManagerLookup().getDeclaredConstructor().newInstance();
+    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
       throw new IllegalArgumentException("Could not instantiate lookup class", e);
     }
   }

@@ -66,7 +66,7 @@ public class JavaBaseConvention implements Plugin<Project> {
 
     project.getTasks().withType(JavaCompile.class).configureEach(compile -> {
       compile.getOptions().setEncoding("UTF-8");
-      compile.getOptions().setCompilerArgs(asList("-Xlint:all"));
+      compile.getOptions().setCompilerArgs(asList("-Werror", "-Xlint:all"));
     });
 
     project.getTasks().withType(Javadoc.class).configureEach(javadoc -> {

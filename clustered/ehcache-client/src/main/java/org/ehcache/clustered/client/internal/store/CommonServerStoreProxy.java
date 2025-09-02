@@ -117,7 +117,6 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     entity.addResponseListener(listenerClass, listener);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void close() {
     entity.close();
@@ -232,6 +231,8 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
+        // TODO: FIXME: Use the new Cleaner API
         protected void finalize() throws Throwable {
           if (!lastBatch) {
             entity.invokeAndWaitForReceive(new ServerStoreOpMessage.IteratorCloseMessage(iteratorId), false);
