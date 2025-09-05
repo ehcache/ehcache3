@@ -61,20 +61,15 @@ task unzipKit(type: Sync) {
   into layout.buildDirectory.dir("ehcache-kit")
 }
 
-task copyBaseKit() {
+task copyBaseKit(type: Sync) {
     dependsOn(unzipKit)
-    outputs.dir(layout.buildDirectory.dir("plugin/api"))
-    outputs.dir(layout.buildDirectory.dir("plugin/lib"))
-    doLast {
-        project.sync {
-            from layout.buildDirectory.dir("ehcache-kit/ehcache-clustered-${project.version}-kit/server/plugins/api")
-            into layout.buildDirectory.dir("plugin/api")
-        }
-        project.sync {
-            from layout.buildDirectory.dir("ehcache-kit/ehcache-clustered-${project.version}-kit/server/plugins/lib")
-            into layout.buildDirectory.dir("plugin/lib")
-        }
+    from(layout.buildDirectory.dir("ehcache-kit/ehcache-clustered-${project.version}-kit/server/plugins/api")) {
+        into "api"
     }
+    from(layout.buildDirectory.dir("ehcache-kit/ehcache-clustered-${project.version}-kit/server/plugins/lib")) {
+        into "lib"
+    }
+    destinationDir = layout.buildDirectory.dir("plugin").get().asFile
 }
 
 test {

@@ -203,10 +203,9 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(tierCapabilities[3].getName()).isEqualTo("ServerStoreStatistics");
 
     // stats
-
-    assertThat(new ArrayList<Descriptor>(SERVER_STORE_DESCRIPTORS)).hasSameElementsAs(tierCapabilities[3].getDescriptors());
-    assertThat(new ArrayList<Descriptor>(POOL_DESCRIPTORS)).hasSameElementsAs(managerCapabilities[2].getDescriptors());
-    assertThat(new ArrayList<Descriptor>(POOL_DESCRIPTORS)).hasSameElementsAs(tierCapabilities[1].getDescriptors());
+    assertThat(new ArrayList<Descriptor>(tierCapabilities[3].getDescriptors())).hasSameElementsAs(SERVER_STORE_DESCRIPTORS);
+    assertThat(new ArrayList<Descriptor>(managerCapabilities[2].getDescriptors())).hasSameElementsAs(POOL_DESCRIPTORS);
+    assertThat(new ArrayList<Descriptor>(tierCapabilities[1].getDescriptors())).hasSameElementsAs(POOL_DESCRIPTORS);
 
     // ClusterTierManagerSettings
 
