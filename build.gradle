@@ -36,16 +36,13 @@ if (deployUrl.contains('nexus')) {
   //internal terracotta config, shorten url for this plugin to end at local/
   project.nexusStaging {
     serverUrl = deployUrl.replaceAll(~/local\/.*$/, "local/")
-    packageGroup = 'Ehcache OS' //internal staging repository name
+    stagingProfileId = 'Ehcache OS' //internal staging repository name
   }
   ext {
     deployUser = tcDeployUser
     deployPwd = tcDeployPassword
   }
 } else {
-  project.nexusStaging {
-    packageGroup = 'org.ehcache' //Sonatype staging repository name
-  }
   ext {
     deployUser = sonatypeUser
     deployPwd = sonatypePwd
@@ -53,6 +50,7 @@ if (deployUrl.contains('nexus')) {
 }
 
 project.nexusStaging {
+  packageGroup = 'org.ehcache'
   username = project.ext.deployUser
   password = project.ext.deployPwd
   logger.debug("Nexus Staging: Using login ${username} and url ${serverUrl}")
