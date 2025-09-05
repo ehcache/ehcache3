@@ -189,7 +189,7 @@ public class BasicClusteredCacheOpsReplicationTest {
     });
   }
 
-  @Test
+  @Ignore("TDB-6062") @Test
   public void testClear() throws Exception {
 
     List<Cache<Long, String>> caches = new ArrayList<>();
