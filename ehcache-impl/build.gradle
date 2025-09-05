@@ -75,11 +75,14 @@ compileUnsafe {
   //no -Werror due to unsafe
   options.compilerArgs = ['-Xlint:all']
 }
-
-afterEvaluate {
-    tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
-        classes = classes.filter { 
-            !it.path.contains('org/ehcache/impl/internal/classes/commonslang/') 
-        }
+/*
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    classes = classes.filter { 
+        !it.path.contains('org/ehcache/impl/internal/classes/commonslang/')
     }
+}
+*/
+spotbugs {
+    // Configure SpotBugs at the extension level
+    excludeFilter = file("$projectDir/config/spotbugs/exclude-commonslang.xml")
 }
