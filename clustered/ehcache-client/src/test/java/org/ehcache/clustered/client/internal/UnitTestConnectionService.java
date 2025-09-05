@@ -29,7 +29,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import static java.util.Collections.synchronizedMap;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -42,6 +41,7 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClie
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
+
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import static org.mockito.Mockito.mock;
@@ -70,6 +70,7 @@ import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
 
+import static java.util.Collections.synchronizedMap;
 
 /**
  * A {@link ConnectionService} implementation used to simulate Voltron server connections for unit testing purposes.

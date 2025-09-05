@@ -32,9 +32,7 @@ public class VoltronPlugin implements Plugin<Project> {
       config.setDescription("Dependencies provided by Voltron from server/lib");
       config.setCanBeConsumed(true);
       config.setCanBeResolved(true);
-      Map<String, String> exclude = new HashMap<>();
-      exclude.put("group", "ch.qos.logback");
-      config.exclude(exclude);
+      config.exclude(Map.of("group", "ch.qos.logback"));
 
       DependencyHandler dependencyHandler = project.getDependencies();
       String terracottaApisVersion = project.property("terracottaApisVersion").toString();

@@ -184,15 +184,10 @@ tasks.register('distDir', Sync) {
   with(distributions.main.contents)
 }
 
-var copyServer = tasks.register("copyServer") {
-    var working = layout.buildDirectory.dir("server-libs").get()
-    doLast {
-        project.sync {
-            from(configurations.serverRuntime)
-            into(working)
-        }
-    }
-    outputs.dir(working)
+var copyServer = tasks.register('copyServer', Sync) {
+    description = 'Copies the server jars to the correct location'
+    into layout.buildDirectory.dir("server-libs").get()
+    from configurations.serverRuntime
 }
 
 var unzipServer = tasks.register("unzipServer") {
