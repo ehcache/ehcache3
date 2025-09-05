@@ -136,7 +136,16 @@ distributions {
         includeEmptyDirs = false
       }
       into ("server/lib") {
-        from layout.buildDirectory.dir("server-libs").get()
+        from(configurations.serverRuntime.elements.map {
+          files -> files.collect {
+            if (it.file.name.endsWith('.zip')) {
+              zipTree(it.file)
+            } else {
+              it.file
+            }
+          }
+        })
+
       }
       into ("server/plugins/api") {
         from configurations.serverApis
@@ -184,26 +193,6 @@ tasks.register('distDir', Sync) {
   with(distributions.main.contents)
 }
 
-var copyServer = tasks.register('copyServer', Sync) {
-    description = 'Copies the server jars to the correct location'
-    into layout.buildDirectory.dir("server-libs").get()
-    from configurations.serverRuntime
-}
-
-var unzipServer = tasks.register("unzipServer") {
-    dependsOn(copyServer)
-    doLast {
-        var working = layout.buildDirectory.dir("server-libs").get()
-        var runtime = working.file("server-runtime-${terracottaRuntimeVersion}.zip")
-        if (runtime.getAsFile().exists()) {
-            project.sync {
-                from(zipTree(runtime))
-                into(working)
-            }
-        }
-    }
-}
-
 artifacts {
   add(configurations.kit.name, tasks.named('distDir', Sync).map {
     copy -> copy.destinationDir
@@ -215,7 +204,7 @@ publishing.publications.withType(MavenPublication) {
   artifact distTar
 }
 
-[distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar, unzipServer
+[distTar, distZip, distDir, installDist]*.dependsOn copyDocs, javadocJar, project(':ehcache').jar, project(':ehcache').javadocJar
 
 static Action<FileCopyDetails> dropTopLevelDirectories(int count) {
   { fcd ->
