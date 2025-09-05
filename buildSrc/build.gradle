@@ -19,7 +19,9 @@ plugins {
   id 'java-gradle-plugin'
 }
 
-repositories { jcenter() }
+repositories {
+  gradlePluginPortal()
+}
 
 gradlePlugin {
   plugins {
