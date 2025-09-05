@@ -85,7 +85,7 @@ class EhPomMangle implements Plugin<Project> {
               authentication(userName: project.deployUser, password: project.deployPwd)
             }
           } else {
-            repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
+            repository(id: 'sonatype-nexus-snapshot', url: 'https://central.sonatype.com/repository/maven-snapshots/') {
               authentication(userName: project.sonatypeUser, password: project.sonatypePwd)
             }
           }
