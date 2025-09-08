@@ -1570,14 +1570,13 @@ public class OnHeapStore<K, V> extends BaseStore<K, V> implements HigherCachingT
    */
   boolean evict(StoreEventSink<K, V> eventSink) {
     evictionObserver.begin();
-    Random random = new Random();
 
     @SuppressWarnings("unchecked")
-    Map.Entry<K, OnHeapValueHolder<V>> candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, EVICTION_ADVISOR);
+    Map.Entry<K, OnHeapValueHolder<V>> candidate = map.getEvictionCandidate(SAMPLE_SIZE, EVICTION_PRIORITIZER, EVICTION_ADVISOR);
 
     if (candidate == null) {
       // 2nd attempt without any advisor
-      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, noAdvice());
+      candidate = map.getEvictionCandidate(SAMPLE_SIZE, EVICTION_PRIORITIZER, noAdvice());
     }
 
     if (candidate == null) {

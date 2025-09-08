@@ -21,7 +21,6 @@ import org.junit.Test;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.hamcrest.CoreMatchers.is;
@@ -117,21 +116,21 @@ public class ConcurrentHashMapTest {
     @Test
     public void testRandomSampleOnEmptyMap() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
-        assertThat(map.getEvictionCandidate(new Random(), 1, null, noAdvice()), nullValue());
+        assertThat(map.getEvictionCandidate(1, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
-        assertThat(map.getEvictionCandidate(new Random(), 0, null, noAdvice()), nullValue());
+        assertThat(map.getEvictionCandidate(0, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(2, null, noAdvice());
         assertThat(candidate.getKey(), is("foo"));
         assertThat(candidate.getValue(), is("bar"));
     }
@@ -142,7 +141,7 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, (t, t1) -> 0, noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(2, (t, t1) -> 0, noAdvice());
         assertThat(candidate, notNullValue());
     }
 
@@ -152,7 +151,7 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, (key, value) -> true);
+        Entry<String, String> candidate = map.getEvictionCandidate(2, null, (key, value) -> true);
         assertThat(candidate, nullValue());
     }
 
@@ -162,7 +161,7 @@ public class ConcurrentHashMapTest {
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 20, (t, t1) -> 0, (key, value) -> key.length() > 1);
+        Entry<String, String> candidate = map.getEvictionCandidate(20, (t, t1) -> 0, (key, value) -> key.length() > 1);
         assertThat(candidate.getKey().length(), is(1));
     }
 

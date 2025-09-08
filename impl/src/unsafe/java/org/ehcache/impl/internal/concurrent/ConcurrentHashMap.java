@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -45,6 +46,7 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.Spliterator;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CountedCompleter;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicReference;
@@ -6477,72 +6479,54 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return invalidated;
     }
 
-    public Entry<K, V> getEvictionCandidate(Random rndm, int size, Comparator<? super V> prioritizer, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
-        Node<K,V>[] tab = table;
-        if (tab == null || size == 0) {
-            return null;
+    private final Deque<Traverser<K, V>> evictionTraversers = new ConcurrentLinkedDeque<>();
+
+    public Entry<K, V> getEvictionCandidate(int size, Comparator<? super V> prioritizer, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
+      if (size == 0) {
+        return null;
+      }
+
+      K maxKey = null;
+      V maxValue = null;
+
+      boolean exhaustive = false;
+      do {
+        Traverser<K, V> t = evictionTraversers.poll();
+        if (t == null) {
+          Node<K, V>[] tab;
+          int f = (tab = table) == null ? 0 : tab.length;
+          t = new Traverser<>(tab, f, 0, f);
+          exhaustive = true;
         }
 
-        K maxKey = null;
-        V maxValue = null;
-
-        int n = tab.length;
-        int start = rndm.nextInt(n);
-
-        Traverser<K, V> t = new Traverser<>(tab, n, start, n);
-        for (Node<K, V> p; (p = t.advance()) != null;) {
+        boolean exhausted = false;
+        try {
+          for (Node<K, V> p; (p = t.advance()) != null; ) {
             K key = p.key;
             V val = p.val;
             if (!evictionAdvisor.adviseAgainstEviction(key, val)) {
-                if (maxKey == null || prioritizer.compare(val, maxValue) > 0) {
-                    maxKey = key;
-                    maxValue = val;
-                }
-                if (--size == 0) {
-                    for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
-                        key = p.key;
-                        val = p.val;
-                        if (!evictionAdvisor.adviseAgainstEviction(key, val) && prioritizer.compare(val, maxValue) > 0) {
-                            maxKey = key;
-                            maxValue = val;
-                        }
-                    }
-                    return new MapEntry<>(maxKey, maxValue, this);
-                }
+              if (maxKey == null || prioritizer.compare(val, maxValue) > 0) {
+                maxKey = key;
+                maxValue = val;
+              }
+              if (--size == 0) {
+                return new MapEntry<>(maxKey, maxValue, this);
+              }
             }
+          }
+          exhausted = true;
+        } finally {
+          if (!exhausted) {
+            evictionTraversers.push(t);
+          }
         }
+      } while (!exhaustive);
 
-        return getEvictionCandidateWrap(tab, start, size, maxKey, maxValue, prioritizer, evictionAdvisor);
-    }
-
-    private Entry<K, V> getEvictionCandidateWrap(Node<K,V>[] tab, int start, int size, K maxKey, V maxVal, Comparator<? super V> prioritizer, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
-        Traverser<K, V> t = new Traverser<>(tab, tab.length, 0, start);
-        for (Node<K, V> p; (p = t.advance()) != null;) {
-            K key = p.key;
-            V val = p.val;
-            if (!evictionAdvisor.adviseAgainstEviction(key, val)) {
-                if (maxKey == null || prioritizer.compare(val, maxVal) > 0) {
-                    maxKey = key;
-                    maxVal = val;
-                }
-                if (--size == 0) {
-                    for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
-                        key = p.key;
-                        val = p.val;
-                        if (!evictionAdvisor.adviseAgainstEviction(key, val) && prioritizer.compare(val, maxVal) > 0) {
-                            maxKey = key;
-                            maxVal = val;
-                        }
-                    }
-                    return new MapEntry<>(maxKey, maxVal, this);
-                }
-            }
-        }
-        if (maxKey == null) {
-            return null;
-        } else {
-            return new MapEntry<>(maxKey, maxVal, this);
-        }
+      if (maxKey == null) {
+        return null;
+      } else {
+        return new MapEntry<>(maxKey, maxValue, this);
+      }
     }
     // END OF EHCACHE SPECIFIC
 }
