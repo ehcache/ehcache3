@@ -15,7 +15,6 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.event.CacheEvent;
 import org.junit.After;
@@ -29,9 +28,13 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.event.EventType;
 import javax.cache.spi.CachingProvider;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * @author rism
@@ -79,28 +82,19 @@ public class UnwrapTest {
   }
 
   @Test
-  public void testCacheVisibilityPostUnwrap() {
+  public void testCacheMutationViaUnwrap() {
+    org.ehcache.CacheManager ehcacheManager = cacheManager.unwrap(org.ehcache.CacheManager.class);
+    org.ehcache.Cache<Integer, String> cache = ehcacheManager.createCache("jcache", newCacheConfigurationBuilder(Integer.class, String.class, heap(5)));
 
-    CacheManager javaxCacheManager = Caching.getCachingProvider().getCacheManager();
-
-    org.ehcache.CacheManager cacheManager = javaxCacheManager.unwrap(org.ehcache.CacheManager.class);
-    CacheConfigurationBuilder<Integer, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class, heap(5));
-    cacheManager.createCache("jcache", cacheConfigurationBuilder);
-
-    Cache<Integer, String> javaxCache = javaxCacheManager.getCache("jcache", Integer.class, String.class);
+    Cache<Integer, String> javaxCache = cacheManager.getCache("jcache", Integer.class, String.class);
     assertThat(javaxCache, is(notNullValue()));
 
-    CacheManager javaxCacheManager1 = javaxCacheManager.unwrap(javax.cache.CacheManager.class);
-    Cache<Integer, String> javaxCache1 = javaxCacheManager1.getCache("jcache", Integer.class, String.class);
-    assertThat(javaxCache1, is(notNullValue()));
+    cache.put(1, "one");
 
-    org.ehcache.Cache<Integer, String> cache = cacheManager.getCache("jcache", Integer.class, String.class);
-    assertThat(cache, is(notNullValue()));
-
-    cache.put(1,"one");
     assertThat(javaxCache.get(1), is("one"));
-    assertThat(javaxCache1.get(1), is("one"));
 
+    ehcacheManager.removeCache("jcache");
+    assertThat(cacheManager.getCache("jcache", Integer.class, String.class), is(nullValue()));
   }
 
   private class EhEvent implements CacheEvent<String,String> {
