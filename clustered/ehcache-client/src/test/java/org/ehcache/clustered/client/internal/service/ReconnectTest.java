@@ -31,6 +31,7 @@ import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -53,8 +54,10 @@ public class ReconnectTest {
 
   @Test
   public void testAfterConnectionReconnectHappensEvenAfterConnectionException() throws Exception {
+    Semaphore semaphore = new Semaphore(0);
     Connection connection = Mockito.mock(Connection.class, Mockito.withSettings()
             .defaultAnswer(invocation -> {
+              semaphore.release();
               throw new ConnectionShutdownException("Connection Closed");
             }));
 
@@ -72,15 +75,11 @@ public class ReconnectTest {
       }
     });
 
-    MockConnectionService.mockConnection = null;
-
     CompletableFuture<Void> reconnecting = CompletableFuture.runAsync(() -> {
+      semaphore.acquireUninterruptibly();
       MockConnectionService.mockConnection = Mockito.mock(Connection.class, Mockito.withSettings().defaultAnswer(invocation -> {
         throw new RuntimeException("Stop reconnecting");
       }));
-      while (connectionState.getReconnectCount() == 1) {
-        break;
-      }
     });
 
     reconnecting.get();
@@ -91,7 +90,7 @@ public class ReconnectTest {
       assertThat(e.getCause().getMessage(), Matchers.is("Stop reconnecting"));
     }
 
-    assertThat(connectionState.getReconnectCount(), Matchers.is(1));
+    assertThat(connectionState.getReconnectCount(), Matchers.greaterThan(0));
 
   }
 

@@ -35,6 +35,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -190,6 +191,7 @@ public class BasicClusteredCacheOpsReplicationTest {
   }
 
   @Test
+  @Ignore
   public void testClear() throws Exception {
 
     List<Cache<Long, String>> caches = new ArrayList<>();

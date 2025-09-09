@@ -21,6 +21,7 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.reconnect.ReconnectableClusterTierClientEntity;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
@@ -39,6 +40,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
@@ -72,6 +74,8 @@ public class ClusteredStateHolderIdGeneratorTest {
     ClusterTierClientEntity clientEntity = clusterService.getConnectionState().createClusterTierClientEntity("CacheManagerSharedResources", serverStoreConfiguration, false);
     assertThat(clientEntity, notNullValue());
 
+    ReconnectableClusterTierClientEntity reconnectableClusterTierClientEntity = new ReconnectableClusterTierClientEntity(clientEntity, () -> {}, clusterService.getExecutor());
+    clusterService.getConnectionState().insertClusterTierClientEntity("CacheManagerSharedResources", reconnectableClusterTierClientEntity);
     spaceIdentifier = clusterService.getSharedPersistenceSpaceIdentifier(resourcePool);
     sharedPersistence = new StateHolderIdGenerator<>(clusterService.getStateRepositoryWithin(spaceIdentifier, "persistent-partition-ids"), String.class);
   }

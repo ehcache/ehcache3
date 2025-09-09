@@ -811,13 +811,6 @@ public class DefaultClusteringServiceTest {
 
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
-    try {
-      creationService.releaseServerStoreProxy(serverStoreProxy, false);
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("Endpoint closed"));
-    }
-
     creationService.stop();
   }
 
@@ -1123,13 +1116,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
-
-    try {
-      creationService.releaseServerStoreProxy(serverStoreProxy, false);
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("Endpoint closed"));
-    }
 
     creationService.stop();
   }

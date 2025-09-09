@@ -111,7 +111,6 @@ class ConnectionState {
       try {
         storeClientEntity = entityFactory.fetchOrCreateClusteredStoreEntity(entityIdentifier, cacheId,
                 clientStoreConfiguration, serviceConfiguration.getClientMode(), isReconnect);
-        clusterTierEntities.put(cacheId, storeClientEntity);
         break;
       } catch (EntityNotFoundException e) {
         throw new PerpetualCachePersistenceException("Cluster tier proxy '" + cacheId + "' for entity '" + entityIdentifier + "' does not exist.", e);
@@ -130,6 +129,10 @@ class ConnectionState {
 
   public void removeClusterTierClientEntity(String cacheId) {
     clusterTierEntities.remove(cacheId);
+  }
+
+  public void insertClusterTierClientEntity(String cacheId, ClusterTierClientEntity clientEntity) {
+    clusterTierEntities.put(cacheId, clientEntity);
   }
 
   public void initClusterConnection(Executor asyncWorker) {
@@ -265,8 +268,9 @@ class ConnectionState {
       entityFactory.abandonAllHolds(entityIdentifier, healthyConnection);
     }
     entityFactory = null;
-
-    clusterTierEntities.clear();
+    if (healthyConnection) {
+      clusterTierEntities.clear();
+    }
     entity = null;
   }
 
