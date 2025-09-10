@@ -20,6 +20,7 @@ package org.ehcache.clustered.common.internal.messages;
 import org.terracotta.runnel.EnumMapping;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.APPEND;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.INSERT_FULL_CHAIN;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.CHAIN_REPLICATION_OP;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.CLEAR;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.CLEAR_INVALIDATION_COMPLETE;
@@ -80,6 +81,7 @@ public class BaseCodec {
     .mapping(ITERATOR_CLOSE, 31)
     .mapping(ITERATOR_ADVANCE, 32)
     .mapping(ENABLE_EVENT_LISTENER, 33)
+    .mapping(INSERT_FULL_CHAIN, 34)
 
     .mapping(GET_STATE_REPO, 41)
     .mapping(PUT_IF_ABSENT, 42)

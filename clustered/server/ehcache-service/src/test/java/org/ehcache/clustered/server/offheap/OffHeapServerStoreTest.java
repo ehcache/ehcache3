@@ -41,6 +41,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;
+import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
+import static org.ehcache.clustered.Matchers.hasPayloads;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -110,6 +112,15 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
     assertThat(OffHeapServerStore.getMaxSize(MEGABYTES.toBytes(512)), is(8192L));
 
     assertThat(OffHeapServerStore.getMaxSize(GIGABYTES.toBytes(2)), is(8192L));
+  }
+
+  @Test
+  public void testInsertFullChain() throws Exception {
+    OffHeapServerStore store = (OffHeapServerStore) newStore();
+    store.put(1L, sequencedChainOf(createPayload(1L), createPayload(2L)));
+    Chain chain = store.get(1L);
+    assertThat(chain.isEmpty(), is(false));
+    assertThat(chain, hasPayloads(1L, 2L));
   }
 
   @Test
