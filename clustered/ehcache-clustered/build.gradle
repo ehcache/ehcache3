@@ -91,7 +91,7 @@ dependencies {
   serverLibs project(':clustered:server:ehcache-service')
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
-  kit "org.terracotta:platform-layout:$terracottaPlatformVersion@tar.gz"
+  kit "org.terracotta:terracotta-platform-layout:$terracottaPlatformVersion@tar.gz"
 }
 
 task copyDocs(type: Sync) {
@@ -101,6 +101,7 @@ task copyDocs(type: Sync) {
 }
 
 javadoc {
+  onlyIf { false }
   exclude '**/core/**', '**/impl/**', '**/xml/**', '**/jsr107/**', '**/transactions/**', '**/management/**', '**/tck/**'
 }
 

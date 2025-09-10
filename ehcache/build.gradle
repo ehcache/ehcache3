@@ -117,3 +117,11 @@ tasks.named('jar') {
     instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, jdk.internal.misc;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
   }
 }
+
+tasks.named('jakartaJavadoc') {
+  onlyIf { false }
+}
+
+tasks.named('javadoc') {
+  onlyIf { false }
+}
