@@ -57,7 +57,7 @@ configurations {
 
 dependencies {
   contents project(':clustered:ehcache-client')
-  contents "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
+  contents "org.terracotta.internal:client-runtime:$terracottaRuntimeVersion"
 
   implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
   implementation project(':ehcache')
@@ -81,17 +81,18 @@ def kitProvides = { Configuration c ->
 
 configurations {
   kit
+  serverRuntime
   serverApis(kitProvides)
   serverLibs(kitProvides)
 }
 
 dependencies {
+  serverRuntime "org.terracotta.internal:server-runtime:$terracottaRuntimeVersion"
   serverApis project(':clustered:server:ehcache-service-api')
   serverLibs project(':clustered:server:ehcache-entity')
   serverLibs project(':clustered:server:ehcache-service')
 
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz"
-  kit "org.terracotta:platform-layout:$terracottaPlatformVersion@tar.gz"
+  kit "org.terracotta:terracotta-platform-layout:$terracottaPlatformVersion@tar.gz"
 }
 
 task copyDocs(type: Sync) {
@@ -133,6 +134,18 @@ distributions {
           f.path.contains('README.txt') || f.path.contains('server/conf')
         }
         includeEmptyDirs = false
+      }
+      into ("server/lib") {
+        from(configurations.serverRuntime.elements.map {
+          files -> files.collect {
+            if (it.file.name.endsWith('.zip')) {
+              zipTree(it.file)
+            } else {
+              it.file
+            }
+          }
+        })
+
       }
       into ("server/plugins/api") {
         from configurations.serverApis

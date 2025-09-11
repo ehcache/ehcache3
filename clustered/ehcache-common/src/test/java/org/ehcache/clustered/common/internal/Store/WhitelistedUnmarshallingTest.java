@@ -62,33 +62,33 @@ public class WhitelistedUnmarshallingTest {
 
   @Test
   public void unmarshallingIntegerTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Integer(10));
+    unmarshallingStateRepoMessagesCheck(10);
   }
 
   @Test
   public void unmarshallingLongTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Long(10));
+    unmarshallingStateRepoMessagesCheck(10L);
   }
 
   @Test
   public void unmarshallingFloatTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Float(10.0));
+    unmarshallingStateRepoMessagesCheck(10.0f);
   }
 
   @Test
   public void unmarshallingDoubleTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Double(10.0));
+    unmarshallingStateRepoMessagesCheck(10.0d);
   }
 
   @Test
   public void unmarshallingByteTest() throws Exception {
     byte b = 101;
-    unmarshallingStateRepoMessagesCheck(new Byte(b));
+    unmarshallingStateRepoMessagesCheck(b);
   }
 
   @Test
   public void unmarshallingCharacterTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Character('b'));
+    unmarshallingStateRepoMessagesCheck('b');
   }
 
   @Test
@@ -98,12 +98,12 @@ public class WhitelistedUnmarshallingTest {
 
   @Test
   public void unmarshallingBooleanTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Boolean(true));
+    unmarshallingStateRepoMessagesCheck(true);
   }
 
   @Test
   public void unmarshallingShortTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Short((short) 1));
+    unmarshallingStateRepoMessagesCheck((short) 1);
   }
 
   @Test

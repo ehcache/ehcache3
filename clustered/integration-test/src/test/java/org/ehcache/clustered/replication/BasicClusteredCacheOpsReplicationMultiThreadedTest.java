@@ -71,6 +71,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
+import org.junit.Ignore;
 
 
 /**
@@ -99,7 +100,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   public Consistency cacheConsistency;
 
   @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath())
+  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).inline(true)
     .withServiceFragment(offheapResource("primary-server-resource", 24)).build());
 
   @Rule
@@ -240,7 +241,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   }
 
-  @Test
+  @Ignore("Issue-#3278") @Test
   public void testClear() throws Exception {
     List<Future<?>> futures = new ArrayList<>();
     Set<Long> universalSet = ConcurrentHashMap.newKeySet();

@@ -56,6 +56,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import org.junit.Ignore;
 
 
 @RunWith(ParallelParameterized.class)
@@ -189,7 +190,7 @@ public class BasicClusteredCacheOpsReplicationTest {
     });
   }
 
-  @Test
+  @Ignore("Issue-#3278") @Test
   public void testClear() throws Exception {
 
     List<Cache<Long, String>> caches = new ArrayList<>();

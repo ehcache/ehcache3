@@ -36,12 +36,11 @@ public class SerializeAfterEvolutionTest {
 
   @Test
   public void test() throws Exception {
-    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> s = new CompactJavaSerializer<>(null);
     s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_old.class);
-    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_old.class)).newInstance();
+    Serializable a = (Serializable) loaderA.loadClass(newClassName(A_old.class)).getDeclaredConstructor().newInstance();
     ByteBuffer encodedA = s.serialize(a);
 
     ClassLoader loaderB = createClassNameRewritingLoader(A_new.class);
@@ -50,7 +49,7 @@ public class SerializeAfterEvolutionTest {
       Serializable outA = s.read(encodedA);
       assertThat((Integer) outA.getClass().getField("integer").get(outA), is(42));
 
-      Serializable b = (Serializable) loaderB.loadClass(newClassName(A_new.class)).newInstance();
+      Serializable b = (Serializable) loaderB.loadClass(newClassName(A_new.class)).getDeclaredConstructor().newInstance();
       Serializable outB = s.read(s.serialize(b));
       assertThat((Integer) outB.getClass().getField("integer").get(outB), is(42));
     } finally {

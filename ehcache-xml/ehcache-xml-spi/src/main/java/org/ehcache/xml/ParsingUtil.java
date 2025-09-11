@@ -24,19 +24,18 @@ import java.security.PrivilegedAction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.security.AccessController.doPrivileged;
-
 @PublicApi
 public class ParsingUtil {
 
   private static final Pattern SYSPROP = Pattern.compile("\\$\\{(?<property>[^{}]+)}");
   private static final Pattern PADDED_SYSPROP = Pattern.compile("\\s*" + SYSPROP.pattern() + "\\s*");
 
+  @SuppressWarnings("removal")
   public static String parsePropertyOrString(String s) {
     Matcher matcher = PADDED_SYSPROP.matcher(s);
     if (matcher.matches()) {
       String property = matcher.group("property");
-      String value = doPrivileged((PrivilegedAction<String>) () -> System.getProperty(property));
+      String value = java.security.AccessController.doPrivileged((PrivilegedAction<String>) () -> System.getProperty(property));
       if (value == null) {
         throw new IllegalStateException(String.format("Replacement for ${%s} not found!", property));
       } else {
@@ -69,12 +68,13 @@ public class ParsingUtil {
     }
   }
 
+  @SuppressWarnings("removal")
   public static String parseStringWithProperties(String s) {
     Matcher matcher = SYSPROP.matcher(s);
     StringBuffer sb = new StringBuffer();
     while (matcher.find()) {
       final String property = matcher.group("property");
-      final String value = doPrivileged((PrivilegedAction<String>) () -> System.getProperty(property));
+      final String value = java.security.AccessController.doPrivileged((PrivilegedAction<String>) () -> System.getProperty(property));
       if (value == null) {
         throw new IllegalStateException(String.format("Replacement for ${%s} not found!", property));
       }

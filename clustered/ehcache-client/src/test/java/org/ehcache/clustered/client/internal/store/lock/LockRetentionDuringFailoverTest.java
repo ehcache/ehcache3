@@ -32,12 +32,13 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
-import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -46,7 +47,6 @@ import java.util.concurrent.Future;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
-import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -73,7 +73,9 @@ public class LockRetentionDuringFailoverTest {
               server.registerClientEntityService(new ClusterTierClientEntityService());
               server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
               server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-              server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+              OffHeapResourcesProvider offheapResources = new OffHeapResourcesProvider(Collections.emptyMap());
+              offheapResources.addOffHeapResource(OffHeapResourceIdentifier.identifier("test"), 32 * 1024 * 1024);
+              server.registerExtendedConfiguration(offheapResources);
 
               UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
             }

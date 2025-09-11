@@ -17,7 +17,6 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import com.google.common.base.Objects;
 import org.assertj.core.api.ThrowableAssert;
 import org.ehcache.Cache;
 import org.ehcache.clustered.client.TestTimeSource;
@@ -63,6 +62,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -228,10 +228,9 @@ public class ClusteredStoreTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testGetTimeout() throws Exception {
     ServerStoreProxy proxy = mock(ServerStoreProxy.class);
-    long longKey = HashUtils.intHashToLong(new Long(1L).hashCode());
+    long longKey = HashUtils.intHashToLong(Long.valueOf(1L).hashCode());
     when(proxy.get(longKey)).thenThrow(TimeoutException.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config,null, null, proxy, null, null, new DefaultStatisticsService());
     assertThat(store.get(1L), nullValue());
@@ -726,7 +725,7 @@ public class ClusteredStoreTest {
 
       @Override
       protected boolean matchesSafely(Cache.Entry<K, Store.ValueHolder<V>> item) {
-        return Objects.equal(key, item.getKey()) && Objects.equal(value, item.getValue().get());
+        return Objects.equals(key, item.getKey()) && Objects.equals(value, item.getValue().get());
       }
     };
   }

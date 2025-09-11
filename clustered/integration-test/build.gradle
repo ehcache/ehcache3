@@ -19,19 +19,15 @@ plugins {
   id 'org.ehcache.build.conventions.java'
 }
 
-configurations {
-  serverLibs
-}
-
 dependencies {
   testImplementation project(':clustered:ehcache-client')
   testImplementation project(':clustered:ehcache-common')
   testImplementation project(':ehcache-impl')
   testImplementation project(':ehcache-xml')
   testImplementation project(':ehcache-107')
-  testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
-  testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
-  testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
+  testImplementation "org.terracotta.internal:client-runtime:$terracottaRuntimeVersion"
+  testImplementation "org.terracotta:terracotta-runnel:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-lease-client:$terracottaPlatformVersion"
   testImplementation("javax.cache:cache-tests:$jcacheTckVersion") {
     exclude group:'junit', module:'junit'
   }
@@ -40,34 +36,52 @@ dependencies {
   }
 
   testImplementation project(':ehcache-management')
-  testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
-  testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-management-entities-nms-client:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-management-entities-nms-agent-client:$terracottaPlatformVersion"
   testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
-  testImplementation("org.terracotta:galvan-platform-support:$terracottaPlatformVersion") {
+  testImplementation("org.terracotta:terracotta-dynamic-config-testing-galvan:$terracottaPlatformVersion") {
     exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
+    exclude group: 'org.slf4j'
+  }
+  testImplementation("org.terracotta:terracotta-dynamic-config-cli-upgrade-tool:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
   }
   testImplementation "javax.cache:cache-api:$jcacheVersion"
+  testImplementation ("ch.qos.logback:logback-classic:1.2.13") {
+    exclude group: 'org.slf4j'
+  }
+  testImplementation("org.terracotta:terracotta-dynamic-config-cli-upgrade-tool-oss:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
 }
 
 task unzipKit(type: Sync) {
   dependsOn project(':clustered:ehcache-clustered').distZip
   from zipTree(project(':clustered:ehcache-clustered').distZip.archivePath)
-  into 'build/ehcache-kit'
+  into layout.buildDirectory.dir("ehcache-kit")
 }
 
-task copyServerLibs(type: Sync) {
-  dependsOn unzipKit
-  from project.configurations.serverLibs
-  into "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit/server/plugins/lib"
+task copyBaseKit(type: Sync) {
+    dependsOn(unzipKit)
+    from(layout.buildDirectory.dir("ehcache-kit/ehcache-clustered-${project.version}-kit/server/plugins/api")) {
+        into "api"
+    }
+    from(layout.buildDirectory.dir("ehcache-kit/ehcache-clustered-${project.version}-kit/server/plugins/lib")) {
+        into "lib"
+    }
+    destinationDir = layout.buildDirectory.dir("plugin").get().asFile
 }
 
 test {
   maxHeapSize = '512m'
   maxParallelForks = 8
-  dependsOn copyServerLibs
+  dependsOn copyBaseKit
   environment 'JAVA_HOME', testJava.javaHome
   //If this directory does not exist, tests will fail with a cryptic assert failure
-  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:ehcache-clustered').archivesBaseName}-$project.version-kit"
+    systemProperty "galvan.plugin", layout.buildDirectory.dir("plugin").get().toString()
+    systemProperty "galvan.dir", layout.buildDirectory.dir("galvan").get().toString()
+    systemProperty "galvan.server", layout.buildDirectory.dir("tmp/tcserver").get().toString()
+//    systemProperty "serverDebugPortStart", 9000
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }
@@ -81,3 +95,4 @@ configurations.all {
     }
   }
 }
+

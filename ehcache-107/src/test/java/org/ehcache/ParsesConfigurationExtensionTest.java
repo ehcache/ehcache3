@@ -53,7 +53,7 @@ import static org.hamcrest.Matchers.sameInstance;
 public class ParsesConfigurationExtensionTest {
 
   @Test
-  public void testConfigParse() throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
+  public void testConfigParse() throws SAXException, ReflectiveOperationException, IOException {
     final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource("/ehcache-107.xml"));
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, configuration.getServiceCreationConfigurations()));
 
@@ -64,9 +64,8 @@ public class ParsesConfigurationExtensionTest {
     assertThat(jsr107Service.getTemplateNameForCache("bars"), equalTo("tinyCache"));
   }
 
-  @SuppressWarnings("rawtypes")
   @Test
-  public void testXmlExample() throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
+  public void testXmlExample() throws SAXException, ReflectiveOperationException, IOException {
     XmlConfiguration config = new XmlConfiguration(ParsesConfigurationExtensionTest.class.getResource("/ehcache-example.xml"));
     final DefaultJsr107Service jsr107Service = new DefaultJsr107Service(ServiceUtils.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations()));
 

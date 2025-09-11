@@ -264,14 +264,14 @@ public class XmlConfiguration implements Configuration {
    *
    * @throws IllegalStateException if the template does not configure resources.
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
-   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
-   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   * @throws ReflectiveOperationException if a {@link java.lang.Class} declared in the XML couldn't be found,
+   *                                      or if a user provided {@link java.lang.Class} couldn't get instantiated,
+   *                                      or if a method (including constructor) couldn't be invoked on a user provided type
    */
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      throws ReflectiveOperationException {
     Template template = templates.get(name);
     if (template == null) {
       return null;
@@ -297,15 +297,15 @@ public class XmlConfiguration implements Configuration {
    *         or {@code null} if no cache-template for the provided {@code name}
    *
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
-   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
-   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   * @throws ReflectiveOperationException if a {@link java.lang.Class} declared in the XML couldn't be found,
+   *                                      or if a user provided {@link java.lang.Class} couldn't get instantiated,
+   *                                      or if a method (including constructor) couldn't be invoked on a user provided type
    */
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
                                                                                          final ResourcePools resourcePools)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      throws ReflectiveOperationException {
     Template template = templates.get(name);
     if (template == null) {
       return null;
@@ -331,15 +331,15 @@ public class XmlConfiguration implements Configuration {
    *         or {@code null} if no cache-template for the provided {@code name}
    *
    * @throws IllegalArgumentException if {@code keyType} or {@code valueType} don't match the declared type(s) of the template
-   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
-   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   * @throws ReflectiveOperationException if a {@link java.lang.Class} declared in the XML couldn't be found,
+   *                                      or if a user provided {@link java.lang.Class} couldn't get instantiated,
+   *                                      or if a method (including constructor) couldn't be invoked on a user provided type
    */
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
                                                                                          final Builder<? extends ResourcePools> resourcePoolsBuilder)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      throws ReflectiveOperationException {
     return newCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
@@ -369,7 +369,7 @@ public class XmlConfiguration implements Configuration {
   }
 
   public interface Template {
-    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ClassNotFoundException, InstantiationException, IllegalAccessException;
+    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ReflectiveOperationException;
   }
 
   public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {

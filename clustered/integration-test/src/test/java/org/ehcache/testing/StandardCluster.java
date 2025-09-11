@@ -16,7 +16,6 @@
  */
 package org.ehcache.testing;
 
-import org.terracotta.testing.config.ConfigRepoStartupBuilder;
 import org.terracotta.testing.rules.BasicExternalClusterBuilder;
 
 import java.nio.file.Path;

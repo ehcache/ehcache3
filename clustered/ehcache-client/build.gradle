@@ -31,15 +31,18 @@ dependencies {
 
   compileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
 
-  implementation project(':clustered:ehcache-common')
-  implementation "org.terracotta:entity-client-api:$terracottaApisVersion"
-  implementation "org.terracotta:runnel:$terracottaPlatformVersion"
-  implementation "org.terracotta:lease-api:$terracottaPlatformVersion"
-  implementation "org.terracotta.dynamic-config.entities:dynamic-config-topology-entity-client:$terracottaPlatformVersion"
-  implementation "org.terracotta:connection-api:$terracottaApisVersion"
+  api project(':clustered:ehcache-common')
+  implementation "org.terracotta:client-api:$terracottaApisVersion"
+  implementation "org.terracotta:terracotta-runnel:$terracottaPlatformVersion"
+  implementation "org.terracotta:terracotta-lease-client:$terracottaPlatformVersion"
+  implementation "org.terracotta:terracotta-dynamic-config-entities-topology-client:$terracottaPlatformVersion"
   implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
 
   compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+
+  testImplementation "org.terracotta:terracotta-resources-offheap:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-management-server-api:$terracottaPlatformVersion"
+  testImplementation project(':clustered:server:ehcache-service-api')
 
   testImplementation(project(':ehcache-transactions')) {
     capabilities {
@@ -50,15 +53,18 @@ dependencies {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
   testImplementation project(':clustered:server:ehcache-service')
-  testImplementation "org.terracotta:client-message-tracker:$terracottaPlatformVersion"
+  testImplementation "org.terracotta:terracotta-client-message-tracker:$terracottaPlatformVersion"
   testImplementation project(':clustered:test-utils')
-  testImplementation "org.terracotta:entity-test-lib:$terracottaPassthroughTestingVersion"
-  testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
-  testImplementation "org.terracotta.internal:common-spi:$terracottaCoreVersion"
-  testImplementation "org.terracotta:passthrough-leased-connection-api:$terracottaPlatformVersion"
+  testImplementation ("org.terracotta:passthrough-server:$terracottaRuntimeVersion") {
+      exclude group: "ch.qos.logback"
+  }
+  testImplementation "org.terracotta:terracotta-lease-testing-passthrough:$terracottaPlatformVersion"
   testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
   testImplementation testFixtures(project(':ehcache-xml'))
   testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
+  testImplementation ("org.terracotta:terracotta-structures:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
 }

@@ -149,7 +149,7 @@ public class ConfigurationParser {
 
   <K, V> CacheConfigurationBuilder<K, V> parseServiceConfigurations(Document document, CacheConfigurationBuilder<K, V> cacheBuilder,
                                                                     ClassLoader cacheClassLoader, CacheTemplate cacheDefinition)
-    throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    throws ReflectiveOperationException {
     cacheBuilder = CORE_CACHE_CONFIGURATION_PARSER.parse(cacheDefinition, cacheClassLoader, cacheBuilder);
     return serviceConfigurationParser.parse(document, cacheDefinition, cacheClassLoader, cacheBuilder);
   }
@@ -193,7 +193,7 @@ public class ConfigurationParser {
   private XmlConfiguration.Template parseTemplate(Document document, CacheTemplate template) {
     return new XmlConfiguration.Template() {
       @Override
-      public <K, V> CacheConfigurationBuilder<K, V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resources) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+      public <K, V> CacheConfigurationBuilder<K, V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resources) throws ReflectiveOperationException {
         checkTemplateTypeConsistency("key", classLoader, keyType, template);
         checkTemplateTypeConsistency("value", classLoader, valueType, template);
 
@@ -227,7 +227,7 @@ public class ConfigurationParser {
     return documentBuilder.parse(uri.toString());
   }
 
-  public XmlConfigurationWrapper documentToConfig(Document document, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws JAXBException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+  public XmlConfigurationWrapper documentToConfig(Document document, ClassLoader classLoader, Map<String, ClassLoader> cacheClassLoaders) throws JAXBException, ReflectiveOperationException {
     Document annotatedDocument = stampExternalConfigurations(copyAndValidate(document));
     Element root = annotatedDocument.getDocumentElement();
 
