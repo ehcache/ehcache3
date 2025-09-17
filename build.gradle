@@ -21,6 +21,7 @@ plugins {
   id 'io.github.gradle-nexus.publish-plugin'
   //OWASP Security Vulnerability Detection
   id 'org.owasp.dependencycheck'
+  id 'com.jfrog.artifactory' version '5.2.5'
 }
 
 wrapper {
@@ -67,3 +68,27 @@ dependencyCheck {
 tasks.register('check') {
   dependsOn dependencyCheckAggregate
 }
+
+if (project.hasProperty('overrideVersion') && project.property('overrideVersion').toString().contains("-internal")) {
+    artifactoryPublish.skip = true
+
+    artifactory {
+        contextUrl = "https://na.artifactory.swg-devops.com/artifactory" // Replace with your Artifactory URL
+        publish {
+            repository {
+                releaseRepoKey = "hyc-webmriab-team-tc01-os-releases-maven-local"
+                snapshotRepoKey = "hyc-webmriab-team-tc01-os-snapshots-maven-local" // The Artifactory repository key to publish to
+                username = project.findProperty("artifactory_user") ?: System.getenv("ARTIFACTORY_DEPLOY_USERNAME")
+                password = project.findProperty("artifactory_password") ?: System.getenv("ARTIFACTORY_DEPLOY_PASSWORD")
+            }
+            defaults {
+                publications('mavenJava')
+            }
+            buildInfo {
+                buildName = "hyc-webmriab-team-tc01/terracotta/${rootProject.name}"
+                buildNumber = rootProject.findProperty("buildNumber") ?: '' + new Random(System.currentTimeMillis()).nextInt(20000)
+            }
+        }
+    }
+}
+
