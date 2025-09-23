@@ -23,6 +23,8 @@ import org.gradle.jvm.tasks.Jar;
 import org.gradle.plugins.signing.SigningExtension;
 import org.gradle.plugins.signing.SigningPlugin;
 
+import org.jfrog.gradle.plugin.artifactory.ArtifactoryPlugin;
+
 import java.io.File;
 import java.util.Collection;
 import java.util.concurrent.Callable;
@@ -51,6 +53,7 @@ public class DeployConvention implements Plugin<Project> {
   public void apply(Project project) {
     project.getPlugins().apply(SigningPlugin.class);
     project.getPlugins().apply(MavenPublishPlugin.class);
+    project.getPlugins().apply(ArtifactoryPlugin.class);
 
     project.getExtensions().configure(PublishingExtension.class, publishing -> {
       publishing.getPublications().withType(MavenPublication.class).configureEach(mavenPublication -> mavenPublication.pom(pom -> {
