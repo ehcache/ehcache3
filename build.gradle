@@ -29,7 +29,7 @@ allprojects {
   version = findProperty('overrideVersion') ?: ehcacheVersion
 }
 
-assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
+assert JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17) : 'The Ehcache 3 build requires Java 17+ to run'
 
 dependencyCheck {
   failBuildOnCVSS = 0
