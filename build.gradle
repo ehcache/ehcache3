@@ -16,12 +16,9 @@
  */
 
 plugins {
-  // This adds tasks to auto close or release nexus staging repos
-  // see https://github.com/gradle-nexus/publish-plugin
-  id 'io.github.gradle-nexus.publish-plugin'
   //OWASP Security Vulnerability Detection
   id 'org.owasp.dependencycheck'
-  id 'com.jfrog.artifactory' version '5.2.5'
+  id 'com.jfrog.artifactory'
 }
 
 wrapper {
@@ -30,31 +27,6 @@ wrapper {
 
 allprojects {
   version = findProperty('overrideVersion') ?: ehcacheVersion
-}
-
-nexusPublishing {
-  packageGroup = 'org.ehcache'
-  
-  repositories {
-    sonatype {
-      username = sonatypeUser
-      password = sonatypePwd
-      nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
-      snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
-    }
-    nexus {
-      username = tcDeployUser
-      password = tcDeployPassword
-      stagingProfileId = 'Ehcache OS' //internal staging repository name
-      nexusUrl.set(uri('https://nexus.terracotta.eur.ad.sag:8443/service/local/'))
-      snapshotRepositoryUrl.set(uri("https://nexus.terracotta.eur.ad.sag:8443/content/repositories/terracotta-os-snapshots/"))
-    }
-  }
-  // Sonatype is often very slow in these operations:
-  transitionCheckOptions {
-    delayBetween = Duration.ofSeconds((findProperty('delayBetweenRetriesInSeconds') ?: '10') as int)
-    maxRetries = (findProperty('numberOfRetries') ?: '100') as int
-  }
 }
 
 assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
