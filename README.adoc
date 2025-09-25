@@ -8,6 +8,7 @@ For more information, you might want to go check the https://github.com/ehcache/
 
 == Getting started with the Ehcache 3.x API
 
+
 For samples, documentation, and usage information, please see http://ehcache.org.
 
 == Current release
