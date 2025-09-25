@@ -2,4 +2,4 @@
 .gradle/
 **/build/
 !**/src/**/build/
-.dependency-check-data
+.dependency-check-data/
