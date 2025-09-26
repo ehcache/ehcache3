@@ -131,7 +131,7 @@ tasks.named('jakartaJar', Jar) {
   bundle {
     bnd (
       'Export-Package': 'org.ehcache.xml.*',
-      'Import-Package': "jakarta.xml.bind*;version=\"[3,4)\", *"
+      'Import-Package': "jakarta.xml.bind*;version=\"[3,4.1)\", *"
     )
   }
 }
