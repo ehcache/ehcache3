@@ -23,5 +23,13 @@ dnf install -y java-17-openjdk-devel
 export JAVA_HOME=/usr/lib/jvm/java-17
 $JAVA_HOME/bin/java -version
 
+
+# debug: dump all scripts
+find /opt/commons/compliance-checks | while read filename ; do
+    echo =========== BEGIN FILE $filename ===========
+    cat $filename
+    echo =========== END   FILE $filename ===========
+done
+
 echo "End CRA custom script"
 
