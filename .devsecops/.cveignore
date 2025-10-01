@@ -3,5 +3,10 @@
     "cve": "CVE-2022-42920",
     "alwaysOmit": true,
     "comment": "testing"
+  },
+  {
+    "cve": "CVE-2022-42889",
+    "alwaysOmit": true,
+    "comment": "testing"
   }
 ]
