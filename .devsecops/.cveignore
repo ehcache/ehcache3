@@ -8,5 +8,10 @@
     "cve": "CVE-2022-42889",
     "alwaysOmit": true,
     "comment": "testing"
+  },
+  {
+    "cve": "CVE-2022-25647",
+    "alwaysOmit": true,
+    "comment": "testing"
   }
 ]
