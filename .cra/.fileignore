@@ -1,0 +1,5 @@
+build-logic
+azure*
+Jenkinsfile
+# we use gradle to handle Dockerfiles
+**/Dockerfile
