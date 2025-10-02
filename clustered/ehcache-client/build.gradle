@@ -32,7 +32,7 @@ dependencies {
   compileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
 
   api project(':clustered:ehcache-common')
-  implementation "org.terracotta:client-api:$terracottaApisVersion"
+  compileOnly "org.terracotta:client-api:$terracottaApisVersion"
   implementation "org.terracotta:terracotta-runnel:$terracottaPlatformVersion"
   implementation "org.terracotta:terracotta-lease-client:$terracottaPlatformVersion"
   implementation "org.terracotta:terracotta-dynamic-config-entities-topology-client:$terracottaPlatformVersion"
@@ -40,6 +40,7 @@ dependencies {
 
   compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
 
+  testImplementation "org.terracotta:client-api:$terracottaApisVersion"
   testImplementation "org.terracotta:terracotta-resources-offheap:$terracottaPlatformVersion"
   testImplementation "org.terracotta:terracotta-management-server-api:$terracottaPlatformVersion"
   testImplementation project(':clustered:server:ehcache-service-api')
