@@ -36,6 +36,19 @@ dependencyCheck {
   suppressionFile = 'config/owasp-supressions.xml'
   skipConfigurations += ['checkstyle', 'spotbugs', 'xjcClasspath', 'jakartaXjcClasspath', 'commonXjcClasspath']
   skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
+  
+  formats = ['HTML', 'JSON']
+  
+  nvd {
+    apiKey = project.hasProperty('nvdApiKey') ?  project.property('nvdApiKey') : System.getenv("NVD_API_KEY")
+    validForHours = 24 // Cache NVD data for 24 hours
+  }
+  
+  analyzers {
+    // Disable analyzers that aren't needed
+    assemblyEnabled = false
+    ossIndexEnabled = false
+  }
 }
 tasks.register('check') {
   dependsOn dependencyCheckAggregate
