@@ -29,3 +29,4 @@ jobs:
   parameters:
     jdkVersion: '17'
     gradleTasks: 'check'
+    enableNVDCache: true
