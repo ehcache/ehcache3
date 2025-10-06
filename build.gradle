@@ -37,7 +37,7 @@ dependencyCheck {
   skipConfigurations += ['checkstyle', 'spotbugs', 'xjcClasspath', 'jakartaXjcClasspath', 'commonXjcClasspath']
   skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
   
-  formats = ['HTML', 'JSON']
+  formats = ['HTML', 'JUNIT']
   
   nvd {
     apiKey = project.hasProperty('nvdApiKey') ?  project.property('nvdApiKey') : System.getenv("NVD_API_KEY")
