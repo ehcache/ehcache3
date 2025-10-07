@@ -1,0 +1,72 @@
+[
+  {
+    "cve": "CVE-2022-42920",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2022-42889",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2022-25647",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2014-0114",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2019-10086",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2020-8908",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2021-29425",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2023-2976",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2024-12798",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2024-12801",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2024-31573",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2024-47554",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2025-48734",
+    "alwaysOmit": true,
+    "comment": "testing"
+  },
+  {
+    "cve": "CVE-2025-48924",
+    "alwaysOmit": true,
+    "comment": "testing"
+  }
+]
