@@ -35,7 +35,7 @@ dependencies {
   runtimeOnly ('org.ops4j.pax.exam:pax-exam-link-mvn:4.13.5') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  runtimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.11") {
+  runtimeOnly ("org.ops4j.pax.url:pax-url-wrap:2.6.17") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
   runtimeOnly ('org.ops4j.pax.exam:pax-exam-container-native:4.13.5') {
@@ -74,9 +74,11 @@ configurations.all {
         .using(module('junit:junit:4.13.1'))
         .because('CVE-2020-15250')
       substitute(module('org.ops4j.pax.url:pax-url-classpath:2.6.8'))
-        .using(module('org.ops4j.pax.url:pax-url-classpath:2.6.11'))
+        .using(module('org.ops4j.pax.url:pax-url-classpath:2.6.17'))
       substitute(module('org.ops4j.pax.url:pax-url-link:2.6.8'))
-        .using(module('org.ops4j.pax.url:pax-url-link:2.6.11'))
+        .using(module('org.ops4j.pax.url:pax-url-link:2.6.17'))
+      substitute(module('org.ops4j.pax.url:pax-url-aether:2.6.8'))
+        .using(module('org.ops4j.pax.url:pax-url-aether:2.6.17'))
       substitute(module('org.osgi:org.osgi.util.function:1.1.0'))
         .using(module('org.osgi:org.osgi.util.function:1.2.0'))
         .because('Dependency divergence in org.osgi:org.osgi.util.promise:1.2.0')
