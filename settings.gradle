@@ -17,7 +17,7 @@
 
 pluginManagement {
   plugins {
-    id 'org.owasp.dependencycheck' version '12.1.6'
+    id 'org.owasp.dependencycheck' version '12.1.8'
     id 'org.gretty' version '3.0.6'
     id 'org.asciidoctor.jvm.base' version '3.3.2'
     id 'org.unbroken-dome.xjc' version '2.0.0'
