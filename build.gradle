@@ -34,8 +34,8 @@ assert JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17) : 'The Ehc
 dependencyCheck {
   failBuildOnCVSS = 0
   suppressionFile = 'config/owasp-supressions.xml'
-  skipConfigurations += ['checkstyle', 'spotbugs', 'xjcClasspath', 'jakartaXjcClasspath', 'commonXjcClasspath']
-  skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
+  skipConfigurations.addAll('checkstyle', 'spotbugs', 'xjcClasspath', 'jakartaXjcClasspath', 'commonXjcClasspath')
+  skipProjects.addAll(':docs', ':demos:00-NoCache', ':demos:01-CacheAside')
   
   formats = ['HTML', 'JUNIT']
   
