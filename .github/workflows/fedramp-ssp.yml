@@ -1,0 +1,26 @@
+name: Trigger remote SPS scans job for FedRAMP compliance
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+        
+      repo-branch:
+        description: Specify the repo branch to scan if scan-type is "repo-scan"
+        type: string
+        default: master
+        
+jobs:
+  fedramp-scan:
+    uses: ibm-webmethods/bic-images-build-pipeline/.github/workflows/fedramp-ssp-scans.yml@main
+    with:
+      scan-type: repo-scan
+      repo-name: ehcache3
+      repo-branch: ${{ inputs.repo-branch || 'master' }}
+      runner-label: self-hosted
+    secrets:
+      GH_PAT: ${{ secrets.TC_GH_PAT }}
+      SPS_TRIGGER_API: ${{ secrets.SPS_TRIGGER_API }}
+      # WEBMETHODS_APIKEY: ${{ secrets.SPS_ICR_API_KEY }}
