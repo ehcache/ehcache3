@@ -68,6 +68,7 @@ jar {
     'Export-Package': '!org.ehcache.impl.internal.*, org.ehcache.impl.*, org.ehcache.config.builders, ' +
       'org.ehcache.impl.internal.spi.loaderwriter', //ugly 107 induced internal export wart
     'Import-Package': '!sun.misc, !javax.annotation, *',
+    'Dependencies': 'jdk.unsupported' // ConcurrentHashMap uses Unsafe. Needs declared dependency on Java17+ to run within Wildfly
   )
 }
 
