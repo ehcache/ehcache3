@@ -27,5 +27,5 @@ publishing.publications.withType(MavenPublication) {
 }
 
 dependencies {
-  compileOnlyApi "org.terracotta:common-api:$terracottaApisVersion"
+  compileOnlyApi "org.terracotta:common-api:$terracottaCoreVersion"
 }

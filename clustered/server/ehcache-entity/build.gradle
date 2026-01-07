@@ -33,16 +33,20 @@ dependencies {
 
   api project(':clustered:ehcache-common')
   implementation "org.terracotta:terracotta-runnel:$terracottaPlatformVersion"
-  implementation "org.terracotta:offheap-store:$offheapVersion"
+  implementation ("org.terracotta:offheap-store:$offheapVersion") {
+    exclude group:'org.slf4j'
+  }
   implementation "org.terracotta:terracotta-client-message-tracker:$terracottaPlatformVersion"
 
   testImplementation project(':clustered:server:ehcache-service')
   testImplementation project(':clustered:test-utils')
-  testImplementation ("org.terracotta:passthrough-server:$terracottaRuntimeVersion") {
+  testImplementation ("org.terracotta:passthrough-server:$terracottaCoreVersion") {
     exclude group:'org.slf4j'
   }
 
   testImplementation project(':clustered:server:ehcache-service-api')
   testImplementation "org.terracotta:terracotta-resources-offheap:$terracottaPlatformVersion"
-  testImplementation "org.terracotta:statistics:$statisticVersion"
+  testImplementation ("org.terracotta:statistics:$statisticVersion") {
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
 }

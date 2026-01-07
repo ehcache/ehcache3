@@ -20,9 +20,11 @@ package org.ehcache.core;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
+import org.slf4j.spi.LoggingEventBuilder;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 
 import static org.mockito.Mockito.*;
@@ -88,22 +90,24 @@ public class PrefixLoggerTest {
     PrefixLogger prefixLogger = new PrefixLogger(mockLogger, prefix);
 
     for (Method prefixLogMethod : Logger.class.getDeclaredMethods()) {
-
-      Class<?>[] parameterTypes = prefixLogMethod.getParameterTypes();
-      Object[] parameters = new Object[parameterTypes.length];
-      for (int j = 0; j < parameterTypes.length; j++) {
-        if (String.class.equals(parameterTypes[j])) {
-          parameters[j] = "log-msg";
-        } else if (parameterTypes[j].isArray()) {
-          parameters[j] = new Object[]{};
-        } else {
-          parameters[j] = mock(parameterTypes[j]);
+      if ((prefixLogMethod.getModifiers() & Modifier.PUBLIC) != 0 &&
+              !prefixLogMethod.getReturnType().equals(LoggingEventBuilder.class) &&
+              !prefixLogMethod.getReturnType().equals(boolean.class)) {
+        Class<?>[] parameterTypes = prefixLogMethod.getParameterTypes();
+        Object[] parameters = new Object[parameterTypes.length];
+        for (int j = 0; j < parameterTypes.length; j++) {
+          if (String.class.equals(parameterTypes[j])) {
+            parameters[j] = "log-msg";
+          } else if (parameterTypes[j].isArray()) {
+            parameters[j] = new Object[]{};
+          } else {
+            parameters[j] = mock(parameterTypes[j]);
+          }
         }
+
+        prefixLogMethod.invoke(prefixLogger, parameters);
+        prefixLogMethod.invoke(verify(mockLogger, times(1)), enrichStringParamValues(parameters, isMsgParameter(prefixLogMethod)));
       }
-
-      prefixLogMethod.invoke(prefixLogger, parameters);
-      prefixLogMethod.invoke(verify(mockLogger, times(1)), enrichStringParamValues(parameters, isMsgParameter(prefixLogMethod)));
-
     }
   }
 

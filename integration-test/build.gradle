@@ -31,5 +31,7 @@ dependencies {
   testImplementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  testImplementation "org.terracotta:statistics:$parent.statisticVersion"
+  testImplementation ("org.terracotta:statistics:$parent.statisticVersion") {
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
 }
