@@ -29,14 +29,16 @@ publishing.publications.withType(MavenPublication) {
 dependencies {
   api project(':ehcache-core')
   implementation project(':ehcache-impl')
-  implementation "org.terracotta:statistics:$statisticVersion"
+  implementation ("org.terracotta:statistics:$statisticVersion") {
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
 
   // optional: if we want xml config
   compileOnlyApi project(':ehcache-xml:ehcache-xml-spi')
 
   // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:ehcache-client')
-  compileOnly "org.terracotta:client-api:$terracottaApisVersion"
+  compileOnly "org.terracotta:client-api:$terracottaCoreVersion"
   compileOnlyApi ("org.terracotta:terracotta-management-entities-nms-agent-client:$terracottaPlatformVersion") {
     // This is to avoid stats lib being directly used.
     exclude group:'org.terracotta', module:'statistics'

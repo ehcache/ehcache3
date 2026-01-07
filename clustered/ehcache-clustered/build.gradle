@@ -57,7 +57,7 @@ configurations {
 
 dependencies {
   contents project(':clustered:ehcache-client')
-  contents "org.terracotta.internal:client-runtime:$terracottaRuntimeVersion"
+  contents "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
 
   implementation "org.slf4j:slf4j-api:$parent.slf4jVersion"
   implementation project(':ehcache')
@@ -87,7 +87,7 @@ configurations {
 }
 
 dependencies {
-  serverRuntime "org.terracotta.internal:server-runtime:$terracottaRuntimeVersion"
+  serverRuntime "org.terracotta.internal:server-runtime:$terracottaCoreVersion"
   serverApis project(':clustered:server:ehcache-service-api')
   serverLibs project(':clustered:server:ehcache-entity')
   serverLibs project(':clustered:server:ehcache-service')

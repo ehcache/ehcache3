@@ -99,7 +99,15 @@ public class ClusteredOsgiTest {
 
       baseConfiguration("ClusteredOsgiTest", "individualModules"),
       gradleBundle("org.terracotta:terracotta-utilities-test-tools"),
-      gradleBundle("org.terracotta:terracotta-utilities-port-chooser")
+      gradleBundle("org.terracotta:terracotta-utilities-port-chooser"),
+      // ASM bundles required by SPI Fly
+      gradleBundle("org.ow2.asm:asm"),
+      gradleBundle("org.ow2.asm:asm-commons"),
+      gradleBundle("org.ow2.asm:asm-tree"),
+      gradleBundle("org.ow2.asm:asm-analysis"),
+      gradleBundle("org.ow2.asm:asm-util"),
+      // SPI Fly for SLF4J 2.x ServiceLoader support
+      gradleBundle("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle")
     );
   }
 
