@@ -984,6 +984,18 @@ public class ClusterTierActiveEntityTest {
   }
 
   @Test
+  public void testInvalidationHandlingOnReconnectWindowTimeoutClosure() throws Exception {
+    ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER, SYNC_GETS_EXECUTOR);
+    EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
+    ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
+
+    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
+    invalidationTracker.trackHashInvalidation(1L);
+
+    activeEntity.startReconnect().close();
+  }
+
+  @Test
   @SuppressWarnings("unchecked")
   public void testReplicationMessageAndOriginalServerStoreOpMessageHasSameConcurrency() throws Exception {
 
