@@ -10,50 +10,35 @@ subprojects {
   gretty {
     httpPort = 8080
     contextPath = '/'
-    servletContainer = 'jetty9'
+    servletContainer = 'jetty12'
   }
 
   dependencies {
     implementation project(':ehcache-impl')
-    implementation 'javax.servlet:javax.servlet-api:3.1.0'
-    runtimeOnly 'ch.qos.logback:logback-classic:1.2.13'
-    runtimeOnly 'com.h2database:h2:1.4.196'
+    implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+    runtimeOnly 'ch.qos.logback:logback-classic:1.5.20'
+    runtimeOnly 'com.h2database:h2:2.4.240'
   }
 
-  configurations.all {
+  configurations.configureEach {
     resolutionStrategy {
       dependencySubstitution {
         substitute(module('org.slf4j:slf4j-api'))
           .because('org.gretty:gretty-runner-jetty declares a very old version of slf4j')
-          .with(module('org.slf4j:slf4j-api:' + project.property('slf4jVersion')))
+          .using(module('org.slf4j:slf4j-api:' + project.property('slf4jVersion')))
+        substitute(module('commons-cli:commons-cli:1.3.1'))
+          .using(module('commons-cli:commons-cli:1.4'))
       }
     }
   }
 
-  /*
-   * This substitution is solely to permit the 'dependencies' task to complete normally --
-   * the Jetty 8 environment provided by gretty is not used in this module.
-   */
-  configurations.named('grettyRunnerJetty8') {
+  configurations.named('grettyRunnerJetty12') {
     resolutionStrategy {
       dependencySubstitution {
-        substitute(module('org.eclipse.jetty.orbit:javax.servlet.jsp:2.1.0.v201105211820'))
-          .because('gretty plug-in pulls in older version for Jetty8')
-          .with(module('org.eclipse.jetty.orbit:javax.servlet.jsp:2.2.0.v201112011158'))
-      }
-    }
-  }
-
-  /*
-   * This substitution is solely to permit the 'dependencies' task to complete normally --
-   * the Jetty 9.3 environment provided by gretty is not used in this module.
-   */
-  configurations.named('grettyRunnerJetty93') {
-    resolutionStrategy {
-      dependencySubstitution {
-        substitute(module('org.eclipse.jetty.toolchain:jetty-schemas:3.1.M0'))
-          .because('gretty plug-in pulls in older version for Jetty9.3')
-          .with(module('org.eclipse.jetty.toolchain:jetty-schemas:3.1'))
+        substitute(module('jakarta.annotation:jakarta.annotation-api:2.1.0'))
+          .using(module('jakarta.annotation:jakarta.annotation-api:2.1.1'))
+        substitute(module('jakarta.el:jakarta.el-api:5.0.0'))
+          .using(module('jakarta.el:jakarta.el-api:5.0.1'))
       }
     }
   }
