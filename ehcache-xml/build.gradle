@@ -105,7 +105,7 @@ dependencies {
   api 'javax.xml.bind:jaxb-api:[2.2,3)'
   runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:[2.2,3)'
 
-  jakartaApi 'jakarta.xml.bind:jakarta.xml.bind-api:[3,4)'
+  jakartaApi 'jakarta.xml.bind:jakarta.xml.bind-api:[3,4.1)'
   jakartaRuntimeOnly 'org.glassfish.jaxb:jaxb-runtime:[3,3.1)'
 
   testFixturesApi 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
@@ -131,7 +131,7 @@ tasks.named('jakartaJar', Jar) {
   bundle {
     bnd (
       'Export-Package': 'org.ehcache.xml.*',
-      'Import-Package': "jakarta.xml.bind*;version=\"[3,4)\", *"
+      'Import-Package': "jakarta.xml.bind*;version=\"[3,4.1)\", *"
     )
   }
 }
