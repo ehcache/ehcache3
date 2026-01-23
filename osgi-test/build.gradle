@@ -89,7 +89,7 @@ configurations.all {
 sourceSets {
   test {
     // Needed to allow PaxExam to see the test resources
-    output.resourcesDir = java.outputDir
+    output.resourcesDir = java.classesDirectory
   }
 }
 
@@ -105,7 +105,7 @@ test {
 configurations {
   lowerBoundOsgiModule {
     resolutionStrategy.dependencySubstitution {
-      substitute module('org.glassfish.jaxb:jaxb-runtime') with module('com.sun.xml.bind:jaxb-osgi:2.2.8-b01')
+      substitute module('org.glassfish.jaxb:jaxb-runtime') using module('com.sun.xml.bind:jaxb-osgi:2.2.8-b01')
     }
   }
 }

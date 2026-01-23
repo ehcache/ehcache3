@@ -31,27 +31,16 @@ allprojects {
 
 assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
 
+// Attention: these defaults may change in CI, see TcCi plugin
 dependencyCheck {
   failBuildOnCVSS = 0
   suppressionFile = 'config/owasp-supressions.xml'
-  skipConfigurations += ['checkstyle', 'spotbugs', 'xjcClasspath', 'jakartaXjcClasspath', 'commonXjcClasspath']
-  skipProjects += [':docs', ':demos:00-NoCache', ':demos:01-CacheAside']
-  
-  formats = ['HTML', 'JSON']
-  
+  skipConfigurations.addAll('checkstyle', 'spotbugs', 'xjcClasspath', 'jakartaXjcClasspath', 'commonXjcClasspath')
+  skipProjects.addAll(':docs', ':demos:00-NoCache', ':demos:01-CacheAside')
   nvd {
-    apiKey = project.hasProperty('nvdApiKey') ?  project.property('nvdApiKey') : System.getenv("NVD_API_KEY")
     validForHours = 24 // Cache NVD data for 24 hours
+    apiKey = project.findProperty('nvdApiKey') ?: System.getenv("NVD_API_KEY")
   }
-  
-  analyzers {
-    // Disable analyzers that aren't needed
-    assemblyEnabled = false
-    ossIndexEnabled = false
-  }
-}
-tasks.register('check') {
-  dependsOn dependencyCheckAggregate
 }
 
 if (project.hasProperty('overrideVersion') && project.property('overrideVersion').toString().contains("-internal")) {

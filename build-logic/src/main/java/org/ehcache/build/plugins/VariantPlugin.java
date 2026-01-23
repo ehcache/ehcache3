@@ -11,6 +11,7 @@ import org.gradle.api.NamedDomainObjectProvider;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ConsumableConfiguration;
 import org.gradle.api.capabilities.Capability;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.SourceDirectorySet;
@@ -123,25 +124,36 @@ public class VariantPlugin implements Plugin<Project> {
 
           variantBuckets = bucketsFor(project, variant.getName());
 
-          Configuration apiElements = jvmPluginServices.createOutgoingElements(lower(camel(variant.getName(), API_ELEMENTS_CONFIGURATION_NAME)), builder ->
-            builder.fromSourceSet(sharedSource).extendsFrom(variantBuckets.api()).extendsFrom(variantBuckets.compileOnlyApi()).withClassDirectoryVariant().providesApi());
+          Provider<ConsumableConfiguration> apiElements = project.getConfigurations().consumable(lower(camel(variant.getName(), API_ELEMENTS_CONFIGURATION_NAME)), c -> {
+              c.extendsFrom(variantBuckets.api().get(), variantBuckets.compileOnlyApi().get());
+              jvmPluginServices.configureAsApiElements(c);
+              jvmPluginServices.configureClassesDirectoryVariant(c, sharedSource);
+              jvmPluginServices.configureAttributes(c, attrs -> attrs.withTargetJvmVersion(8));
+            }
+          );
           project.getConfigurations().named(sharedSource.getApiElementsConfigurationName(),
-            config -> config.getOutgoing().getArtifacts().configureEach(artifact -> apiElements.getOutgoing().getArtifacts().add(artifact)));
+            config -> config.getOutgoing().getArtifacts().configureEach(artifact -> apiElements.get().getOutgoing().getArtifacts().add(artifact)));
 
-          Configuration runtimeElements = jvmPluginServices.createOutgoingElements(lower(camel(variant.getName(), RUNTIME_ELEMENTS_CONFIGURATION_NAME)), builder ->
-            builder.fromSourceSet(sharedSource).published().extendsFrom(variantBuckets.implementation()).extendsFrom(variantBuckets.runtimeOnly()).providesRuntime());
+          Provider<ConsumableConfiguration> runtimeElements = project.getConfigurations().consumable(lower(camel(variant.getName(), RUNTIME_ELEMENTS_CONFIGURATION_NAME)), c -> {
+              c.extendsFrom(variantBuckets.implementation().get(), variantBuckets.runtimeOnly().get());
+              jvmPluginServices.configureAsRuntimeElements(c);
+              jvmPluginServices.configureAttributes(c, attrs -> attrs.withTargetJvmVersion(8));
+            }
+          );
           project.getConfigurations().named(sharedSource.getRuntimeElementsConfigurationName(),
-            config -> config.getOutgoing().getArtifacts().configureEach(artifact -> runtimeElements.getOutgoing().getArtifacts().add(artifact)));
+            config -> config.getOutgoing().getArtifacts().configureEach(artifact -> runtimeElements.get().getOutgoing().getArtifacts().add(artifact)));
 
-          Configuration sourcesElements = jvmPluginServices.createOutgoingElements(lower(camel(variant.getName(), capitalize(SOURCES_ELEMENTS_CONFIGURATION_NAME))), builder ->
-            builder.fromSourceSet(sharedSource).published().providesAttributes(attributes -> attributes.documentation(SOURCES).asJar()));
+          Provider<ConsumableConfiguration> sourcesElements = project.getConfigurations().consumable(lower(camel(variant.getName(), capitalize(SOURCES_ELEMENTS_CONFIGURATION_NAME))), c -> {
+              jvmPluginServices.configureAttributes(c, attrs -> attrs.documentation(SOURCES));
+            }
+          );
           project.getConfigurations().named(sharedSource.getSourcesElementsConfigurationName(),
-            config -> config.getOutgoing().getArtifacts().configureEach(artifact -> sourcesElements.getOutgoing().getArtifacts().add(artifact)));
+            config -> config.getOutgoing().getArtifacts().configureEach(artifact -> sourcesElements.get().getOutgoing().artifact(artifact)));
 
           variant.getCapabilities().configureEach(capability -> {
-            apiElements.getOutgoing().capability(capability);
-            runtimeElements.getOutgoing().capability(capability);
-            sourcesElements.getOutgoing().capability(capability);
+            apiElements.get().getOutgoing().capability(capability);
+            runtimeElements.get().getOutgoing().capability(capability);
+            sourcesElements.get().getOutgoing().capability(capability);
           });
         }
 

@@ -77,7 +77,7 @@ configurations.all {
     dependencySubstitution {
       substitute(module('junit:junit:4.12'))
         .because('CVE-2020-15250')
-        .with(module('junit:junit:4.13.1'))
+        .using(module('junit:junit:4.13.1'))
     }
   }
 }

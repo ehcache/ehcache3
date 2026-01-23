@@ -22,6 +22,15 @@
   <module name="Header">
     <property name="headerFile" value="${rootDir}/config/java.header"/>
     <property name="fileExtensions" value="java"/>
+    <!-- Allow Checkstyle to skip the IBM line so the regex check below can enforce it -->
+    <property name="ignoreLines" value="3"/>
+  </module>
+
+  <!-- Allow both 2025 and later IBM copyright lines -->
+  <module name="RegexpSingleline">
+    <property name="format" value="^ \\* Copyright IBM Corp\\. 2024, 202[5-9]$"/>
+    <property name="message" value="IBM copyright line must use 2024, 2025 or later"/>
+    <property name="fileExtensions" value="java"/>
   </module>
 
   <module name="SuppressionFilter">
