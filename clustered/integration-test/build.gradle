@@ -92,6 +92,15 @@ configurations.all {
         .because('CVE-2020-15250')
         .with(module('junit:junit:4.13.1'))
     }
+    eachDependency { details ->
+      if (details.requested.group == 'ch.qos.logback' &&
+        (details.requested.name == 'logback-classic' || details.requested.name == 'logback-core')) {
+        def enforcedLogbackVersion = project.property('logbackVersion').toString()
+        if (!details.requested.version || details.requested.version < enforcedLogbackVersion) {
+          details.useVersion enforcedLogbackVersion
+          details.because 'Force logback >= ' + enforcedLogbackVersion
+        }
+      }
+    }
   }
 }
-

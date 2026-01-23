@@ -22,6 +22,8 @@ public class JavaConvention implements Plugin<Project> {
 
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "junit:junit:" + project.property("junitVersion"));
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.assertj:assertj-core:" + project.property("assertjVersion"));
+    dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "net.bytebuddy:byte-buddy:" + project.property("byteBuddyVersion"));
+    dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "net.bytebuddy:byte-buddy-agent:" + project.property("byteBuddyVersion"));
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.hamcrest:hamcrest:" + project.property("hamcrestVersion"));
     dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.mockito:mockito-core:" + project.property("mockitoVersion"));
     ModuleDependency md = (ModuleDependency)dependencies.add(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME, "org.terracotta:terracotta-utilities-test-tools:" + project.property("terracottaUtilitiesVersion"));
@@ -34,6 +36,14 @@ public class JavaConvention implements Plugin<Project> {
         subs.substitute(subs.module("org.hamcrest:hamcrest-core:1.3")).with(subs.module("org.hamcrest:hamcrest-core:" + project.property("hamcrestVersion")));
         subs.substitute(subs.module("org.hamcrest:hamcrest-library:1.3")).with(subs.module("org.hamcrest:hamcrest-library:" + project.property("hamcrestVersion")));
         subs.substitute(subs.module("junit:junit:4.12")).using(subs.module("junit:junit:4.13.1"));
+      });
+      config.getResolutionStrategy().eachDependency(details -> {
+        String group = details.getRequested().getGroup();
+        String name = details.getRequested().getName();
+        if ("net.bytebuddy".equals(group) && ("byte-buddy".equals(name) || "byte-buddy-agent".equals(name))) {
+          details.useVersion(project.property("byteBuddyVersion").toString());
+          details.because("Align Byte Buddy family versions across AssertJ and Mockito");
+        }
       });
     });
   }
