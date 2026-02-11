@@ -16,6 +16,7 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.Cache;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -221,8 +222,9 @@ public class TieredStore<K, V> implements Store<K, V> {
     }
   }
 
+  @SuppressFBWarnings("NN_NAKED_NOTIFY")
   private void swapBackCachingTiers() {
-    if(!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
+    if (!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
       throw new AssertionError("Something bad happened");
     }
     synchronized (noopCachingTier) {

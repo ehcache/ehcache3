@@ -64,14 +64,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     K key = null;
     V value = factory.createValue(1);
 
-    try {
-      kvStore.put(key, value);
-      throw new AssertionError("Expected NullPointerException because the key is null");
-    } catch (NullPointerException e) {
-      // expected
-    } catch (StoreAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
+    expectException(NullPointerException.class, () -> kvStore.put(key, value));
   }
 
   @SPITest
@@ -82,14 +75,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     K key = factory.createKey(1);
     V value = null;
 
-    try {
-      kvStore.put(key, value);
-      throw new AssertionError("Expected NullPointerException because the value is null");
-    } catch (NullPointerException e) {
-      // expected
-    } catch (StoreAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
+    expectException(NullPointerException.class, () -> kvStore.put(key, value));
   }
 
   @SPITest
