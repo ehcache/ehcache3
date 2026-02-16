@@ -110,7 +110,6 @@ final class FileUtils {
     }
   }
 
-  @SuppressFBWarnings("DM_GC")
   private static void gc() {
     System.gc();
     System.runFinalization();

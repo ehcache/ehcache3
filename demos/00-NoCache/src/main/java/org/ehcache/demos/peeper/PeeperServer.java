@@ -14,18 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.demos.peeper;
 
-plugins {
-  id 'org.ehcache.build.clustered-module'
-}
+import org.ehcache.demos.server.EmbeddedPeeperServer;
 
-publishing.publications.withType(MavenPublication) {
-  pom {
-    name = 'Ehcache 3 Common Clustering API module'
-    description = 'The Common Clustering API module of Ehcache 3'
+public class PeeperServer {
+
+  public static void main(String[] args) throws Exception {
+    EmbeddedPeeperServer.run(PeeperServletContextListener::new, PeeperServlet::new);
   }
-}
-
-dependencies {
-  compileOnlyApi "org.terracotta:common-api:$terracottaCoreVersion"
 }

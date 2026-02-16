@@ -30,10 +30,12 @@ dependencies {
   api project(':ehcache-api')
   api project(':clustered:ehcache-common-api')
 
-  compileOnly "org.terracotta:common-api:$terracottaApisVersion"
+  compileOnly "org.terracotta:common-api:$terracottaCoreVersion"
   implementation "org.terracotta:terracotta-runnel:$terracottaPlatformVersion"
-  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
+  implementation ("org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion") {
+    exclude group: 'org.slf4j'
+  }
 
-  testImplementation "org.terracotta:client-api:$terracottaApisVersion"
+  testImplementation "org.terracotta:client-api:$terracottaCoreVersion"
   testImplementation project(':clustered:test-utils')
 }

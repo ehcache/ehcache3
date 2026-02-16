@@ -35,8 +35,8 @@ public class VoltronPlugin implements Plugin<Project> {
       config.exclude(Map.of("group", "ch.qos.logback"));
 
       DependencyHandler dependencyHandler = project.getDependencies();
-      String terracottaApisVersion = project.property("terracottaApisVersion").toString();
-      config.getDependencies().add(dependencyHandler.create("org.terracotta:server-api:" + terracottaApisVersion));
+      String terracottaCoreVersion = project.property("terracottaCoreVersion").toString();
+      config.getDependencies().add(dependencyHandler.create("org.terracotta:server-api:" + terracottaCoreVersion));
     });
 
     NamedDomainObjectProvider<Configuration> service = project.getConfigurations().register(SERVICE_CONFIGURATION_NAME, config -> {

@@ -25,7 +25,6 @@ import java.util.Arrays;
 /**
  * ValueWrapper
  */
-@SuppressFBWarnings("EI_EXPOSE_REP")
 public class ValueWrapper implements Serializable {
 
   private static final long serialVersionUID = -4794738044295644587L;

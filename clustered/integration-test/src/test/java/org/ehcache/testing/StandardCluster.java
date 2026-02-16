@@ -46,11 +46,11 @@ public interface StandardCluster {
   }
 
   static BasicExternalClusterBuilder newCluster() {
-    return BasicExternalClusterBuilder.newCluster().startupBuilder(ConfigRepoStartupBuilder::new);
+    return BasicExternalClusterBuilder.newCluster().startupBuilder(org.terracotta.testing.config.ConfigRepoStartupBuilder::new);
   }
 
   static BasicExternalClusterBuilder newCluster(int size) {
-    return BasicExternalClusterBuilder.newCluster(size).startupBuilder(ConfigRepoStartupBuilder::new);
+    return BasicExternalClusterBuilder.newCluster(size).startupBuilder(org.terracotta.testing.config.ConfigRepoStartupBuilder::new);
   }
 
   static String leaseLength(Duration leaseLength) {

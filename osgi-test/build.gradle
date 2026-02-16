@@ -56,6 +56,7 @@ dependencies {
 
   osgiModule project(':ehcache')
 
+  osgiModule 'org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7'
   osgiModule "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   osgiModule 'org.apache.felix:org.apache.felix.scr:2.2.0'
 
@@ -78,8 +79,10 @@ configurations.all {
       substitute(module('org.ops4j.pax.url:pax-url-link:2.6.8'))
         .using(module('org.ops4j.pax.url:pax-url-link:2.6.11'))
       substitute(module('org.ops4j.pax.url:pax-url-aether:2.6.8'))
-      //  the 2 line has CVE-2025-48924 which is preventing build
-        .using(module('org.ops4j.pax.url:pax-url-aether:3.0.1'))
+        .using(module('org.ops4j.pax.url:pax-url-aether:3.0.2'))
+      substitute(module('org.apache.commons:commons-lang3:3.12.0'))
+        .using(module('org.apache.commons:commons-lang3:3.18.0'))
+        .because('CVE-2025-48924')
       substitute(module('org.osgi:org.osgi.util.function:1.1.0'))
         .using(module('org.osgi:org.osgi.util.function:1.2.0'))
         .because('Dependency divergence in org.osgi:org.osgi.util.promise:1.2.0')
