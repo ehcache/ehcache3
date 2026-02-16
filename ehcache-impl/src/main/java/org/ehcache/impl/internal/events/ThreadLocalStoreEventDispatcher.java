@@ -40,7 +40,7 @@ public class ThreadLocalStoreEventDispatcher<K, V> extends AbstractStoreEventDis
     } else {
       StoreEventSink<K, V> eventSink = tlEventSink.get();
       if (eventSink == null) {
-        eventSink = new FudgingInvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners());
+        eventSink = new FudgingInvocationScopedEventSink<>(getFilters(), isEventOrdering(), getOrderedQueues(), getListeners(), getRelevantEventTypes());
         tlEventSink.set(eventSink);
         usageDepth.set(0);
       } else {
