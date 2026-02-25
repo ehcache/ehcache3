@@ -29,12 +29,19 @@ publishing.publications.withType(MavenPublication) {
 dependencies {
   service project(':clustered:server:ehcache-service-api')
   service "org.terracotta:offheap-resource:$terracottaPlatformVersion"
-  service "org.terracotta:statistics:$statisticVersion"
+  service ("org.terracotta:statistics:$statisticVersion") {
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
 
   implementation project(':clustered:ehcache-common')
-  implementation "org.terracotta:offheap-store:$offheapVersion"
+  implementation ("org.terracotta:offheap-store:$offheapVersion") {
+    exclude group:'org.slf4j'
+  }
 
   testImplementation project(':clustered:test-utils')
-  testImplementation "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"
+  testImplementation ("org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
   testImplementation "org.terracotta:passthrough-server:$terracottaPassthroughTestingVersion"
+  testImplementation 'javax.xml.bind:jaxb-api:[2.2,3)'
 }

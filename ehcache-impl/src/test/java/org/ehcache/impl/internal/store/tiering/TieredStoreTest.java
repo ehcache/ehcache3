@@ -34,6 +34,7 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -867,15 +868,15 @@ public class TieredStoreTest {
     OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
     Set<ResourceType<?>> cachingResources = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
     when(onHeapStoreProvider.rankCachingTier(eq(cachingResources), any(Collection.class))).thenReturn(1);
-    when(onHeapStoreProvider.createCachingTier(eq(cachingResources), any(Store.Configuration.class),
-      ArgumentMatchers.any()))
+    when(onHeapStoreProvider.createCachingTier(any(Set.class), any(Store.Configuration.class),
+      any(ServiceConfiguration[].class)))
         .thenReturn(stringCachingTier);
 
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     Set<ResourceType<?>> authorityResources = Collections.<ResourceType<?>>singleton( ResourceType.Core.OFFHEAP);
     when(offHeapStoreProvider.rankAuthority(eq(authorityResources), any(Collection.class))).thenReturn(1);
-    when(offHeapStoreProvider.createAuthoritativeTier(eq(authorityResources),
-            any(Store.Configuration.class), ArgumentMatchers.any()))
+    when(offHeapStoreProvider.createAuthoritativeTier(any(Set.class),
+            any(Store.Configuration.class), any(ServiceConfiguration[].class)))
         .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);

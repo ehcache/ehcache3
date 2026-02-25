@@ -58,6 +58,7 @@ abstract class MemberUtils {
      * @param o the AccessibleObject to set as accessible
      * @return a boolean indicating whether the accessibility of the object was set to true.
      */
+    @SuppressWarnings("deprecation")
     static boolean setAccessibleWorkaround(final AccessibleObject o) {
         if (o == null || o.isAccessible()) {
             return false;

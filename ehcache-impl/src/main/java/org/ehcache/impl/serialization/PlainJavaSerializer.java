@@ -107,7 +107,7 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
       }
 
-      return Proxy.getProxyClass(classLoader, interfaceClasses);
+      return Proxy.newProxyInstance(classLoader, interfaceClasses, (proxy, method, args) -> null).getClass();
     }
 
     private static final Map<String, Class<?>> primitiveClasses = new HashMap<>();

@@ -97,34 +97,24 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void nullKeyThrowsException()
-      throws StoreAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = null;
     V value = factory.createValue(1);
 
-    try {
-      kvStore.putIfAbsent(key, value, b -> {});
-      throw new AssertionError("Expected NullPointerException because the key is null");
-    } catch (NullPointerException e) {
-      // expected
-    }
+    expectException(NullPointerException.class, () -> kvStore.putIfAbsent(key, value, b -> {}));
   }
 
   @SPITest
   public void nullValueThrowsException()
-      throws StoreAccessException, IllegalAccessException, InstantiationException {
+      throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = null;
 
-    try {
-      kvStore.putIfAbsent(key, value, b -> {});
-      throw new AssertionError("Expected NullPointerException because the value is null");
-    } catch (NullPointerException e) {
-      // expected
-    }
+    expectException(NullPointerException.class, () -> kvStore.putIfAbsent(key, value, b -> {}));
   }
 
   @SPITest

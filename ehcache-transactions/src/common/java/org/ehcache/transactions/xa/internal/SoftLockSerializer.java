@@ -111,6 +111,7 @@ class SoftLockSerializer<T> implements Serializer<SoftLock<T>> {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected Class<?> resolveProxyClass(String[] interfaces) throws ClassNotFoundException {
       Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {

@@ -55,6 +55,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import org.mockito.quality.Strictness;
+
 /**
  * DefaultClusteringServiceDestroyTest
  */
@@ -194,7 +196,7 @@ public class DefaultClusteringServiceDestroyTest {
 
   private void mockLockForWriteLockSuccess() throws org.terracotta.exception.EntityNotProvidedException, org.terracotta.exception.EntityNotFoundException, org.terracotta.exception.EntityVersionMismatchException {
     when(connection.<VoltronReadWriteLockClient, Object, Void>getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
-    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class, withSettings().lenient());
+    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class, withSettings().strictness(Strictness.LENIENT));
     when(lockEntityRef.fetchEntity(null)).thenReturn(lockClient);
 
     when(lockClient.tryLock(LockMessaging.HoldType.WRITE)).thenReturn(true);
@@ -203,7 +205,7 @@ public class DefaultClusteringServiceDestroyTest {
 
   private void mockLockForReadLockSuccess() throws org.terracotta.exception.EntityNotProvidedException, org.terracotta.exception.EntityNotFoundException, org.terracotta.exception.EntityVersionMismatchException {
     when(connection.<VoltronReadWriteLockClient, Object, Void>getEntityRef(same(VoltronReadWriteLockClient.class), eq(1L), any())).thenReturn(lockEntityRef);
-    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class, withSettings().lenient());
+    VoltronReadWriteLockClient lockClient = mock(VoltronReadWriteLockClient.class, withSettings().strictness(Strictness.LENIENT));
     when(lockEntityRef.fetchEntity(null)).thenReturn(lockClient);
 
     when(lockClient.tryLock(LockMessaging.HoldType.READ)).thenReturn(true);

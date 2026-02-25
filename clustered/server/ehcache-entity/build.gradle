@@ -28,12 +28,18 @@ publishing.publications.withType(MavenPublication) {
 
 dependencies {
   service project(':clustered:server:ehcache-service-api')
-  service "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"
-  service "org.terracotta.management:management-registry:$terracottaPlatformVersion"
+  service ("org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
+  service ("org.terracotta.management:management-registry:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
 
   api project(':clustered:ehcache-common')
   implementation "org.terracotta:runnel:$terracottaPlatformVersion"
-  implementation "org.terracotta:offheap-store:$offheapVersion"
+  implementation ("org.terracotta:offheap-store:$offheapVersion") {
+    exclude group:'org.slf4j'
+  }
   implementation "org.terracotta:client-message-tracker:$terracottaPlatformVersion"
 
   testImplementation project(':clustered:server:ehcache-service')

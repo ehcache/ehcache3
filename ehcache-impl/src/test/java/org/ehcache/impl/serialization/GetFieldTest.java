@@ -44,7 +44,7 @@ public class GetFieldTest {
     s.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(Foo_A.class);
-    Serializable a = (Serializable) loaderA.loadClass(newClassName(Foo_A.class)).newInstance();
+    Serializable a = (Serializable) loaderA.loadClass(newClassName(Foo_A.class)).getDeclaredConstructor().newInstance();
     ByteBuffer encodedA = s.serialize(a);
 
     pushTccl(createClassNameRewritingLoader(Foo_B.class));
