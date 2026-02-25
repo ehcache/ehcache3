@@ -121,7 +121,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private boolean useValueSerializingCopier;
   private Serializer<K> keySerializer;
   private Serializer<V> valueSerializer;
-  private int dispatcherConcurrency = 4;
+  private volatile int dispatcherConcurrency = 4;
   private List<CacheEventListenerConfiguration<?>> eventListenerConfigurations = new ArrayList<>();
   private ExecutorService unOrderedExecutor;
   private ExecutorService orderedExecutor;

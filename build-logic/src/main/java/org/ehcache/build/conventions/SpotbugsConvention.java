@@ -17,8 +17,8 @@ public class SpotbugsConvention implements Plugin<Project> {
     SpotBugsExtension spotbugs = project.getExtensions().getByType(SpotBugsExtension.class);
 
     spotbugs.getIgnoreFailures().set(false);
-    // Later versions of Spotbugs have stupid heuristics for EI_EXPOSE_REP*
-    spotbugs.getToolVersion().set("4.2.3");
+    spotbugs.getToolVersion().set("4.9.8");
+    spotbugs.getOmitVisitors().addAll("FindReturnRef", "ConstructorThrow");
 
     project.getPlugins().withType(JavaBasePlugin.class).configureEach(plugin -> {
 
@@ -46,6 +46,12 @@ public class SpotbugsConvention implements Plugin<Project> {
         subs.substitute(subs.module("org.apache.commons:commons-lang3:3.11"))
           .using(subs.module("org.apache.commons:commons-lang3:3.12.0"))
           .because("Spotbugs has dependency divergences");
+        subs.substitute(subs.module("org.apache.commons:commons-lang3:3.18.0"))
+          .using(subs.module("org.apache.commons:commons-lang3:3.19.0"))
+          .because("Spotbugs 4.9.8 has dependency divergences");
+        subs.substitute(subs.module("org.apache.logging.log4j:log4j-core:2.25.2"))
+          .using(subs.module("org.apache.logging.log4j:log4j-core:2.25.3"))
+          .because("Security vulnerability fix");
       });
     });
 

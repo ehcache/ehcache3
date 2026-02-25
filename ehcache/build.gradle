@@ -69,6 +69,8 @@ configurations {
   jakartaContents {
     exclude group:'jakarta.xml.bind'
   }
+  javadocAdd
+  jakartaJavadocAdd
 }
 
 dependencies {
@@ -94,6 +96,12 @@ dependencies {
     }
   }
   jakartaRuntimeOnly 'org.glassfish.jaxb:jaxb-runtime:[3,3.1)'
+
+  javadocAdd 'com.github.spotbugs:spotbugs-annotations:4.9.8'
+  javadocAdd 'javax.xml.bind:jaxb-api:[2.2,3)'
+
+  jakartaJavadocAdd 'com.github.spotbugs:spotbugs-annotations:4.9.8'
+  jakartaJavadocAdd 'jakarta.xml.bind:jakarta.xml.bind-api:[3,4)'
 }
 
 tasks.named('jakartaJar') {
@@ -103,7 +111,7 @@ tasks.named('jakartaJar') {
     instruction Constants.BUNDLE_DESCRIPTION, 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
     instruction Constants.BUNDLE_ACTIVATOR, 'org.ehcache.core.osgi.EhcacheActivator'
     instruction Constants.EXPORT_PACKAGE, '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*'
-    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, jdk.internal.misc;resolution:=optional, !javax.annotation, !sun.misc, jakarta.xml.bind*;version="[3,4)", *'
+    instruction Constants.IMPORT_PACKAGE, 'javax.annotation.*;resolution:=optional, javax.cache.*;resolution:=optional, jdk.internal.misc;resolution:=optional, !javax.annotation, !sun.misc, jakarta.xml.bind*;version="[3,4)", *'
   }
 }
 
@@ -114,6 +122,14 @@ tasks.named('jar') {
     instruction Constants.BUNDLE_DESCRIPTION, 'Ehcache is an open-source caching library, compliant with the JSR-107 standard.'
     instruction Constants.BUNDLE_ACTIVATOR, 'org.ehcache.core.osgi.EhcacheActivator'
     instruction Constants.EXPORT_PACKAGE, '!org.ehcache.jsr107.tck, !org.ehcache.*.internal.*, org.ehcache.*'
-    instruction Constants.IMPORT_PACKAGE, 'javax.cache.*;resolution:=optional, jdk.internal.misc;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
+    instruction Constants.IMPORT_PACKAGE, 'javax.annotation.*;resolution:=optional, javax.cache.*;resolution:=optional, jdk.internal.misc;resolution:=optional, !javax.annotation, !sun.misc, javax.xml.bind*;version="[2.2,3)", *'
   }
+}
+
+tasks.named('javadoc') {
+    classpath += configurations.javadocAdd
+}
+
+tasks.named('jakartaJavadoc') {
+    classpath += configurations.jakartaJavadocAdd
 }

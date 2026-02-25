@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 
-import static java.security.AccessController.doPrivileged;
 import static java.util.Collections.enumeration;
 import static java.util.Collections.list;
 import static java.util.stream.Collectors.toList;
@@ -57,14 +56,14 @@ public class ClassLoading {
     }
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("removal")
   public static ClassLoader delegationChain(Supplier<ClassLoader> loader, ClassLoader ... loaders) {
-    return doPrivileged((PrivilegedAction<ClassLoader>) () -> new ChainedClassLoader(concat(of(loader), of(loaders).map(l -> () -> l)).collect(toList())));
+    return java.security.AccessController.doPrivileged((PrivilegedAction<ClassLoader>) () -> new ChainedClassLoader(concat(of(loader), of(loaders).map(l -> () -> l)).collect(toList())));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("removal")
   public static ClassLoader delegationChain(ClassLoader ... loaders) {
-    return doPrivileged((PrivilegedAction<ClassLoader>) () -> new ChainedClassLoader(of(loaders).<Supplier<ClassLoader>>map(l -> () -> l).collect(toList())));
+    return java.security.AccessController.doPrivileged((PrivilegedAction<ClassLoader>) () -> new ChainedClassLoader(of(loaders).<Supplier<ClassLoader>>map(l -> () -> l).collect(toList())));
   }
 
   private static class ChainedClassLoader extends ClassLoader {
