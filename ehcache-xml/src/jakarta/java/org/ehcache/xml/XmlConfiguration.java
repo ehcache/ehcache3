@@ -272,7 +272,7 @@ public class XmlConfiguration implements Configuration {
   public <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilderFromTemplate(final String name,
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      throws ReflectiveOperationException {
     Template template = templates.get(name);
     if (template == null) {
       return null;
@@ -307,7 +307,7 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
                                                                                          final ResourcePools resourcePools)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      throws ReflectiveOperationException {
     Template template = templates.get(name);
     if (template == null) {
       return null;
@@ -342,7 +342,7 @@ public class XmlConfiguration implements Configuration {
                                                                                          final Class<K> keyType,
                                                                                          final Class<V> valueType,
                                                                                          final Builder<? extends ResourcePools> resourcePoolsBuilder)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      throws ReflectiveOperationException {
     return newCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
@@ -372,7 +372,7 @@ public class XmlConfiguration implements Configuration {
   }
 
   public interface Template {
-    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ClassNotFoundException, InstantiationException, IllegalAccessException;
+    <K, V> CacheConfigurationBuilder<K,V> builderFor(ClassLoader classLoader, Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) throws ReflectiveOperationException;
   }
 
   public static Class<?> getClassForName(String name, ClassLoader classLoader) throws ClassNotFoundException {

@@ -100,8 +100,18 @@ task copyDocs(type: Sync) {
   into docsFolder
 }
 
+configurations {
+  javadocAdd
+}
+
+dependencies {
+  javadocAdd project(':clustered:ehcache-common-api')
+  javadocAdd project(':clustered:ehcache-common')
+}
+
 javadoc {
   exclude '**/core/**', '**/impl/**', '**/xml/**', '**/jsr107/**', '**/transactions/**', '**/management/**', '**/tck/**'
+  classpath += configurations.javadocAdd
 }
 
 tasks.named('jar') {

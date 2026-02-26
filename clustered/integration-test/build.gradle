@@ -40,11 +40,18 @@ dependencies {
   }
 
   testImplementation project(':ehcache-management')
-  testImplementation "org.terracotta.management:nms-entity-client:$terracottaPlatformVersion"
-  testImplementation "org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion"
-  testImplementation "org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion"
+  testImplementation ("org.terracotta.management:nms-entity-client:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
+  testImplementation ("org.terracotta.management:nms-agent-entity-client:$terracottaPlatformVersion") {
+    exclude group: 'org.slf4j'
+  }
+  testImplementation ("org.terracotta:terracotta-utilities-port-chooser:$terracottaUtilitiesVersion") {
+    exclude group: 'org.slf4j'
+  }
   testImplementation("org.terracotta:galvan-platform-support:$terracottaPlatformVersion") {
     exclude group: 'org.terracotta', module: 'terracotta-utilities-port-chooser'
+    exclude group: 'org.slf4j'
   }
   testImplementation "javax.cache:cache-api:$jcacheVersion"
 }
@@ -79,5 +86,16 @@ configurations.all {
         .because('CVE-2020-15250')
         .with(module('junit:junit:4.13.1'))
     }
+    eachDependency { details ->
+      if (details.requested.group == 'ch.qos.logback' &&
+        (details.requested.name == 'logback-classic' || details.requested.name == 'logback-core')) {
+        def enforcedLogbackVersion = project.property('logbackVersion').toString()
+        if (!details.requested.version || details.requested.version < enforcedLogbackVersion) {
+          details.useVersion enforcedLogbackVersion
+          details.because 'Force logback >= ' + enforcedLogbackVersion
+        }
+      }
+    }
   }
 }
+

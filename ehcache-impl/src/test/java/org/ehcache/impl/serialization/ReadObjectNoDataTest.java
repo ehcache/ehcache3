@@ -44,7 +44,7 @@ public class ReadObjectNoDataTest {
     ClassLoader loaderW = createClassNameRewritingLoader(C_W.class, B_W.class);
 
 
-    ByteBuffer b = s.serialize((Serializable) loaderW.loadClass(newClassName(C_W.class)).newInstance());
+    ByteBuffer b = s.serialize((Serializable) loaderW.loadClass(newClassName(C_W.class)).getDeclaredConstructor().newInstance());
 
     pushTccl(createClassNameRewritingLoader(C_R.class, B_R.class, A_R.class));
     try {

@@ -42,7 +42,7 @@ public class CompactJavaSerializerClassLoaderTest {
     serializer.init(new TransientStateRepository());
 
     ClassLoader loader = newLoader();
-    ByteBuffer encoded = serializer.serialize((Serializable) loader.loadClass(Foo.class.getName()).newInstance());
+    ByteBuffer encoded = serializer.serialize((Serializable) loader.loadClass(Foo.class.getName()).getDeclaredConstructor().newInstance());
 
     pushTccl(loader);
     try {
@@ -58,7 +58,7 @@ public class CompactJavaSerializerClassLoaderTest {
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(loader);
     serializer.init(new TransientStateRepository());
 
-    ByteBuffer encoded = serializer.serialize((Serializable) loader.loadClass(Foo.class.getName()).newInstance());
+    ByteBuffer encoded = serializer.serialize((Serializable) loader.loadClass(Foo.class.getName()).getDeclaredConstructor().newInstance());
 
     // setting TCCL doesn't matter here, but set it to make sure it doesn't get used
     pushTccl(newLoader());

@@ -120,7 +120,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).hasSameElementsAs(allDescriptors);
+      assertThat(allDescriptors).hasSameElementsAs(descriptors);
     }
   }
 
@@ -150,7 +150,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(ONHEAP_NO_STATS_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).hasSameElementsAs(allDescriptors);
+      assertThat(allDescriptors).hasSameElementsAs(descriptors);
     }
   }
 
@@ -181,7 +181,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).hasSameElementsAs(allDescriptors);
+      assertThat(allDescriptors).hasSameElementsAs(descriptors);
     }
   }
 
@@ -215,7 +215,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(DISK_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors).hasSameElementsAs(allDescriptors);
+      assertThat(allDescriptors).hasSameElementsAs(descriptors);
     }
   }
 

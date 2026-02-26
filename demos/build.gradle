@@ -1,60 +1,31 @@
 plugins {
+  id 'org.ehcache.build.conventions.java-library'
   id 'org.ehcache.build.conventions.war' apply false
-  id 'org.gretty' apply false
+}
+
+def jettyVersion = '12.1.5'
+
+dependencies {
+  api platform("org.eclipse.jetty:jetty-bom:${jettyVersion}")
+  api 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+  api 'org.eclipse.jetty:jetty-server'
+  api "org.eclipse.jetty.ee10:jetty-ee10-servlet:${jettyVersion}"
+}
+
+configurations.configureEach {
+  resolutionStrategy {
+    force "org.slf4j:slf4j-api:${project.property('slf4jVersion')}"
+  }
 }
 
 subprojects {
   apply plugin: 'org.ehcache.build.conventions.war'
-  apply plugin: 'org.gretty'
-
-  gretty {
-    httpPort = 8080
-    contextPath = '/'
-    servletContainer = 'jetty9'
-  }
 
   dependencies {
+    implementation project(':demos')
     implementation project(':ehcache-impl')
-    implementation 'javax.servlet:javax.servlet-api:3.1.0'
-    runtimeOnly 'ch.qos.logback:logback-classic:1.2.11'
-    runtimeOnly 'com.h2database:h2:1.4.196'
-  }
-
-  configurations.all {
-    resolutionStrategy {
-      dependencySubstitution {
-        substitute(module('org.slf4j:slf4j-api'))
-          .because('org.gretty:gretty-runner-jetty declares a very old version of slf4j')
-          .with(module('org.slf4j:slf4j-api:' + project.property('slf4jVersion')))
-      }
-    }
-  }
-
-  /*
-   * This substitution is solely to permit the 'dependencies' task to complete normally --
-   * the Jetty 8 environment provided by gretty is not used in this module.
-   */
-  configurations.named('grettyRunnerJetty8') {
-    resolutionStrategy {
-      dependencySubstitution {
-        substitute(module('org.eclipse.jetty.orbit:javax.servlet.jsp:2.1.0.v201105211820'))
-          .because('gretty plug-in pulls in older version for Jetty8')
-          .with(module('org.eclipse.jetty.orbit:javax.servlet.jsp:2.2.0.v201112011158'))
-      }
-    }
-  }
-
-  /*
-   * This substitution is solely to permit the 'dependencies' task to complete normally --
-   * the Jetty 9.3 environment provided by gretty is not used in this module.
-   */
-  configurations.named('grettyRunnerJetty93') {
-    resolutionStrategy {
-      dependencySubstitution {
-        substitute(module('org.eclipse.jetty.toolchain:jetty-schemas:3.1.M0'))
-          .because('gretty plug-in pulls in older version for Jetty9.3')
-          .with(module('org.eclipse.jetty.toolchain:jetty-schemas:3.1'))
-      }
-    }
+    implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+    runtimeOnly "ch.qos.logback:logback-classic:${project.property('logbackVersion')}"
+    runtimeOnly 'com.h2database:h2:2.4.240'
   }
 }
