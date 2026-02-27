@@ -76,10 +76,13 @@ class ClusteredWriteBehind<K, V> {
                 operation);
               try {
                 if (result != null) {
+                  try{
                   if (result != currentState.get(key) && !(operation instanceof PutOperation)) {
-                    cacheLoaderWriter.write(result.getKey(), result.getValue());
-                  }
+                      cacheLoaderWriter.write(result.getKey(), result.getValue());
+                    }
                   currentState.put(key, result.asOperationExpiringAt(result.expirationTime()));
+                  }catch (Exception ignored){
+                  }
                 } else {
                   if (currentState.get(key) != null && (operation instanceof RemoveOperation
                     || operation instanceof ConditionalRemoveOperation)) {
@@ -96,7 +99,6 @@ class ClusteredWriteBehind<K, V> {
             for (PutOperation<K, V> operation : currentState.values()) {
               builder = builder.add(codec.encode(operation));
             }
-
             clusteredWriteBehindStore.replaceAtHead(hash, chain, builder.build());
           }
         } finally {
