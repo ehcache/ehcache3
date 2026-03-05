@@ -62,48 +62,48 @@ public class WhitelistedUnmarshallingTest {
 
   @Test
   public void unmarshallingIntegerTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Integer(10));
+    unmarshallingStateRepoMessagesCheck(Integer.valueOf(10));
   }
 
   @Test
   public void unmarshallingLongTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Long(10));
+    unmarshallingStateRepoMessagesCheck(Long.valueOf(10L));
   }
 
   @Test
   public void unmarshallingFloatTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Float(10.0));
+    unmarshallingStateRepoMessagesCheck(Float.valueOf(10.0f));
   }
 
   @Test
   public void unmarshallingDoubleTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Double(10.0));
+    unmarshallingStateRepoMessagesCheck(Double.valueOf(10.0));
   }
 
   @Test
   public void unmarshallingByteTest() throws Exception {
     byte b = 101;
-    unmarshallingStateRepoMessagesCheck(new Byte(b));
+    unmarshallingStateRepoMessagesCheck(Byte.valueOf(b));
   }
 
   @Test
   public void unmarshallingCharacterTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Character('b'));
+    unmarshallingStateRepoMessagesCheck(Character.valueOf('b'));
   }
 
   @Test
   public void unmarshallingStringTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new String("John"));
+    unmarshallingStateRepoMessagesCheck("John");
   }
 
   @Test
   public void unmarshallingBooleanTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Boolean(true));
+    unmarshallingStateRepoMessagesCheck(Boolean.TRUE);
   }
 
   @Test
   public void unmarshallingShortTest() throws Exception {
-    unmarshallingStateRepoMessagesCheck(new Short((short) 1));
+    unmarshallingStateRepoMessagesCheck(Short.valueOf((short) 1));
   }
 
   @Test

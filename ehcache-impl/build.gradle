@@ -51,15 +51,23 @@ task slowTest(type: Test) {
 
 dependencies {
   api project(':ehcache-core')
-  implementation group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
-  implementation group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion
-  implementation group: 'org.terracotta', name: 'terracotta-utilities-tools', version: parent.terracottaUtilitiesVersion
+  implementation (group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion) {
+    exclude group:'org.slf4j'
+  }
+  implementation (group: 'org.ehcache', name: 'sizeof', version: parent.sizeofVersion) {
+    exclude group: 'org.slf4j'
+  }
+  implementation (group: 'org.terracotta', name: 'terracotta-utilities-tools', version: parent.terracottaUtilitiesVersion) {
+    exclude group: 'org.slf4j'
+  }
   compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
   testImplementation testFixtures(project(':ehcache-core'))
   testImplementation project(':core-spi-test')
   testImplementation 'org.ow2.asm:asm:6.2'
   testImplementation 'org.ow2.asm:asm-commons:6.2'
-  testImplementation ("org.terracotta:statistics:$parent.statisticVersion")
+  testImplementation ("org.terracotta:statistics:$parent.statisticVersion") {
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
 }
 
 jar {

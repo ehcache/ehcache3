@@ -166,9 +166,9 @@ public class StateRepositoryWhitelistingTest {
     StateHolder<Integer, Integer> testMap = stateRepository.getPersistentStateHolder("testMap", Integer.class, Integer.class,
       Arrays.asList(Child.class)::contains, null);
 
-    testMap.putIfAbsent(new Integer(10), new Integer(20));
+    testMap.putIfAbsent(Integer.valueOf(10), Integer.valueOf(20));
 
-    assertThat(testMap.get(new Integer(10)), is(new Integer(20)));
+    assertThat(testMap.get(Integer.valueOf(10)), is(Integer.valueOf(20)));
     assertThat(testMap.entrySet(), hasSize(1));
   }
 

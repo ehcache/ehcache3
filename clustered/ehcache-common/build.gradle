@@ -32,7 +32,9 @@ dependencies {
 
   implementation "org.terracotta:entity-common-api:$terracottaApisVersion"
   implementation "org.terracotta:runnel:$terracottaPlatformVersion"
-  implementation "org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion"
+  implementation ("org.terracotta:terracotta-utilities-tools:$terracottaUtilitiesVersion") {
+    exclude group: 'org.slf4j'
+  }
 
   testImplementation project(':clustered:test-utils')
 }

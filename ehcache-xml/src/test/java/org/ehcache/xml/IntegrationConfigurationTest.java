@@ -125,7 +125,7 @@ public class IntegrationConfigurationTest {
     final Cache<Number, String> cache = cacheManager.getCache("bar", Number.class, String.class);
     assertThat(cache, notNullValue());
     assertThat(cache.get(1), notNullValue());
-    final Number key = new Long(42);
+    final Number key = 42L;
     cache.put(key, "Bye y'all!");
     assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key));
 
@@ -133,7 +133,7 @@ public class IntegrationConfigurationTest {
     final Cache<Number, String> templateCache = cacheManager.getCache("template1", Number.class, String.class);
     assertThat(templateCache, notNullValue());
     assertThat(templateCache.get(1), notNullValue());
-    final Number key1 = new Long(100);
+    final Number key1 = 100L;
     templateCache.put(key1, "Bye y'all!");
     assertThat(TestCacheLoaderWriter.lastWrittenKey, is(key1));
   }

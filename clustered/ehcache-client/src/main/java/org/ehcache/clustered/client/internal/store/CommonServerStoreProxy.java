@@ -232,6 +232,7 @@ class CommonServerStoreProxy implements ServerStoreProxy {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         protected void finalize() throws Throwable {
           if (!lastBatch) {
             entity.invokeAndWaitForReceive(new ServerStoreOpMessage.IteratorCloseMessage(iteratorId), false);

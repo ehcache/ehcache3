@@ -49,6 +49,14 @@ public class OsgiTestUtils {
     return composite(
       gradleBundle("org.slf4j:slf4j-api"),
       gradleBundle("org.slf4j:slf4j-simple").noStart(),
+      // ASM bundles required by SPI Fly
+      gradleBundle("org.ow2.asm:asm"),
+      gradleBundle("org.ow2.asm:asm-tree"),
+      gradleBundle("org.ow2.asm:asm-analysis"),
+      gradleBundle("org.ow2.asm:asm-commons"),
+      gradleBundle("org.ow2.asm:asm-util"),
+      // SPI Fly for SLF4J 2.x ServiceLoader support
+      gradleBundle("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle"),
       gradleBundle("org.apache.felix:org.apache.felix.scr"),
       gradleBundle("org.osgi:org.osgi.util.promise"),
       gradleBundle("org.osgi:org.osgi.util.function"),

@@ -115,14 +115,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
     K key = null;
 
-    try {
-      kvStore.get(key);
-      throw new AssertionError("Expected NullPointerException because the key is null");
-    } catch (NullPointerException e) {
-      // expected
-    } catch (StoreAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
+    expectException(NullPointerException.class, () -> kvStore.get(key));
   }
 
   @SPITest

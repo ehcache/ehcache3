@@ -391,8 +391,10 @@ public class CacheConfigurationBuilderTest {
 
     CacheConfigurationBuilder<Object, Object> newBuilder = oldBuilder.withService(newConfig);
 
-    assertThat(oldBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(oldConfig))).and(not(hasItem(sameInstance(newConfig)))));
-    assertThat(newBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(newConfig))).and(not(hasItem(sameInstance(oldConfig)))));
+    assertThat(oldBuilder.build().getServiceConfigurations(), hasItem(sameInstance(oldConfig)));
+    assertThat(oldBuilder.build().getServiceConfigurations(), not(hasItem(sameInstance(newConfig))));
+    assertThat(newBuilder.build().getServiceConfigurations(), hasItem(sameInstance(newConfig)));
+    assertThat(newBuilder.build().getServiceConfigurations(), not(hasItem(sameInstance(oldConfig))));
   }
 
   @Test
@@ -400,12 +402,14 @@ public class CacheConfigurationBuilderTest {
     ServiceConfiguration<?, ?> oldConfig = new CompatibleServiceConfig();
     ServiceConfiguration<?, ?> newConfig = new CompatibleServiceConfig();
 
-    CacheConfigurationBuilder<Object, Object> oldBuilder = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(oldConfig);
+    CacheConfigurationBuilder<?, ?> oldBuilder = newCacheConfigurationBuilder(Object.class, Object.class, heap(10)).withService(oldConfig);
 
-    CacheConfigurationBuilder<Object, Object> newBuilder = oldBuilder.withService(newConfig);
+    CacheConfigurationBuilder<?, ?> newBuilder = oldBuilder.withService(newConfig);
 
-    assertThat(oldBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(oldConfig))).and(not(hasItem(sameInstance(newConfig)))));
-    assertThat(newBuilder.build().getServiceConfigurations(), both(hasItem(sameInstance(oldConfig))).and(hasItem(sameInstance(newConfig))));
+    assertThat(oldBuilder.build().getServiceConfigurations(), hasItem(sameInstance(oldConfig)));
+    assertThat(oldBuilder.build().getServiceConfigurations(), not(hasItem(sameInstance(newConfig))));
+    assertThat(newBuilder.build().getServiceConfigurations(), hasItem(sameInstance(oldConfig)));
+    assertThat(newBuilder.build().getServiceConfigurations(), hasItem(sameInstance(newConfig)));
   }
 
   @Test

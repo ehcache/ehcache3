@@ -89,14 +89,7 @@ public class StoreRemoveKeyTest<K, V> extends SPIStoreTester<K, V> {
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore = factory.newStore();
 
-    try {
-      kvStore.remove(null);
-      throw new AssertionError("Expected NullPointerException because the key is null");
-    } catch (NullPointerException e) {
-      // expected
-    } catch (StoreAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
+    expectException(NullPointerException.class, () -> kvStore.remove(null));
   }
 
   @SPITest
