@@ -11,6 +11,7 @@ import org.gradle.api.Project;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.ExternalDependency;
 import org.gradle.api.artifacts.ProjectDependency;
+import org.gradle.api.artifacts.ResolutionStrategy;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.publish.PublishingExtension;
@@ -46,7 +47,6 @@ public class BndConvention implements Plugin<Project> {
     if (baseline instanceof ProjectDependency) {
       throw new GradleException("Baseline should not be a project dependency");
     } else if (baseline instanceof ExternalDependency) {
-      ((ExternalDependency) baseline).setForce(true);
       ((ExternalDependency) baseline).setTransitive(false);
     } else {
       throw new IllegalArgumentException("Unexpected dependency type: " + baseline);
