@@ -1,6 +1,25 @@
 plugins {
   id 'org.ehcache.build.conventions.java-library'
-  id 'org.ehcache.build.conventions.war' apply false
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(17)
+  }
+}
+
+allprojects {
+  java {
+    toolchain {
+      languageVersion = JavaLanguageVersion.of(17)
+    }
+  }
+
+  configurations.configureEach {
+    resolutionStrategy {
+      force "org.slf4j:slf4j-api:2.0.17"
+    }
+  }
 }
 
 def jettyVersion = '12.1.5'
@@ -12,20 +31,20 @@ dependencies {
   api "org.eclipse.jetty.ee10:jetty-ee10-servlet:${jettyVersion}"
 }
 
-configurations.configureEach {
-  resolutionStrategy {
-    force "org.slf4j:slf4j-api:${project.property('slf4jVersion')}"
-  }
-}
-
 subprojects {
   apply plugin: 'org.ehcache.build.conventions.war'
+
+  java {
+    toolchain {
+      languageVersion = JavaLanguageVersion.of(17)
+    }
+  }
 
   dependencies {
     implementation project(':demos')
     implementation project(':ehcache-impl')
     implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
-    runtimeOnly "ch.qos.logback:logback-classic:${project.property('logbackVersion')}"
+    runtimeOnly "ch.qos.logback:logback-classic:1.5.26"
     runtimeOnly 'com.h2database:h2:2.4.240'
   }
 }

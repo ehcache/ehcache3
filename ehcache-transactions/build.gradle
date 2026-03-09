@@ -119,9 +119,7 @@ dependencies {
   jakartaTestRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVersion"
   jakartaTestImplementation "junit:junit:$junitVersion"
   jakartaTestImplementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
-  jakartaTestImplementation ("org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion") {
-    exclude group: 'org.slf4j'
-  }
+  jakartaTestImplementation "org.terracotta:terracotta-utilities-test-tools:$terracottaUtilitiesVersion"
 }
 
 configurations {

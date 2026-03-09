@@ -73,7 +73,14 @@ public class StoreContainsKeyTest<K, V> extends SPIStoreTester<K, V> {
 
     K key = null;
 
-    expectException(NullPointerException.class, () -> kvStore.containsKey(key));
+    try {
+      kvStore.containsKey(key);
+      throw new AssertionError("Expected NullPointerException because the key is null");
+    } catch (NullPointerException e) {
+      // expected
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
   }
 
   @SPITest

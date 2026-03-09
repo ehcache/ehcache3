@@ -377,7 +377,6 @@ public class DefaultClusteringService implements ClusteringService, EntityServic
     return connectionState;
   }
 
-  @SuppressWarnings("removal")
   private static ExecutorService createAsyncWorker() {
     SecurityManager s = System.getSecurityManager();
     ThreadGroup initialGroup = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();

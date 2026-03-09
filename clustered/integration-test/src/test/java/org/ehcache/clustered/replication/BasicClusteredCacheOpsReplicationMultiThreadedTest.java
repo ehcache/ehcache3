@@ -269,16 +269,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
     clearFuture.get();
 
-    long deadline = System.currentTimeMillis() + 30_000;
-    for (Long x : universalSet) {
-      while (cache2.get(x) != null) {
-        if (System.currentTimeMillis() > deadline) {
-          assertThat("Key " + x + " still present in cache2 after 30s wait", cache2.get(x), nullValue());
-          break;
-        }
-        Thread.sleep(100);
-      }
-    }
+    universalSet.forEach(x -> assertThat(cache2.get(x), nullValue()));
 
   }
 

@@ -504,7 +504,7 @@ public class ChainMapTest {
     while (buffer.hasRemaining()) {
       buffer.put((byte) i);
     }
-    return buffer.flip();
+    return (ByteBuffer) buffer.flip();
   }
 
   private static Matcher<Element> element(final int i) {

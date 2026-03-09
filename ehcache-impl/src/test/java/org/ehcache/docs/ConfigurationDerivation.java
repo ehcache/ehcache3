@@ -207,7 +207,7 @@ public class ConfigurationDerivation {
     @Override
     public ByteBuffer serialize(Date object) throws SerializerException {
       ByteBuffer buffer = ByteBuffer.allocate(8);
-      return buffer.putLong(object.getTime()).flip();
+      return (ByteBuffer) buffer.putLong(object.getTime()).flip();
     }
 
     @Override

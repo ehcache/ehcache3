@@ -13,6 +13,7 @@ import org.gradle.api.tasks.testing.Test;
 import org.gradle.external.javadoc.CoreJavadocOptions;
 import org.gradle.internal.jvm.JavaInfo;
 import org.gradle.internal.jvm.Jvm;
+import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.process.internal.ExecException;
 
 import java.io.ByteArrayOutputStream;
@@ -40,8 +41,7 @@ public class JavaBaseConvention implements Plugin<Project> {
     project.getExtensions().getExtraProperties().set("testJava", testJava);
 
     project.getExtensions().configure(JavaPluginExtension.class, java -> {
-      java.setSourceCompatibility(JavaVersion.VERSION_1_8);
-      java.setTargetCompatibility(JavaVersion.VERSION_1_8);
+      java.toolchain(spec -> spec.getLanguageVersion().convention(JavaLanguageVersion.of(8)));
     });
 
     project.getTasks().withType(Jar.class).configureEach(jar -> {

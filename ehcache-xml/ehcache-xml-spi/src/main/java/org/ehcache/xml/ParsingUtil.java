@@ -20,8 +20,11 @@ package org.ehcache.xml;
 import org.ehcache.javadoc.PublicApi;
 
 import java.math.BigInteger;
+import java.security.PrivilegedAction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.security.AccessController.doPrivileged;
 
 @PublicApi
 public class ParsingUtil {
@@ -33,7 +36,7 @@ public class ParsingUtil {
     Matcher matcher = PADDED_SYSPROP.matcher(s);
     if (matcher.matches()) {
       String property = matcher.group("property");
-      String value = System.getProperty(property);
+      String value = doPrivileged((PrivilegedAction<String>) () -> System.getProperty(property));
       if (value == null) {
         throw new IllegalStateException(String.format("Replacement for ${%s} not found!", property));
       } else {
@@ -71,7 +74,7 @@ public class ParsingUtil {
     StringBuffer sb = new StringBuffer();
     while (matcher.find()) {
       final String property = matcher.group("property");
-      final String value = System.getProperty(property);
+      final String value = doPrivileged((PrivilegedAction<String>) () -> System.getProperty(property));
       if (value == null) {
         throw new IllegalStateException(String.format("Replacement for ${%s} not found!", property));
       }
