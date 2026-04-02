@@ -43,7 +43,7 @@ task slowTest(type: Test) {
   testClassesDirs = sourceSets.slowTest.output.classesDirs
   classpath += sourceSets.slowTest.runtimeClasspath
 
-  binResultsDir file("$buildDir/slow-tests-results/binary/$name")
+  binaryResultsDirectory = file("$buildDir/slow-tests-results/binary/$name")
   reports.junitXml.destination = file("$buildDir/slow-tests-results")
   reports.html.destination = file("$buildDir/reports/slow-tests")
 }
@@ -72,6 +72,8 @@ jar {
 }
 
 compileUnsafe {
+  javaCompiler = javaToolchains.compilerFor(java.toolchain)
+
   //no -Werror due to unsafe
   options.compilerArgs = ['-Xlint:all']
 }

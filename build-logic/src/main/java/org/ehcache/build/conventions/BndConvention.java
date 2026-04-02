@@ -46,7 +46,6 @@ public class BndConvention implements Plugin<Project> {
     if (baseline instanceof ProjectDependency) {
       throw new GradleException("Baseline should not be a project dependency");
     } else if (baseline instanceof ExternalDependency) {
-      ((ExternalDependency) baseline).setForce(true);
       ((ExternalDependency) baseline).setTransitive(false);
     } else {
       throw new IllegalArgumentException("Unexpected dependency type: " + baseline);

@@ -9,10 +9,11 @@ import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectCompone
 import org.gradle.api.internal.component.SoftwareComponentInternal;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.publish.maven.internal.publication.MavenPomInternal;
-import org.gradle.api.publish.maven.internal.publisher.MavenProjectIdentity;
+import org.gradle.api.publish.maven.internal.publisher.MavenPublicationCoordinates;
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin;
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven;
 import org.gradle.api.publish.maven.tasks.GenerateMavenPom;
@@ -29,8 +30,8 @@ import java.io.File;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toList;
 import static org.gradle.api.publish.plugins.PublishingPlugin.PUBLISH_TASK_GROUP;
 
 /**
@@ -100,11 +101,11 @@ public class DeployConvention implements Plugin<Project> {
       public void execute(Task task) {
         MavenPublication publication = publishTask.getPublication();
         if (publication instanceof ProjectComponentPublication) {
-          SoftwareComponentInternal component = ((ProjectComponentPublication) publication).getComponent();
-          if (component != null) { //The shadow plugin doesn"t associate a component with the publication
-            Collection<ProjectDependency> unpublishedDeps = component.getUsages().stream().flatMap(usage ->
+          Provider<SoftwareComponentInternal> component = ((ProjectComponentPublication) publication).getComponent();
+          if (component.isPresent()) { //The shadow plugin doesn't associate a component with the publication
+            Collection<ProjectDependency> unpublishedDeps = component.get().getUsages().stream().flatMap(usage ->
               usage.getDependencies().stream().filter(ProjectDependency.class::isInstance).map(ProjectDependency.class::cast).filter(moduleDependency ->
-                !moduleDependency.getDependencyProject().getPlugins().hasPlugin(DeployConvention.class))).collect(toList());
+                !moduleDependency.getDependencyProject().getPlugins().hasPlugin(DeployConvention.class))).collect(Collectors.toList());
             if (!unpublishedDeps.isEmpty()) {
               project.getLogger().warn("{} has applied the deploy plugin but has unpublished project dependencies: {}", project, unpublishedDeps);
             }
@@ -131,7 +132,7 @@ public class DeployConvention implements Plugin<Project> {
         });
 
         p.getTasks().withType(GenerateMavenPom.class).all(pomTask -> {
-          MavenProjectIdentity identity = ((MavenPomInternal) pomTask.getPom()).getProjectIdentity();
+          MavenPublicationCoordinates identity = ((MavenPomInternal) pomTask.getPom()).getCoordinates();
           TaskProvider<WriteProperties> pomPropertiesTask = project.getTasks().register(pomTask.getName().replace("PomFile", "PomProperties"), WriteProperties.class, task -> {
             task.dependsOn(pomTask);
             task.setGroup(PUBLISH_TASK_GROUP);

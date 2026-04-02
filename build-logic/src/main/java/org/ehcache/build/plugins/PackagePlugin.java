@@ -25,7 +25,8 @@ import org.ehcache.build.util.ConfigurationBucketSet;
 import org.ehcache.build.util.OsgiManifestJarExtension;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ConsumableConfiguration;
+import org.gradle.api.artifacts.ResolvableConfiguration;
 import org.gradle.api.component.AdhocComponentWithVariants;
 import org.gradle.api.component.SoftwareComponentFactory;
 import org.gradle.api.file.DuplicatesStrategy;
@@ -44,7 +45,6 @@ import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.bundling.Zip;
 import org.gradle.api.tasks.javadoc.Javadoc;
-import org.gradle.internal.jvm.Jvm;
 import org.gradle.internal.resolve.ArtifactResolveException;
 import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
@@ -53,7 +53,6 @@ import java.io.File;
 import java.util.Collections;
 import java.util.Optional;
 
-import static java.lang.Integer.parseInt;
 import static org.ehcache.build.plugins.VariantPlugin.COMMON_KIND;
 import static org.ehcache.build.util.PluginUtils.camel;
 import static org.ehcache.build.util.PluginUtils.kebab;
@@ -61,7 +60,6 @@ import static org.ehcache.build.util.PluginUtils.lower;
 import static org.gradle.api.attributes.DocsType.JAVADOC;
 import static org.gradle.api.attributes.DocsType.SOURCES;
 import static org.gradle.api.attributes.DocsType.USER_MANUAL;
-import static org.gradle.api.internal.artifacts.JavaEcosystemSupport.configureDefaultTargetPlatform;
 import static org.gradle.api.plugins.JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME;
 import static org.gradle.api.plugins.JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME;
 import static org.gradle.api.plugins.JavaPlugin.JAVADOC_ELEMENTS_CONFIGURATION_NAME;
@@ -91,9 +89,12 @@ public class PackagePlugin implements Plugin<Project> {
       zip.getArchiveClassifier().set("docs");
       zip.from(project.getTasks().getByPath(":docs:userDoc"));
     });
-    Configuration userdocElements = jvmPluginServices.createOutgoingElements("userdocElements", builder ->
-      builder.published().artifact(asciidocZip).providesAttributes(attributes -> attributes.documentation(USER_MANUAL)));
-    javaComponent.addVariantsFromConfiguration(userdocElements, variantDetails -> {});
+    Provider<ConsumableConfiguration> userdocElements = project.getConfigurations().consumable("userdocElements", c -> {
+        jvmPluginServices.configureAttributes(c, builder -> builder.documentation(USER_MANUAL));
+        c.outgoing(o -> o.artifact(asciidocZip));
+      }
+    );
+    javaComponent.addVariantsFromConfiguration(userdocElements.get(), variantDetails -> {});
 
     createDefaultPackage(project);
 
@@ -128,18 +129,27 @@ public class PackagePlugin implements Plugin<Project> {
 
     ConfigurationBucketSet packageBuckets = ConfigurationBucketSet.bucketsFor(project, name, CONTENTS_KIND);
 
-    Configuration contentsCompileClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, COMPILE_CLASSPATH_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.bucket(CONTENTS_KIND)).requiresJavaLibrariesAPI());
-    Configuration contentsRuntimeClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.bucket(CONTENTS_KIND)).requiresJavaLibrariesRuntime());
-    Configuration contentsSourcesFiles = jvmPluginServices.createResolvableConfiguration(lower(camel(name, CONTENTS_KIND, "sourcesFiles")), builder ->
-      builder.extendsFrom(packageBuckets.bucket(CONTENTS_KIND)).requiresAttributes(refiner -> refiner.documentation(SOURCES)));
+    Provider<ResolvableConfiguration> contentsCompileClasspath = project.getConfigurations().resolvable(lower(camel(name, CONTENTS_KIND, COMPILE_CLASSPATH_CONFIGURATION_NAME)), c -> {
+        c.extendsFrom(packageBuckets.bucket(CONTENTS_KIND).get());
+        jvmPluginServices.configureAsCompileClasspath(c);
+      }
+    );
+    Provider<ResolvableConfiguration> contentsRuntimeClasspath = project.getConfigurations().resolvable(lower(camel(name, CONTENTS_KIND, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), c -> {
+        c.extendsFrom(packageBuckets.bucket(CONTENTS_KIND).get());
+        jvmPluginServices.configureAsRuntimeClasspath(c);
+      }
+    );
+    Provider<ResolvableConfiguration> contentsSourcesFiles = project.getConfigurations().resolvable(lower(camel(name, CONTENTS_KIND, "sourcesFiles")), c -> {
+        c.extendsFrom(packageBuckets.bucket(CONTENTS_KIND).get());
+        jvmPluginServices.configureAttributes(c, attrs -> attrs.documentation(SOURCES));
+      }
+    );
 
     TaskProvider<ShadowJar> shadowJar = project.getTasks().register(lower(camel(name, "jar")), ShadowJar.class, shadow -> {
       shadow.setGroup(BasePlugin.BUILD_GROUP);
       shadow.getArchiveClassifier().set(name);
 
-      shadow.setConfigurations(Collections.singletonList(contentsRuntimeClasspath));
+      shadow.setConfigurations(Collections.singletonList(contentsRuntimeClasspath.get()));
       shadow.relocate("org.terracotta.statistics.", "org.ehcache.shadow.org.terracotta.statistics.");
       shadow.relocate("org.terracotta.offheapstore.", "org.ehcache.shadow.org.terracotta.offheapstore.");
       shadow.relocate("org.terracotta.context.", "org.ehcache.shadow.org.terracotta.context.");
@@ -154,18 +164,32 @@ public class PackagePlugin implements Plugin<Project> {
       shadow.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
     });
 
-    Configuration apiElements = jvmPluginServices.createOutgoingElements(lower(camel(name, API_ELEMENTS_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.api()).extendsFrom(packageBuckets.compileOnlyApi()).published().providesApi().artifact(shadowJar));
-    configureDefaultTargetPlatform(apiElements, 8);
-    Configuration compileClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, COMPILE_CLASSPATH_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.compileOnly()).requiresJavaLibrariesRuntime());
-    Configuration runtimeElements = jvmPluginServices.createOutgoingElements(lower(camel(name, RUNTIME_ELEMENTS_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).published().providesRuntime().artifact(shadowJar));
-    configureDefaultTargetPlatform(runtimeElements, 8);
-    Configuration runtimeClasspath = jvmPluginServices.createResolvableConfiguration(lower(camel(name, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), builder ->
-      builder.extendsFrom(packageBuckets.implementation()).extendsFrom(packageBuckets.runtimeOnly()).requiresJavaLibrariesRuntime());
+    Provider<ConsumableConfiguration> apiElements = project.getConfigurations().consumable(lower(camel(name, API_ELEMENTS_CONFIGURATION_NAME)), c -> {
+        c.extendsFrom(packageBuckets.api().get(), packageBuckets.compileOnlyApi().get());
+        jvmPluginServices.configureAsApiElements(c);
+        jvmPluginServices.configureAttributes(c, attrs -> attrs.withTargetJvmVersion(8));
+        c.outgoing(o -> o.artifact(shadowJar));
+      }
+    );
+    Provider<ResolvableConfiguration> compileClasspath = project.getConfigurations().resolvable(lower(camel(name, COMPILE_CLASSPATH_CONFIGURATION_NAME)), c -> {
+        c.extendsFrom(packageBuckets.implementation().get(), packageBuckets.compileOnly().get());
+        jvmPluginServices.configureAsCompileClasspath(c);
+      }
+    );
+    Provider<ConsumableConfiguration> runtimeElements = project.getConfigurations().consumable(lower(camel(name, RUNTIME_ELEMENTS_CONFIGURATION_NAME)), c -> {
+      c.extendsFrom(packageBuckets.implementation().get(), packageBuckets.runtimeOnly().get());
+      jvmPluginServices.configureAsRuntimeElements(c);
+      jvmPluginServices.configureAttributes(c, attrs -> attrs.withTargetJvmVersion(8));
+      c.outgoing(o -> o.artifact(shadowJar));
+      }
+    );
+    Provider<ResolvableConfiguration> runtimeClasspath = project.getConfigurations().resolvable(lower(camel(name, RUNTIME_CLASSPATH_CONFIGURATION_NAME)), c -> {
+      c.extendsFrom(packageBuckets.implementation().get(), packageBuckets.runtimeOnly().get());
+      jvmPluginServices.configureAsRuntimeClasspath(c);
+      }
+    );
 
-    Provider<FileCollection> sourcesTree = project.provider(() -> contentsSourcesFiles.getResolvedConfiguration().getLenientConfiguration().getAllModuleDependencies().stream().flatMap(d -> d.getModuleArtifacts().stream())
+    Provider<FileCollection> sourcesTree = project.provider(() -> contentsSourcesFiles.get().getResolvedConfiguration().getLenientConfiguration().getAllModuleDependencies().stream().flatMap(d -> d.getModuleArtifacts().stream())
       .map(artifact -> {
         try {
           return Optional.of(artifact.getFile());
@@ -191,15 +215,18 @@ public class PackagePlugin implements Plugin<Project> {
       jar.from(shadowJar, spec -> spec.include("META-INF/**", "LICENSE", "NOTICE"));
       jar.getArchiveClassifier().set(kebab(name, "sources"));
     });
-    Configuration sourcesElements = jvmPluginServices.createOutgoingElements(lower(camel(name, SOURCES_ELEMENTS_CONFIGURATION_NAME)), builder ->
-      builder.published().artifact(sourcesJar).providesAttributes(attributes -> attributes.documentation(SOURCES).asJar()));
+    Provider<ConsumableConfiguration> sourcesElements = project.getConfigurations().consumable(lower(camel(name, SOURCES_ELEMENTS_CONFIGURATION_NAME)), c -> {
+        jvmPluginServices.configureAttributes(c, attrs -> attrs.documentation(SOURCES));
+        c.outgoing(o -> o.artifact(sourcesJar));
+      }
+    );
 
     TaskProvider<Javadoc> javadoc = project.getTasks().register(lower(camel(name,  "javadoc")), Javadoc.class, task -> {
       task.setGroup(JavaBasePlugin.DOCUMENTATION_GROUP);
       task.setTitle(project.getName() + " " + project.getVersion() + " API");
       task.source(sources);
       task.include("**/*.java");
-      task.setClasspath(contentsCompileClasspath.plus(compileClasspath));
+      task.setClasspath(contentsCompileClasspath.get().plus(compileClasspath.get()));
       task.setDestinationDir(new File(project.getBuildDir(), "docs/" + lower(camel(name, "javadoc"))));
     });
     TaskProvider<Jar> javadocJar = project.getTasks().register(lower(camel(name, "javadocJar")), Jar.class, jar -> {
@@ -207,8 +234,11 @@ public class PackagePlugin implements Plugin<Project> {
       jar.from(javadoc);
       jar.getArchiveClassifier().set(kebab(name, "javadoc"));
     });
-    Configuration javadocElements = jvmPluginServices.createOutgoingElements(lower(camel(name, JAVADOC_ELEMENTS_CONFIGURATION_NAME)), builder ->
-      builder.published().artifact(javadocJar).providesAttributes(attributes -> attributes.documentation(JAVADOC).asJar()));
+    Provider<ConsumableConfiguration> javadocElements = project.getConfigurations().consumable(lower(camel(name, JAVADOC_ELEMENTS_CONFIGURATION_NAME)), c -> {
+        jvmPluginServices.configureAttributes(c, attrs -> attrs.documentation(JAVADOC));
+        c.outgoing(o -> o.artifact(javadocJar));
+      }
+    );
 
     shadowJar.configure(shadow -> {
       OsgiManifestJarExtension osgiExtension = new OsgiManifestJarExtension(shadow);
@@ -218,16 +248,16 @@ public class PackagePlugin implements Plugin<Project> {
     });
 
     project.getComponents().named("java", AdhocComponentWithVariants.class, java -> {
-      java.addVariantsFromConfiguration(apiElements, variantDetails -> {
+      java.addVariantsFromConfiguration(apiElements.get(), variantDetails -> {
         variantDetails.mapToMavenScope("compile");
         variant.ifPresent(v -> variantDetails.mapToOptional());
       });
-      java.addVariantsFromConfiguration(runtimeElements, variantDetails -> {
+      java.addVariantsFromConfiguration(runtimeElements.get(), variantDetails -> {
         variantDetails.mapToMavenScope("runtime");
         variant.ifPresent(v -> variantDetails.mapToOptional());
       });
-      java.addVariantsFromConfiguration(sourcesElements, variantDetails -> {});
-      java.addVariantsFromConfiguration(javadocElements, variantDetails -> {});
+      java.addVariantsFromConfiguration(sourcesElements.get(), variantDetails -> {});
+      java.addVariantsFromConfiguration(javadocElements.get(), variantDetails -> {});
     });
 
     if (variant.isPresent()) {
@@ -236,10 +266,10 @@ public class PackagePlugin implements Plugin<Project> {
       packageBuckets.extendFrom(commonBuckets);
       v.getConfigTraits().configureEach(trait -> packageBuckets.extendFrom(ConfigurationBucketSet.bucketsFor(project, camel(trait, "trait"))));
       v.getCapabilities().configureEach(capability -> {
-        apiElements.getOutgoing().capability(capability);
-        runtimeElements.getOutgoing().capability(capability);
-        sourcesElements.getOutgoing().capability(capability);
-        javadocElements.getOutgoing().capability(capability);
+        apiElements.get().getOutgoing().capability(capability);
+        runtimeElements.get().getOutgoing().capability(capability);
+        sourcesElements.get().getOutgoing().capability(capability);
+        javadocElements.get().getOutgoing().capability(capability);
       });
     } else {
       project.getPlugins().withType(VariantPlugin.class).configureEach(variantPlugin -> {
@@ -249,10 +279,10 @@ public class PackagePlugin implements Plugin<Project> {
           packageBuckets.extendFrom(commonBuckets);
           v.getConfigTraits().configureEach(trait -> packageBuckets.extendFrom(ConfigurationBucketSet.bucketsFor(project, camel(trait, "trait"))));
           v.getCapabilities().configureEach(capability -> {
-            apiElements.getOutgoing().capability(capability);
-            runtimeElements.getOutgoing().capability(capability);
-            sourcesElements.getOutgoing().capability(capability);
-            javadocElements.getOutgoing().capability(capability);
+            apiElements.get().getOutgoing().capability(capability);
+            runtimeElements.get().getOutgoing().capability(capability);
+            sourcesElements.get().getOutgoing().capability(capability);
+            javadocElements.get().getOutgoing().capability(capability);
           });
         });
       });
