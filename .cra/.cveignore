@@ -68,5 +68,10 @@
     "cve": "CVE-2025-48924",
     "alwaysOmit": true,
     "comment": "testing"
+  },
+  {
+    "cve": "CVE-2025-67030",
+    "alwaysOmit": true,
+    "comment": "gradle check"
   }
 ]

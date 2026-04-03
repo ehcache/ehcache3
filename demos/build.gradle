@@ -3,7 +3,7 @@ plugins {
   id 'org.ehcache.build.conventions.war' apply false
 }
 
-def jettyVersion = '12.1.5'
+def jettyVersion = '12.1.8'
 
 dependencies {
   api platform("org.eclipse.jetty:jetty-bom:${jettyVersion}")
