@@ -30,6 +30,7 @@ import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
@@ -57,6 +58,7 @@ public class WriteBehindTestBase {
   public final TestName testName = new TestName();
 
   private RecordingLoaderWriter<Long, String> loaderWriter;
+  private EvenNumberLoaderWriter<Long, String> evenNumberLoaderWriter;
 
   @Before
   public void setUp() throws Exception {
@@ -86,12 +88,16 @@ public class WriteBehindTestBase {
   }
 
   PersistentCacheManager createCacheManager(URI clusterUri) {
+    return getPersistentCacheManager(clusterUri, loaderWriter);
+  }
+
+  private PersistentCacheManager getPersistentCacheManager(URI clusterUri, CacheLoaderWriter<Long, String> localLoaderWriter) {
     CacheConfiguration<Long, String> cacheConfiguration =
       newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
-                                                                                 .heap(10, EntryUnit.ENTRIES)
-                                                                                 .offheap(1, MemoryUnit.MB)
-                                                                                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-        .withLoaderWriter(loaderWriter)
+        .heap(10, EntryUnit.ENTRIES)
+        .offheap(1, MemoryUnit.MB)
+        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
+        .withLoaderWriter(localLoaderWriter)
         .withService(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
         .withResilienceStrategy(new ThrowingResilienceStrategy<>())
         .withService(new ClusteredStoreConfiguration(Consistency.STRONG))
@@ -102,5 +108,14 @@ public class WriteBehindTestBase {
       .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate(c -> c))
       .withCache(testName.getMethodName(), cacheConfiguration)
       .build(true);
+  }
+
+  PersistentCacheManager createCacheManagerWithLoaderWriterWithFailure(URI clusterUri) {
+    evenNumberLoaderWriter = new EvenNumberLoaderWriter<Long, String>();
+    return getPersistentCacheManager(clusterUri, evenNumberLoaderWriter);
+  }
+
+  protected EvenNumberLoaderWriter<Long, String> getEvenNumberLoaderWriter() {
+    return this.evenNumberLoaderWriter;
   }
 }
