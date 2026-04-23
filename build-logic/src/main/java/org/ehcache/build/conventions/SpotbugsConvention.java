@@ -50,7 +50,7 @@ public class SpotbugsConvention implements Plugin<Project> {
           .using(subs.module("org.apache.commons:commons-lang3:3.19.0"))
           .because("Spotbugs 4.9.8 has dependency divergences");
         subs.substitute(subs.module("org.apache.logging.log4j:log4j-core:2.25.2"))
-          .using(subs.module("org.apache.logging.log4j:log4j-core:2.25.3"))
+          .using(subs.module("org.apache.logging.log4j:log4j-core:2.25.4"))
           .because("Security vulnerability fix");
       });
     });
