@@ -23,8 +23,11 @@ public class CheckstyleConvention implements Plugin<Project> {
     project.getConfigurations().named("checkstyle", config -> {
       config.getResolutionStrategy().dependencySubstitution(subs -> {
         subs.substitute(subs.module("org.codehaus.plexus:plexus-utils:3.1.1"))
-          .using(subs.module("org.codehaus.plexus:plexus-utils:3.3.0"))
-          .because("Checkstyle 10.18.1 pulls mismatched plexus-utils versions");
+          .using(subs.module("org.codehaus.plexus:plexus-utils:3.6.1"))
+          .because("CVE-2025-67030");
+        subs.substitute(subs.module("org.codehaus.plexus:plexus-utils:3.3.0"))
+          .using(subs.module("org.codehaus.plexus:plexus-utils:3.6.1"))
+          .because("CVE-2025-67030");
         subs.substitute(subs.module("org.apache.commons:commons-lang3:3.7"))
           .using(subs.module("org.apache.commons:commons-lang3:3.8.1"))
           .because("Checkstyle transitives mix commons-lang3 versions");
