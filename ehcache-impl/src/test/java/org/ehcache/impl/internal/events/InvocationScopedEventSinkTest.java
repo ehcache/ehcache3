@@ -18,7 +18,6 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.hamcrest.Matcher;
@@ -31,6 +30,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -67,7 +67,13 @@ public class InvocationScopedEventSinkTest {
   private InvocationScopedEventSink<String, String> createEventSink(boolean ordered) {
     @SuppressWarnings("unchecked")
     BlockingQueue<FireableStoreEventHolder<String, String>>[] queues = (BlockingQueue<FireableStoreEventHolder<String, String>>[]) new BlockingQueue<?>[] { blockingQueue };
-    return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners);
+    return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners, EnumSet.allOf(EventType.class));
+  }
+
+  private InvocationScopedEventSink<String, String> createEventSink(boolean ordered, EventType eventTypes) {
+    @SuppressWarnings("unchecked")
+    BlockingQueue<FireableStoreEventHolder<String, String>>[] queues = (BlockingQueue<FireableStoreEventHolder<String, String>>[]) new BlockingQueue<?>[] { blockingQueue };
+    return new InvocationScopedEventSink<>(Collections.emptySet(), ordered, queues, storeEventListeners, EnumSet.of(eventTypes));
   }
 
   @Test
@@ -132,5 +138,16 @@ public class InvocationScopedEventSinkTest {
     });
     assertThat(eventSink.getEvents()).hasSize(10);
     assertThat(eventSink.getEvents().getLast().getEvent().getKey()).isEqualTo("k9");
+  }
+
+  @Test
+  public void testAcceptEventFiltersIrrelevantEventTypes() {
+    eventSink = createEventSink(false, EventType.REMOVED);
+    eventSink.created("k", "v");
+
+    assertThat(eventSink.getEvents()).isEmpty();
+
+    eventSink.removed("k", () -> "v");
+    assertThat(eventSink.getEvents()).hasSize(1);
   }
 }

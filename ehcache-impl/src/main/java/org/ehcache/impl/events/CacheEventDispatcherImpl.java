@@ -35,11 +35,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Stream;
+
+import static java.util.Collections.unmodifiableMap;
+import static java.util.EnumSet.allOf;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.concat;
 
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
@@ -56,10 +67,13 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   private static final Logger LOGGER = LoggerFactory.getLogger(CacheEventDispatcherImpl.class);
   private final ExecutorService unOrderedExectuor;
   private final ExecutorService orderedExecutor;
-  private int listenersCount = 0;
-  private int orderedListenerCount = 0;
-  private final List<EventListenerWrapper<K, V>> syncListenersList = new CopyOnWriteArrayList<>();
-  private final List<EventListenerWrapper<K, V>> aSyncListenersList = new CopyOnWriteArrayList<>();
+
+  private final Map<EventType, List<EventListenerWrapper<K, V>>> syncListenersList = unmodifiableMap(allOf(EventType.class).stream()
+    .collect(toMap(identity(), t -> new CopyOnWriteArrayList<>(), (a, b) -> { throw new AssertionError(); }, () -> new EnumMap<>(EventType.class))));
+  private final Map<EventType, List<EventListenerWrapper<K, V>>> asyncListenersList = unmodifiableMap(allOf(EventType.class).stream()
+    .collect(toMap(identity(), t -> new CopyOnWriteArrayList<>(), (a, b) -> { throw new AssertionError(); }, () -> new EnumMap<>(EventType.class))));
+  private final Set<EventType> registeredEventTypes = EnumSet.noneOf(EventType.class);
+
   private final StoreEventListener<K, V> eventListener = new StoreListener();
 
   private volatile Cache<K, V> listenerSource;
@@ -95,69 +109,91 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    * @param wrapper the listener wrapper to register
    */
   private synchronized void registerCacheEventListener(EventListenerWrapper<K, V> wrapper) {
-    if(aSyncListenersList.contains(wrapper) || syncListenersList.contains(wrapper)) {
+
+    if(allListeners().anyMatch(wrapper::equals)) {
       throw new IllegalStateException("Cache Event Listener already registered: " + wrapper.getListener());
     }
 
-    if (wrapper.isOrdered() && orderedListenerCount++ == 0) {
+    boolean firstListener = !allListeners().findAny().isPresent();
+
+    if (wrapper.isOrdered() && (firstListener || allListeners().noneMatch(EventListenerWrapper::isOrdered))) {
       storeEventSource.setEventOrdering(true);
     }
 
+    registeredEventTypes.addAll(wrapper.getEventTypes()); // add EventType of new wrapper to list of relevant EntryTypes
+
     switch (wrapper.getFiringMode()) {
       case ASYNCHRONOUS:
-        aSyncListenersList.add(wrapper);
+        wrapper.getEventTypes().forEach(type -> asyncListenersList.get(type).add(wrapper));
         break;
       case SYNCHRONOUS:
-        if (syncListenersList.isEmpty()) {
+        if (!syncListeners().findAny().isPresent()) {
           storeEventSource.setSynchronous(true);
         }
-        syncListenersList.add(wrapper);
+        wrapper.getEventTypes().forEach(type -> syncListenersList.get(type).add(wrapper));
         break;
       default:
         throw new AssertionError("Unhandled EventFiring value: " + wrapper.getFiringMode());
     }
 
-    if (listenersCount++ == 0) {
+    if (firstListener) {
       storeEventSource.addEventListener(eventListener);
+    } else {
+      storeEventSource.listenerModified();
     }
+  }
+
+  private Stream<EventListenerWrapper<K, V>> allListeners() {
+    return concat(asyncListeners(), syncListeners());
+  }
+
+  private Stream<EventListenerWrapper<K, V>> syncListeners() {
+    return syncListenersList.values().stream().flatMap(Collection::stream);
+  }
+
+  private Stream<EventListenerWrapper<K, V>> asyncListeners() {
+    return asyncListenersList.values().stream().flatMap(Collection::stream);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
+  public synchronized  void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
     EventListenerWrapper<K, V> wrapper = new EventListenerWrapper<>(listener);
 
-    if (!removeWrapperFromList(wrapper, aSyncListenersList)) {
-      if (!removeWrapperFromList(wrapper, syncListenersList)) {
-        throw new IllegalStateException("Unknown cache event listener: " + listener);
+    boolean removed = Stream.of(asyncListenersList, syncListenersList)
+      .flatMap(list -> list.values().stream())
+      .map(list -> list.remove(wrapper))
+      .reduce((a, b) -> a || b).orElse(false);
+
+    if (!removed) {
+      throw new IllegalStateException("Unknown cache event listener: " + listener);
+    }
+
+    refreshRegisteredEventTypes();
+
+    if (!allListeners().findAny().isPresent()) {
+      storeEventSource.setSynchronous(false);
+      storeEventSource.setEventOrdering(false);
+      storeEventSource.removeEventListener(eventListener);
+    } else {
+      if (allListeners().noneMatch(EventListenerWrapper::isOrdered)) {
+        storeEventSource.setEventOrdering(false);
       }
+      if (!syncListeners().findAny().isPresent()) {
+        storeEventSource.setSynchronous(false);
+      }
+      storeEventSource.listenerModified();
     }
   }
 
-  /**
-   * Synchronized to make sure listener removal is atomic
-   *
-   * @param wrapper the listener wrapper to unregister
-   * @param listenersList the listener list to remove from
-   */
-  private synchronized boolean removeWrapperFromList(EventListenerWrapper<K, V> wrapper, List<EventListenerWrapper<K, V>> listenersList) {
-    int index = listenersList.indexOf(wrapper);
-    if (index != -1) {
-      EventListenerWrapper<K, V> containedWrapper = listenersList.remove(index);
-      if(containedWrapper.isOrdered() && --orderedListenerCount == 0) {
-        storeEventSource.setEventOrdering(false);
-      }
-      if (--listenersCount == 0) {
-        storeEventSource.removeEventListener(eventListener);
-      }
-      if (syncListenersList.isEmpty()) {
-        storeEventSource.setSynchronous(false);
-      }
-      return true;
-    }
-    return false;
+  private void refreshRegisteredEventTypes() {
+    // collect all registered EventTypes
+    EnumSet<EventType> newRegisteredEventTypes = EnumSet.noneOf(EventType.class);
+    allListeners().forEach(listener -> newRegisteredEventTypes.addAll(listener.getEventTypes()));
+    // drop irrelevant EventTypes
+    registeredEventTypes.retainAll(newRegisteredEventTypes);
   }
 
   /**
@@ -168,8 +204,8 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     storeEventSource.removeEventListener(eventListener);
     storeEventSource.setEventOrdering(false);
     storeEventSource.setSynchronous(false);
-    syncListenersList.clear();
-    aSyncListenersList.clear();
+    syncListenersList.values().forEach(Collection::clear);
+    asyncListenersList.values().forEach(Collection::clear);
     unOrderedExectuor.shutdown();
     orderedExecutor.shutdown();
   }
@@ -183,21 +219,30 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   void onEvent(CacheEvent<K, V> event) {
-    ExecutorService executor;
+    List<EventListenerWrapper<K, V>> asyncTargets = asyncListenersList.get(event.getType());
+    List<EventListenerWrapper<K, V>> syncTargets = syncListenersList.get(event.getType());
     if (storeEventSource.isEventOrdering()) {
-      executor = orderedExecutor;
+      if (!asyncTargets.isEmpty()) {
+        orderedExecutor.submit(new EventDispatchTask<>(event, asyncTargets));
+      }
+      if (!syncTargets.isEmpty()) {
+        Future<?> future = orderedExecutor.submit(new EventDispatchTask<>(event, syncTargets));
+        try {
+          future.get();
+        } catch (Exception e) {
+          LOGGER.error("Exception received as result from synchronous listeners", e);
+        }
+      }
     } else {
-      executor = unOrderedExectuor;
-    }
-    if (!aSyncListenersList.isEmpty()) {
-      executor.submit(new EventDispatchTask<>(event, aSyncListenersList));
-    }
-    if (!syncListenersList.isEmpty()) {
-      Future<?> future = executor.submit(new EventDispatchTask<>(event, syncListenersList));
-      try {
-        future.get();
-      } catch (Exception e) {
-        LOGGER.error("Exception received as result from synchronous listeners", e);
+      if (!asyncTargets.isEmpty()) {
+        unOrderedExectuor.submit(new EventDispatchTask<>(event, asyncTargets));
+      }
+      if (!syncTargets.isEmpty()) {
+        try {
+          new EventDispatchTask<>(event, syncTargets).run();
+        } catch (Exception e) {
+          LOGGER.error("Exception received as result from synchronous listeners", e);
+        }
       }
     }
   }
@@ -244,8 +289,12 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
           throw new AssertionError("Unexpected StoreEvent value: " + event.getType());
       }
     }
-  }
 
+    @Override
+    public Set<EventType> getEventTypes() {
+      return registeredEventTypes;
+    }
+  }
   /**
    * {@inheritDoc}
    */

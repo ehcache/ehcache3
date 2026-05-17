@@ -44,14 +44,16 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
   private final Set<StoreEventListener<K, V>> listeners;
   private final Deque<FireableStoreEventHolder<K, V>> events = new ArrayDeque<>(4);
+  private final Set<EventType> relevantEventTypes;
 
   InvocationScopedEventSink(Set<StoreEventFilter<K, V>> filters, boolean ordered,
-                            BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues,
-                            Set<StoreEventListener<K, V>> listeners) {
+                            BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues, Set<StoreEventListener<K, V>> listeners,
+                            Set<EventType> relevantEventTypes) {
     this.filters = filters;
     this.ordered = ordered;
     this.orderedQueues = orderedQueues;
     this.listeners = listeners;
+    this.relevantEventTypes = relevantEventTypes;
   }
 
   @Override
@@ -99,7 +101,8 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
         return false;
       }
     }
-    return true;
+    // at least one listener is interested in this event
+    return relevantEventTypes.contains(type);
   }
 
   @Override

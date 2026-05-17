@@ -62,6 +62,11 @@ class StoreEventSourceWrapper<K, V> implements StoreEventSource<K, V> {
   }
 
   @Override
+  public void listenerModified() {
+    underlying.listenerModified();
+  }
+
+  @Override
   public void addEventFilter(final StoreEventFilter<K, V> eventFilter) {
     underlying.addEventFilter((type, key, oldValue, newValue) -> {
       V unwrappedOldValue = null;

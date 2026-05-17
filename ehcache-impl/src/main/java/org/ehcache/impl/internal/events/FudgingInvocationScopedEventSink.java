@@ -41,8 +41,9 @@ class FudgingInvocationScopedEventSink<K, V> extends InvocationScopedEventSink<K
 
   FudgingInvocationScopedEventSink(Set<StoreEventFilter<K, V>> filters, boolean ordered,
                                    BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues,
-                                   Set<StoreEventListener<K, V>> listeners) {
-    super(filters, ordered, orderedQueues, listeners);
+                                   Set<StoreEventListener<K, V>> listeners,
+                                   Set<EventType> relevantEventTypes) {
+    super(filters, ordered, orderedQueues, listeners, relevantEventTypes);
   }
 
   @Override
