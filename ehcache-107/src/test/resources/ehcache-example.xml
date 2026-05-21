@@ -82,7 +82,7 @@
 
   <!--
     OPTIONAL
-      A <cache-template> defines a named template that can be used be <cache> definitions in this same file
+      A <cache-template> defines a named template that can be used in <cache> definitions in this same file
       They have all the same property as the <cache> elements above
   -->
   <ehcache:cache-template name="myDefaultTemplate">
