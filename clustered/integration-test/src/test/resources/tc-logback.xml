@@ -27,6 +27,8 @@
   </logger>
   <logger name="org.terracotta.console" level="INFO">
   </logger>
+  <logger name="com.tc.objectserver.entity.ManagedEntityImpl" level="DEBUG"/>
+  <logger name="com.tc.objectserver.handler.ProcessTransactionHandler" level="DEBUG"/>
   <include optional="true" resource="logback-ext-test.xml"/>
 
 </configuration>
