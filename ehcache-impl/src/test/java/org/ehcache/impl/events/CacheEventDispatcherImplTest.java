@@ -27,10 +27,9 @@ import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.EnumSet;
 import java.util.concurrent.CountDownLatch;
@@ -38,12 +37,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -121,6 +123,37 @@ public class CacheEventDispatcherImplTest {
   }
 
   @Test
+  public void testMultipleListenerRegistrationNotifiesStoreEvent() {
+    eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.UPDATED));
+    CacheEventListener<Number, String> otherLsnr = mock(CacheEventListener.class);
+    eventService.registerCacheEventListener(otherLsnr, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.REMOVED));
+    verify(storeEventDispatcher, times(1)).listenerModified();
+  }
+
+  @Test
+  public void testStoreListenerRegisteredEventTypesUpdated() {
+    eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.UPDATED));
+    CacheEventListener<Number, String> otherLsnr = mock(CacheEventListener.class);
+    eventService.registerCacheEventListener(otherLsnr, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.REMOVED));
+    verify(storeEventDispatcher, times(1)).listenerModified();
+
+    ArgumentCaptor<StoreEventListener> captor = ArgumentCaptor.forClass(StoreEventListener.class);
+    verify(storeEventDispatcher).addEventListener(captor.capture());
+    StoreEventListener storeListener = captor.getValue();
+
+    assertTrue(storeListener.getEventTypes().contains(EventType.UPDATED));
+    assertTrue(storeListener.getEventTypes().contains(EventType.REMOVED));
+    assertEquals(2, storeListener.getEventTypes().size());
+
+    eventService.deregisterCacheEventListener(listener);
+
+    verify(storeEventDispatcher, times(2)).listenerModified();
+
+    assertTrue(storeListener.getEventTypes().contains(EventType.REMOVED));
+    assertEquals(1, storeListener.getEventTypes().size());
+  }
+
+  @Test
   public void testOrderedListenerRegistrationTogglesOrderedOnStoreEvents() {
     eventService.registerCacheEventListener(listener, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, EnumSet.allOf(EventType.class));
     verify(storeEventDispatcher).setEventOrdering(true);
@@ -165,6 +198,15 @@ public class CacheEventDispatcherImplTest {
     eventService.registerCacheEventListener(mock(CacheEventListener.class), EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
     eventService.deregisterCacheEventListener(listener);
     verify(storeEventDispatcher, never()).removeEventListener(any(StoreEventListener.class));
+  }
+
+  @Test
+  public void testDeregisterNotLastListenerTriggersListernerModified() {
+    eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
+    eventService.registerCacheEventListener(mock(CacheEventListener.class), EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS,
+        EnumSet.of(EventType.EVICTED));
+    eventService.deregisterCacheEventListener(listener);
+    verify(storeEventDispatcher, times(2)).listenerModified();
   }
 
   @Test

@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -54,7 +55,7 @@ public class FudgingInvocationScopedEventSinkTest {
     storeEventListeners.add(listener);
     @SuppressWarnings({"unchecked", "rawtypes"})
     BlockingQueue<FireableStoreEventHolder<String, String>>[] blockingQueues = new BlockingQueue[] { new ArrayBlockingQueue<FireableStoreEventHolder<String, String>>(10) };
-    eventSink = new FudgingInvocationScopedEventSink<>(new HashSet<>(), false, blockingQueues, storeEventListeners);
+    eventSink = new FudgingInvocationScopedEventSink<>(new HashSet<>(), false, blockingQueues, storeEventListeners, EnumSet.allOf(EventType.class));
   }
 
   @Test

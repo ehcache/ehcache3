@@ -59,4 +59,9 @@ public interface StoreEventSource<K, V> {
    * @return {@code true} if ordering is on, {@code false} otherwise
    */
   boolean isEventOrdering();
+
+  /**
+   * Indicates that a listener was modified
+   */
+  void listenerModified();
 }

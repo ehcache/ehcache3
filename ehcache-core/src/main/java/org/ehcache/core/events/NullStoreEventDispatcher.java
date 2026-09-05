@@ -89,6 +89,11 @@ public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
   }
 
   @Override
+  public void listenerModified() {
+    // Do nothing
+  }
+
+  @Override
   public void addEventFilter(StoreEventFilter<K, V> eventFilter) {
     // Do nothing
   }

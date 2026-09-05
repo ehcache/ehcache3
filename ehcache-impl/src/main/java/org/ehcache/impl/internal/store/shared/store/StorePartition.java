@@ -304,6 +304,11 @@ public class StorePartition<K, V> extends AbstractPartition<Store<CompositeValue
       public boolean isEventOrdering() {
         return storeEventSource.isEventOrdering();
       }
+
+      @Override
+      public void listenerModified() {
+        storeEventSource.listenerModified();
+      }
     };
   }
 
