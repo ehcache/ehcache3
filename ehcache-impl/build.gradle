@@ -17,7 +17,6 @@
 
 plugins {
   id 'org.ehcache.build.internal-module'
-  id 'org.ehcache.build.plugins.unsafe'
 }
 
 publishing.publications.withType(MavenPublication) {
@@ -28,9 +27,6 @@ publishing.publications.withType(MavenPublication) {
 }
 
 sourceSets {
-  main {
-    unsafe.srcDir 'src/unsafe/java'
-  }
   slowTest {
     java.srcDir 'src/slow-test/java'
     resources.srcDir 'src/slow-test/resources'
@@ -75,14 +71,10 @@ jar {
   bnd (
     'Export-Package': '!org.ehcache.impl.internal.*, org.ehcache.impl.*, org.ehcache.config.builders, ' +
       'org.ehcache.impl.internal.spi.loaderwriter', //ugly 107 induced internal export wart
-    'Import-Package': '!sun.misc, !javax.annotation, *',
+    'Import-Package': '!javax.annotation, *',
   )
 }
 
-compileUnsafe {
-  //no -Werror due to unsafe
-  options.compilerArgs = ['-Xlint:all']
-}
 /*
 tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
     classes = classes.filter { 

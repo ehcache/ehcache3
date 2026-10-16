@@ -1,6 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
- * Copyright IBM Corp. 2024, 2025
+ * Copyright IBM Corp. 2024, 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,10 @@ import org.ehcache.impl.internal.sizeof.listeners.exceptions.VisitorListenerExce
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.sizeof.SizeOf;
 import org.ehcache.sizeof.SizeOfFilterSource;
+import org.ehcache.sizeof.filters.CombinationSizeOfFilter;
+import org.ehcache.sizeof.filters.SizeOfFilter;
+import org.ehcache.sizeof.impl.AgentSizeOf;
+import org.ehcache.sizeof.impl.ReflectionSizeOf;
 import org.ehcache.core.spi.store.Store;
 
 /**
@@ -41,9 +45,22 @@ public class DefaultSizeOfEngine implements org.ehcache.core.spi.store.heap.Size
   public DefaultSizeOfEngine(long maxObjectGraphSize, long maxObjectSize) {
     this.maxObjectGraphSize = maxObjectGraphSize;
     this.maxObjectSize = maxObjectSize;
-    this.sizeOf = SizeOf.newInstance(new SizeOfFilterSource(true).getFilters());
+    this.sizeOf = newSizeOf(new SizeOfFilterSource(true).getFilters());
     this.onHeapKeyOffset = sizeOf.deepSizeOf(new CopiedOnHeapKey<>(new Object(), new IdentityCopier<>()));
     this.chmTreeBinOffset = sizeOf.deepSizeOf(ConcurrentHashMap.FAKE_TREE_BIN);
+  }
+
+  /**
+   * Same as {@link SizeOf#newInstance(SizeOfFilter...)} minus {@code UnsafeSizeOf}, which cannot size records and relies
+   * on {@code sun.misc.Unsafe} memory access that JDK 24+ warns about and later JDKs reject.
+   */
+  private static SizeOf newSizeOf(SizeOfFilter... filters) {
+    SizeOfFilter filter = new CombinationSizeOfFilter(filters);
+    try {
+      return new AgentSizeOf(filter, true, true);
+    } catch (UnsupportedOperationException e) {
+      return new ReflectionSizeOf(filter, true, true);
+    }
   }
 
   @Override

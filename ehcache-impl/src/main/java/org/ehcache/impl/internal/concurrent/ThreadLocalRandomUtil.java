@@ -1,6 +1,6 @@
 /*
  * Copyright Terracotta, Inc.
- * Copyright IBM Corp. 2024, 2025
+ * Copyright IBM Corp. 2024, 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,71 +23,36 @@
 
 package org.ehcache.impl.internal.concurrent;
 
-import sun.misc.Unsafe;
-
-import java.lang.reflect.Field;
-import java.security.PrivilegedExceptionAction;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Util class allowing to access the {@code PROVE} used by {@code ThreadLocalRandom}. And to get
- * access to unsafe.
+ * Util class providing a per-thread probe, standing in for the one {@code ThreadLocalRandom} keeps in
+ * {@code Thread}, which cannot be accessed outside of {@code java.base}.
  */
 class ThreadLocalRandomUtil {
 
-  static final Unsafe UNSAFE = getSMU();
-  private static final long PROBE;
+  // Same seeding as ThreadLocalRandom.localInit
+  private static final int PROBE_INCREMENT = 0x9e3779b9;
+  private static final AtomicInteger PROBE_GENERATOR = new AtomicInteger();
 
-  static {
-    try {
-      Class<?> tk = Thread.class;
-      PROBE = UNSAFE.objectFieldOffset
-        (tk.getDeclaredField("threadLocalRandomProbe"));
-    } catch (Exception e) {
-      throw new Error(e);
-    }
-  }
-
-  @SuppressWarnings("removal")
-  static Unsafe getSMU() {
-    try {
-      return sun.misc.Unsafe.getUnsafe();
-    } catch (SecurityException tryReflectionInstead) {
-      // ignore
-    }
-    try {
-      return java.security.AccessController.doPrivileged
-        ((PrivilegedExceptionAction<Unsafe>) () -> {
-          Class<sun.misc.Unsafe> k = sun.misc.Unsafe.class;
-          for (Field f : k.getDeclaredFields()) {
-            f.setAccessible(true);
-            Object x = f.get(null);
-            if (k.isInstance(x))
-              return k.cast(x);
-          }
-          throw new NoSuchFieldError("the Unsafe");
-        });
-    } catch (java.security.PrivilegedActionException e) {
-      throw new RuntimeException("Could not initialize intrinsics", e.getCause());
-    }
-  }
+  // An int[] value keeps thread local map entries from referencing this class loader
+  private static final ThreadLocal<int[]> PROBE = ThreadLocal.withInitial(() -> new int[1]);
 
   static final int getProbe() {
-    return UNSAFE.getInt(Thread.currentThread(), PROBE);
+    return PROBE.get()[0];
   }
 
   static final int advanceProbe(int probe) {
     probe ^= probe << 13;   // xorshift
     probe ^= probe >>> 17;
     probe ^= probe << 5;
-    UNSAFE.putInt(Thread.currentThread(), PROBE, probe);
+    PROBE.get()[0] = probe;
     return probe;
   }
 
   static final void localInit() {
-    // This will kick an init. In ConcurrentHashMap, it is only called after having check if the probe is there, so
-    // there shouldn't be any drawback to do it that way
-    ThreadLocalRandom.current();
+    int p = PROBE_GENERATOR.addAndGet(PROBE_INCREMENT);
+    PROBE.get()[0] = (p == 0) ? 1 : p; // skip 0
   }
 
   /** Optimized form of: key + "=" + val */
