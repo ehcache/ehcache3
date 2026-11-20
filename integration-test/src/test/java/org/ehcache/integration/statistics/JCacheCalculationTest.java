@@ -407,6 +407,7 @@ public class JCacheCalculationTest extends AbstractCacheCalculationTest {
     // We do it twice because the second time we already have compensating counters, so the result might fail
     innerClear();
     innerClear();
+    innerClear();
   }
 
   private void innerClear() {
