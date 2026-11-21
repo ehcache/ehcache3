@@ -1017,6 +1017,12 @@ public class ClusteredStore<K, V> extends BaseStore<K, V> implements Authoritati
       }
       delegate.removeEventListener(eventListener);
     }
+
+    @Override
+    public void listenerModified() {
+      delegate.listenerModified();
+    }
+
     @Override
     public void addEventFilter(StoreEventFilter<K, V> eventFilter) {
       delegate.addEventFilter(eventFilter);

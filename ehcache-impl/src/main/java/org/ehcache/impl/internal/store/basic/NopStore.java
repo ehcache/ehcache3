@@ -145,6 +145,10 @@ public class NopStore<K, V> implements AuthoritativeTier<K, V> {
       public boolean isEventOrdering() {
         return false;
       }
+
+      @Override
+      public void listenerModified() {
+      }
     };
   }
 

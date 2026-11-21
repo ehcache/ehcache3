@@ -77,6 +77,11 @@ public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
   }
 
   @Override
+  public void listenerModified() {
+    // No-op
+  }
+
+  @Override
   public void addEventFilter(StoreEventFilter<K, V> eventFilter) {
     filters.add(eventFilter);
   }
