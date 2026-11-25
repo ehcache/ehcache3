@@ -189,7 +189,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   @Override
   public EhcacheSyncMessage decode(final int concurrencyKey, final byte[] payload) {
     ByteBuffer message = wrap(payload);
-    StructDecoder<Void> decoder = DATA_SYNC_STRUCT.decoder(message);
+    StructDecoder<?> decoder = DATA_SYNC_STRUCT.decoder(message);
     Enm<SyncMessageType> enm = decoder.enm(SYNC_MESSAGE_TYPE_FIELD);
     if (!enm.isFound()) {
       throw new AssertionError("Invalid message format - misses the message type field");
@@ -215,19 +215,19 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   }
 
   private EhcacheSyncMessage decodeMessageTracker(ByteBuffer message) {
-    StructDecoder<Void> decoder = MESSAGE_TRACKER_SYNC_STRUCT.decoder(message);
+    StructDecoder<?> decoder = MESSAGE_TRACKER_SYNC_STRUCT.decoder(message);
     Map<Long, Map<Long, EhcacheEntityResponse>> trackedMessages = new HashMap<>();
-    StructArrayDecoder<StructDecoder<Void>> clientsDecoder = decoder.structs(MESSAGE_TRACKER_CLIENTS_STRUCT);
+    StructArrayDecoder<?> clientsDecoder = decoder.structs(MESSAGE_TRACKER_CLIENTS_STRUCT);
     if(clientsDecoder != null) {
       while(clientsDecoder.hasNext()) {
-        StructDecoder<StructArrayDecoder<StructDecoder<Void>>> clientDecoder = clientsDecoder.next();
+        StructDecoder<?> clientDecoder = clientsDecoder.next();
         Long clientId = clientDecoder.int64(KEY_FIELD);
         HashMap<Long, EhcacheEntityResponse> responses = new HashMap<>();
         trackedMessages.put(clientId, responses);
-        StructArrayDecoder<StructDecoder<StructArrayDecoder<StructDecoder<Void>>>> responsesDecoder = clientDecoder.structs(MESSAGE_TRACKER_RESPONSES_STRUCT);
+        StructArrayDecoder<?> responsesDecoder = clientDecoder.structs(MESSAGE_TRACKER_RESPONSES_STRUCT);
         if(responsesDecoder != null) {
           while (responsesDecoder.hasNext()) {
-            StructDecoder<StructArrayDecoder<StructDecoder<StructArrayDecoder<StructDecoder<Void>>>>> responseDecoder = responsesDecoder.next();
+            StructDecoder<?> responseDecoder = responsesDecoder.next();
             Long transactionId = responseDecoder.int64(MESSAGE_TRACKER_TRANSACTION_ID_FIELD);
             ByteBuffer bb = responseDecoder.byteBuffer(MESSAGE_TRACKER_RESPONSE_FIELD);
             byte[] encodedResponse = new byte[bb.remaining()];
@@ -242,14 +242,14 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   }
 
   private EhcacheSyncMessage decodeStateRepoSync(ByteBuffer message) {
-    StructDecoder<Void> decoder = STATE_REPO_SYNC_STRUCT.decoder(message);
+    StructDecoder<?> decoder = STATE_REPO_SYNC_STRUCT.decoder(message);
     String storeId = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(STATE_REPO_MAP_NAME_FIELD);
     ConcurrentMap<Object, Object> mappings = new ConcurrentHashMap<>();
-    StructArrayDecoder<StructDecoder<Void>> structsDecoder = decoder.structs(STATE_REPO_ENTRIES_SUB_STRUCT);
+    StructArrayDecoder<?> structsDecoder = decoder.structs(STATE_REPO_ENTRIES_SUB_STRUCT);
     if (structsDecoder != null) {
       while (structsDecoder.hasNext()) {
-        StructDecoder<StructArrayDecoder<StructDecoder<Void>>> structDecoder = structsDecoder.next();
+        StructDecoder<?> structDecoder = structsDecoder.next();
         Object key = unmarshall(structDecoder.byteBuffer(KEY_FIELD), WHITELIST_PREDICATE);
         Object value = unmarshall(structDecoder.byteBuffer(STATE_REPO_VALUE_FIELD), WHITELIST_PREDICATE);
         mappings.put(key, value);
@@ -259,12 +259,12 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   }
 
   private EhcacheSyncMessage decodeDataSync(ByteBuffer message) {
-    StructDecoder<Void> decoder = DATA_SYNC_STRUCT.decoder(message);
+    StructDecoder<?> decoder = DATA_SYNC_STRUCT.decoder(message);
     Map<Long, Chain> chainMap = decodeChainMapEntries(decoder);
     return new EhcacheDataSyncMessage(chainMap);
   }
 
-  private Map<Long, Chain> decodeChainMapEntries(StructDecoder<Void> decoder) {
+  private Map<Long, Chain> decodeChainMapEntries(StructDecoder<?> decoder) {
     StructArrayDecoder<? extends StructDecoder<?>> entriesDecoder = decoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT);
 
     if (entriesDecoder != null) {

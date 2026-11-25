@@ -77,10 +77,10 @@ final class ExceptionCodec {
     arrayEncoder.end();
   }
 
-  public static ClusterException decode(StructDecoder<StructDecoder<Void>> decoder) {
+  public static ClusterException decode(StructDecoder<?> decoder) {
     String exceptionClassName = decoder.string(FQCN_FIELD);
     String message = decoder.string(MESSAGE_FIELD);
-    StructArrayDecoder<StructDecoder<StructDecoder<Void>>> arrayDecoder = decoder.structs(STACKTRACE_ELEMENTS_FIELD);
+    StructArrayDecoder<?> arrayDecoder = decoder.structs(STACKTRACE_ELEMENTS_FIELD);
     StackTraceElement[] stackTraceElements = new StackTraceElement[arrayDecoder.length()];
     for (int i = 0; i < arrayDecoder.length(); i++) {
       StructDecoder<?> element = arrayDecoder.next();

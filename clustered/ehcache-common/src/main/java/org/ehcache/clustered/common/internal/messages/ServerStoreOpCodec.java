@@ -194,43 +194,43 @@ public class ServerStoreOpCodec {
   public EhcacheEntityMessage decode(EhcacheMessageType opCode, ByteBuffer messageBuffer) {
     switch (opCode) {
       case GET_STORE: {
-        StructDecoder<Void> decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         return new GetMessage(key);
       }
       case GET_AND_APPEND: {
-        StructDecoder<Void> decoder = GET_AND_APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = GET_AND_APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         ByteBuffer payload = decoder.byteBuffer("payload");
         return new GetAndAppendMessage(key, payload);
       }
       case APPEND: {
-        StructDecoder<Void> decoder = APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = APPEND_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         ByteBuffer payload = decoder.byteBuffer("payload");
         return new AppendMessage(key, payload);
       }
       case INSERT_FULL_CHAIN: {
-        StructDecoder<Void> decoder = INSERT_CHAIN_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = INSERT_CHAIN_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         Chain chain = ChainCodec.decodeChain(decoder.struct("chain"));
         return new InsertFullChainMessage(key, chain);
       }
       case REPLACE: {
-        StructDecoder<Void> decoder = REPLACE_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = REPLACE_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         Chain expect = ChainCodec.decodeChain(decoder.struct("expect"));
         Chain update = ChainCodec.decodeChain(decoder.struct("update"));
         return new ReplaceAtHeadMessage(key, expect, update);
       }
       case CLIENT_INVALIDATION_ACK: {
-        StructDecoder<Void> decoder = CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = CLIENT_INVALIDATION_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
         Long key = decoder.int64(KEY_FIELD);
         Integer invalidationId = decoder.int32("invalidationId");
         return new ClientInvalidationAck(key, invalidationId);
       }
       case CLIENT_INVALIDATION_ALL_ACK: {
-        StructDecoder<Void> decoder = CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = CLIENT_INVALIDATION_ALL_ACK_MESSAGE_STRUCT.decoder(messageBuffer);
         Integer invalidationId = decoder.int32("invalidationId");
         return new ClientInvalidationAllAck(invalidationId);
       }
@@ -238,33 +238,33 @@ public class ServerStoreOpCodec {
         return new ClearMessage();
       }
       case LOCK: {
-        StructDecoder<Void> decoder = LOCK_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = LOCK_STRUCT.decoder(messageBuffer);
         long hash = decoder.int64("hash");
         return new ServerStoreOpMessage.LockMessage(hash);
       }
       case UNLOCK: {
-        StructDecoder<Void> decoder = LOCK_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = LOCK_STRUCT.decoder(messageBuffer);
         long hash = decoder.int64("hash");
         return new ServerStoreOpMessage.UnlockMessage(hash);
       }
       case ITERATOR_OPEN: {
-        StructDecoder<Void> decoder = ITERATOR_OPEN_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = ITERATOR_OPEN_STRUCT.decoder(messageBuffer);
         int batchSize = decoder.int32("batchSize");
         return new ServerStoreOpMessage.IteratorOpenMessage(batchSize);
       }
       case ITERATOR_CLOSE: {
-        StructDecoder<Void> decoder = ITERATOR_CLOSE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = ITERATOR_CLOSE_STRUCT.decoder(messageBuffer);
         UUID identity = UUID.fromString(decoder.string("id"));
         return new ServerStoreOpMessage.IteratorCloseMessage(identity);
       }
       case ITERATOR_ADVANCE: {
-        StructDecoder<Void> decoder = ITERATOR_ADVANCE_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = ITERATOR_ADVANCE_STRUCT.decoder(messageBuffer);
         UUID identity = UUID.fromString(decoder.string("id"));
         int batchSize = decoder.int32("batchSize");
         return new ServerStoreOpMessage.IteratorAdvanceMessage(identity, batchSize);
       }
       case ENABLE_EVENT_LISTENER: {
-        StructDecoder<Void> decoder = ENABLE_EVENT_LISTENER_STRUCT.decoder(messageBuffer);
+        StructDecoder<?> decoder = ENABLE_EVENT_LISTENER_STRUCT.decoder(messageBuffer);
         Boolean enable = decoder.bool("enable");
         return new ServerStoreOpMessage.EnableEventListenerMessage(enable);
       }

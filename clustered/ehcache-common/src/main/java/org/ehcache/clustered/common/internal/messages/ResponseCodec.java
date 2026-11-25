@@ -252,7 +252,7 @@ public class ResponseCodec {
 
   public EhcacheEntityResponse decode(byte[] payload) {
     ByteBuffer buffer = wrap(payload);
-    StructDecoder<Void> decoder = SUCCESS_RESPONSE_STRUCT.decoder(buffer);
+    StructDecoder<?> decoder = SUCCESS_RESPONSE_STRUCT.decoder(buffer);
     Enm<EhcacheResponseType> opCodeEnm = decoder.enm(RESPONSE_TYPE_FIELD_NAME);
 
     if (!opCodeEnm.isFound()) {
@@ -286,7 +286,7 @@ public class ResponseCodec {
       case SERVER_APPEND: {
         decoder = SERVER_APPEND_RESPONSE_STRUCT.decoder(buffer);
         ByteBuffer appended = decoder.byteBuffer(APPENDED_FIELD);
-        StructDecoder<StructDecoder<Void>> chainDecoder = decoder.struct(CHAIN_FIELD);
+        StructDecoder<?> chainDecoder = decoder.struct(CHAIN_FIELD);
         Chain chain = chainDecoder == null ? null : ChainCodec.decodeChain(chainDecoder);
         return serverAppend(appended, chain);
       }
@@ -304,7 +304,7 @@ public class ResponseCodec {
       case SERVER_INVALIDATE_HASH: {
         decoder = SERVER_INVALIDATE_HASH_RESPONSE_STRUCT.decoder(buffer);
         long key = decoder.int64(KEY_FIELD);
-        StructDecoder<StructDecoder<Void>> chainDecoder = decoder.struct(CHAIN_FIELD);
+        StructDecoder<?> chainDecoder = decoder.struct(CHAIN_FIELD);
         Chain evictedChain = chainDecoder == null ? null : ChainCodec.decodeChain(chainDecoder);
         return serverInvalidateHash(key, evictedChain);
       }
@@ -315,7 +315,7 @@ public class ResponseCodec {
       }
       case PREPARE_FOR_DESTROY: {
         decoder = PREPARE_FOR_DESTROY_RESPONSE_STRUCT.decoder(buffer);
-        ArrayDecoder<String, StructDecoder<Void>> storesDecoder = decoder.strings(STORES_FIELD);
+        ArrayDecoder<String, ?> storesDecoder = decoder.strings(STORES_FIELD);
         Set<String> stores = new HashSet<>();
         for (int i = 0; i < storesDecoder.length(); i++) {
           stores.add(storesDecoder.value());
@@ -339,7 +339,7 @@ public class ResponseCodec {
       case ITERATOR_BATCH: {
         decoder = ITERATOR_BATCH_STRUCT.decoder(buffer);
         UUID id = UUID.fromString(decoder.string("id"));
-        StructArrayDecoder<StructDecoder<Void>> chainsDecoder = decoder.structs("chains");
+        StructArrayDecoder<?> chainsDecoder = decoder.structs("chains");
         List<Map.Entry<Long, Chain>> chains = new ArrayList<>(chainsDecoder.length());
         while (chainsDecoder.hasNext()) {
           chains.add(ChainCodec.decodeChainEntry(chainsDecoder.next()));

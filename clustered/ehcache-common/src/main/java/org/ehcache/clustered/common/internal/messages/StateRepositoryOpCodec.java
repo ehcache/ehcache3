@@ -137,7 +137,7 @@ public class StateRepositoryOpCodec {
   }
 
   private StateRepositoryOpMessage.EntrySetMessage decodeEntrySetMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = ENTRY_SET_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<?> decoder = ENTRY_SET_MESSAGE_STRUCT.decoder(messageBuffer);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(MAP_ID_FIELD);
@@ -146,7 +146,7 @@ public class StateRepositoryOpCodec {
   }
 
   private StateRepositoryOpMessage.PutIfAbsentMessage decodePutIfAbsentMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = PUT_IF_ABSENT_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<?> decoder = PUT_IF_ABSENT_MESSAGE_STRUCT.decoder(messageBuffer);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(MAP_ID_FIELD);
@@ -161,7 +161,7 @@ public class StateRepositoryOpCodec {
   }
 
   private StateRepositoryOpMessage.RemoveMessage decodeRemoveMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = REMOVE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<?> decoder = REMOVE_MESSAGE_STRUCT.decoder(messageBuffer);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(MAP_ID_FIELD);
@@ -176,7 +176,7 @@ public class StateRepositoryOpCodec {
   }
 
   private StateRepositoryOpMessage.GetMessage decodeGetMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<?> decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     String mapId = decoder.string(MAP_ID_FIELD);

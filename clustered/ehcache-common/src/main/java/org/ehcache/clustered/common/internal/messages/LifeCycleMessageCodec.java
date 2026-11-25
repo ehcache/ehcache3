@@ -123,7 +123,7 @@ public class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ValidateServerStore decodeValidateServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = validateStoreMessageStruct.decoder(messageBuffer);
+    StructDecoder<?> decoder = validateStoreMessageStruct.decoder(messageBuffer);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
     ServerStoreConfiguration config = configCodec.decodeServerStoreConfiguration(decoder);
@@ -132,7 +132,7 @@ public class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ValidateStoreManager decodeValidateMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = validateMessageStruct.decoder(messageBuffer);
+    StructDecoder<?> decoder = validateMessageStruct.decoder(messageBuffer);
 
     boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
 

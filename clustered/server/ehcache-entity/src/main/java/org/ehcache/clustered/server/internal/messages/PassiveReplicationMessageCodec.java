@@ -109,7 +109,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.InvalidationCompleteMessage decodeInvalidationCompleteMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = INVALIDATION_COMPLETE_STRUCT.decoder(messageBuffer);
+    StructDecoder<?> decoder = INVALIDATION_COMPLETE_STRUCT.decoder(messageBuffer);
 
     Long key = decoder.int64(KEY_FIELD);
 
@@ -121,7 +121,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.ChainReplicationMessage decodeChainReplicationMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = CHAIN_REPLICATION_STRUCT.decoder(messageBuffer);
+    StructDecoder<?> decoder = CHAIN_REPLICATION_STRUCT.decoder(messageBuffer);
 
     Long currentTransactionId = decoder.int64(TRANSACTION_ID_FIELD);
     Long clientId = decoder.int64(CLIENT_ID_FIELD);
