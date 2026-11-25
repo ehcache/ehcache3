@@ -83,7 +83,7 @@ public final class ChainCodec {
   }
 
   public static Chain decodeChain(byte[] payload) {
-    StructDecoder<Void> decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
+    StructDecoder<?> decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
     return decodeChain(decoder);
   }
 

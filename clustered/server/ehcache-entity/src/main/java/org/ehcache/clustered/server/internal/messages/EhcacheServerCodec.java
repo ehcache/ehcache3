@@ -131,13 +131,13 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
   }
 
   private EhcacheMessageTrackerCatchup decodeCatchup(ByteBuffer payload) {
-    StructArrayDecoder<StructDecoder<Void>> array = MESSAGE_HISTORY.decoder(payload).structs(MESSAGE_SEQUENCE);
+    StructArrayDecoder<?> array = MESSAGE_HISTORY.decoder(payload).structs(MESSAGE_SEQUENCE);
     if (array == null) {
       return new EhcacheMessageTrackerCatchup(Collections.emptyList());
     }
     List<RecordedMessage<EhcacheEntityMessage, EhcacheEntityResponse>> list = new ArrayList<>(array.length());
     while (array.hasNext()) {
-      StructDecoder<StructArrayDecoder<StructDecoder<Void>>> decoder = array.next();
+      StructDecoder<?> decoder = array.next();
       long cid = decoder.int64(CLIENT_ID);
       long transaction = decoder.int64(TRANSACTION_ID);
       ByteBuffer buff = decoder.byteBuffer(MESSAGE);

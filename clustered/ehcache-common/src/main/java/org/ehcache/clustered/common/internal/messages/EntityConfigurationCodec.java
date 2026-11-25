@@ -75,7 +75,7 @@ public class EntityConfigurationCodec {
   }
 
   public ClusterTierEntityConfiguration decodeClusteredStoreConfiguration(ByteBuffer buffer) {
-    StructDecoder<Void> decoder = clusteredStoreConfigurationStruct.decoder(buffer);
+    StructDecoder<?> decoder = clusteredStoreConfigurationStruct.decoder(buffer);
     String managerIdentifier = decoder.string(IDENTIFIER);
     if (managerIdentifier == null) {
       throw new IllegalArgumentException("Payload is an invalid content");
@@ -85,14 +85,14 @@ public class EntityConfigurationCodec {
     return new ClusterTierEntityConfiguration(managerIdentifier, storeIdentifier, serverStoreConfiguration);
   }
   public byte[] encode(ClusterTierManagerConfiguration configuration) {
-    StructEncoder<Void> encoder = tierManagerConfigurationStruct.encoder();
+    StructEncoder<?> encoder = tierManagerConfigurationStruct.encoder();
     encoder.string(IDENTIFIER, configuration.getIdentifier());
     configCodec.encodeServerSideConfiguration(encoder, configuration.getConfiguration());
     return encoder.encode().array();
   }
 
   public ClusterTierManagerConfiguration decodeClusterTierManagerConfiguration(byte[] payload) {
-    StructDecoder<Void> decoder = tierManagerConfigurationStruct.decoder(wrap(payload));
+    StructDecoder<?> decoder = tierManagerConfigurationStruct.decoder(wrap(payload));
     String identifier = decoder.string(IDENTIFIER);
     if (identifier == null) {
       throw new IllegalArgumentException("Payload is an invalid content");

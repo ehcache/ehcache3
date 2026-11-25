@@ -55,14 +55,14 @@ public class ReconnectMessageCodec {
   }
 
   public ClusterTierReconnectMessage decode(byte[] payload) {
-    StructDecoder<Void> decoder = CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.decoder(wrap(payload));
-    ArrayDecoder<Long, StructDecoder<Void>> arrayDecoder = decoder.int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD);
+    StructDecoder<?> decoder = CLUSTER_TIER_RECONNECT_MESSAGE_STRUCT.decoder(wrap(payload));
+    ArrayDecoder<Long, ?> arrayDecoder = decoder.int64s(HASH_INVALIDATION_IN_PROGRESS_FIELD);
 
     Set<Long> hashes = decodeLongs(arrayDecoder);
 
     Boolean clearInProgress = decoder.bool(CLEAR_IN_PROGRESS_FIELD);
 
-    ArrayDecoder<Long, StructDecoder<Void>> locksHeldDecoder = decoder.int64s(LOCKS_HELD_FIELD);
+    ArrayDecoder<Long, ?> locksHeldDecoder = decoder.int64s(LOCKS_HELD_FIELD);
     Set<Long> locks = decodeLongs(locksHeldDecoder);
 
     Boolean eventsEnabled = decoder.bool(EVENTS_ENABLED_FIELD);
@@ -70,7 +70,7 @@ public class ReconnectMessageCodec {
     return new ClusterTierReconnectMessage(hashes, locks, clearInProgress != null ? clearInProgress : false, eventsEnabled != null ? eventsEnabled : false);
   }
 
-  private static Set<Long> decodeLongs(ArrayDecoder<Long, StructDecoder<Void>> decoder) {
+  private static Set<Long> decodeLongs(ArrayDecoder<Long, ?> decoder) {
     Set<Long> longs;
     if (decoder != null) {
       longs = new HashSet<>(decoder.length());
