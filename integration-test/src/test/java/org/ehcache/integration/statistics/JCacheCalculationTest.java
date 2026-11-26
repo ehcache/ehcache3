@@ -407,6 +407,9 @@ public class JCacheCalculationTest extends AbstractCacheCalculationTest {
     // We do it twice because the second time we already have compensating counters, so the result might fail
     innerClear();
     innerClear();
+    // A third clear exercises the compensating counters a second time: before the fix for #3302,
+    // cacheHits/cacheMisses were duplicated from the second clear() on and the assertions below failed
+    innerClear();
   }
 
   private void innerClear() {
